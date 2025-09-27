@@ -1,0 +1,12 @@
+{
+  "name": "ebay-price-reducer-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for eBay Price Reducer",
+  "main": "index.js",
+  "dependencies": {
+    "@netlify/functions": "^2.0.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "axios": "^1.5.0",
+    "xml2js": "^0.6.2"
+  }
+}
