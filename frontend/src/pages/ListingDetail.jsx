@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import { listingsApi } from '../services/api'
+import { listingsAPI, priceHistoryAPI } from '../lib/supabase'
 import { toast } from 'react-toastify'
 import {
   ArrowLeftIcon,
@@ -19,23 +19,23 @@ export default function ListingDetail() {
 
   const { data: listing, isLoading } = useQuery(
     ['listing', id],
-    () => listingsApi.getListing(id)
+    () => listingsAPI.getListing(id)
   )
 
   const { data: priceHistory } = useQuery(
     ['priceHistory', id],
-    () => listingsApi.getPriceHistory(id)
+    () => priceHistoryAPI.getPriceHistory(id)
   )
 
   const { data: marketAnalysis } = useQuery(
     ['marketAnalysis', id],
-    () => listingsApi.getMarketAnalysis(id)
+    () => ({ hasData: false })
   )
 
   const { register, handleSubmit, reset } = useForm()
 
   const updateMutation = useMutation(
-    (data) => listingsApi.updateListing(id, data),
+    (data) => listingsAPI.updateListing(id, data),
     {
       onSuccess: () => {
         toast.success('Listing settings updated')
@@ -43,21 +43,21 @@ export default function ListingDetail() {
         setShowSettings(false)
       },
       onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to update listing')
+        toast.error(error.message || 'Failed to update listing')
       }
     }
   )
 
   const reducePriceMutation = useMutation(
-    ({ listingId, customPrice }) => listingsApi.reducePrice(listingId, customPrice),
+    ({ listingId, customPrice }) => listingsAPI.recordPriceReduction(listingId, customPrice || listing?.current_price * 0.95, 'manual'),
     {
       onSuccess: (data) => {
-        toast.success(`Price reduced to $${data.data.newPrice}`)
+        toast.success(`Price reduced to $${data.current_price}`)
         queryClient.invalidateQueries(['listing', id])
         queryClient.invalidateQueries(['priceHistory', id])
       },
       onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to reduce price')
+        toast.error(error.message || 'Failed to reduce price')
       }
     }
   )
@@ -80,7 +80,7 @@ export default function ListingDetail() {
     )
   }
 
-  if (!listing?.data) {
+  if (!listing) {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Listing not found</div>
@@ -91,9 +91,9 @@ export default function ListingDetail() {
     )
   }
 
-  const listingData = listing.data
-  const priceHistoryData = priceHistory?.data?.priceHistory || []
-  const marketData = marketAnalysis?.data
+  const listingData = listing
+  const priceHistoryData = priceHistory || []
+  const marketData = marketAnalysis
 
   return (
     <div className="space-y-6">
@@ -134,10 +134,10 @@ export default function ListingDetail() {
             <div className="card-body">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  {listingData.imageUrls && listingData.imageUrls[0] ? (
+                  {listingData.image_urls && listingData.image_urls[0] ? (
                     <img
                       className="h-32 w-32 rounded-lg object-cover"
-                      src={listingData.imageUrls[0]}
+                      src={listingData.image_urls[0]}
                       alt={listingData.title}
                     />
                   ) : (
@@ -155,7 +155,7 @@ export default function ListingDetail() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-gray-500">eBay Item ID:</span>
-                      <div className="font-medium">{listingData.ebayItemId}</div>
+                      <div className="font-medium">{listingData.ebay_item_id}</div>
                     </div>
                     <div>
                       <span className="text-gray-500">Category:</span>
@@ -187,10 +187,10 @@ export default function ListingDetail() {
                     <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
                       <div>
                         <div className="font-medium">${entry.price}</div>
-                        <div className="text-sm text-gray-500">{entry.reason.replace('_', ' ')}</div>
+                        <div className="text-sm text-gray-500">{entry.reason.replace(/_/g, ' ')}</div>
                       </div>
                       <div className="text-sm text-gray-500">
-                        {new Date(entry.date).toLocaleDateString()}
+                        {new Date(entry.created_at).toLocaleDateString()}
                       </div>
                     </div>
                   ))}
@@ -238,7 +238,7 @@ export default function ListingDetail() {
                   </div>
                 </div>
 
-                {marketData.suggestedPrice < listingData.currentPrice && (
+                {marketData.suggestedPrice < listingData.current_price && (
                   <div className="mt-4 p-3 bg-yellow-50 rounded-md">
                     <p className="text-sm text-yellow-800">
                       Consider reducing your price to ${marketData.suggestedPrice} to be more competitive.
@@ -267,37 +267,37 @@ export default function ListingDetail() {
               <div>
                 <span className="text-gray-500">Current Price:</span>
                 <div className="text-2xl font-bold text-green-600">
-                  ${listingData.currentPrice}
+                  ${listingData.current_price}
                 </div>
               </div>
 
               <div>
                 <span className="text-gray-500">Original Price:</span>
-                <div className="font-medium">${listingData.originalPrice}</div>
+                <div className="font-medium">${listingData.original_price}</div>
               </div>
 
               <div>
                 <span className="text-gray-500">Minimum Price:</span>
-                <div className="font-medium">${listingData.minimumPrice}</div>
+                <div className="font-medium">${listingData.minimum_price}</div>
               </div>
 
               <div>
                 <span className="text-gray-500">Monitoring Status:</span>
                 <div>
                   <span className={`badge ${
-                    listingData.priceReductionEnabled ? 'badge-success' : 'badge-warning'
+                    listingData.price_reduction_enabled ? 'badge-success' : 'badge-warning'
                   }`}>
-                    {listingData.priceReductionEnabled ? 'Active' : 'Paused'}
+                    {listingData.price_reduction_enabled ? 'Active' : 'Paused'}
                   </span>
                 </div>
               </div>
 
-              {listingData.nextPriceReduction && (
+              {listingData.next_price_reduction && (
                 <div>
                   <span className="text-gray-500">Next Reduction:</span>
                   <div className="font-medium flex items-center">
                     <ClockIcon className="h-4 w-4 mr-1" />
-                    {new Date(listingData.nextPriceReduction).toLocaleDateString()}
+                    {new Date(listingData.next_price_reduction).toLocaleDateString()}
                   </div>
                 </div>
               )}
@@ -316,8 +316,8 @@ export default function ListingDetail() {
                     <label className="form-label">
                       <input
                         type="checkbox"
-                        defaultChecked={listingData.priceReductionEnabled}
-                        {...register('priceReductionEnabled')}
+                        defaultChecked={listingData.price_reduction_enabled}
+                        {...register('price_reduction_enabled')}
                         className="mr-2"
                       />
                       Enable Price Monitoring
@@ -327,8 +327,8 @@ export default function ListingDetail() {
                   <div className="form-group">
                     <label className="form-label">Reduction Strategy</label>
                     <select
-                      defaultValue={listingData.reductionStrategy}
-                      {...register('reductionStrategy')}
+                      defaultValue={listingData.reduction_strategy}
+                      {...register('reduction_strategy')}
                       className="form-input"
                     >
                       <option value="fixed_percentage">Fixed Percentage</option>
@@ -343,8 +343,8 @@ export default function ListingDetail() {
                       type="number"
                       min="1"
                       max="50"
-                      defaultValue={listingData.reductionPercentage}
-                      {...register('reductionPercentage', { valueAsNumber: true })}
+                      defaultValue={listingData.reduction_percentage}
+                      {...register('reduction_percentage', { valueAsNumber: true })}
                       className="form-input"
                     />
                   </div>
@@ -355,8 +355,8 @@ export default function ListingDetail() {
                       type="number"
                       min="0.01"
                       step="0.01"
-                      defaultValue={listingData.minimumPrice}
-                      {...register('minimumPrice', { valueAsNumber: true })}
+                      defaultValue={listingData.minimum_price}
+                      {...register('minimum_price', { valueAsNumber: true })}
                       className="form-input"
                     />
                   </div>
@@ -367,8 +367,8 @@ export default function ListingDetail() {
                       type="number"
                       min="1"
                       max="30"
-                      defaultValue={listingData.reductionInterval}
-                      {...register('reductionInterval', { valueAsNumber: true })}
+                      defaultValue={listingData.reduction_interval}
+                      {...register('reduction_interval', { valueAsNumber: true })}
                       className="form-input"
                     />
                   </div>

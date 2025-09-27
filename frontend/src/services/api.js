@@ -1,118 +1,163 @@
-import axios from 'axios'
-import { toast } from 'react-toastify'
+// API Service for eBay Price Reducer
+// Connects frontend to Netlify Functions backend
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/.netlify/functions';
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('authToken')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
+class ApiService {
+  constructor() {
+    this.baseURL = API_BASE_URL;
   }
-)
 
-// Response interceptor
-api.interceptors.response.use(
-  (response) => {
-    return response
-  },
-  (error) => {
-    const message = error.response?.data?.error || error.message || 'An error occurred'
+  // Helper method for making requests
+  async request(endpoint, options = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    };
 
-    if (error.response?.status === 401) {
-      // Handle unauthorized
-      localStorage.removeItem('authToken')
-      toast.error('Session expired. Please log in again.')
-    } else if (error.response?.status >= 500) {
-      toast.error('Server error. Please try again later.')
-    } else {
-      toast.error(message)
+    try {
+      const response = await fetch(url, config);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error(`API Error for ${endpoint}:`, error);
+      throw error;
     }
-
-    return Promise.reject(error)
   }
-)
 
-// API functions
-export const listingsApi = {
-  // Get all listings
-  getListings: (params = {}) => {
-    return api.get('/listings', { params })
-  },
+  // Authentication & User Management
+  async testEbayConnection() {
+    return this.request('/test-ebay-connection', {
+      method: 'GET'
+    });
+  }
 
-  // Get single listing
-  getListing: (id) => {
-    return api.get(`/listings/${id}`)
-  },
+  // Listings Management
+  async getEbayListings(page = 1, limit = 100) {
+    return this.request(`/get-ebay-listings?page=${page}&limit=${limit}`, {
+      method: 'GET'
+    });
+  }
 
-  // Import listings from eBay
-  importListings: (data) => {
-    return api.post('/listings/import', data)
-  },
+  async syncListings(userId) {
+    return this.request('/sync-listings', {
+      method: 'POST',
+      body: JSON.stringify({ userId })
+    });
+  }
 
-  // Update listing settings
-  updateListing: (id, data) => {
-    return api.put(`/listings/${id}`, data)
-  },
+  async togglePriceReduction(itemId, userId, enabled) {
+    return this.request('/toggle-price-reduction', {
+      method: 'POST',
+      body: JSON.stringify({ itemId, userId, enabled })
+    });
+  }
 
-  // Manually reduce price
-  reducePrice: (id, customPrice = null) => {
-    return api.post(`/listings/${id}/reduce-price`, { customPrice })
-  },
+  async updateItemPrice(itemId, newPrice) {
+    return this.request('/update-item-price', {
+      method: 'POST',
+      body: JSON.stringify({ itemId, newPrice })
+    });
+  }
 
-  // Get price history
-  getPriceHistory: (id) => {
-    return api.get(`/listings/${id}/price-history`)
-  },
+  // Price Reduction Engine
+  async runPriceReduction() {
+    return this.request('/price-reduction-engine', {
+      method: 'POST'
+    });
+  }
 
-  // Get market analysis
-  getMarketAnalysis: (id) => {
-    return api.get(`/listings/${id}/market-analysis`)
-  },
+  // Market Analysis
+  async analyzeMarket(itemId = null, keywords = null, categoryId = null) {
+    return this.request('/market-analysis', {
+      method: 'POST',
+      body: JSON.stringify({ itemId, keywords, categoryId })
+    });
+  }
 
-  // Delete listing
-  deleteListing: (id) => {
-    return api.delete(`/listings/${id}`)
-  },
+  // Notifications
+  async sendNotification(userId, type, title, message, data = {}) {
+    return this.request('/notification-service', {
+      method: 'POST',
+      body: JSON.stringify({ userId, type, title, message, data })
+    });
+  }
+
+  // Scheduled Jobs (for admin/testing)
+  async runScheduledJob(jobType = 'all') {
+    return this.request(`/scheduled-jobs?job=${jobType}`, {
+      method: 'POST'
+    });
+  }
+
+  // Import existing listings (from the existing function)
+  async importListings(userId, listings) {
+    return this.request('/import-listings', {
+      method: 'POST',
+      body: JSON.stringify({ userId, listings })
+    });
+  }
+
+  // Reduce specific price (from existing function)
+  async reducePrice(itemId, userId, strategy = 'default') {
+    return this.request('/reduce-price', {
+      method: 'POST',
+      body: JSON.stringify({ itemId, userId, strategy })
+    });
+  }
+
+  // Monitor scheduled price reductions
+  async monitorScheduledReductions() {
+    return this.request('/scheduled-price-monitor', {
+      method: 'GET'
+    });
+  }
 }
 
-export const monitorApi = {
-  // Get monitor status
-  getStatus: () => {
-    return api.get('/monitor/status')
-  },
+// Create and export a singleton instance
+const apiService = new ApiService();
 
-  // Start monitoring
-  start: () => {
-    return api.post('/monitor/start')
-  },
+// Export individual methods for easier importing
+export const {
+  testEbayConnection,
+  getEbayListings,
+  syncListings,
+  togglePriceReduction,
+  updateItemPrice,
+  runPriceReduction,
+  analyzeMarket,
+  sendNotification,
+  runScheduledJob,
+  importListings,
+  reducePrice,
+  monitorScheduledReductions
+} = apiService;
 
-  // Stop monitoring
-  stop: () => {
-    return api.post('/monitor/stop')
-  },
-}
+// Export the full service as default
+export default apiService;
 
-export const healthApi = {
-  // Health check
-  check: () => {
-    return api.get('/health', { baseURL: 'http://localhost:3001' })
-  },
-}
+// Helper function to handle API errors consistently
+export const handleApiError = (error, defaultMessage = 'An error occurred') => {
+  console.error('API Error:', error);
 
-export default api
+  if (error.message) {
+    return error.message;
+  }
+
+  return defaultMessage;
+};
+
+// Helper function to check if we're in demo mode
+export const isDemoMode = () => {
+  return !import.meta.env.VITE_SUPABASE_URL ||
+         import.meta.env.VITE_SUPABASE_URL.includes('your-project-id');
+};

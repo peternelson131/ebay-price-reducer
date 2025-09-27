@@ -1,0 +1,17 @@
+{
+  "name": "ebay-price-reducer",
+  "version": "1.0.0",
+  "description": "eBay automated price reduction application",
+  "scripts": {
+    "test-ebay": "node test-ebay-local.js",
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "axios": "^1.5.0",
+    "dotenv": "^17.2.2",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.38.1"
+  }
+}

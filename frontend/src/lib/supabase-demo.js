@@ -1,7 +1,6 @@
-// Demo mode configuration
-const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
+// Demo/Mock version of Supabase client for testing without backend setup
 
-// Mock data for demo mode
+// Mock data for demonstration
 const mockListings = [
   {
     id: '1',
@@ -131,6 +130,7 @@ const mockListings = [
   }
 ]
 
+// Mock user
 const mockUser = {
   id: 'demo-user-id',
   email: 'demo@example.com',
@@ -140,15 +140,8 @@ const mockUser = {
 // Simulate network delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
-// Log demo mode status
-if (isDemoMode) {
-  console.log('🎭 Running in DEMO MODE with mock data')
-} else {
-  console.log('Real Supabase mode - not implemented yet')
-}
-
-// Mock Supabase client for demo
-const mockSupabase = {
+// Mock Supabase client
+export const supabase = {
   auth: {
     getUser: async () => {
       await delay(100)
@@ -159,6 +152,7 @@ const mockSupabase = {
       return { data: { session: { user: mockUser } }, error: null }
     },
     onAuthStateChange: (callback) => {
+      // Simulate logged in state
       setTimeout(() => callback('SIGNED_IN', { user: mockUser }), 100)
       return { data: { subscription: { unsubscribe: () => {} } } }
     },
@@ -181,19 +175,8 @@ const mockSupabase = {
   }
 }
 
-const realSupabase = {
-  auth: {
-    getUser: () => Promise.reject(new Error('Real Supabase not configured')),
-    getSession: () => Promise.reject(new Error('Real Supabase not configured')),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
-  }
-}
-
-// Export the appropriate client
-export const supabase = isDemoMode ? mockSupabase : realSupabase
-
-// Mock APIs for demo
-const mockListingsAPI = {
+// Mock API functions
+export const listingsAPI = {
   async getListings(filters = {}) {
     await delay(300)
     const { page = 1, limit = 20, status = 'Active' } = filters
@@ -216,6 +199,18 @@ const mockListingsAPI = {
     const listing = mockListings.find(l => l.id === id)
     if (!listing) throw new Error('Listing not found')
     return listing
+  },
+
+  async createListing(listing) {
+    await delay(400)
+    const newListing = {
+      ...listing,
+      id: Math.random().toString(36).substr(2, 9),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    mockListings.push(newListing)
+    return newListing
   },
 
   async updateListing(id, updates) {
@@ -261,17 +256,7 @@ const mockListingsAPI = {
   }
 }
 
-const realListingsAPI = {
-  getListings: () => Promise.reject(new Error('Real Supabase not configured')),
-  getListing: () => Promise.reject(new Error('Real Supabase not configured')),
-  updateListing: () => Promise.reject(new Error('Real Supabase not configured')),
-  deleteListing: () => Promise.reject(new Error('Real Supabase not configured')),
-  recordPriceReduction: () => Promise.reject(new Error('Real Supabase not configured'))
-}
-
-export const listingsAPI = isDemoMode ? mockListingsAPI : realListingsAPI
-
-const mockPriceHistoryAPI = {
+export const priceHistoryAPI = {
   async getPriceHistory(listingId) {
     await delay(200)
     const listing = mockListings.find(l => l.id === listingId)
@@ -280,13 +265,7 @@ const mockPriceHistoryAPI = {
   }
 }
 
-const realPriceHistoryAPI = {
-  getPriceHistory: () => Promise.reject(new Error('Real Supabase not configured'))
-}
-
-export const priceHistoryAPI = isDemoMode ? mockPriceHistoryAPI : realPriceHistoryAPI
-
-const mockUserAPI = {
+export const userAPI = {
   async getProfile() {
     await delay(200)
     return {
@@ -308,14 +287,7 @@ const mockUserAPI = {
   }
 }
 
-const realUserAPI = {
-  getProfile: () => Promise.reject(new Error('Real Supabase not configured')),
-  updateProfile: () => Promise.reject(new Error('Real Supabase not configured'))
-}
-
-export const userAPI = isDemoMode ? mockUserAPI : realUserAPI
-
-const mockAuthAPI = {
+export const authAPI = {
   async signUp(email, password, userData = {}) {
     await delay(500)
     return { data: { user: mockUser }, error: null }
@@ -337,16 +309,7 @@ const mockAuthAPI = {
   }
 }
 
-const realAuthAPI = {
-  signUp: () => Promise.reject(new Error('Real Supabase not configured')),
-  signIn: () => Promise.reject(new Error('Real Supabase not configured')),
-  signOut: () => Promise.reject(new Error('Real Supabase not configured')),
-  resetPassword: () => Promise.reject(new Error('Real Supabase not configured'))
-}
-
-export const authAPI = isDemoMode ? mockAuthAPI : realAuthAPI
-
-// Table names (for compatibility)
+// Table names (kept for compatibility)
 export const TABLES = {
   USERS: 'users',
   LISTINGS: 'listings',
