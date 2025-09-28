@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
+const https = require('https');
 
 // Initialize Supabase
 const supabase = createClient(
@@ -10,6 +11,25 @@ const supabase = createClient(
 // Encryption setup
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
 const IV_LENGTH = 16;
+
+// Helper function to make HTTPS requests
+function httpsGet(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on('error', reject);
+  });
+}
 
 // Helper functions
 function encryptApiKey(apiKey) {
@@ -117,8 +137,7 @@ exports.handler = async (event, context) => {
 
       // Validate API key with Keepa
       try {
-        const validateResponse = await fetch(`https://api.keepa.com/token?key=${apiKey}`);
-        const validation = await validateResponse.json();
+        const validation = await httpsGet(`https://api.keepa.com/token?key=${apiKey}`);
 
         if (!validation || validation.tokensLeft === undefined) {
           return {
@@ -207,8 +226,7 @@ exports.handler = async (event, context) => {
 
       // Test the API key
       try {
-        const response = await fetch(`https://api.keepa.com/token?key=${apiKey}`);
-        const data = await response.json();
+        const data = await httpsGet(`https://api.keepa.com/token?key=${apiKey}`);
 
         return {
           statusCode: 200,
