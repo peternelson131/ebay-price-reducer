@@ -4,16 +4,21 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Demo mode configuration - enable demo mode if explicitly set to true OR no Supabase config
-const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true' || (!supabaseUrl || !supabaseAnonKey)
+// Demo mode configuration - ONLY enable if explicitly set to true
+const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 
 // Initialize real Supabase client
 let realSupabaseClient = null
-if (supabaseUrl && supabaseAnonKey) {
-  realSupabaseClient = createClient(supabaseUrl, supabaseAnonKey)
-  console.log('🔌 Supabase client initialized with real configuration')
+if (!isDemoMode) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Supabase configuration missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.')
+    // In production, these should always be set by Netlify
+  } else {
+    realSupabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+    console.log('🔌 Supabase client initialized with real configuration')
+  }
 } else {
-  console.log('🎭 No Supabase configuration found, using demo mode')
+  console.log('🎭 Demo mode explicitly enabled')
 }
 
 // Mock data for demo mode

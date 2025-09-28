@@ -153,17 +153,41 @@ exports.handler = async (event, context) => {
         // Encrypt and save the API key
         const encryptedKey = encryptApiKey(apiKey);
 
-        // Save ONLY the encrypted API key to user profile
-        // We don't store any Keepa data in the database
-        const { error: updateError } = await supabase
+        // First, check if profile exists
+        const { data: existingProfile } = await supabase
           .from('profiles')
-          .update({
-            keepa_api_key: encryptedKey
-          })
-          .eq('id', user.id);
+          .select('id')
+          .eq('id', user.id)
+          .single();
 
-        if (updateError) {
-          throw updateError;
+        let saveError;
+        if (existingProfile) {
+          // Profile exists, update it
+          const { error } = await supabase
+            .from('profiles')
+            .update({
+              keepa_api_key: encryptedKey,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
+          saveError = error;
+        } else {
+          // Profile doesn't exist, create it
+          const { error } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              email: user.email,
+              keepa_api_key: encryptedKey,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          saveError = error;
+        }
+
+        if (saveError) {
+          console.error('Database error:', saveError);
+          throw saveError;
         }
 
         return {
