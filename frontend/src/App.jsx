@@ -149,7 +149,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-blue-600 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className={location.pathname === '/listings' ? 'w-full px-4 sm:px-6 lg:px-8' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'}>
           <div className="flex justify-between h-16">
             <div className="flex items-center space-x-8">
               <h1 className="text-xl font-bold">eBay Price Reducer</h1>
@@ -174,7 +174,7 @@ export default function App() {
         </div>
       </nav>
 
-      <main className={location.pathname === '/listings' ? 'w-full py-6 px-4' : 'max-w-7xl mx-auto py-6 sm:px-6 lg:px-8'}>
+      <main className={location.pathname === '/listings' ? 'w-full py-6 px-4 sm:px-6 lg:px-8' : 'max-w-7xl mx-auto py-6 sm:px-6 lg:px-8'}>
         <div className={location.pathname === '/listings' ? '' : 'px-4 py-6 sm:px-0'}>
           <Routes>
             <Route path="/" element={<Dashboard />} />

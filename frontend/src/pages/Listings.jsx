@@ -429,16 +429,16 @@ export default function Listings() {
   // Column configuration
   const getColumnConfig = (column) => {
     const configs = {
-      image: { label: 'Image', sortable: false, width: 'w-20' },
-      title: { label: 'Title', sortable: true, sortKey: 'title', width: 'w-1/3' },
-      quantity: { label: 'Quantity', sortable: true, sortKey: 'quantity', width: 'w-16' },
-      currentPrice: { label: 'Current Price', sortable: true, sortKey: 'current_price', width: 'w-24' },
-      minimumPrice: { label: 'Minimum Price', sortable: false, width: 'w-24' },
-      priceReductionEnabled: { label: 'Price Reduction', sortable: true, sortKey: 'price_reduction_enabled', width: 'w-32' },
-      strategy: { label: 'Strategy', sortable: false, width: 'w-40' },
-      suggestedPrice: { label: 'Suggested Price', sortable: false, width: 'w-24' },
-      listingAge: { label: 'Listing Age', sortable: true, sortKey: 'created_at', width: 'w-20' },
-      actions: { label: 'Actions', sortable: false, width: 'w-32' }
+      image: { label: 'Image', sortable: false, width: 'w-20 lg:w-24' },
+      title: { label: 'Title', sortable: true, sortKey: 'title', width: 'w-1/3 lg:w-2/5' },
+      quantity: { label: 'Quantity', sortable: true, sortKey: 'quantity', width: 'w-16 lg:w-20' },
+      currentPrice: { label: 'Current Price', sortable: true, sortKey: 'current_price', width: 'w-24 lg:w-28' },
+      minimumPrice: { label: 'Minimum Price', sortable: false, width: 'w-24 lg:w-28' },
+      priceReductionEnabled: { label: 'Price Reduction', sortable: true, sortKey: 'price_reduction_enabled', width: 'w-32 lg:w-36' },
+      strategy: { label: 'Strategy', sortable: false, width: 'w-40 lg:w-48' },
+      suggestedPrice: { label: 'Suggested Price', sortable: false, width: 'w-24 lg:w-28' },
+      listingAge: { label: 'Listing Age', sortable: true, sortKey: 'created_at', width: 'w-20 lg:w-24' },
+      actions: { label: 'Actions', sortable: false, width: 'w-32 lg:w-36' }
     }
     return configs[column] || { label: column, sortable: false }
   }
