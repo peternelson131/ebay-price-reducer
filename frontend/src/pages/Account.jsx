@@ -16,6 +16,14 @@ export default function Account() {
     cert_id: '',
     refresh_token: ''
   })
+  const [keepaCredentials, setKeepaCredentials] = useState({
+    api_key: ''
+  })
+  const [expandedSections, setExpandedSections] = useState({
+    ebay: false,
+    keepa: false,
+    other: false
+  })
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -124,6 +132,24 @@ export default function Account() {
       return
     }
     saveEbayCredentialsMutation.mutate(ebayCredentials)
+  }
+
+  const handleSaveKeepaCredentials = () => {
+    if (!keepaCredentials.api_key) {
+      alert('Please enter an API key')
+      return
+    }
+    // Save Keepa credentials
+    updateProfileMutation.mutate({
+      keepa_api_key: keepaCredentials.api_key
+    })
+  }
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
   }
 
   const handleTestEbayConnection = async () => {
@@ -547,24 +573,37 @@ export default function Account() {
           {activeTab === 'integrations' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">eBay Developer Integration</h3>
-                <p className="text-sm text-gray-600">Set up eBay API access to enable automatic price updates for your listings.</p>
+                <h3 className="text-lg font-medium text-gray-900">Platform Integrations</h3>
+                <p className="text-sm text-gray-600">Connect your accounts and configure API access for various platforms.</p>
               </div>
 
-              {/* eBay Developer Setup Section */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                <div className="flex items-start space-x-3">
-                  <div className="w-10 h-10 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-sm">
-                    eB
+              {/* eBay Integration - Collapsible */}
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => toggleSection('ebay')}
+                  className="w-full px-6 py-4 bg-blue-50 hover:bg-blue-100 transition-colors flex items-center justify-between"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-sm">
+                      eB
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-medium text-gray-900">eBay Developer Integration</h4>
+                      <p className="text-sm text-gray-600">Connect to eBay for automatic price updates</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900 text-lg">eBay API Developer Setup</h4>
-                    <p className="text-sm text-gray-600 mt-1">
-                      To enable automatic price updates, you need to create an eBay developer application and configure API credentials.
-                    </p>
-                  </div>
-                </div>
-              </div>
+                  <svg
+                    className={`w-5 h-5 text-gray-500 transform transition-transform ${expandedSections.ebay ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {expandedSections.ebay && (
+                  <div className="p-6 space-y-6 border-t border-gray-200">
 
               {/* Step 1: Create Developer Account */}
               <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
@@ -714,8 +753,8 @@ export default function Account() {
                 </div>
               </div>
 
-              {/* Connection Status */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    {/* Connection Status */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-3 h-3 rounded-full ${profile?.ebay_credentials_valid ? 'bg-green-500' : 'bg-red-500'}`}></div>
@@ -739,51 +778,284 @@ export default function Account() {
                 )}
               </div>
 
-              {/* Additional Resources */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                <h5 className="font-medium text-gray-900 text-base mb-3">Additional Resources</h5>
-                <div className="space-y-2 text-sm">
-                  <p>• <a href="https://developer.ebay.com/api-docs/static/oauth-tokens.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">eBay OAuth 2.0 Documentation</a></p>
-                  <p>• <a href="https://developer.ebay.com/api-docs/sell/inventory/overview.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Inventory API Documentation</a></p>
-                  <p>• <a href="https://developer.ebay.com/DevZone/guides/features-guide/default.html#development/Listing-AnItem.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">eBay Listing Management Guide</a></p>
-                  <p>• <a href="https://developer.ebay.com/support" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Developer Support</a></p>
-                </div>
+                    {/* Additional Resources */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-gray-900 text-base mb-3">Additional Resources</h5>
+                      <div className="space-y-2 text-sm">
+                        <p>• <a href="https://developer.ebay.com/api-docs/static/oauth-tokens.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">eBay OAuth 2.0 Documentation</a></p>
+                        <p>• <a href="https://developer.ebay.com/api-docs/sell/inventory/overview.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Inventory API Documentation</a></p>
+                        <p>• <a href="https://developer.ebay.com/DevZone/guides/features-guide/default.html#development/Listing-AnItem.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">eBay Listing Management Guide</a></p>
+                        <p>• <a href="https://developer.ebay.com/support" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Developer Support</a></p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Other Integrations */}
-              <div className="pt-6 border-t border-gray-200">
-                <h4 className="font-medium text-gray-900 text-lg mb-4">Other Integrations</h4>
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-red-600 rounded flex items-center justify-center text-white font-bold">
-                        📧
-                      </div>
-                      <div>
-                        <h5 className="font-medium text-gray-900">Email Notifications</h5>
-                        <p className="text-sm text-gray-600">Receive alerts and reports via email</p>
-                      </div>
+              {/* Keepa Integration - Collapsible */}
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => toggleSection('keepa')}
+                  className="w-full px-6 py-4 bg-orange-50 hover:bg-orange-100 transition-colors flex items-center justify-between"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-orange-600 rounded flex items-center justify-center text-white font-bold text-sm">
+                      K
                     </div>
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                      Configure
-                    </button>
+                    <div className="text-left">
+                      <h4 className="font-medium text-gray-900">Keepa Integration</h4>
+                      <p className="text-sm text-gray-600">Amazon market data and price tracking</p>
+                    </div>
                   </div>
+                  <svg
+                    className={`w-5 h-5 text-gray-500 transform transition-transform ${expandedSections.keepa ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-purple-600 rounded flex items-center justify-center text-white font-bold">
-                        📊
-                      </div>
-                      <div>
-                        <h5 className="font-medium text-gray-900">Analytics Export</h5>
-                        <p className="text-sm text-gray-600">Export data to Google Sheets or CSV</p>
+                {expandedSections.keepa && (
+                  <div className="p-6 space-y-6 border-t border-gray-200">
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                      <h4 className="font-medium text-gray-900 mb-2">What is Keepa?</h4>
+                      <p className="text-sm text-gray-600">
+                        Keepa is a powerful Amazon price tracker that provides historical price data, product research tools,
+                        and market insights. Integrate Keepa to analyze Amazon market trends and optimize your eBay pricing strategy.
+                      </p>
+                    </div>
+
+                    {/* Step 1: Create Keepa Account */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-gray-900 text-base mb-3">Step 1: Create Your Keepa Account</h5>
+                      <div className="space-y-3 text-sm text-gray-700">
+                        <p>1. Visit <a href="https://keepa.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Keepa.com</a></p>
+                        <p>2. Click "Register" in the top right corner</p>
+                        <p>3. Fill in your email address and create a secure password</p>
+                        <p>4. Verify your email address through the confirmation link</p>
+                        <p>5. Log in to your new Keepa account</p>
                       </div>
                     </div>
-                    <button className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-                      Setup
-                    </button>
+
+                    {/* Step 2: Subscribe to API Access */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-gray-900 text-base mb-3">Step 2: Subscribe to API Access</h5>
+                      <div className="space-y-3 text-sm text-gray-700">
+                        <p>Keepa API access requires a subscription. Choose a plan that fits your needs:</p>
+                        <div className="ml-4 space-y-2">
+                          <p>• <strong>Data API:</strong> €49/month - Ideal for price tracking and market analysis</p>
+                          <p>• <strong>Product API:</strong> €89/month - Includes product finder and advanced features</p>
+                          <p>• <strong>Enterprise:</strong> Custom pricing - High-volume access</p>
+                        </div>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mt-3">
+                          <p className="text-yellow-800 text-sm">
+                            <strong>Note:</strong> API access is billed monthly. You can cancel anytime.
+                            Each plan includes 100,000 tokens per month (1 token ≈ 1 product lookup).
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Step 3: Generate API Key */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-gray-900 text-base mb-3">Step 3: Generate Your API Key</h5>
+                      <div className="space-y-3 text-sm text-gray-700">
+                        <p>After subscribing to API access:</p>
+                        <div className="space-y-2">
+                          <p>1. Log in to your Keepa account</p>
+                          <p>2. Navigate to <strong>Account → API Access</strong></p>
+                          <p>3. Click <strong>"Generate New API Key"</strong></p>
+                          <p>4. Give your API key a descriptive name (e.g., "eBay Price Reducer")</p>
+                          <p>5. Set usage limits if desired (optional)</p>
+                          <p>6. Click <strong>"Create API Key"</strong></p>
+                          <p>7. <strong className="text-red-600">Important:</strong> Copy your API key immediately - it won't be shown again!</p>
+                        </div>
+                        <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-3">
+                          <p className="text-blue-800 text-sm">
+                            <strong>Tip:</strong> Store your API key securely. You can regenerate it if lost,
+                            but this will invalidate the old key.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Step 4: Enter API Key */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-gray-900 text-base mb-4">Step 4: Enter Your Keepa API Key</h5>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                          <input
+                            type="password"
+                            placeholder="Enter your Keepa API key"
+                            value={keepaCredentials.api_key}
+                            onChange={(e) => setKeepaCredentials({ api_key: e.target.value })}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Your API key should be 64 characters long and contain letters and numbers.
+                          </p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <button
+                            onClick={handleSaveKeepaCredentials}
+                            className="bg-orange-600 text-white px-4 py-2 rounded text-sm hover:bg-orange-700 w-full sm:w-auto"
+                          >
+                            Save API Key
+                          </button>
+                          <button
+                            className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 w-full sm:w-auto"
+                          >
+                            Test Connection
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* API Features */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-gray-900 text-base mb-3">What You Can Do With Keepa API</h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <h6 className="font-medium text-gray-900 mb-2">Price History</h6>
+                          <ul className="space-y-1 text-gray-600">
+                            <li>• Historical price data</li>
+                            <li>• Sales rank tracking</li>
+                            <li>• Price drop alerts</li>
+                            <li>• Lightning deals data</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <h6 className="font-medium text-gray-900 mb-2">Product Research</h6>
+                          <ul className="space-y-1 text-gray-600">
+                            <li>• Product finder</li>
+                            <li>• Category best sellers</li>
+                            <li>• Competitor analysis</li>
+                            <li>• Review count tracking</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Connection Status */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-3 h-3 rounded-full ${profile?.keepa_api_key ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                          <span className="text-sm font-medium text-gray-900">
+                            Keepa API Status: {profile?.keepa_api_key ? 'Connected' : 'Not Connected'}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {profile?.keepa_api_key ? 'API key configured' : 'No API key'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Additional Resources */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-gray-900 text-base mb-3">Keepa Resources</h5>
+                      <div className="space-y-2 text-sm">
+                        <p>• <a href="https://keepa.com/#!api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">API Documentation</a></p>
+                        <p>• <a href="https://keepa.com/#!discuss/t/api-documentation/1295" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">API Forums & Support</a></p>
+                        <p>• <a href="https://keepa.com/#!addon" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Browser Extension</a></p>
+                        <p>• <a href="https://keepa.com/#!pricing" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Pricing Plans</a></p>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
+              </div>
+
+              {/* Other Integrations - Collapsible */}
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => toggleSection('other')}
+                  className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gray-600 rounded flex items-center justify-center text-white font-bold text-sm">
+                      ⚙️
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-medium text-gray-900">Other Integrations</h4>
+                      <p className="text-sm text-gray-600">Additional tools and export options</p>
+                    </div>
+                  </div>
+                  <svg
+                    className={`w-5 h-5 text-gray-500 transform transition-transform ${expandedSections.other ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {expandedSections.other && (
+                  <div className="p-6 space-y-4 border-t border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-red-600 rounded flex items-center justify-center text-white font-bold">
+                          📧
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-gray-900">Email Notifications</h5>
+                          <p className="text-sm text-gray-600">Receive alerts and reports via email</p>
+                        </div>
+                      </div>
+                      <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto">
+                        Configure
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-purple-600 rounded flex items-center justify-center text-white font-bold">
+                          📊
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-gray-900">Analytics Export</h5>
+                          <p className="text-sm text-gray-600">Export data to Google Sheets or CSV</p>
+                        </div>
+                      </div>
+                      <button className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 w-full sm:w-auto">
+                        Setup
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-green-600 rounded flex items-center justify-center text-white font-bold">
+                          🔄
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-gray-900">Webhooks</h5>
+                          <p className="text-sm text-gray-600">Send real-time updates to external services</p>
+                        </div>
+                      </div>
+                      <button className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 w-full sm:w-auto">
+                        Coming Soon
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-indigo-600 rounded flex items-center justify-center text-white font-bold">
+                          🤖
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-gray-900">Zapier Integration</h5>
+                          <p className="text-sm text-gray-600">Connect to 5,000+ apps via Zapier</p>
+                        </div>
+                      </div>
+                      <button className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 w-full sm:w-auto">
+                        Coming Soon
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
