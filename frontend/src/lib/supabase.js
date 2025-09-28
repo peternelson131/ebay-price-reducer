@@ -412,7 +412,8 @@ const mockUserAPI = {
       ebay_connection_status: 'disconnected',
       ebay_connected_at: null,
       subscription_plan: 'free',
-      listing_limit: 10
+      listing_limit: 10,
+      keepa_api_key: null // Add keepa_api_key field for mock
     }
   },
 
@@ -438,7 +439,8 @@ const realUserAPI = realSupabaseClient ? {
         default_reduction_strategy, default_reduction_percentage, default_reduction_interval,
         email_notifications, price_reduction_alerts,
         subscription_plan, subscription_active, subscription_expires_at, listing_limit,
-        is_active, last_login, login_count
+        is_active, last_login, login_count,
+        keepa_api_key
       `)
       .eq('id', user.id)
       .single()
@@ -481,7 +483,10 @@ const realUserAPI = realSupabaseClient ? {
       // Account status with schema defaults
       is_active: true,
       last_login: null,
-      login_count: 0
+      login_count: 0,
+
+      // Keepa integration
+      keepa_api_key: null
     }
 
     const { data: insertedData, error: insertError } = await realSupabaseClient
