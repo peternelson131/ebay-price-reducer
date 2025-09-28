@@ -640,7 +640,7 @@ export default function Listings() {
                         className="text-sm border border-gray-300 rounded px-2 py-1 bg-white w-full sm:w-auto"
                       >
                         <option value="equals">=</option>
-                        <option value="greater_than">></option>
+                        <option value="greater_than">&gt;</option>
                         <option value="less_than">&lt;</option>
                         <option value="greater_than_equal">≥</option>
                         <option value="less_than_equal">≤</option>
