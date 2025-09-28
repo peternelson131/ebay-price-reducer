@@ -163,18 +163,18 @@ exports.handler = async (event, context) => {
         // Encrypt and save the API key
         const encryptedKey = encryptApiKey(apiKey);
 
-        // First, check if profile exists
-        const { data: existingProfile } = await supabase
-          .from('profiles')
+        // First, check if user exists in users table
+        const { data: existingUser } = await supabase
+          .from('users')
           .select('id')
           .eq('id', user.id)
           .single();
 
         let saveError;
-        if (existingProfile) {
-          // Profile exists, update it
+        if (existingUser) {
+          // User exists, update it
           const { error } = await supabase
-            .from('profiles')
+            .from('users')
             .update({
               keepa_api_key: encryptedKey,
               updated_at: new Date().toISOString()
@@ -182,9 +182,9 @@ exports.handler = async (event, context) => {
             .eq('id', user.id);
           saveError = error;
         } else {
-          // Profile doesn't exist, create it
+          // User doesn't exist, create it with minimal required fields
           const { error } = await supabase
-            .from('profiles')
+            .from('users')
             .insert({
               id: user.id,
               email: user.email,
@@ -226,13 +226,13 @@ exports.handler = async (event, context) => {
 
     if (segments[0] === 'test-connection' && event.httpMethod === 'GET') {
       // Test connection - only fetch the API key, no other stored data
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
+      const { data: userProfile, error: profileError } = await supabase
+        .from('users')
         .select('keepa_api_key')
         .eq('id', user.id)
         .single();
 
-      if (profileError || !profile || !profile.keepa_api_key) {
+      if (profileError || !userProfile || !userProfile.keepa_api_key) {
         return {
           statusCode: 200,
           headers,
@@ -244,7 +244,7 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const apiKey = decryptApiKey(profile.keepa_api_key);
+      const apiKey = decryptApiKey(userProfile.keepa_api_key);
       if (!apiKey) {
         return {
           statusCode: 200,
