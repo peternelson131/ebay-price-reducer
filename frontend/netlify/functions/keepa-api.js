@@ -153,13 +153,12 @@ exports.handler = async (event, context) => {
         // Encrypt and save the API key
         const encryptedKey = encryptApiKey(apiKey);
 
-        // Save to user profile
+        // Save ONLY the encrypted API key to user profile
+        // We don't store any Keepa data in the database
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
-            keepa_api_key: encryptedKey,
-            keepa_tokens_left: validation.tokensLeft,
-            updated_at: new Date().toISOString()
+            keepa_api_key: encryptedKey
           })
           .eq('id', user.id);
 
@@ -192,10 +191,10 @@ exports.handler = async (event, context) => {
     }
 
     if (segments[0] === 'test-connection' && event.httpMethod === 'GET') {
-      // Test connection
+      // Test connection - only fetch the API key, no other stored data
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('keepa_api_key, keepa_tokens_left')
+        .select('keepa_api_key')
         .eq('id', user.id)
         .single();
 
