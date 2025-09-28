@@ -2,9 +2,9 @@
 -- This creates the single, comprehensive users table that the app expects
 -- Consolidates all user data in one place for simplicity and consistency
 
--- Drop existing tables to start fresh (if they exist)
+-- Drop existing tables and views to start fresh (if they exist)
 DROP TABLE IF EXISTS public.profiles CASCADE;
-DROP TABLE IF EXISTS public.user_profiles CASCADE;
+DROP VIEW IF EXISTS public.user_profiles CASCADE;
 
 -- Create the complete users table with all required columns
 CREATE TABLE IF NOT EXISTS public.users (
