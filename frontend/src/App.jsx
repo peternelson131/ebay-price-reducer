@@ -174,8 +174,8 @@ export default function App() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
+      <main className={location.pathname === '/listings' ? 'w-full py-6 px-4' : 'max-w-7xl mx-auto py-6 sm:px-6 lg:px-8'}>
+        <div className={location.pathname === '/listings' ? '' : 'px-4 py-6 sm:px-0'}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/listings" element={<Listings />} />

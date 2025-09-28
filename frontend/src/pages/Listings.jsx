@@ -429,16 +429,16 @@ export default function Listings() {
   // Column configuration
   const getColumnConfig = (column) => {
     const configs = {
-      image: { label: 'Image', sortable: false },
-      title: { label: 'Title', sortable: true, sortKey: 'title' },
-      quantity: { label: 'Quantity', sortable: true, sortKey: 'quantity' },
-      currentPrice: { label: 'Current Price', sortable: true, sortKey: 'current_price' },
-      minimumPrice: { label: 'Minimum Price', sortable: false },
-      priceReductionEnabled: { label: 'Price Reduction', sortable: true, sortKey: 'price_reduction_enabled' },
-      strategy: { label: 'Strategy', sortable: false },
-      suggestedPrice: { label: 'Suggested Price', sortable: false },
-      listingAge: { label: 'Listing Age', sortable: true, sortKey: 'created_at' },
-      actions: { label: 'Actions', sortable: false }
+      image: { label: 'Image', sortable: false, width: 'w-20' },
+      title: { label: 'Title', sortable: true, sortKey: 'title', width: 'w-1/3' },
+      quantity: { label: 'Quantity', sortable: true, sortKey: 'quantity', width: 'w-16' },
+      currentPrice: { label: 'Current Price', sortable: true, sortKey: 'current_price', width: 'w-24' },
+      minimumPrice: { label: 'Minimum Price', sortable: false, width: 'w-24' },
+      priceReductionEnabled: { label: 'Price Reduction', sortable: true, sortKey: 'price_reduction_enabled', width: 'w-32' },
+      strategy: { label: 'Strategy', sortable: false, width: 'w-40' },
+      suggestedPrice: { label: 'Suggested Price', sortable: false, width: 'w-24' },
+      listingAge: { label: 'Listing Age', sortable: true, sortKey: 'created_at', width: 'w-20' },
+      actions: { label: 'Actions', sortable: false, width: 'w-32' }
     }
     return configs[column] || { label: column, sortable: false }
   }
@@ -699,7 +699,7 @@ export default function Listings() {
       {/* Listings Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="w-full table-fixed divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 {columnOrder.map((column) => {
@@ -716,7 +716,7 @@ export default function Listings() {
                       onDragEnd={handleDragEnd}
                       className={`px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
                         config.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
-                      } ${draggedColumn === column ? 'opacity-50' : ''} select-none`}
+                      } ${draggedColumn === column ? 'opacity-50' : ''} ${config.width || ''} select-none`}
                       onClick={config.sortable ? () => handleSort(config.sortKey) : undefined}
                     >
                       <div className="flex items-center space-x-1">
@@ -864,10 +864,11 @@ export default function Listings() {
                       }
                     }
 
+                    const config = getColumnConfig(column)
                     return (
                       <td
                         key={column}
-                        className={`px-4 py-3 ${column === 'actions' ? 'whitespace-nowrap text-sm font-medium' : 'whitespace-nowrap'}`}
+                        className={`px-4 py-3 ${column === 'actions' ? 'whitespace-nowrap text-sm font-medium' : 'whitespace-nowrap'} ${config.width || ''}`}
                       >
                         {renderCell()}
                       </td>
