@@ -128,23 +128,23 @@ export default function Login({ onLogin }) {
     setErrors({})
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Use real authAPI for login
+      const result = await authAPI.signIn(formData.email || formData.username, formData.password)
 
-      // Mock validation - in real app, this would be an API call
-      if (formData.username === 'demo' && formData.password === 'password') {
+      if (result.error) {
+        setErrors({ general: result.error.message })
+      } else {
         const userData = {
-          username: formData.username,
-          name: 'Demo User',
-          email: 'demo@example.com'
+          username: result.data.user.email,
+          name: result.data.user.user_metadata?.name || result.data.user.email,
+          email: result.data.user.email,
+          id: result.data.user.id
         }
         showNotification('success', 'Login successful! Redirecting...')
         setTimeout(() => onLogin(userData), 1000)
-      } else {
-        setErrors({ general: 'Invalid username or password' })
       }
-    } catch (error) {
-      setErrors({ general: 'Login failed. Please try again.' })
+    } catch (err) {
+      setErrors({ general: err.message || 'Login failed. Please try again.' })
     } finally {
       setIsLoading(false)
     }

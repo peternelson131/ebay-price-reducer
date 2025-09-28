@@ -1,5 +1,20 @@
-// Demo mode configuration
-const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
+import { createClient } from '@supabase/supabase-js'
+
+// Real Supabase configuration
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// Demo mode configuration - enable demo mode if explicitly set to true OR no Supabase config
+const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true' || (!supabaseUrl || !supabaseAnonKey)
+
+// Initialize real Supabase client
+let realSupabaseClient = null
+if (supabaseUrl && supabaseAnonKey) {
+  realSupabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+  console.log('🔌 Supabase client initialized with real configuration')
+} else {
+  console.log('🎭 No Supabase configuration found, using demo mode')
+}
 
 // Mock data for demo mode
 const mockListings = [
@@ -181,7 +196,7 @@ const mockSupabase = {
   }
 }
 
-const realSupabase = {
+const realSupabase = realSupabaseClient || {
   auth: {
     getUser: () => Promise.reject(new Error('Real Supabase not configured')),
     getSession: () => Promise.reject(new Error('Real Supabase not configured')),
@@ -261,7 +276,99 @@ const mockListingsAPI = {
   }
 }
 
-const realListingsAPI = {
+const realListingsAPI = realSupabaseClient ? {
+  async getListings(filters = {}) {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { page = 1, limit = 20, status = 'Active' } = filters
+
+    let query = realSupabaseClient
+      .from('listings')
+      .select('*')
+      .eq('user_id', user.id)
+
+    if (status !== 'all') {
+      query = query.eq('status', status)
+    }
+
+    const { data, error, count } = await query
+      .range((page - 1) * limit, page * limit - 1)
+
+    if (error) throw error
+
+    return {
+      listings: data || [],
+      total: count || 0,
+      totalPages: Math.ceil((count || 0) / limit),
+      currentPage: page
+    }
+  },
+
+  async getListing(id) {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { data, error } = await realSupabaseClient
+      .from('listings')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async updateListing(id, updates) {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { data, error } = await realSupabaseClient
+      .from('listings')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async deleteListing(id) {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { error } = await realSupabaseClient
+      .from('listings')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+
+    if (error) throw error
+  },
+
+  async recordPriceReduction(listingId, newPrice, reason = 'manual') {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { data, error } = await realSupabaseClient
+      .from('listings')
+      .update({
+        current_price: newPrice,
+        last_price_reduction: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', listingId)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+} : {
   getListings: () => Promise.reject(new Error('Real Supabase not configured')),
   getListing: () => Promise.reject(new Error('Real Supabase not configured')),
   updateListing: () => Promise.reject(new Error('Real Supabase not configured')),
@@ -297,6 +404,8 @@ const mockUserAPI = {
       default_reduction_percentage: 5,
       default_reduction_interval: 7,
       ebay_user_token: null,
+      ebay_connection_status: 'disconnected',
+      ebay_connected_at: null,
       subscription_plan: 'free',
       listing_limit: 10
     }
@@ -308,12 +417,115 @@ const mockUserAPI = {
   }
 }
 
-const realUserAPI = {
+const realUserAPI = realSupabaseClient ? {
+  async getProfile() {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    console.log('🔍 Getting profile for user:', user.id)
+
+    // Try to get user profile from users table
+    const { data, error } = await realSupabaseClient
+      .from('users')
+      .select(`
+        id, email, name, created_at, updated_at,
+        ebay_user_token, ebay_user_id, ebay_token_expires_at, ebay_credentials_valid,
+        default_reduction_strategy, default_reduction_percentage, default_reduction_interval,
+        email_notifications, price_reduction_alerts,
+        subscription_plan, subscription_active, subscription_expires_at, listing_limit,
+        is_active, last_login, login_count
+      `)
+      .eq('id', user.id)
+      .single()
+
+    // If user profile exists in users table, return it
+    if (!error && data) {
+      console.log('✅ Found user profile in database:', data)
+      return data
+    }
+
+    console.log('⚠️ User profile not found in database, creating profile:', error?.message)
+
+    // If user doesn't exist in users table, create it
+    const newUserProfile = {
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+
+      // eBay credentials
+      ebay_user_token: null,
+      ebay_user_id: null,
+      ebay_token_expires_at: null,
+      ebay_credentials_valid: false,
+
+      // User preferences with schema defaults
+      default_reduction_strategy: 'fixed_percentage',
+      default_reduction_percentage: 5,
+      default_reduction_interval: 7,
+      email_notifications: true,
+      price_reduction_alerts: true,
+
+      // Subscription info with schema defaults
+      subscription_plan: 'free',
+      subscription_active: true,
+      subscription_expires_at: null,
+      listing_limit: 10,
+
+      // Account status with schema defaults
+      is_active: true,
+      last_login: null,
+      login_count: 0
+    }
+
+    const { data: insertedData, error: insertError } = await realSupabaseClient
+      .from('users')
+      .insert(newUserProfile)
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error('❌ Error creating user profile:', insertError)
+      // Return fallback profile even if insert fails
+      return newUserProfile
+    }
+
+    console.log('✅ Created user profile:', insertedData)
+    return insertedData
+  },
+
+  async updateProfile(updates) {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { data, error } = await realSupabaseClient
+      .from('users')
+      .update(updates)
+      .eq('id', user.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+} : {
   getProfile: () => Promise.reject(new Error('Real Supabase not configured')),
   updateProfile: () => Promise.reject(new Error('Real Supabase not configured'))
 }
 
 export const userAPI = isDemoMode ? mockUserAPI : realUserAPI
+
+// Debug logging
+console.log('🔍 API Mode Debug:', {
+  isDemoMode,
+  hasSupabaseUrl: !!supabaseUrl,
+  hasSupabaseKey: !!supabaseAnonKey,
+  hasRealClient: !!realSupabaseClient,
+  demoModeEnv: import.meta.env.VITE_DEMO_MODE,
+  supabaseUrl: supabaseUrl?.substring(0, 30) + '...',
+  usingAPI: isDemoMode ? 'mockUserAPI' : 'realUserAPI'
+})
 
 const mockAuthAPI = {
   async signUp(email, password, userData = {}) {
@@ -334,14 +546,45 @@ const mockAuthAPI = {
   async resetPassword(email) {
     await delay(300)
     return { error: null }
+  },
+
+  async updatePassword(newPassword) {
+    await delay(300)
+    return { error: null }
   }
 }
 
-const realAuthAPI = {
+const realAuthAPI = realSupabaseClient ? {
+  signUp: async (email, password, userData = {}) => {
+    return await realSupabaseClient.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: userData
+      }
+    })
+  },
+  signIn: async (email, password) => {
+    return await realSupabaseClient.auth.signInWithPassword({
+      email: email,
+      password: password
+    })
+  },
+  signOut: async () => {
+    return await realSupabaseClient.auth.signOut()
+  },
+  resetPassword: async (email) => {
+    return await realSupabaseClient.auth.resetPasswordForEmail(email)
+  },
+  updatePassword: async (newPassword) => {
+    return await realSupabaseClient.auth.updateUser({ password: newPassword })
+  }
+} : {
   signUp: () => Promise.reject(new Error('Real Supabase not configured')),
   signIn: () => Promise.reject(new Error('Real Supabase not configured')),
   signOut: () => Promise.reject(new Error('Real Supabase not configured')),
-  resetPassword: () => Promise.reject(new Error('Real Supabase not configured'))
+  resetPassword: () => Promise.reject(new Error('Real Supabase not configured')),
+  updatePassword: () => Promise.reject(new Error('Real Supabase not configured'))
 }
 
 export const authAPI = isDemoMode ? mockAuthAPI : realAuthAPI

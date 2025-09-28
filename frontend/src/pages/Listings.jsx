@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { listingsAPI } from '../lib/supabase'
+import { Link, useNavigate } from 'react-router-dom'
+import { listingsAPI, userAPI } from '../lib/supabase'
+import { getEbayAuthUrl, getEbayConnectionStatus } from '../services/api'
 import { getActiveStrategies, getStrategyById, getStrategyDisplayName } from '../data/strategies'
 
 // Helper functions for localStorage
@@ -44,6 +45,7 @@ const getStoredVisibleColumns = () => {
 }
 
 export default function Listings() {
+  const navigate = useNavigate()
   const [status, setStatus] = useState('Active')
   const [searchTerm, setSearchTerm] = useState('')
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
@@ -81,7 +83,17 @@ export default function Listings() {
     ['listings', { status }],
     () => listingsAPI.getListings({ status }),
     {
-      keepPreviousData: true
+      keepPreviousData: true,
+      refetchOnWindowFocus: false
+    }
+  )
+
+  const { data: userProfile, isLoading: isUserLoading } = useQuery(
+    ['userProfile'],
+    () => userAPI.getProfile(),
+    {
+      retry: 1,
+      refetchOnWindowFocus: false
     }
   )
 
@@ -172,6 +184,11 @@ export default function Listings() {
 
   const handleTogglePriceReduction = (listingId, currentState) => {
     togglePriceReductionMutation.mutate({ listingId, enabled: !currentState })
+  }
+
+  const handleConnectEbay = () => {
+    // Navigate to Account page with integrations tab active
+    navigate('/account?tab=integrations')
   }
 
   const handleSort = (key) => {
@@ -449,6 +466,31 @@ export default function Listings() {
             }`}>
               {notification.message}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* eBay Connection Banner */}
+      {userProfile && userProfile.ebay_connection_status !== 'connected' && (
+        <div className="rounded-md p-4 bg-yellow-50 border border-yellow-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="text-yellow-800">
+                <svg className="w-5 h-5 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <strong>Connect Your eBay Account</strong>
+                <div className="mt-1 text-sm">
+                  You need to connect your eBay account to import and manage your listings automatically.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleConnectEbay}
+              className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            >
+              Connect eBay Account
+            </button>
           </div>
         </div>
       )}

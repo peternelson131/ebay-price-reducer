@@ -104,8 +104,8 @@ export default function Dashboard() {
         {stats.map((stat) => (
           <div key={stat.name} className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <div className={`${stat.bgColor} rounded-md p-3`}>
-                <div className={`w-6 h-6 ${stat.color}`}>📊</div>
+              <div className={`${stat.bgColor} rounded-md p-3 flex items-center justify-center`}>
+                <div className={`w-6 h-6 ${stat.color} flex items-center justify-center text-lg`}>📊</div>
               </div>
               <div className="ml-5">
                 <p className="text-sm font-medium text-gray-500">{stat.name}</p>

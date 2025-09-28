@@ -1,6 +1,6 @@
 const { Handler } = require('@netlify/functions');
 const { createClient } = require('@supabase/supabase-js');
-const EbayClient = require('./utils/ebay-client');
+const { UserEbayClient } = require('./utils/user-ebay-client');
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -21,24 +21,56 @@ const handler = async (event, context) => {
   }
 
   try {
-    // Get user ID from request
-    const { userId } = JSON.parse(event.body || '{}');
-
-    if (!userId) {
+    // Get authorization header
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return {
-        statusCode: 400,
+        statusCode: 401,
         headers,
         body: JSON.stringify({
-          error: 'Missing userId parameter'
+          success: false,
+          error: 'Authentication required',
+          message: 'Please provide a valid authentication token'
         })
       };
     }
 
-    // Initialize eBay client
-    const ebayClient = new EbayClient();
+    // Verify user authentication
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    // Fetch listings from eBay
-    const ebayResponse = await ebayClient.getMyeBaySelling();
+    if (authError || !user) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Invalid authentication token',
+          message: 'Please log in again'
+        })
+      };
+    }
+
+    // Initialize user-specific eBay client
+    const userEbayClient = new UserEbayClient(user.id);
+    await userEbayClient.initialize();
+
+    // Check if user has valid eBay connection
+    if (!userEbayClient.accessToken) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'eBay account not connected',
+          message: 'Please connect your eBay account first',
+          redirectTo: '/ebay-setup'
+        })
+      };
+    }
+
+    // Fetch listings from eBay using user's credentials
+    const ebayResponse = await userEbayClient.getActiveListings(1, 200);
 
     let syncedCount = 0;
     let errorCount = 0;
@@ -60,7 +92,7 @@ const handler = async (event, context) => {
           const { error: upsertError } = await supabase
             .from('listings')
             .upsert({
-              user_id: userId,
+              user_id: user.id,
               ebay_item_id: item.ItemID,
               title: item.Title,
               current_price: parseFloat(currentPrice),
@@ -95,7 +127,7 @@ const handler = async (event, context) => {
     const { error: logError } = await supabase
       .from('sync_errors')
       .insert({
-        user_id: userId,
+        user_id: user.id,
         operation: 'sync_listings',
         success_count: syncedCount,
         error_count: errorCount,
@@ -127,7 +159,7 @@ const handler = async (event, context) => {
       await supabase
         .from('sync_errors')
         .insert({
-          user_id: JSON.parse(event.body || '{}').userId || 'unknown',
+          user_id: user?.id || 'unknown',
           operation: 'sync_listings',
           success_count: 0,
           error_count: 1,

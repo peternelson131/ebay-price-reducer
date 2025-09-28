@@ -14,6 +14,7 @@ export default function Analytics() {
     () => apiService.getEbayListings(),
     {
       enabled: !apiService.isDemoMode?.(),
+      refetchOnWindowFocus: false,
       onError: (error) => {
         console.error('Failed to load listings:', error);
         setNotifications(prev => [...prev, {

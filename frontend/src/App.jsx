@@ -109,6 +109,7 @@ export default function App() {
   const navigate = useNavigate()
   const location = useLocation()
 
+
   useEffect(() => {
     const authState = localStorage.getItem('isAuthenticated')
     const userData = localStorage.getItem('userData')

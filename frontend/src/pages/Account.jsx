@@ -1,11 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI } from '../lib/supabase'
 
 export default function Account() {
+  const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({})
+  const [isEditingPreferences, setIsEditingPreferences] = useState(false)
+  const [preferencesData, setPreferencesData] = useState({})
+  const [ebayCredentials, setEbayCredentials] = useState({
+    app_id: '',
+    dev_id: '',
+    cert_id: '',
+    refresh_token: ''
+  })
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -15,8 +25,40 @@ export default function Account() {
 
   const { data: profile, isLoading } = useQuery(
     ['profile'],
-    () => userAPI.getProfile()
+    () => userAPI.getProfile(),
+    {
+      refetchOnWindowFocus: false
+    }
   )
+
+  // Initialize form states when profile data loads
+  useEffect(() => {
+    if (profile && !isEditing) {
+      setProfileData({
+        name: profile.name || '',
+        default_reduction_strategy: profile.default_reduction_strategy || 'fixed_percentage',
+        default_reduction_percentage: profile.default_reduction_percentage || 5,
+        default_reduction_interval: profile.default_reduction_interval || 7
+      })
+    }
+  }, [profile, isEditing])
+
+  useEffect(() => {
+    if (profile && !isEditingPreferences) {
+      setPreferencesData({
+        email_notifications: profile.email_notifications ?? true,
+        price_reduction_alerts: profile.price_reduction_alerts ?? true
+      })
+    }
+  }, [profile, isEditingPreferences])
+
+  // Handle tab query parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && ['profile', 'preferences', 'security', 'billing', 'integrations'].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   const updateProfileMutation = useMutation(
     (updates) => userAPI.updateProfile(updates),
@@ -32,8 +74,66 @@ export default function Account() {
     }
   )
 
+  const updatePreferencesMutation = useMutation(
+    (updates) => userAPI.updateProfile(updates),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['profile'])
+        setIsEditingPreferences(false)
+        alert('Preferences updated successfully!')
+      },
+      onError: (error) => {
+        alert('Failed to update preferences: ' + error.message)
+      }
+    }
+  )
+
+  const saveEbayCredentialsMutation = useMutation(
+    (credentials) => userAPI.updateProfile({
+      ebay_user_token: credentials.refresh_token,
+      ebay_credentials_valid: true // Will be validated by backend
+    }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['profile'])
+        alert('eBay credentials saved successfully!')
+        setEbayCredentials({
+          app_id: '',
+          dev_id: '',
+          cert_id: '',
+          refresh_token: ''
+        })
+      },
+      onError: (error) => {
+        alert('Failed to save eBay credentials: ' + error.message)
+      }
+    }
+  )
+
   const handleProfileSave = () => {
     updateProfileMutation.mutate(profileData)
+  }
+
+  const handlePreferencesSave = () => {
+    updatePreferencesMutation.mutate(preferencesData)
+  }
+
+  const handleSaveEbayCredentials = () => {
+    if (!ebayCredentials.refresh_token) {
+      alert('Please enter a refresh token')
+      return
+    }
+    saveEbayCredentialsMutation.mutate(ebayCredentials)
+  }
+
+  const handleTestEbayConnection = async () => {
+    if (!profile?.ebay_user_token) {
+      alert('Please save eBay credentials first')
+      return
+    }
+    // For now, just show a success message. In real implementation,
+    // this would test the actual eBay API connection
+    alert('eBay connection test would be performed here')
   }
 
   const handlePasswordChange = async () => {
@@ -48,7 +148,12 @@ export default function Account() {
     }
 
     try {
-      // In demo mode, just show success
+      const { error } = await authAPI.updatePassword(passwordData.newPassword)
+
+      if (error) {
+        throw error
+      }
+
       alert('Password updated successfully!')
       setPasswordData({
         currentPassword: '',
@@ -147,13 +252,13 @@ export default function Account() {
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
                     />
                   ) : (
-                    <div className="text-gray-900">{profile?.name || 'Demo User'}</div>
+                    <div className="text-gray-900">{profile?.name || 'Not set'}</div>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <div className="text-gray-900">{profile?.email || 'demo@example.com'}</div>
+                  <div className="text-gray-900">{profile?.email || 'Not available'}</div>
                 </div>
 
                 <div>
@@ -188,6 +293,22 @@ export default function Account() {
                     />
                   ) : (
                     <div className="text-gray-900">{profile?.default_reduction_percentage || 5}%</div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Default Reduction Interval (Days)</label>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={profileData.default_reduction_interval || profile?.default_reduction_interval || ''}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, default_reduction_interval: parseInt(e.target.value) }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    />
+                  ) : (
+                    <div className="text-gray-900">{profile?.default_reduction_interval || 7} days</div>
                   )}
                 </div>
               </div>
@@ -232,26 +353,65 @@ export default function Account() {
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-sm font-medium text-gray-900">Email Notifications</label>
-                    <p className="text-sm text-gray-600">Receive email alerts for price reductions</p>
+                    <p className="text-sm text-gray-600">Receive general email notifications</p>
                   </div>
-                  <input type="checkbox" defaultChecked className="h-4 w-4 text-blue-600" />
+                  <input
+                    type="checkbox"
+                    checked={isEditingPreferences ? (preferencesData.email_notifications ?? profile?.email_notifications ?? true) : (profile?.email_notifications ?? true)}
+                    onChange={(e) => {
+                      if (isEditingPreferences) {
+                        setPreferencesData(prev => ({ ...prev, email_notifications: e.target.checked }))
+                      }
+                    }}
+                    disabled={!isEditingPreferences}
+                    className="h-4 w-4 text-blue-600"
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-medium text-gray-900">Auto-sync with eBay</label>
-                    <p className="text-sm text-gray-600">Automatically sync listing changes from eBay</p>
+                    <label className="text-sm font-medium text-gray-900">Price Reduction Alerts</label>
+                    <p className="text-sm text-gray-600">Receive alerts when prices are automatically reduced</p>
                   </div>
-                  <input type="checkbox" defaultChecked className="h-4 w-4 text-blue-600" />
+                  <input
+                    type="checkbox"
+                    checked={isEditingPreferences ? (preferencesData.price_reduction_alerts ?? profile?.price_reduction_alerts ?? true) : (profile?.price_reduction_alerts ?? true)}
+                    onChange={(e) => {
+                      if (isEditingPreferences) {
+                        setPreferencesData(prev => ({ ...prev, price_reduction_alerts: e.target.checked }))
+                      }
+                    }}
+                    disabled={!isEditingPreferences}
+                    className="h-4 w-4 text-blue-600"
+                  />
                 </div>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium text-gray-900">Weekly Reports</label>
-                    <p className="text-sm text-gray-600">Receive weekly performance reports</p>
-                  </div>
-                  <input type="checkbox" className="h-4 w-4 text-blue-600" />
-                </div>
+              <div className="flex space-x-3">
+                {isEditingPreferences ? (
+                  <>
+                    <button
+                      onClick={handlePreferencesSave}
+                      disabled={updatePreferencesMutation.isLoading}
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={() => setIsEditingPreferences(false)}
+                      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setIsEditingPreferences(true)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  >
+                    Edit Preferences
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -314,9 +474,17 @@ export default function Account() {
               <div className="bg-green-50 border border-green-200 rounded-md p-4">
                 <div className="flex">
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-green-800">Free Plan</h3>
+                    <h3 className="text-sm font-medium text-green-800">
+                      {profile?.subscription_plan ? profile.subscription_plan.charAt(0).toUpperCase() + profile.subscription_plan.slice(1) : 'Free'} Plan
+                    </h3>
                     <div className="mt-2 text-sm text-green-700">
-                      <p>You're currently on the free plan with up to {profile?.listing_limit || 10} listings.</p>
+                      <p>You're currently on the {profile?.subscription_plan || 'free'} plan with up to {profile?.listing_limit || 10} listings.</p>
+                      {profile?.subscription_active === false && (
+                        <p className="text-red-600 mt-1">⚠️ Subscription inactive</p>
+                      )}
+                      {profile?.subscription_expires_at && (
+                        <p className="mt-1">Expires: {new Date(profile.subscription_expires_at).toLocaleDateString()}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -478,6 +646,8 @@ export default function Account() {
                     <input
                       type="text"
                       placeholder="Enter your eBay App ID"
+                      value={ebayCredentials.app_id}
+                      onChange={(e) => setEbayCredentials(prev => ({ ...prev, app_id: e.target.value }))}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                     />
                   </div>
@@ -486,6 +656,8 @@ export default function Account() {
                     <input
                       type="text"
                       placeholder="Enter your eBay Dev ID"
+                      value={ebayCredentials.dev_id}
+                      onChange={(e) => setEbayCredentials(prev => ({ ...prev, dev_id: e.target.value }))}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                     />
                   </div>
@@ -494,6 +666,8 @@ export default function Account() {
                     <input
                       type="password"
                       placeholder="Enter your eBay Cert ID"
+                      value={ebayCredentials.cert_id}
+                      onChange={(e) => setEbayCredentials(prev => ({ ...prev, cert_id: e.target.value }))}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                     />
                   </div>
@@ -502,14 +676,23 @@ export default function Account() {
                     <input
                       type="password"
                       placeholder="Enter your eBay Refresh Token"
+                      value={ebayCredentials.refresh_token}
+                      onChange={(e) => setEbayCredentials(prev => ({ ...prev, refresh_token: e.target.value }))}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                     />
                   </div>
                   <div className="flex space-x-3">
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+                    <button
+                      onClick={handleSaveEbayCredentials}
+                      disabled={saveEbayCredentialsMutation.isLoading}
+                      className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+                    >
                       Save Credentials
                     </button>
-                    <button className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">
+                    <button
+                      onClick={handleTestEbayConnection}
+                      className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700"
+                    >
                       Test Connection
                     </button>
                   </div>
@@ -520,11 +703,25 @@ export default function Account() {
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-gray-900">eBay API Status: Not Connected</span>
+                    <div className={`w-3 h-3 rounded-full ${profile?.ebay_credentials_valid ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className="text-sm font-medium text-gray-900">
+                      eBay API Status: {profile?.ebay_credentials_valid ? 'Connected' : 'Not Connected'}
+                    </span>
                   </div>
-                  <span className="text-xs text-gray-500">Last checked: Never</span>
+                  <span className="text-xs text-gray-500">
+                    {profile?.ebay_user_token ? 'Token saved' : 'No token'}
+                  </span>
                 </div>
+                {profile?.ebay_user_id && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    eBay User ID: {profile.ebay_user_id}
+                  </div>
+                )}
+                {profile?.ebay_token_expires_at && (
+                  <div className="mt-1 text-xs text-gray-600">
+                    Token expires: {new Date(profile.ebay_token_expires_at).toLocaleDateString()}
+                  </div>
+                )}
               </div>
 
               {/* Additional Resources */}

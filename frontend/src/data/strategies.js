@@ -1,8 +1,8 @@
 // Shared strategy data for the application
 // This acts as a temporary data store until we integrate with a proper API
 
-// This will be dynamically updated by the Strategies component
-let strategies = [
+// Demo strategies for demo mode only
+const demoStrategies = [
   {
     id: '1',
     name: 'Standard Price Drop',
@@ -34,6 +34,15 @@ let strategies = [
     createdAt: '2024-02-10'
   }
 ]
+
+// Check if we're in demo mode
+const isDemoMode = () => {
+  return import.meta.env.VITE_DEMO_MODE === 'true'
+}
+
+// This will be dynamically updated by the Strategies component
+// For new users, start with empty strategies array
+let strategies = isDemoMode() ? [...demoStrategies] : []
 
 export const mockStrategies = strategies
 

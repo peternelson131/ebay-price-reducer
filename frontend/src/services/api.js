@@ -121,6 +121,25 @@ class ApiService {
       method: 'GET'
     });
   }
+
+  // eBay OAuth Management
+  async getEbayAuthUrl() {
+    return this.request('/ebay-oauth?action=auth-url', {
+      method: 'GET'
+    });
+  }
+
+  async getEbayConnectionStatus() {
+    return this.request('/ebay-oauth?action=status', {
+      method: 'GET'
+    });
+  }
+
+  async disconnectEbayAccount() {
+    return this.request('/ebay-oauth', {
+      method: 'DELETE'
+    });
+  }
 }
 
 // Create and export a singleton instance
@@ -139,7 +158,10 @@ export const {
   runScheduledJob,
   importListings,
   reducePrice,
-  monitorScheduledReductions
+  monitorScheduledReductions,
+  getEbayAuthUrl,
+  getEbayConnectionStatus,
+  disconnectEbayAccount
 } = apiService;
 
 // Export the full service as default
@@ -158,6 +180,5 @@ export const handleApiError = (error, defaultMessage = 'An error occurred') => {
 
 // Helper function to check if we're in demo mode
 export const isDemoMode = () => {
-  return !import.meta.env.VITE_SUPABASE_URL ||
-         import.meta.env.VITE_SUPABASE_URL.includes('your-project-id');
+  return import.meta.env.VITE_DEMO_MODE === 'true';
 };
