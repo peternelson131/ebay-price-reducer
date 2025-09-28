@@ -21,10 +21,29 @@ function httpsGet(url) {
         data += chunk;
       });
       res.on('end', () => {
+        console.log('Raw Keepa API response:', data);
+        console.log('Response status:', res.statusCode);
+        console.log('Response headers:', res.headers);
+
+        // Check if response is successful
+        if (res.statusCode !== 200) {
+          reject(new Error(`Keepa API returned status ${res.statusCode}: ${data}`));
+          return;
+        }
+
+        // Check if data looks like JSON
+        if (!data || !data.trim().startsWith('{')) {
+          reject(new Error(`Keepa API returned invalid response: ${data.substring(0, 100)}`));
+          return;
+        }
+
         try {
-          resolve(JSON.parse(data));
+          const parsed = JSON.parse(data);
+          resolve(parsed);
         } catch (e) {
-          reject(e);
+          console.error('JSON parse error:', e);
+          console.error('Raw data that failed to parse:', data);
+          reject(new Error(`Keepa API returned invalid JSON: ${e.message}. Data: ${data.substring(0, 100)}`));
         }
       });
     }).on('error', reject);
