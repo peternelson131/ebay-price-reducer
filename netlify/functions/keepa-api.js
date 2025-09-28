@@ -182,6 +182,7 @@ exports.handler = async (event, context) => {
         };
       }
 
+      try {
         // Encrypt and save the API key
         const encryptedKey = encryptApiKey(apiKey);
 
