@@ -86,10 +86,17 @@ exports.handler = async (event, context) => {
     };
   }
 
+  console.log('Keepa API function called:', {
+    method: event.httpMethod,
+    path: event.path,
+    hasAuth: !!(event.headers.authorization || event.headers.Authorization)
+  });
+
   try {
     // Get auth token
     const authHeader = event.headers.authorization || event.headers.Authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('No authentication token provided');
       return {
         statusCode: 401,
         headers,
@@ -118,8 +125,11 @@ exports.handler = async (event, context) => {
     const path = event.path.replace('/.netlify/functions/keepa-api', '');
     const segments = path.split('/').filter(s => s);
 
+    console.log('Parsed path:', { originalPath: event.path, cleanPath: path, segments });
+
     // Handle different endpoints
     if (segments[0] === 'api-key' && event.httpMethod === 'POST') {
+      console.log('Handling POST /api-key request');
       // Save API key
       const body = JSON.parse(event.body || '{}');
       const { apiKey } = body;

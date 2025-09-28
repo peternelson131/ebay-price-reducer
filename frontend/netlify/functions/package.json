@@ -1,0 +1,8 @@
+{
+  "name": "netlify-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for eBay Price Reducer",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.4"
+  }
+}
