@@ -1,6 +1,10 @@
 import { supabase } from '../lib/supabase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Detect if we're in production (Netlify) or development
+const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+const API_URL = isProduction
+  ? '/.netlify/functions/keepa-api'
+  : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
 
 class KeepaApiService {
   constructor() {
@@ -22,7 +26,12 @@ class KeepaApiService {
     try {
       const token = await this.getAuthToken();
 
-      const response = await fetch(`${API_URL}/api/keepa${endpoint}`, {
+      // Adjust URL based on environment
+      const url = isProduction
+        ? `${API_URL}${endpoint}`
+        : `${API_URL}/api/keepa${endpoint}`;
+
+      const response = await fetch(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
