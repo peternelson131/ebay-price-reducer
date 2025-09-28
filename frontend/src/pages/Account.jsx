@@ -653,7 +653,7 @@ export default function Account() {
               </div>
 
               {/* Step 6: Enter Credentials */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6"}
+              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
                 <h5 className="font-medium text-gray-900 text-base mb-4">Step 6: Enter Your API Credentials</h5>
                 <div className="space-y-4">
                   <div>
