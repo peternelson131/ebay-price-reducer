@@ -205,24 +205,24 @@ export default function RemovalOrders() {
       </div>
 
       {/* Progress Steps */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between">
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-4">
           {[
             { num: 1, label: 'Upload Excel' },
             { num: 2, label: 'Review & Select' },
             { num: 3, label: 'Create Listings' }
           ].map((s, idx) => (
-            <div key={s.num} className="flex items-center">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
+            <div key={s.num} className="flex items-center w-full sm:w-auto">
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 ${
                 step >= s.num ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
               }`}>
                 {step > s.num ? '✓' : s.num}
               </div>
-              <div className={`ml-3 ${step >= s.num ? 'text-gray-900' : 'text-gray-400'}`}>
+              <div className={`ml-3 text-sm sm:text-base ${step >= s.num ? 'text-gray-900' : 'text-gray-400'}`}>
                 {s.label}
               </div>
               {idx < 2 && (
-                <div className={`ml-4 w-20 h-1 ${
+                <div className={`ml-4 w-full sm:w-20 h-1 hidden sm:block ${
                   step > s.num ? 'bg-blue-600' : 'bg-gray-200'
                 }`} />
               )}
@@ -275,7 +275,7 @@ export default function RemovalOrders() {
               <h3 className="text-sm font-medium text-gray-900 mb-2">
                 Expected Excel Columns:
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-gray-600">
                 <div>• ASIN</div>
                 <div>• SKU</div>
                 <div>• FNSKU</div>
@@ -294,11 +294,11 @@ export default function RemovalOrders() {
       {step === 2 && (
         <div className="bg-white rounded-lg shadow">
           <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
               <h2 className="text-lg font-medium text-gray-900">
                 Review Items ({excelData.length} total, {selectedItems.size} selected)
               </h2>
-              <div className="space-x-2">
+              <div className="flex gap-2">
                 <button
                   onClick={selectAll}
                   className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
@@ -314,7 +314,53 @@ export default function RemovalOrders() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="sm:hidden space-y-3">
+              {excelData.map((item) => (
+                <div key={item.id} className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(item.id)}
+                        onChange={() => toggleSelection(item.id)}
+                        className="rounded border-gray-300 mr-3"
+                      />
+                      <div>
+                        <div className="font-medium text-sm">{item.title}</div>
+                        <div className="text-xs text-gray-500">SKU: {item.sku}</div>
+                        {item.asin && (
+                          <div className="text-xs text-gray-500">ASIN: {item.asin}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-500">Qty:</span> {item.quantity}
+                    </div>
+                    <div>
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        item.condition === 'New'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {item.condition}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Original:</span> ${item.originalPrice}
+                    </div>
+                    <div className="font-semibold text-green-600">
+                      <span className="text-gray-500">eBay:</span> ${calculateEbayPrice(item.originalPrice, item.condition)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -381,17 +427,17 @@ export default function RemovalOrders() {
               </table>
             </div>
 
-            <div className="mt-6 flex justify-between">
+            <div className="mt-6 flex flex-col sm:flex-row sm:justify-between gap-3">
               <button
                 onClick={() => setStep(1)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 w-full sm:w-auto"
               >
                 Back
               </button>
               <button
                 onClick={processForEbay}
                 disabled={selectedItems.size === 0 || processing}
-                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
               >
                 {processing ? 'Processing...' : `Process ${selectedItems.size} Items`}
               </button>
@@ -411,13 +457,13 @@ export default function RemovalOrders() {
             <div className="space-y-4 max-h-96 overflow-y-auto">
               {processedData.map((item) => (
                 <div key={item.id} className="border rounded-lg p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <h3 className="font-medium text-gray-900">{item.listingTitle}</h3>
                       <p className="text-sm text-gray-500 mt-1">SKU: {item.sku}</p>
                       <p className="text-sm text-gray-500">Category: {item.ebayCategory}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="sm:text-right">
                       <p className="text-2xl font-bold text-green-600">${item.suggestedPrice}</p>
                       <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
                       <p className="text-sm text-gray-500">Condition: {item.condition}</p>
@@ -427,17 +473,17 @@ export default function RemovalOrders() {
               ))}
             </div>
 
-            <div className="mt-6 flex justify-between">
+            <div className="mt-6 flex flex-col sm:flex-row sm:justify-between gap-3">
               <button
                 onClick={() => setStep(2)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 w-full sm:w-auto"
               >
                 Back
               </button>
               <button
                 onClick={() => createListingsMutation.mutate(processedData)}
                 disabled={createListingsMutation.isLoading}
-                className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 w-full sm:w-auto"
               >
                 {createListingsMutation.isLoading
                   ? 'Creating Listings...'

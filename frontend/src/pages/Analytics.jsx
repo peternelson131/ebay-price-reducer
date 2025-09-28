@@ -55,7 +55,7 @@ export default function Analytics() {
 
   if (apiService.isDemoMode?.()) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <h2 className="text-lg font-semibold text-blue-800 mb-2">Demo Mode - Analytics</h2>
           <p className="text-blue-700">
@@ -63,9 +63,9 @@ export default function Analytics() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Demo Analytics Cards */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-2">Market Analysis</h3>
             <p className="text-gray-600 mb-4">Analyze competitor pricing and market trends</p>
             <div className="bg-gray-100 rounded p-3">
@@ -75,7 +75,7 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-2">Price Recommendations</h3>
             <p className="text-gray-600 mb-4">Get optimal pricing suggestions</p>
             <div className="space-y-2">
@@ -94,7 +94,7 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-2">Market Insights</h3>
             <p className="text-gray-600 mb-4">Understand market dynamics</p>
             <div className="space-y-2">
@@ -118,16 +118,16 @@ export default function Analytics() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Market Analytics</h1>
         <p className="text-gray-600">Analyze market data and optimize your pricing strategy</p>
       </div>
 
       {/* Notifications */}
       {notifications.length > 0 && (
-        <div className="fixed top-4 right-4 z-50 space-y-2">
+        <div className="fixed top-4 right-4 left-4 sm:left-auto max-w-sm sm:max-w-none z-50 space-y-2">
           {notifications.map((notification, index) => (
             <div
               key={index}
@@ -143,7 +143,7 @@ export default function Analytics() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Listings Selection */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-4 border-b border-gray-200">
@@ -203,7 +203,7 @@ export default function Analytics() {
 
                 {marketData && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-4">
                       <div className="bg-green-50 rounded-lg p-3">
                         <div className="text-sm text-gray-600">Average Price</div>
                         <div className="text-xl font-bold text-green-600">
@@ -220,7 +220,7 @@ export default function Analytics() {
 
                     <div className="bg-gray-50 rounded-lg p-3">
                       <div className="text-sm font-medium mb-2">Price Distribution</div>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2 text-sm">
                         <div>Low: {marketData.priceDistribution?.low || 0}</div>
                         <div>Medium: {marketData.priceDistribution?.medium || 0}</div>
                         <div>High: {marketData.priceDistribution?.high || 0}</div>

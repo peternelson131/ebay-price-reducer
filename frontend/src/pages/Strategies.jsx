@@ -101,14 +101,14 @@ export default function Strategies() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Price Reduction Rules</h1>
-          <p className="text-gray-600 mt-2">Create and manage automated price reduction rules for your listings</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Price Reduction Rules</h1>
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">Create and manage automated price reduction rules for your listings</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium flex items-center space-x-2"
+          className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 font-medium flex items-center justify-center space-x-2 w-full sm:w-auto"
         >
           <span>➕</span>
           <span>Add New Rule</span>
@@ -158,13 +158,13 @@ export default function Strategies() {
       )}
 
       {/* Rules List */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">Your Rules ({rules.length})</h3>
         </div>
 
         {rules.length === 0 ? (
-          <div className="px-6 py-12 text-center">
+          <div className="px-4 sm:px-6 py-8 sm:py-12 text-center">
             <div className="text-gray-400 text-6xl mb-4">📋</div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No rules created yet</h3>
             <p className="text-gray-600 mb-4">Create your first price reduction rule to get started</p>
@@ -178,7 +178,7 @@ export default function Strategies() {
         ) : (
           <div className="divide-y divide-gray-200">
             {rules.map((rule) => (
-              <div key={rule.id} className="px-6 py-6">
+              <div key={rule.id} className="px-4 sm:px-6 py-4 sm:py-6">
                 {editingRule === rule.id ? (
                   <EditRuleForm
                     rule={rule}
@@ -187,23 +187,25 @@ export default function Strategies() {
                     showNotification={showNotification}
                   />
                 ) : (
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center space-x-4 mb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
                         <h4 className="text-lg font-medium text-gray-900">{rule.name}</h4>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        <div className="flex items-center gap-2">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           rule.active
                             ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-800'
                         }`}>
                           {rule.active ? 'Active' : 'Inactive'}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          Used by {rule.listingsUsing} listing{rule.listingsUsing !== 1 ? 's' : ''}
-                        </span>
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            Used by {rule.listingsUsing} listing{rule.listingsUsing !== 1 ? 's' : ''}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-6 text-sm">
                         <div className="flex items-center space-x-2">
                           <span className="text-gray-500">Reduction:</span>
                           <div className="font-medium text-blue-600">
@@ -221,10 +223,10 @@ export default function Strategies() {
                       </div>
                     </div>
 
-                    <div className="flex space-x-2 ml-6">
+                    <div className="flex flex-col sm:flex-row gap-2 lg:ml-6">
                       <button
                         onClick={() => handleToggleActive(rule.id)}
-                        className={`px-4 py-2 rounded text-sm font-medium ${
+                        className={`px-4 py-2 rounded text-sm font-medium w-full sm:w-auto ${
                           rule.active
                             ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
                             : 'bg-green-100 text-green-800 hover:bg-green-200'
@@ -234,13 +236,13 @@ export default function Strategies() {
                       </button>
                       <button
                         onClick={() => setEditingRule(rule.id)}
-                        className="bg-blue-100 text-blue-800 px-4 py-2 rounded text-sm font-medium hover:bg-blue-200"
+                        className="bg-blue-100 text-blue-800 px-4 py-2 rounded text-sm font-medium hover:bg-blue-200 w-full sm:w-auto"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteRule(rule.id)}
-                        className="bg-red-100 text-red-800 px-4 py-2 rounded text-sm font-medium hover:bg-red-200"
+                        className="bg-red-100 text-red-800 px-4 py-2 rounded text-sm font-medium hover:bg-red-200 w-full sm:w-auto"
                       >
                         Delete
                       </button>
@@ -255,8 +257,8 @@ export default function Strategies() {
 
       {/* Add New Rule Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">Create New Rule</h3>
               <button

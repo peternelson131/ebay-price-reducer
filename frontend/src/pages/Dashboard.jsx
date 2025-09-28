@@ -117,24 +117,24 @@ export default function Dashboard() {
       </div>
 
       {/* Listings with Price Drop Configuration */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">Your Listings - Apply Price Drop Rules</h3>
         </div>
         <div className="divide-y divide-gray-200">
           {listings?.listings?.map((listing) => (
-            <div key={listing.id} className="px-6 py-6">
-              <div className="flex items-start space-x-4">
+            <div key={listing.id} className="px-4 sm:px-6 py-6">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                 <img
                   src={listing.image_urls[0]}
                   alt={listing.title}
-                  className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                  className="w-full sm:w-20 h-48 sm:h-20 rounded-lg object-cover flex-shrink-0"
                 />
 
                 <div className="flex-1 min-w-0">
                   <h4 className="text-lg font-medium text-gray-900 mb-2">{listing.title}</h4>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-4">
                     <div>
                       <span className="text-sm text-gray-500">Current Price:</span>
                       <div className="text-xl font-bold text-green-600">${listing.current_price}</div>
@@ -154,7 +154,7 @@ export default function Dashboard() {
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h5 className="font-medium text-gray-900 mb-3">Configure Price Drop Rule</h5>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Strategy</label>
                           <select
@@ -205,47 +205,47 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      <div className="flex space-x-3">
+                      <div className="flex flex-col sm:flex-row gap-3">
                         <button
                           onClick={() => handleApplyPriceDropRule(listing.id)}
                           disabled={updateListingMutation.isLoading}
-                          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+                          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50 w-full sm:w-auto"
                         >
                           Apply Price Drop Rule
                         </button>
                         <button
                           onClick={() => setEditingListing(null)}
-                          className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                          className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 w-full sm:w-auto"
                         >
                           Cancel
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium text-center sm:text-left ${
                           listing.price_reduction_enabled
                             ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-800'
                         }`}>
                           {listing.price_reduction_enabled ? '🟢 Active' : '⚪ Inactive'}
                         </span>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-gray-600 text-center sm:text-left">
                           Strategy: {listing.reduction_strategy} • {listing.reduction_percentage}% • Every {listing.reduction_interval} days
                         </span>
                       </div>
 
-                      <div className="flex space-x-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <button
                           onClick={() => setEditingListing(listing.id)}
-                          className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                          className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 w-full sm:w-auto"
                         >
                           Configure Rules
                         </button>
                         <Link
                           to={`/listings/${listing.id}`}
-                          className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700"
+                          className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 w-full sm:w-auto text-center"
                         >
                           View Details
                         </Link>

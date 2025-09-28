@@ -211,29 +211,44 @@ export default function Account() {
         <p className="text-gray-600 mt-2">Manage your account settings and preferences</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6" aria-label="Tabs">
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {/* Mobile Tab Selector */}
+        <div className="sm:hidden">
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            className="w-full px-4 py-3 text-base border-b border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {tabs.map((tab) => (
+              <option key={tab.id} value={tab.id}>
+                {tab.icon} {tab.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Desktop Tab Navigation */}
+        <div className="hidden sm:block border-b border-gray-200">
+          <nav className="flex flex-wrap" aria-label="Tabs">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`${
                   activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
+                    ? 'border-blue-500 text-blue-600 bg-blue-50'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
+                } whitespace-nowrap py-4 px-4 sm:px-6 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors`}
               >
-                <span>{tab.icon}</span>
-                <span>{tab.name}</span>
+                <span className="text-lg">{tab.icon}</span>
+                <span className="hidden md:inline">{tab.name}</span>
               </button>
             ))}
           </nav>
         </div>
 
         {/* Tab Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {activeTab === 'profile' && (
             <div className="space-y-6">
               <div>
@@ -241,7 +256,7 @@ export default function Account() {
                 <p className="text-sm text-gray-600">Update your account profile information.</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                   {isEditing ? (
@@ -313,7 +328,7 @@ export default function Account() {
                 </div>
               </div>
 
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 {isEditing ? (
                   <>
                     <button
@@ -350,7 +365,7 @@ export default function Account() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2 border-b sm:border-0">
                   <div>
                     <label className="text-sm font-medium text-gray-900">Email Notifications</label>
                     <p className="text-sm text-gray-600">Receive general email notifications</p>
@@ -368,7 +383,7 @@ export default function Account() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2 border-b sm:border-0">
                   <div>
                     <label className="text-sm font-medium text-gray-900">Price Reduction Alerts</label>
                     <p className="text-sm text-gray-600">Receive alerts when prices are automatically reduced</p>
@@ -387,7 +402,7 @@ export default function Account() {
                 </div>
               </div>
 
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 {isEditingPreferences ? (
                   <>
                     <button
@@ -490,7 +505,7 @@ export default function Account() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="border border-gray-200 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900">Starter</h4>
                   <div className="text-2xl font-bold text-gray-900 mt-2">$9/mo</div>
@@ -552,7 +567,7 @@ export default function Account() {
               </div>
 
               {/* Step 1: Create Developer Account */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
                 <h5 className="font-medium text-gray-900 text-base mb-3">Step 1: Create eBay Developer Account</h5>
                 <div className="space-y-3 text-sm text-gray-700">
                   <p>1. Visit the <a href="https://developer.ebay.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">eBay Developers Program</a></p>
@@ -563,7 +578,7 @@ export default function Account() {
               </div>
 
               {/* Step 2: Create Application */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
                 <h5 className="font-medium text-gray-900 text-base mb-3">Step 2: Create Your Application</h5>
                 <div className="space-y-3 text-sm text-gray-700">
                   <p>1. Go to "My Account" → "Application Keys" in the developer portal</p>
@@ -580,7 +595,7 @@ export default function Account() {
               </div>
 
               {/* Step 3: API Credentials */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
                 <h5 className="font-medium text-gray-900 text-base mb-3">Step 3: Obtain API Credentials</h5>
                 <div className="space-y-3 text-sm text-gray-700">
                   <p>Once approved, you'll receive these credentials:</p>
@@ -598,7 +613,7 @@ export default function Account() {
               </div>
 
               {/* Step 4: OAuth Setup */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
                 <h5 className="font-medium text-gray-900 text-base mb-3">Step 4: Set Up OAuth 2.0 for Refresh Tokens</h5>
                 <div className="space-y-3 text-sm text-gray-700">
                   <p><strong>Why OAuth 2.0?</strong> Refresh tokens allow continuous API access without requiring users to re-authenticate frequently.</p>
@@ -620,14 +635,14 @@ export default function Account() {
               </div>
 
               {/* Step 5: Generate Refresh Token */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
                 <h5 className="font-medium text-gray-900 text-base mb-3">Step 5: Generate User Refresh Token</h5>
                 <div className="space-y-3 text-sm text-gray-700">
                   <p>To get a refresh token that doesn't expire:</p>
                   <div className="space-y-2">
                     <p>1. <strong>Authorization URL:</strong> Direct users to eBay's OAuth consent page</p>
-                    <div className="bg-gray-50 p-3 rounded border">
-                      <code className="text-xs break-all">
+                    <div className="bg-gray-50 p-3 rounded border overflow-x-auto">
+                      <code className="text-xs block whitespace-pre-wrap break-all">
                         https://auth.ebay.com/oauth2/authorize?client_id=YOUR_APP_ID&response_type=code&redirect_uri=YOUR_REDIRECT_URI&scope=https://api.ebay.com/oauth/api_scope/sell.inventory%20https://api.ebay.com/oauth/api_scope/sell.marketing
                       </code>
                     </div>
@@ -638,7 +653,7 @@ export default function Account() {
               </div>
 
               {/* Step 6: Enter Credentials */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6"}
                 <h5 className="font-medium text-gray-900 text-base mb-4">Step 6: Enter Your API Credentials</h5>
                 <div className="space-y-4">
                   <div>
@@ -681,7 +696,7 @@ export default function Account() {
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                     />
                   </div>
-                  <div className="flex space-x-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={handleSaveEbayCredentials}
                       disabled={saveEbayCredentialsMutation.isLoading}
@@ -725,7 +740,7 @@ export default function Account() {
               </div>
 
               {/* Additional Resources */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
                 <h5 className="font-medium text-gray-900 text-base mb-3">Additional Resources</h5>
                 <div className="space-y-2 text-sm">
                   <p>• <a href="https://developer.ebay.com/api-docs/static/oauth-tokens.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">eBay OAuth 2.0 Documentation</a></p>
@@ -739,7 +754,7 @@ export default function Account() {
               <div className="pt-6 border-t border-gray-200">
                 <h4 className="font-medium text-gray-900 text-lg mb-4">Other Integrations</h4>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-red-600 rounded flex items-center justify-center text-white font-bold">
                         📧
@@ -754,7 +769,7 @@ export default function Account() {
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-purple-600 rounded flex items-center justify-center text-white font-bold">
                         📊
@@ -776,9 +791,9 @@ export default function Account() {
       </div>
 
       {/* Data & Privacy Section */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Data & Privacy</h3>
-        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={handleExportData}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
