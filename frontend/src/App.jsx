@@ -106,6 +106,7 @@ function Dashboard() {
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -151,13 +152,15 @@ export default function App() {
       <nav className="bg-blue-600 text-white shadow-lg">
         <div className={location.pathname === '/listings' ? 'w-full px-4 sm:px-6 lg:px-8' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'}>
           <div className="flex justify-between h-16">
-            <div className="flex items-center space-x-8">
-              <h1 className="text-xl font-bold">eBay Price Reducer</h1>
+            <div className="flex items-center">
+              <h1 className="text-lg sm:text-xl font-bold">eBay Price Reducer</h1>
               {user && (
-                <span className="text-blue-100">Welcome, {user.name || user.username || 'User'}</span>
+                <span className="hidden sm:block text-blue-100 ml-4">Welcome, {user.name || user.username || 'User'}</span>
               )}
             </div>
-            <div className="flex items-center space-x-6">
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-6">
               <Link to="/" className="hover:text-blue-200 transition-colors">Dashboard</Link>
               <Link to="/listings" className="hover:text-blue-200 transition-colors">Listings</Link>
               <Link to="/strategies" className="hover:text-blue-200 transition-colors">Strategies</Link>
@@ -165,12 +168,84 @@ export default function App() {
               <Link to="/account" className="hover:text-blue-200 transition-colors">Account</Link>
               <button
                 onClick={handleLogout}
-                className="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded transition-colors"
+                className="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded transition-colors text-sm"
               >
                 Logout
               </button>
             </div>
+
+            {/* Mobile Hamburger Menu */}
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="text-white hover:text-blue-200 focus:outline-none focus:text-blue-200"
+                aria-label="Toggle menu"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden">
+              <div className="px-2 pt-2 pb-3 space-y-1 border-t border-blue-700">
+                {user && (
+                  <div className="text-blue-100 px-3 py-2 text-sm">Welcome, {user.name || user.username || 'User'}</div>
+                )}
+                <Link
+                  to="/"
+                  className="block px-3 py-2 text-base font-medium hover:text-blue-200 hover:bg-blue-700 rounded-md transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/listings"
+                  className="block px-3 py-2 text-base font-medium hover:text-blue-200 hover:bg-blue-700 rounded-md transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Listings
+                </Link>
+                <Link
+                  to="/strategies"
+                  className="block px-3 py-2 text-base font-medium hover:text-blue-200 hover:bg-blue-700 rounded-md transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Strategies
+                </Link>
+                <Link
+                  to="/analytics"
+                  className="block px-3 py-2 text-base font-medium hover:text-blue-200 hover:bg-blue-700 rounded-md transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Analytics
+                </Link>
+                <Link
+                  to="/account"
+                  className="block px-3 py-2 text-base font-medium hover:text-blue-200 hover:bg-blue-700 rounded-md transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Account
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout()
+                    setMobileMenuOpen(false)
+                  }}
+                  className="block w-full text-left px-3 py-2 text-base font-medium hover:text-blue-200 hover:bg-blue-700 rounded-md transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 

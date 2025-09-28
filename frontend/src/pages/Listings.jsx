@@ -540,14 +540,14 @@ export default function Listings() {
       </div>
 
       {/* Controls Row */}
-      <div className="flex justify-between items-center">
+      <div className="space-y-4 lg:space-y-0 lg:flex lg:justify-between lg:items-center">
         {/* Status Filter */}
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
           {['Active', 'Ended', 'all'].map((statusOption) => (
             <button
               key={statusOption}
               onClick={() => setStatus(statusOption)}
-              className={`px-4 py-2 rounded text-sm font-medium ${
+              className={`px-3 py-2 rounded text-sm font-medium flex-shrink-0 ${
                 status === statusOption
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -559,30 +559,32 @@ export default function Listings() {
         </div>
 
         {/* Filter and Column Controls */}
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2 justify-center lg:justify-end">
           {/* Add Filter Button */}
           <button
             onClick={addFilter}
-            className="bg-green-100 text-green-800 px-4 py-2 rounded text-sm hover:bg-green-200 flex items-center space-x-1"
+            className="bg-green-100 text-green-800 px-3 py-2 rounded text-sm hover:bg-green-200 flex items-center space-x-1 flex-shrink-0"
           >
             <span>+</span>
-            <span>Add Filter</span>
+            <span className="hidden sm:inline">Add Filter</span>
+            <span className="sm:hidden">Filter</span>
           </button>
 
           {/* Clear Filters Button */}
           {filters.length > 0 && (
             <button
               onClick={clearAllFilters}
-              className="bg-red-100 text-red-800 px-4 py-2 rounded text-sm hover:bg-red-200"
+              className="bg-red-100 text-red-800 px-3 py-2 rounded text-sm hover:bg-red-200 flex-shrink-0"
             >
-              Clear All ({filters.length})
+              <span className="hidden sm:inline">Clear All ({filters.length})</span>
+              <span className="sm:hidden">Clear ({filters.length})</span>
             </button>
           )}
 
-          {/* Column Visibility Controls */}
-          <div className="relative">
+          {/* Column Visibility Controls - Hidden on mobile since mobile uses cards */}
+          <div className="hidden lg:block relative">
             <details className="relative">
-              <summary className="bg-gray-100 px-4 py-2 rounded text-sm cursor-pointer hover:bg-gray-200">
+              <summary className="bg-gray-100 px-3 py-2 rounded text-sm cursor-pointer hover:bg-gray-200">
                 Manage Columns
               </summary>
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
@@ -616,79 +618,82 @@ export default function Listings() {
               const isSelect = filterOption?.type === 'select'
 
               return (
-                <div key={filter.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded">
-                  {/* Field Selection */}
-                  <select
-                    value={filter.field}
-                    onChange={(e) => updateFilter(filter.id, { field: e.target.value, operator: 'equals', value: '' })}
-                    className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
-                  >
-                    <option value="">Select Field</option>
-                    {filterOptions.map(option => (
-                      <option key={option.key} value={option.key}>{option.label}</option>
-                    ))}
-                  </select>
-
-                  {/* Operator Selection (for numeric fields) */}
-                  {filter.field && isNumeric && (
+                <div key={filter.id} className="p-3 bg-gray-50 rounded">
+                  <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 sm:items-center">
+                    {/* Field Selection */}
                     <select
-                      value={filter.operator}
-                      onChange={(e) => updateFilter(filter.id, { operator: e.target.value })}
-                      className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+                      value={filter.field}
+                      onChange={(e) => updateFilter(filter.id, { field: e.target.value, operator: 'equals', value: '' })}
+                      className="text-sm border border-gray-300 rounded px-2 py-1 bg-white w-full sm:w-auto"
                     >
-                      <option value="equals">Equals</option>
-                      <option value="greater_than">Greater Than</option>
-                      <option value="less_than">Less Than</option>
-                      <option value="greater_than_equal">Greater Than or Equal</option>
-                      <option value="less_than_equal">Less Than or Equal</option>
+                      <option value="">Select Field</option>
+                      {filterOptions.map(option => (
+                        <option key={option.key} value={option.key}>{option.label}</option>
+                      ))}
                     </select>
-                  )}
 
-                  {/* Operator Selection (for text fields) */}
-                  {filter.field && !isNumeric && !isSelect && (
-                    <select
-                      value={filter.operator}
-                      onChange={(e) => updateFilter(filter.id, { operator: e.target.value })}
-                      className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+                    {/* Operator Selection (for numeric fields) */}
+                    {filter.field && isNumeric && (
+                      <select
+                        value={filter.operator}
+                        onChange={(e) => updateFilter(filter.id, { operator: e.target.value })}
+                        className="text-sm border border-gray-300 rounded px-2 py-1 bg-white w-full sm:w-auto"
+                      >
+                        <option value="equals">=</option>
+                        <option value="greater_than">></option>
+                        <option value="less_than"><</option>
+                        <option value="greater_than_equal">≥</option>
+                        <option value="less_than_equal">≤</option>
+                      </select>
+                    )}
+
+                    {/* Operator Selection (for text fields) */}
+                    {filter.field && !isNumeric && !isSelect && (
+                      <select
+                        value={filter.operator}
+                        onChange={(e) => updateFilter(filter.id, { operator: e.target.value })}
+                        className="text-sm border border-gray-300 rounded px-2 py-1 bg-white w-full sm:w-auto"
+                      >
+                        <option value="equals">Equals</option>
+                        <option value="contains">Contains</option>
+                      </select>
+                    )}
+
+                    {/* Value Input */}
+                    {filter.field && (
+                      <>
+                        {isSelect ? (
+                          <select
+                            value={filter.value}
+                            onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
+                            className="text-sm border border-gray-300 rounded px-2 py-1 bg-white w-full sm:w-auto"
+                          >
+                            <option value="">Select Value</option>
+                            {filterOption.options?.map(option => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type={isNumeric ? 'number' : 'text'}
+                            value={filter.value}
+                            onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
+                            placeholder={`Enter ${filterOption?.label.toLowerCase()}`}
+                            className="text-sm border border-gray-300 rounded px-2 py-1 bg-white w-full sm:w-auto"
+                          />
+                        )}
+                      </>
+                    )}
+
+                    {/* Remove Filter Button */}
+                    <button
+                      onClick={() => removeFilter(filter.id)}
+                      className="text-red-600 hover:text-red-800 text-sm p-2 hover:bg-red-50 rounded flex-shrink-0 self-center sm:self-auto"
+                      aria-label="Remove filter"
                     >
-                      <option value="equals">Equals</option>
-                      <option value="contains">Contains</option>
-                    </select>
-                  )}
-
-                  {/* Value Input */}
-                  {filter.field && (
-                    <>
-                      {isSelect ? (
-                        <select
-                          value={filter.value}
-                          onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
-                          className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
-                        >
-                          <option value="">Select Value</option>
-                          {filterOption.options?.map(option => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type={isNumeric ? 'number' : 'text'}
-                          value={filter.value}
-                          onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
-                          placeholder={`Enter ${filterOption?.label.toLowerCase()}`}
-                          className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
-                        />
-                      )}
-                    </>
-                  )}
-
-                  {/* Remove Filter Button */}
-                  <button
-                    onClick={() => removeFilter(filter.id)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    ✕
-                  </button>
+                      ✕
+                    </button>
+                  </div>
                 </div>
               )
             })}
@@ -696,8 +701,140 @@ export default function Listings() {
         </div>
       )}
 
-      {/* Listings Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Mobile Card View (visible on small screens) */}
+      <div className="lg:hidden space-y-4">
+        {sortedListings.map((listing) => (
+          <div key={listing.id} className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-start space-x-4">
+              <img
+                src={listing.image_urls?.[0] || '/placeholder-image.jpg'}
+                alt={listing.title}
+                className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-gray-900 truncate">{listing.title}</h3>
+                {listing.sku && (
+                  <p className="text-xs text-gray-500 mt-1">SKU: {listing.sku}</p>
+                )}
+
+                <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-500">Current Price:</span>
+                    <div className="font-bold text-green-600">${listing.current_price}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Quantity:</span>
+                    <div className="font-medium">{listing.quantity || 1}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Suggested:</span>
+                    <div className="font-medium text-blue-600">
+                      ${calculateSuggestedPrice(listing.current_price, listing.original_price)}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Age:</span>
+                    <div className="font-medium">{calculateListingAge(listing.created_at || new Date())}</div>
+                  </div>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Minimum Price:</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      defaultValue={listing.minimum_price || ''}
+                      onBlur={(e) => handleMinimumPriceUpdate(listing.id, e.target.value)}
+                      className="w-24 px-2 py-1 text-sm border border-gray-300 rounded"
+                      placeholder="Set min"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Price Reduction:</span>
+                    <div className="flex items-center">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={listing.price_reduction_enabled}
+                          onChange={() => handleTogglePriceReduction(listing.id, listing.price_reduction_enabled)}
+                          disabled={togglePriceReductionMutation.isLoading}
+                          className="sr-only"
+                        />
+                        <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                          listing.price_reduction_enabled ? 'bg-blue-600' : 'bg-gray-200'
+                        }`}>
+                          <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out ${
+                            listing.price_reduction_enabled ? 'translate-x-5' : 'translate-x-0'
+                          }`}></div>
+                        </div>
+                      </label>
+                      <span className={`ml-2 text-xs ${
+                        listing.price_reduction_enabled ? 'text-green-600 font-medium' : 'text-gray-500'
+                      }`}>
+                        {listing.price_reduction_enabled ? 'Active' : 'Paused'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Strategy:</span>
+                    <select
+                      value={listing.reduction_strategy || ''}
+                      onChange={(e) => handleStrategyUpdate(listing.id, e.target.value)}
+                      className="text-sm border border-gray-300 rounded px-2 py-1 max-w-32"
+                    >
+                      <option value="">Select Strategy</option>
+                      {availableStrategies.map((strategy) => (
+                        <option key={strategy.id} value={strategy.id}>
+                          {strategy.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link
+                    to={`/listings/${listing.id}`}
+                    className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
+                  >
+                    View
+                  </Link>
+                  <button
+                    onClick={() => handleReducePrice(listing.id)}
+                    disabled={reducePriceMutation.isLoading}
+                    className="bg-orange-600 text-white px-3 py-1 rounded text-xs hover:bg-orange-700 disabled:opacity-50"
+                  >
+                    Reduce Price
+                  </button>
+                  <button
+                    onClick={() => handleDeleteListing(listing.id)}
+                    disabled={deleteMutation.isLoading}
+                    className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {sortedListings.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-lg shadow">
+            <div className="text-gray-500 mb-4">No listings found</div>
+            <button className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+              Import Your First Listing
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View (visible on large screens) */}
+      <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full table-fixed divide-y divide-gray-200">
             <thead className="bg-gray-50">
