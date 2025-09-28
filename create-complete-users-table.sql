@@ -1,13 +1,27 @@
 -- Complete Users Table Migration
 -- This creates the single, comprehensive users table that the app expects
 -- Consolidates all user data in one place for simplicity and consistency
+-- IMPORTANT: This will drop and recreate dependent tables due to foreign key constraints
 
--- Drop existing tables and views to start fresh (if they exist)
+-- Drop all dependent tables first (CASCADE will handle this but being explicit)
+DROP TABLE IF EXISTS public.keepa_pricing_recommendations CASCADE;
+DROP TABLE IF EXISTS public.keepa_api_usage CASCADE;
+DROP TABLE IF EXISTS public.keepa_competitor_analysis CASCADE;
+DROP TABLE IF EXISTS public.keepa_price_tracking CASCADE;
+DROP TABLE IF EXISTS public.keepa_product_analysis CASCADE;
+DROP TABLE IF EXISTS public.ebay_api_logs CASCADE;
+DROP TABLE IF EXISTS public.sync_errors CASCADE;
+DROP TABLE IF EXISTS public.price_history CASCADE;
+DROP TABLE IF EXISTS public.listings CASCADE;
+DROP TABLE IF EXISTS public.monitor_jobs CASCADE;
+
+-- Drop existing users table and related objects
+DROP TABLE IF EXISTS public.users CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 DROP VIEW IF EXISTS public.user_profiles CASCADE;
 
--- Create the complete users table with all required columns
-CREATE TABLE IF NOT EXISTS public.users (
+-- Create the complete users table properly connected to auth.users
+CREATE TABLE public.users (
     -- Primary key
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
 
@@ -89,6 +103,75 @@ COMMENT ON COLUMN public.users.keepa_api_key IS 'Encrypted Keepa API key for acc
 COMMENT ON COLUMN public.users.ebay_user_token IS 'eBay OAuth token for API access';
 COMMENT ON COLUMN public.users.default_reduction_strategy IS 'Default price reduction strategy: fixed_percentage, market_based, time_based';
 
+-- Recreate essential listings table (connected to new users table)
+CREATE TABLE public.listings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+
+    -- eBay listing data
+    ebay_item_id TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    description TEXT,
+    current_price DECIMAL(10,2) NOT NULL,
+    original_price DECIMAL(10,2) NOT NULL,
+    currency TEXT DEFAULT 'USD',
+    category TEXT,
+    category_id TEXT,
+    condition TEXT,
+    image_urls TEXT[],
+    listing_format TEXT DEFAULT 'FixedPriceItem',
+    quantity INTEGER DEFAULT 1,
+    quantity_available INTEGER DEFAULT 1,
+    listing_status TEXT DEFAULT 'Active',
+    start_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    view_count INTEGER DEFAULT 0,
+    watch_count INTEGER DEFAULT 0,
+
+    -- Price reduction settings
+    price_reduction_enabled BOOLEAN DEFAULT FALSE,
+    reduction_strategy TEXT DEFAULT 'fixed_percentage',
+    reduction_percentage INTEGER DEFAULT 5,
+    minimum_price DECIMAL(10,2) NOT NULL,
+    reduction_interval INTEGER DEFAULT 7,
+    last_price_reduction TIMESTAMP WITH TIME ZONE,
+    next_price_reduction TIMESTAMP WITH TIME ZONE,
+
+    -- Market analysis data
+    market_average_price DECIMAL(10,2),
+    market_lowest_price DECIMAL(10,2),
+    market_highest_price DECIMAL(10,2),
+    market_competitor_count INTEGER,
+    last_market_analysis TIMESTAMP WITH TIME ZONE,
+
+    -- System fields
+    last_synced_with_ebay TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS on listings
+ALTER TABLE public.listings ENABLE ROW LEVEL SECURITY;
+
+-- Create listings policies
+CREATE POLICY "Users can view own listings" ON public.listings
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own listings" ON public.listings
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own listings" ON public.listings
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own listings" ON public.listings
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Create essential indexes
+CREATE INDEX idx_listings_user_id ON public.listings(user_id);
+CREATE INDEX idx_listings_ebay_item_id ON public.listings(ebay_item_id);
+CREATE INDEX idx_listings_status ON public.listings(listing_status);
+
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON public.users TO anon, authenticated;
+GRANT ALL ON public.listings TO anon, authenticated;
