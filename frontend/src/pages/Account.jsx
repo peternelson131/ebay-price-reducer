@@ -76,7 +76,11 @@ export default function Account() {
   // Test Keepa connection on profile load if API key exists
   useEffect(() => {
     if (profile?.keepa_api_key && !keepaConnectionStatus && !connectionStatusLoading) {
-      handleTestKeepaConnection()
+      // Add a small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        handleTestKeepaConnection()
+      }, 500)
+      return () => clearTimeout(timer)
     }
   }, [profile?.keepa_api_key])
 
@@ -166,6 +170,9 @@ export default function Account() {
           message: `API key saved successfully! Tokens available: ${result.validation?.tokensLeft || 'Unknown'}`,
           tokensLeft: result.validation?.tokensLeft
         })
+
+        // Clear the input field after successful save
+        setKeepaCredentials({ api_key: '' })
 
         // Test connection after successful save to update status
         await handleTestKeepaConnection()
@@ -977,21 +984,29 @@ export default function Account() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
                           <input
                             type="password"
-                            placeholder="Enter your Keepa API key"
+                            placeholder={profile?.keepa_api_key ? "••••••••••••••••••••••••••••••••" : "Enter your Keepa API key"}
                             value={keepaCredentials.api_key}
                             onChange={(e) => setKeepaCredentials({ api_key: e.target.value })}
                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                           />
-                          <p className="text-xs text-gray-500 mt-1">
-                            Your API key should be 64 characters long and contain letters and numbers.
-                          </p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-xs text-gray-500">
+                              Your API key should be 64 characters long and contain letters and numbers.
+                            </p>
+                            {profile?.keepa_api_key && (
+                              <span className="text-xs text-green-600 font-medium">
+                                ✓ API key configured
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-3">
                           <button
                             onClick={handleSaveKeepaCredentials}
-                            className="bg-orange-600 text-white px-4 py-2 rounded text-sm hover:bg-orange-700 w-full sm:w-auto"
+                            disabled={keepaTestLoading}
+                            className="bg-orange-600 text-white px-4 py-2 rounded text-sm hover:bg-orange-700 disabled:opacity-50 w-full sm:w-auto"
                           >
-                            Save API Key
+                            {keepaTestLoading ? 'Saving...' : profile?.keepa_api_key ? 'Update API Key' : 'Save API Key'}
                           </button>
                           <button
                             onClick={handleTestKeepaConnection}
