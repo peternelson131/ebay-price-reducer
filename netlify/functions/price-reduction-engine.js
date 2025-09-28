@@ -120,15 +120,7 @@ const handler = async (event, context) => {
               .eq('id', listing.id);
 
             // Log price change
-            await supabase
-              .from('price_history')
-              .insert({
-                listing_id: listing.id,
-                old_price: listing.current_price,
-                new_price: newPrice,
-                change_reason: shouldReduce.reason,
-                created_at: new Date().toISOString()
-              });
+            console.log(`Price changed for ${listing.ebay_item_id}: $${listing.current_price} -> $${newPrice} (${shouldReduce.reason})`);
 
             // Send notification
             await sendPriceReductionNotification(listing, newPrice, shouldReduce.reason, user.id);
@@ -209,15 +201,12 @@ async function checkPriceReductionConditions(listing) {
   const twentyFourHoursAgo = new Date();
   twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
-  const { data: recentReduction } = await supabase
-    .from('price_history')
-    .select('created_at')
-    .eq('listing_id', listing.id)
-    .gte('created_at', twentyFourHoursAgo.toISOString())
-    .limit(1);
-
-  if (recentReduction && recentReduction.length > 0) {
-    return { reduce: false, reason: 'Price reduced recently' };
+  // Check last update time on the listing itself instead of price_history
+  if (listing.updated_at) {
+    const lastUpdate = new Date(listing.updated_at);
+    if (lastUpdate >= twentyFourHoursAgo) {
+      return { reduce: false, reason: 'Price reduced recently' };
+    }
   }
 
   // Check time-based trigger

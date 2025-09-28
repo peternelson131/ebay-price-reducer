@@ -150,14 +150,13 @@ const handler = async (event, context) => {
       console.error('eBay API error:', ebayError)
 
       // In production, you might want to fail here
-      // For demo, we'll continue and just log the error
-      await supabase
-        .from('sync_errors')
-        .insert({
-          listing_id: listing.id,
-          error_message: `Failed to update price on eBay: ${ebayError.message}`,
-          resolved: false
-        })
+      // For demo, we'll continue and just log the error to console (sync_errors table removed)
+      console.error('eBay price update error:', {
+        listing_id: listing.id,
+        error_message: `Failed to update price on eBay: ${ebayError.message}`,
+        timestamp: new Date().toISOString(),
+        resolved: false
+      })
     }
 
     // Update listing in database
@@ -179,14 +178,8 @@ const handler = async (event, context) => {
       throw updateError
     }
 
-    // Add to price history
-    await supabase
-      .from('price_history')
-      .insert({
-        listing_id: listingId,
-        price: newPrice,
-        reason: customPrice ? 'manual' : `${listing.reduction_strategy}_reduction`
-      })
+    // Log price change (price_history table removed)
+    console.log(`Price change logged for listing ${listingId}: $${listing.current_price} -> $${newPrice} (${customPrice ? 'manual' : `${listing.reduction_strategy}_reduction`})`);
 
     return {
       statusCode: 200,

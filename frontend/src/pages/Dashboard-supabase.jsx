@@ -30,24 +30,22 @@ export default function Dashboard() {
   const totalListings = listingsData?.total || 0
   const activeMonitoring = listings.filter(l => l.price_reduction_enabled).length
 
-  // Calculate total savings from price history
+  // Calculate total savings based on original vs current price
   const totalSavings = listings.reduce((total, listing) => {
-    if (listing.price_history && listing.price_history.length > 1) {
-      const originalPrice = listing.original_price
-      const currentPrice = listing.current_price
+    const originalPrice = listing.original_price
+    const currentPrice = listing.current_price
+    if (originalPrice && currentPrice && originalPrice > currentPrice) {
       return total + (originalPrice - currentPrice)
     }
     return total
   }, 0)
 
-  // Count recent price reductions (today)
+  // Count recent price reductions (today) based on last_price_reduction field
   const today = new Date().toDateString()
   const reductionsToday = listings.reduce((count, listing) => {
-    if (listing.price_history) {
-      return count + listing.price_history.filter(entry =>
-        new Date(entry.created_at).toDateString() === today &&
-        entry.reason.includes('reduction')
-      ).length
+    if (listing.last_price_reduction) {
+      const reductionDate = new Date(listing.last_price_reduction).toDateString()
+      return reductionDate === today ? count + 1 : count
     }
     return count
   }, 0)

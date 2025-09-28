@@ -308,22 +308,16 @@ router.get('/usage-stats', asyncHandler(async (req, res) => {
       process.env.SUPABASE_SERVICE_KEY
     );
 
-    // Get daily usage
-    const { data: dailyUsage } = await supabase
-      .rpc('get_keepa_daily_usage', { p_user_id: userId });
-
-    // Get current token balance
-    const { data: userData } = await supabase
-      .from('users')
-      .select('keepa_tokens_left, keepa_subscription_level')
-      .eq('id', userId)
-      .single();
+    // Return basic usage stats since Keepa tracking tables don't exist
+    // Daily usage and token tracking would be logged to console instead
+    console.log('Keepa usage stats requested for user:', userId);
 
     res.json({
       success: true,
-      tokensLeft: userData?.keepa_tokens_left || 0,
-      subscriptionLevel: userData?.keepa_subscription_level || 'basic',
-      dailyUsage: dailyUsage || []
+      tokensLeft: 0, // No token tracking in current schema
+      subscriptionLevel: 'basic', // Default subscription level
+      dailyUsage: [], // No usage tracking in current schema
+      message: 'Usage tracking is currently logged to console only'
     });
   } catch (error) {
     res.status(400).json({
@@ -342,22 +336,17 @@ async function trackApiUsage(userId, endpoint, tokens = 1, tokensLeft = null, re
       process.env.SUPABASE_SERVICE_KEY
     );
 
-    await supabase.rpc('track_keepa_api_usage', {
-      p_user_id: userId,
-      p_endpoint: endpoint,
-      p_tokens: tokens,
-      p_response_time: responseTime,
-      p_status: error ? 400 : 200,
-      p_error: error
+    // Log API usage since tracking function/table doesn't exist
+    console.log('Keepa API usage:', {
+      user_id: userId,
+      endpoint: endpoint,
+      tokens: tokens,
+      response_time: responseTime,
+      status: error ? 400 : 200,
+      error: error,
+      tokens_left: tokensLeft,
+      timestamp: new Date().toISOString()
     });
-
-    // Update tokens left if provided
-    if (tokensLeft !== null) {
-      await supabase
-        .from('users')
-        .update({ keepa_tokens_left: tokensLeft })
-        .eq('id', userId);
-    }
   } catch (err) {
     console.error('Error tracking API usage:', err);
   }

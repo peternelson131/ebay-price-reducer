@@ -132,18 +132,23 @@ class KeepaService {
       // Encrypt the API key
       const encryptedKey = this.encryptApiKey(apiKey);
 
-      // Store in database
+      // Store in database (only keepa_api_key exists in current schema)
       const { data, error } = await supabase
         .from('users')
         .update({
           keepa_api_key: encryptedKey,
-          keepa_api_valid: true,
-          keepa_tokens_left: validation.tokensLeft,
-          keepa_last_validated: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', userId)
         .single();
+
+      // Log additional validation data since we don't have those fields in DB
+      console.log('Keepa API validation result:', {
+        userId,
+        tokensLeft: validation.tokensLeft,
+        valid: true,
+        validatedAt: new Date().toISOString()
+      });
 
       if (error) throw error;
 
@@ -163,16 +168,13 @@ class KeepaService {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('keepa_api_key, keepa_api_valid')
+        .select('keepa_api_key')
         .eq('id', userId)
         .single();
 
       if (error) throw error;
       if (!data?.keepa_api_key) {
         throw new Error('No Keepa API key found for user');
-      }
-      if (!data.keepa_api_valid) {
-        throw new Error('Keepa API key is marked as invalid');
       }
 
       return this.decryptApiKey(data.keepa_api_key);
@@ -322,20 +324,16 @@ class KeepaService {
         metaData: JSON.stringify({ userId })
       });
 
-      // Store tracking in our database
-      const { error } = await supabase
-        .from('keepa_price_tracking')
-        .insert({
-          user_id: userId,
-          asin: asin,
-          target_price: targetPrice,
-          domain: domain,
-          tracking_id: response.data.trackingId,
-          active: true,
-          created_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
+      // Log tracking data since keepa_price_tracking table doesn't exist
+      console.log('Keepa price tracking created:', {
+        user_id: userId,
+        asin: asin,
+        target_price: targetPrice,
+        domain: domain,
+        tracking_id: response.data.trackingId,
+        active: true,
+        created_at: new Date().toISOString()
+      });
 
       return {
         success: true,
@@ -491,18 +489,37 @@ class KeepaService {
   // Store product analysis in database
   async storeProductAnalysis(userId, asin, productData) {
     try {
-      const { error } = await supabase
-        .from('keepa_product_analysis')
-        .upsert({
+      // Store essential product analysis data as JSON in listings table if listing exists
+      // Otherwise, just log the analysis data
+      const { data: listing } = await supabase
+        .from('listings')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('ebay_item_id', asin)
+        .single();
+
+      if (listing) {
+        // Store analysis data in existing listing
+        await supabase
+          .from('listings')
+          .update({
+            market_average_price: productData.stats?.avg30 || null,
+            market_lowest_price: productData.stats?.min30 || null,
+            market_highest_price: productData.currentPrice || null,
+            last_market_analysis: new Date().toISOString()
+          })
+          .eq('id', listing.id);
+
+        console.log('Stored Keepa analysis in listings table for:', { userId, asin, listingId: listing.id });
+      } else {
+        // Log analysis data since no matching listing found
+        console.log('Keepa product analysis (no matching listing):', {
           user_id: userId,
           asin: asin,
           product_data: productData,
           analyzed_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,asin'
         });
-
-      if (error) throw error;
+      }
     } catch (error) {
       console.error('Error storing product analysis:', error);
     }
@@ -609,14 +626,12 @@ class KeepaService {
         });
       }
 
-      // Store analysis
-      await supabase
-        .from('keepa_competitor_analysis')
-        .insert({
-          user_id: userId,
-          analysis_data: analysis,
-          created_at: new Date().toISOString()
-        });
+      // Log competitor analysis since keepa_competitor_analysis table doesn't exist
+      console.log('Keepa competitor analysis:', {
+        user_id: userId,
+        analysis_data: analysis,
+        created_at: new Date().toISOString()
+      });
 
       return analysis;
     } catch (error) {

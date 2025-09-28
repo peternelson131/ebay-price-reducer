@@ -116,14 +116,8 @@ const handler = async (event, context) => {
           if (error) {
             errors.push(`Failed to import ${ebayListing.title}: ${error.message}`)
           } else {
-            // Create initial price history entry
-            await supabase
-              .from('price_history')
-              .insert({
-                listing_id: listing.id,
-                price: listing.current_price,
-                reason: 'initial'
-              })
+            // Log initial price (price_history table removed)
+            console.log(`Initial price logged for imported listing ${listing.id}: $${listing.current_price}`);
 
             importedListings.push(listing)
           }

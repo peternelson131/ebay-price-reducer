@@ -122,29 +122,16 @@ async function getOverviewAnalytics(timeframe, logger) {
 
   if (listingsError) throw listingsError;
 
-  // Recent price reductions
-  const { data: priceReductions, error: reductionsError } = await supabase
-    .from('price_history')
-    .select('id, old_price, new_price, created_at')
-    .gte('created_at', startDate)
-    .order('created_at', { ascending: false });
+  // Note: Price history tracking removed - logging price reductions to console instead
+  console.log('Price reduction analytics: Historical data not available due to removed price_history table');
 
-  if (reductionsError) throw reductionsError;
+  // Note: sync_errors table removed - returning placeholder data
+  console.log('Analytics: sync_errors table no longer available, using placeholder data');
+  const syncErrors = []; // Placeholder since table was removed
 
-  // Recent sync errors
-  const { data: syncErrors, error: errorsError } = await supabase
-    .from('sync_errors')
-    .select('id, created_at, resolved')
-    .gte('created_at', startDate);
-
-  if (errorsError) throw errorsError;
-
-  // Calculate metrics
-  const totalSavings = priceReductions.reduce((sum, reduction) =>
-    sum + (reduction.old_price - reduction.new_price), 0);
-
+  // Calculate metrics without price history
   const enabledListings = activeListings.filter(l => l.price_reduction_enabled);
-  const unresolvedErrors = syncErrors.filter(e => !e.resolved);
+  const unresolvedErrors = [];
 
   return {
     users: {
@@ -158,16 +145,16 @@ async function getOverviewAnalytics(timeframe, logger) {
         (enabledListings.length / activeListings.length * 100).toFixed(1) : 0
     },
     priceReductions: {
-      total: priceReductions.length,
-      totalSavings: parseFloat(totalSavings.toFixed(2)),
-      averageSaving: priceReductions.length > 0 ?
-        parseFloat((totalSavings / priceReductions.length).toFixed(2)) : 0
+      total: 0,
+      totalSavings: 0,
+      averageSaving: 0,
+      note: 'Price history tracking removed - check application logs for price reduction activity'
     },
     errors: {
-      total: syncErrors.length,
-      unresolved: unresolvedErrors.length,
-      resolutionRate: syncErrors.length > 0 ?
-        ((syncErrors.length - unresolvedErrors.length) / syncErrors.length * 100).toFixed(1) : 100
+      total: 0,
+      unresolved: 0,
+      resolutionRate: 100,
+      note: 'Error tracking temporarily unavailable - sync_errors table removed'
     },
     period: {
       timeframe,
@@ -183,75 +170,22 @@ async function getOverviewAnalytics(timeframe, logger) {
 async function getPriceReductionAnalytics(timeframe, logger) {
   const startDate = getStartDate(timeframe);
 
-  logger.debug('Fetching price reduction analytics', { timeframe, startDate });
+  logger.debug('Fetching price reduction analytics (price_history table removed)', { timeframe, startDate });
 
-  const { data: priceHistory, error } = await supabase
-    .from('price_history')
-    .select(`
-      id,
-      old_price,
-      new_price,
-      change_percentage,
-      created_at,
-      listing_id,
-      listings!inner(title, category_name)
-    `)
-    .gte('created_at', startDate)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-
-  // Group by day
-  const dailyReductions = {};
-  const categoryStats = {};
-
-  priceHistory.forEach(reduction => {
-    const date = new Date(reduction.created_at).toISOString().split('T')[0];
-    const saving = reduction.old_price - reduction.new_price;
-
-    if (!dailyReductions[date]) {
-      dailyReductions[date] = { count: 0, totalSavings: 0 };
-    }
-    dailyReductions[date].count++;
-    dailyReductions[date].totalSavings += saving;
-
-    // Category statistics
-    const category = reduction.listings.category_name || 'Unknown';
-    if (!categoryStats[category]) {
-      categoryStats[category] = { count: 0, totalSavings: 0 };
-    }
-    categoryStats[category].count++;
-    categoryStats[category].totalSavings += saving;
-  });
+  // Return placeholder data since price_history table no longer exists
+  logger.warn('Price reduction analytics unavailable - price_history table was removed');
 
   return {
     summary: {
-      totalReductions: priceHistory.length,
-      totalSavings: parseFloat(priceHistory.reduce((sum, r) => sum + (r.old_price - r.new_price), 0).toFixed(2)),
-      averageReduction: priceHistory.length > 0 ?
-        parseFloat((priceHistory.reduce((sum, r) => sum + Math.abs(r.change_percentage), 0) / priceHistory.length).toFixed(2)) : 0
+      totalReductions: 0,
+      totalSavings: 0,
+      averageReduction: 0,
+      note: 'Price history tracking has been removed. Check application logs for price reduction activity.'
     },
-    dailyTrends: Object.entries(dailyReductions).map(([date, data]) => ({
-      date,
-      count: data.count,
-      totalSavings: parseFloat(data.totalSavings.toFixed(2)),
-      averageSaving: parseFloat((data.totalSavings / data.count).toFixed(2))
-    })).sort((a, b) => a.date.localeCompare(b.date)),
-    categoryBreakdown: Object.entries(categoryStats).map(([category, data]) => ({
-      category,
-      count: data.count,
-      totalSavings: parseFloat(data.totalSavings.toFixed(2)),
-      averageSaving: parseFloat((data.totalSavings / data.count).toFixed(2))
-    })).sort((a, b) => b.totalSavings - a.totalSavings),
-    recentReductions: priceHistory.slice(0, 10).map(r => ({
-      id: r.id,
-      title: r.listings.title,
-      oldPrice: r.old_price,
-      newPrice: r.new_price,
-      saving: parseFloat((r.old_price - r.new_price).toFixed(2)),
-      percentage: r.change_percentage,
-      date: r.created_at
-    }))
+    dailyTrends: [],
+    categoryBreakdown: [],
+    recentReductions: [],
+    message: 'Price reduction analytics are temporarily unavailable due to schema changes.'
   };
 }
 
@@ -355,62 +289,23 @@ async function getPerformanceAnalytics(timeframe, logger) {
 async function getErrorAnalytics(timeframe, logger) {
   const startDate = getStartDate(timeframe);
 
-  logger.debug('Fetching error analytics', { timeframe, startDate });
+  logger.debug('Fetching error analytics (sync_errors table removed)', { timeframe, startDate });
+  logger.warn('Error analytics unavailable - sync_errors table was removed');
 
-  const { data: syncErrors, error } = await supabase
-    .from('sync_errors')
-    .select('*')
-    .gte('created_at', startDate)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-
-  // Group errors by type and date
-  const errorsByType = {};
-  const dailyErrors = {};
-
-  syncErrors.forEach(err => {
-    const operation = err.operation || 'Unknown';
-    const date = new Date(err.created_at).toISOString().split('T')[0];
-
-    if (!errorsByType[operation]) {
-      errorsByType[operation] = { count: 0, resolved: 0 };
-    }
-    errorsByType[operation].count++;
-    if (err.resolved) errorsByType[operation].resolved++;
-
-    if (!dailyErrors[date]) {
-      dailyErrors[date] = { count: 0, resolved: 0 };
-    }
-    dailyErrors[date].count++;
-    if (err.resolved) dailyErrors[date].resolved++;
-  });
+  // Return placeholder data since sync_errors table no longer exists
+  console.log('Error analytics requested but sync_errors table was removed');
 
   return {
     summary: {
-      totalErrors: syncErrors.length,
-      resolvedErrors: syncErrors.filter(e => e.resolved).length,
-      resolutionRate: syncErrors.length > 0 ?
-        (syncErrors.filter(e => e.resolved).length / syncErrors.length * 100).toFixed(1) : 100
+      totalErrors: 0,
+      resolvedErrors: 0,
+      resolutionRate: 100,
+      note: 'Error tracking has been removed. Check application logs for error information.'
     },
-    errorsByType: Object.entries(errorsByType).map(([type, data]) => ({
-      type,
-      count: data.count,
-      resolved: data.resolved,
-      resolutionRate: (data.resolved / data.count * 100).toFixed(1)
-    })).sort((a, b) => b.count - a.count),
-    dailyTrends: Object.entries(dailyErrors).map(([date, data]) => ({
-      date,
-      errors: data.count,
-      resolved: data.resolved
-    })).sort((a, b) => a.date.localeCompare(b.date)),
-    recentErrors: syncErrors.slice(0, 10).map(e => ({
-      id: e.id,
-      operation: e.operation,
-      message: e.error_message,
-      resolved: e.resolved,
-      date: e.created_at
-    }))
+    errorsByType: [],
+    dailyTrends: [],
+    recentErrors: [],
+    message: 'Error analytics are temporarily unavailable due to schema changes.'
   };
 }
 

@@ -272,17 +272,23 @@ class UserEbayClient {
    */
   async logApiCall(endpoint, method, statusCode, responseTime, errorMessage = null) {
     try {
-      await supabase
-        .from('ebay_api_logs')
-        .insert({
-          user_id: this.userId,
-          api_call: endpoint,
-          endpoint: endpoint,
-          method: method,
-          status_code: statusCode,
-          response_time_ms: responseTime,
-          error_message: errorMessage
-        });
+      // Log API call details to console for monitoring
+      const logData = {
+        timestamp: new Date().toISOString(),
+        user_id: this.userId,
+        api_call: endpoint,
+        endpoint: endpoint,
+        method: method,
+        status_code: statusCode,
+        response_time_ms: responseTime,
+        error_message: errorMessage
+      };
+
+      if (errorMessage) {
+        console.error('eBay API Call Failed:', logData);
+      } else {
+        console.log('eBay API Call Success:', logData);
+      }
     } catch (error) {
       console.error('Error logging API call:', error);
       // Don't throw error here to avoid breaking the main flow
@@ -304,33 +310,18 @@ class UserEbayClient {
     const startTime = new Date(Date.now() - hours * 60 * 60 * 1000);
 
     try {
-      const { data, error } = await supabase
-        .from('ebay_api_logs')
-        .select('api_call, status_code, response_time_ms, created_at')
-        .eq('user_id', this.userId)
-        .gte('created_at', startTime.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
+      // Since ebay_api_logs table no longer exists, return default stats
+      // In the future, implement in-memory or alternative logging if needed
+      console.log(`API usage stats requested for timeframe: ${timeframe}, user: ${this.userId}`);
 
       const stats = {
-        totalCalls: data.length,
-        successfulCalls: data.filter(call => call.status_code >= 200 && call.status_code < 300).length,
-        errorCalls: data.filter(call => call.status_code >= 400).length,
-        averageResponseTime: data.length > 0 ?
-          Math.round(data.reduce((sum, call) => sum + call.response_time_ms, 0) / data.length) : 0,
-        callsByEndpoint: {}
+        totalCalls: 0,
+        successfulCalls: 0,
+        errorCalls: 0,
+        averageResponseTime: 0,
+        callsByEndpoint: {},
+        message: 'API logging temporarily disabled - stats unavailable'
       };
-
-      // Group by endpoint
-      data.forEach(call => {
-        if (!stats.callsByEndpoint[call.api_call]) {
-          stats.callsByEndpoint[call.api_call] = 0;
-        }
-        stats.callsByEndpoint[call.api_call]++;
-      });
 
       return stats;
 
@@ -347,24 +338,18 @@ class UserEbayClient {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
     try {
-      const { data, error } = await supabase
-        .from('ebay_api_logs')
-        .select('id')
-        .eq('user_id', this.userId)
-        .gte('created_at', oneHourAgo.toISOString());
+      // Since ebay_api_logs table no longer exists, assume user is within limits
+      // In the future, implement in-memory rate limiting or alternative tracking
+      console.log(`Rate limit check for user: ${this.userId} - assuming within limits (no logging table)`);
 
-      if (error) {
-        throw error;
-      }
-
-      const callsInLastHour = data.length;
       const rateLimit = 5000; // eBay's typical hourly limit
 
       return {
-        withinLimit: callsInLastHour < rateLimit,
-        callsUsed: callsInLastHour,
-        callsRemaining: Math.max(0, rateLimit - callsInLastHour),
-        resetTime: new Date(Date.now() + 60 * 60 * 1000)
+        withinLimit: true,
+        callsUsed: 0,
+        callsRemaining: rateLimit,
+        resetTime: new Date(Date.now() + 60 * 60 * 1000),
+        message: 'Rate limiting temporarily disabled - assuming within limits'
       };
 
     } catch (error) {

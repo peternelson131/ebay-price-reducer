@@ -120,20 +120,8 @@ const handler = async (event, context) => {
       };
     }
 
-    // Log the change
-    const { error: logError } = await supabase
-      .from('price_history')
-      .insert({
-        listing_id: listing.id,
-        old_price: listing.current_price,
-        new_price: listing.current_price,
-        change_reason: enabled ? 'Price reduction enabled' : 'Price reduction disabled',
-        created_at: new Date().toISOString()
-      });
-
-    if (logError) {
-      console.warn('Failed to log price reduction toggle:', logError);
-    }
+    // Log the change (price_history table removed)
+    console.log(`Price reduction ${enabled ? 'enabled' : 'disabled'} for listing ${listing.id} (${listing.title})`);
 
     return {
       statusCode: 200,

@@ -123,20 +123,18 @@ const handler = async (event, context) => {
       }
     }
 
-    // Log sync results
-    const { error: logError } = await supabase
-      .from('sync_errors')
-      .insert({
-        user_id: user.id,
-        operation: 'sync_listings',
-        success_count: syncedCount,
-        error_count: errorCount,
-        errors: errors.slice(0, 10),
-        created_at: new Date().toISOString()
-      });
+    // Log sync results to console (sync_errors table removed)
+    console.log('Sync operation completed:', {
+      user_id: user.id,
+      operation: 'sync_listings',
+      success_count: syncedCount,
+      error_count: errorCount,
+      errors: errors.slice(0, 10),
+      timestamp: new Date().toISOString()
+    });
 
-    if (logError) {
-      console.warn('Failed to log sync results:', logError);
+    if (errorCount > 0) {
+      console.error('Sync errors encountered:', errors.slice(0, 10));
     }
 
     return {
@@ -154,21 +152,15 @@ const handler = async (event, context) => {
   } catch (error) {
     console.error('Sync failed:', error);
 
-    // Log critical error
-    try {
-      await supabase
-        .from('sync_errors')
-        .insert({
-          user_id: user?.id || 'unknown',
-          operation: 'sync_listings',
-          success_count: 0,
-          error_count: 1,
-          errors: [error.message],
-          created_at: new Date().toISOString()
-        });
-    } catch (logError) {
-      console.error('Failed to log critical error:', logError);
-    }
+    // Log critical error to console (sync_errors table removed)
+    console.error('Critical sync error:', {
+      user_id: user?.id || 'unknown',
+      operation: 'sync_listings',
+      success_count: 0,
+      error_count: 1,
+      errors: [error.message],
+      timestamp: new Date().toISOString()
+    });
 
     return {
       statusCode: 500,

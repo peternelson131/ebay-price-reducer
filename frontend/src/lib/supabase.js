@@ -58,12 +58,6 @@ const mockListings = [
     last_synced_with_ebay: new Date().toISOString(),
     created_at: '2024-01-15T00:00:00Z',
     updated_at: new Date().toISOString(),
-    price_history: [
-      { price: 229.99, reason: 'initial', created_at: '2024-01-15T00:00:00Z' },
-      { price: 218.49, reason: 'fixed_percentage_reduction', created_at: '2024-01-20T00:00:00Z' },
-      { price: 189.99, reason: 'fixed_percentage_reduction', created_at: '2024-01-25T00:00:00Z' }
-    ],
-    sync_errors: []
   },
   {
     id: '2',
@@ -100,12 +94,6 @@ const mockListings = [
     last_synced_with_ebay: new Date().toISOString(),
     created_at: '2024-01-10T00:00:00Z',
     updated_at: new Date().toISOString(),
-    price_history: [
-      { price: 749.99, reason: 'initial', created_at: '2024-01-10T00:00:00Z' },
-      { price: 699.99, reason: 'market_based_reduction', created_at: '2024-01-17T00:00:00Z' },
-      { price: 649.99, reason: 'market_based_reduction', created_at: '2024-01-22T00:00:00Z' }
-    ],
-    sync_errors: []
   },
   {
     id: '3',
@@ -142,12 +130,6 @@ const mockListings = [
     last_synced_with_ebay: new Date().toISOString(),
     created_at: '2024-01-12T00:00:00Z',
     updated_at: new Date().toISOString(),
-    price_history: [
-      { price: 180.00, reason: 'initial', created_at: '2024-01-12T00:00:00Z' },
-      { price: 167.40, reason: 'time_based_reduction', created_at: '2024-01-18T00:00:00Z' },
-      { price: 145.00, reason: 'manual', created_at: '2024-01-23T00:00:00Z' }
-    ],
-    sync_errors: []
   }
 ]
 
@@ -271,11 +253,7 @@ const mockListingsAPI = {
     listing.next_price_reduction = nextReduction.toISOString()
     listing.updated_at = new Date().toISOString()
 
-    listing.price_history.push({
-      price: newPrice,
-      reason,
-      created_at: new Date().toISOString()
-    })
+    // Note: price_history table has been removed from database schema
 
     return listing
   }
@@ -383,20 +361,7 @@ const realListingsAPI = realSupabaseClient ? {
 
 export const listingsAPI = isDemoMode ? mockListingsAPI : realListingsAPI
 
-const mockPriceHistoryAPI = {
-  async getPriceHistory(listingId) {
-    await delay(200)
-    const listing = mockListings.find(l => l.id === listingId)
-    if (!listing) throw new Error('Listing not found')
-    return listing.price_history
-  }
-}
-
-const realPriceHistoryAPI = {
-  getPriceHistory: () => Promise.reject(new Error('Real Supabase not configured'))
-}
-
-export const priceHistoryAPI = isDemoMode ? mockPriceHistoryAPI : realPriceHistoryAPI
+// Note: priceHistoryAPI removed - price_history table has been dropped from database schema
 
 const mockUserAPI = {
   async getProfile() {
@@ -614,8 +579,6 @@ export const authAPI = isDemoMode ? mockAuthAPI : realAuthAPI
 // Table names (for compatibility)
 export const TABLES = {
   USERS: 'users',
-  LISTINGS: 'listings',
-  PRICE_HISTORY: 'price_history',
-  SYNC_ERRORS: 'sync_errors',
-  MONITOR_JOBS: 'monitor_jobs'
+  LISTINGS: 'listings'
+  // Note: PRICE_HISTORY, SYNC_ERRORS, MONITOR_JOBS tables have been dropped from database schema
 }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import { listingsAPI, priceHistoryAPI } from '../lib/supabase'
+import { listingsAPI } from '../lib/supabase'
 import { toast } from 'react-toastify'
 import {
   ArrowLeftIcon,
@@ -22,10 +22,7 @@ export default function ListingDetail() {
     () => listingsAPI.getListing(id)
   )
 
-  const { data: priceHistory } = useQuery(
-    ['priceHistory', id],
-    () => priceHistoryAPI.getPriceHistory(id)
-  )
+  // Note: Price history functionality removed - price_history table has been dropped
 
   const { data: marketAnalysis } = useQuery(
     ['marketAnalysis', id],
@@ -54,7 +51,7 @@ export default function ListingDetail() {
       onSuccess: (data) => {
         toast.success(`Price reduced to $${data.current_price}`)
         queryClient.invalidateQueries(['listing', id])
-        queryClient.invalidateQueries(['priceHistory', id])
+        // Note: priceHistory query removed
       },
       onError: (error) => {
         toast.error(error.message || 'Failed to reduce price')
@@ -92,7 +89,8 @@ export default function ListingDetail() {
   }
 
   const listingData = listing
-  const priceHistoryData = priceHistory || []
+  // Note: Price history data no longer available - using empty array for backward compatibility
+  const priceHistoryData = []
   const marketData = marketAnalysis
 
   return (
@@ -175,31 +173,22 @@ export default function ListingDetail() {
             </div>
           </div>
 
-          {/* Price History */}
+          {/* Price History - Disabled: price_history table removed */}
           <div className="card">
             <div className="card-header">
               <h3 className="text-lg font-medium text-gray-900">Price History</h3>
             </div>
             <div className="card-body">
-              {priceHistoryData.length > 0 ? (
-                <div className="space-y-3">
-                  {priceHistoryData.slice().reverse().map((entry, index) => (
-                    <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                      <div>
-                        <div className="font-medium">${entry.price}</div>
-                        <div className="text-sm text-gray-500">{entry.reason.replace(/_/g, ' ')}</div>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {new Date(entry.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-500">
-                  No price history available
-                </div>
-              )}
+              <div className="text-center py-6 text-gray-500">
+                <p>Price history feature temporarily unavailable.</p>
+                <p className="text-sm mt-2">Current price: <span className="font-semibold">${listingData.current_price}</span></p>
+                <p className="text-sm">Original price: <span className="font-semibold">${listingData.original_price}</span></p>
+                {listingData.last_price_reduction && (
+                  <p className="text-sm mt-1">
+                    Last reduced: <span className="font-semibold">{new Date(listingData.last_price_reduction).toLocaleDateString()}</span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
