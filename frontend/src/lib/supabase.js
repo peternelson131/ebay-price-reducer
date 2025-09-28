@@ -499,15 +499,27 @@ const realUserAPI = realSupabaseClient ? {
     const { data: { user } } = await realSupabaseClient.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
+    // First check if user exists in the users table
+    const { data: existingUser } = await realSupabaseClient
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single()
+
+    if (!existingUser) {
+      throw new Error('User profile not found. Please complete your profile setup.')
+    }
+
     const { data, error } = await realSupabaseClient
       .from('users')
       .update(updates)
       .eq('id', user.id)
       .select()
-      .single()
 
     if (error) throw error
-    return data
+
+    // Return the first (and should be only) updated record
+    return data && data.length > 0 ? data[0] : null
   }
 } : {
   getProfile: () => Promise.reject(new Error('Real Supabase not configured')),
