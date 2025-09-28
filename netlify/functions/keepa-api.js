@@ -146,33 +146,64 @@ exports.handler = async (event, context) => {
       }
 
       // Validate API key with Keepa
-      try {
-        const validation = await httpsGet(`https://api.keepa.com/token?key=${apiKey}`);
+      console.log('Validating Keepa API key...');
+      console.log('API key length:', apiKey ? apiKey.length : 'undefined');
+      console.log('API key format check:', apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : 'no key');
 
-        if (!validation || validation.tokensLeft === undefined) {
-          return {
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({
-              success: false,
-              message: 'Invalid Keepa API key'
-            })
-          };
-        }
+      let validation;
+      try {
+        const keepaUrl = `https://api.keepa.com/token?key=${apiKey}`;
+        console.log('Calling Keepa API for validation...');
+        validation = await httpsGet(keepaUrl);
+        console.log('Keepa API response:', JSON.stringify(validation));
+      } catch (keepaError) {
+        console.error('Error calling Keepa API:', keepaError);
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: `Keepa API validation failed: ${keepaError.message}`,
+            error: keepaError.toString()
+          })
+        };
+      }
+
+      if (!validation || validation.tokensLeft === undefined) {
+        console.error('Invalid Keepa response:', validation);
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: 'Invalid Keepa API key - no tokensLeft in response',
+            validation: validation
+          })
+        };
+      }
 
         // Encrypt and save the API key
         const encryptedKey = encryptApiKey(apiKey);
 
         // First, check if user exists in users table
-        const { data: existingUser } = await supabase
+        console.log('Checking if user exists in database. User ID:', user.id);
+        const { data: existingUser, error: checkError } = await supabase
           .from('users')
           .select('id')
           .eq('id', user.id)
           .single();
 
+        if (checkError && checkError.code !== 'PGRST116') {
+          // PGRST116 means no rows found, which is ok - we'll create the user
+          console.error('Error checking for existing user:', checkError);
+        }
+
+        console.log('User exists?', !!existingUser);
+
         let saveError;
         if (existingUser) {
           // User exists, update it
+          console.log('Updating existing user with encrypted API key');
           const { error } = await supabase
             .from('users')
             .update({
@@ -181,8 +212,14 @@ exports.handler = async (event, context) => {
             })
             .eq('id', user.id);
           saveError = error;
+          if (error) {
+            console.error('Error updating user:', error);
+          } else {
+            console.log('Successfully updated user with Keepa API key');
+          }
         } else {
           // User doesn't exist, create it with minimal required fields
+          console.log('Creating new user with encrypted API key');
           const { error } = await supabase
             .from('users')
             .insert({
@@ -193,10 +230,20 @@ exports.handler = async (event, context) => {
               updated_at: new Date().toISOString()
             });
           saveError = error;
+          if (error) {
+            console.error('Error inserting new user:', error);
+          } else {
+            console.log('Successfully created user with Keepa API key');
+          }
         }
 
         if (saveError) {
-          console.error('Database error:', saveError);
+          console.error('Database operation failed:', {
+            code: saveError.code,
+            message: saveError.message,
+            details: saveError.details,
+            hint: saveError.hint
+          });
           throw saveError;
         }
 
@@ -212,13 +259,34 @@ exports.handler = async (event, context) => {
           })
         };
       } catch (error) {
-        console.error('Keepa validation error:', error);
+        console.error('Keepa API save error - Full details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          stack: error.stack
+        });
+
+        // Provide more specific error messages
+        let errorMessage = 'Failed to save API key';
+        if (error.code === '42P01') {
+          errorMessage = 'Database table not found - please run migration';
+        } else if (error.code === '42703') {
+          errorMessage = 'Column keepa_api_key not found - please run migration to add it';
+        } else if (error.message) {
+          errorMessage = `Database error: ${error.message}`;
+        }
+
         return {
           statusCode: 400,
           headers,
           body: JSON.stringify({
             success: false,
-            message: 'Failed to validate API key with Keepa'
+            message: errorMessage,
+            error: {
+              code: error.code,
+              details: error.message
+            }
           })
         };
       }
