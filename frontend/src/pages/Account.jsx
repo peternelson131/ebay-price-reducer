@@ -22,6 +22,8 @@ export default function Account() {
   })
   const [keepaTestStatus, setKeepaTestStatus] = useState(null)
   const [keepaTestLoading, setKeepaTestLoading] = useState(false)
+  const [keepaConnectionStatus, setKeepaConnectionStatus] = useState(null)
+  const [connectionStatusLoading, setConnectionStatusLoading] = useState(false)
   const [expandedSections, setExpandedSections] = useState({
     ebay: false,
     keepa: false,
@@ -70,6 +72,13 @@ export default function Account() {
       setActiveTab(tab)
     }
   }, [searchParams])
+
+  // Test Keepa connection on profile load if API key exists
+  useEffect(() => {
+    if (profile?.keepa_api_key && !keepaConnectionStatus && !connectionStatusLoading) {
+      handleTestKeepaConnection()
+    }
+  }, [profile?.keepa_api_key])
 
   const updateProfileMutation = useMutation(
     (updates) => userAPI.updateProfile(updates),
@@ -157,6 +166,10 @@ export default function Account() {
           message: `API key saved successfully! Tokens available: ${result.validation?.tokensLeft || 'Unknown'}`,
           tokensLeft: result.validation?.tokensLeft
         })
+
+        // Test connection after successful save to update status
+        await handleTestKeepaConnection()
+
         alert('Keepa API key saved and validated successfully!')
       } else {
         setKeepaTestStatus({
@@ -177,6 +190,8 @@ export default function Account() {
 
   const handleTestKeepaConnection = async () => {
     try {
+      setConnectionStatusLoading(true)
+      setKeepaConnectionStatus(null)
       setKeepaTestLoading(true)
       setKeepaTestStatus(null)
 
@@ -189,6 +204,13 @@ export default function Account() {
         details: result.details
       })
 
+      setKeepaConnectionStatus({
+        connected: result.connected,
+        success: result.success,
+        tokensLeft: result.tokensLeft,
+        message: result.message
+      })
+
       if (result.success) {
         alert(`Keepa connection successful! Tokens left: ${result.tokensLeft || 'Unknown'}`)
       } else {
@@ -199,9 +221,15 @@ export default function Account() {
         success: false,
         message: error.message || 'Connection test failed'
       })
+      setKeepaConnectionStatus({
+        connected: false,
+        success: false,
+        message: error.message || 'Connection test failed'
+      })
       alert('Connection test failed: ' + error.message)
     } finally {
       setKeepaTestLoading(false)
+      setConnectionStatusLoading(false)
     }
   }
 
@@ -1005,14 +1033,46 @@ export default function Account() {
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <div className={`w-3 h-3 rounded-full ${profile?.keepa_api_key ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                          {connectionStatusLoading ? (
+                            <div className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse"></div>
+                          ) : (
+                            <div className={`w-3 h-3 rounded-full ${
+                              keepaConnectionStatus?.connected
+                                ? 'bg-green-500'
+                                : profile?.keepa_api_key
+                                ? 'bg-red-500'
+                                : 'bg-gray-400'
+                            }`}></div>
+                          )}
                           <span className="text-sm font-medium text-gray-900">
-                            Keepa API Status: {profile?.keepa_api_key ? 'Connected' : 'Not Connected'}
+                            Keepa API Status: {
+                              connectionStatusLoading
+                                ? 'Checking...'
+                                : keepaConnectionStatus?.connected
+                                ? 'Connected'
+                                : profile?.keepa_api_key
+                                ? 'Connection Failed'
+                                : 'Not Connected'
+                            }
                           </span>
                         </div>
-                        <span className="text-xs text-gray-500">
-                          {profile?.keepa_api_key ? 'API key configured' : 'No API key'}
-                        </span>
+                        <div className="text-xs text-gray-500 text-right">
+                          {connectionStatusLoading ? (
+                            'Testing connection...'
+                          ) : keepaConnectionStatus?.connected ? (
+                            <>
+                              <div>Tokens left: {keepaConnectionStatus.tokensLeft || 'Unknown'}</div>
+                              <div>API key configured</div>
+                            </>
+                          ) : profile?.keepa_api_key ? (
+                            <>
+                              <div>API key configured</div>
+                              <div className="text-red-500">{keepaConnectionStatus?.message || 'Connection test needed'}</div>
+                            </>
+                          ) : (
+                            'No API key'
+                          )}
+                        </div>
                       </div>
                     </div>
 
