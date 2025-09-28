@@ -641,7 +641,7 @@ export default function Listings() {
                       >
                         <option value="equals">=</option>
                         <option value="greater_than">></option>
-                        <option value="less_than"><</option>
+                        <option value="less_than">&lt;</option>
                         <option value="greater_than_equal">≥</option>
                         <option value="less_than_equal">≤</option>
                       </select>
