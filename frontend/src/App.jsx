@@ -5,6 +5,7 @@ import Strategies from './pages/Strategies'
 import Listings from './pages/Listings'
 import Analytics from './pages/Analytics'
 import Login from './pages/Login'
+import RemovalOrders from './pages/RemovalOrders'
 
 // Simple components without complex dependencies
 function Dashboard() {
@@ -163,6 +164,7 @@ export default function App() {
             <div className="hidden md:flex items-center space-x-6">
               <Link to="/" className="hover:text-blue-200 transition-colors">Dashboard</Link>
               <Link to="/listings" className="hover:text-blue-200 transition-colors">Listings</Link>
+              <Link to="/removal-orders" className="hover:text-blue-200 transition-colors">Removal Orders</Link>
               <Link to="/strategies" className="hover:text-blue-200 transition-colors">Strategies</Link>
               <Link to="/analytics" className="hover:text-blue-200 transition-colors">Analytics</Link>
               <Link to="/account" className="hover:text-blue-200 transition-colors">Account</Link>
@@ -214,6 +216,13 @@ export default function App() {
                   Listings
                 </Link>
                 <Link
+                  to="/removal-orders"
+                  className="block px-3 py-2 text-base font-medium hover:text-blue-200 hover:bg-blue-700 rounded-md transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Removal Orders
+                </Link>
+                <Link
                   to="/strategies"
                   className="block px-3 py-2 text-base font-medium hover:text-blue-200 hover:bg-blue-700 rounded-md transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
@@ -254,6 +263,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/listings" element={<Listings />} />
+            <Route path="/removal-orders" element={<RemovalOrders />} />
             <Route path="/strategies" element={<Strategies />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/account" element={<Account />} />
