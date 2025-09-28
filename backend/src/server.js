@@ -8,6 +8,7 @@ const PriceMonitorService = require('./services/priceMonitorService');
 
 // Import routes
 const listingsRoutes = require('./routes/listings');
+const keepaRoutes = require('./routes/keepa');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,6 +49,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/listings', listingsRoutes);
+app.use('/api/keepa', keepaRoutes);
 
 // Price monitoring status endpoint
 app.get('/api/monitor/status', (req, res) => {

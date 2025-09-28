@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI } from '../lib/supabase'
+import keepaApi from '../services/keepaApi'
 
 export default function Account() {
   const [searchParams] = useSearchParams()
@@ -19,6 +20,8 @@ export default function Account() {
   const [keepaCredentials, setKeepaCredentials] = useState({
     api_key: ''
   })
+  const [keepaTestStatus, setKeepaTestStatus] = useState(null)
+  const [keepaTestLoading, setKeepaTestLoading] = useState(false)
   const [expandedSections, setExpandedSections] = useState({
     ebay: false,
     keepa: false,
@@ -134,15 +137,72 @@ export default function Account() {
     saveEbayCredentialsMutation.mutate(ebayCredentials)
   }
 
-  const handleSaveKeepaCredentials = () => {
+  const handleSaveKeepaCredentials = async () => {
     if (!keepaCredentials.api_key) {
       alert('Please enter an API key')
       return
     }
-    // Save Keepa credentials
-    updateProfileMutation.mutate({
-      keepa_api_key: keepaCredentials.api_key
-    })
+
+    try {
+      setKeepaTestLoading(true)
+      setKeepaTestStatus(null)
+
+      // Save and validate the API key
+      const result = await keepaApi.saveApiKey(keepaCredentials.api_key)
+
+      if (result.success) {
+        queryClient.invalidateQueries(['profile'])
+        setKeepaTestStatus({
+          success: true,
+          message: `API key saved successfully! Tokens available: ${result.validation?.tokensLeft || 'Unknown'}`,
+          tokensLeft: result.validation?.tokensLeft
+        })
+        alert('Keepa API key saved and validated successfully!')
+      } else {
+        setKeepaTestStatus({
+          success: false,
+          message: result.message || 'Failed to save API key'
+        })
+      }
+    } catch (error) {
+      setKeepaTestStatus({
+        success: false,
+        message: error.message || 'Failed to save API key'
+      })
+      alert('Failed to save Keepa API key: ' + error.message)
+    } finally {
+      setKeepaTestLoading(false)
+    }
+  }
+
+  const handleTestKeepaConnection = async () => {
+    try {
+      setKeepaTestLoading(true)
+      setKeepaTestStatus(null)
+
+      const result = await keepaApi.testConnection()
+
+      setKeepaTestStatus({
+        success: result.success,
+        message: result.message,
+        tokensLeft: result.tokensLeft,
+        details: result.details
+      })
+
+      if (result.success) {
+        alert(`Keepa connection successful! Tokens left: ${result.tokensLeft || 'Unknown'}`)
+      } else {
+        alert(`Keepa connection failed: ${result.message}`)
+      }
+    } catch (error) {
+      setKeepaTestStatus({
+        success: false,
+        message: error.message || 'Connection test failed'
+      })
+      alert('Connection test failed: ' + error.message)
+    } finally {
+      setKeepaTestLoading(false)
+    }
   }
 
   const toggleSection = (section) => {
@@ -906,9 +966,11 @@ export default function Account() {
                             Save API Key
                           </button>
                           <button
-                            className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 w-full sm:w-auto"
+                            onClick={handleTestKeepaConnection}
+                            disabled={keepaTestLoading}
+                            className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 disabled:opacity-50 w-full sm:w-auto"
                           >
-                            Test Connection
+                            {keepaTestLoading ? 'Testing...' : 'Test Connection'}
                           </button>
                         </div>
                       </div>
