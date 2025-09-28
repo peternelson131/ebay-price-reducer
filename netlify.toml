@@ -1,10 +1,9 @@
 [build]
-  base = "frontend"
-  publish = "dist"
-  command = "npm run build"
+  publish = "frontend/dist"
+  command = "cd frontend && npm run build"
 
 [functions]
-  directory = "../netlify/functions"
+  directory = "netlify/functions"
 
 [[redirects]]
   from = "/api/*"
