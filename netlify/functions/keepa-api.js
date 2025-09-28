@@ -15,21 +15,48 @@ const IV_LENGTH = 16;
 // Helper function to make HTTPS requests
 function httpsGet(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const options = new URL(url);
+    options.headers = {
+      'Accept': 'application/json',
+      'Accept-Encoding': 'gzip, deflate',
+      'User-Agent': 'eBay-Price-Reducer/1.0'
+    };
+
+    https.get(options, (res) => {
+      console.log('Response status:', res.statusCode);
+      console.log('Response headers:', res.headers);
+
+      // Check if response is successful
+      if (res.statusCode !== 200) {
+        let errorData = '';
+        res.on('data', (chunk) => {
+          errorData += chunk;
+        });
+        res.on('end', () => {
+          reject(new Error(`Keepa API returned status ${res.statusCode}: ${errorData}`));
+        });
+        return;
+      }
+
+      // Handle different content encodings
+      let stream = res;
+      const encoding = res.headers['content-encoding'];
+      console.log('Content encoding:', encoding);
+
+      if (encoding === 'gzip') {
+        const zlib = require('zlib');
+        stream = res.pipe(zlib.createGunzip());
+      } else if (encoding === 'deflate') {
+        const zlib = require('zlib');
+        stream = res.pipe(zlib.createInflate());
+      }
+
       let data = '';
-      res.on('data', (chunk) => {
+      stream.on('data', (chunk) => {
         data += chunk;
       });
-      res.on('end', () => {
-        console.log('Raw Keepa API response:', data);
-        console.log('Response status:', res.statusCode);
-        console.log('Response headers:', res.headers);
-
-        // Check if response is successful
-        if (res.statusCode !== 200) {
-          reject(new Error(`Keepa API returned status ${res.statusCode}: ${data}`));
-          return;
-        }
+      stream.on('end', () => {
+        console.log('Decompressed Keepa API response:', data);
 
         // Check if data looks like JSON
         if (!data || !data.trim().startsWith('{')) {
@@ -46,6 +73,7 @@ function httpsGet(url) {
           reject(new Error(`Keepa API returned invalid JSON: ${e.message}. Data: ${data.substring(0, 100)}`));
         }
       });
+      stream.on('error', reject);
     }).on('error', reject);
   });
 }
