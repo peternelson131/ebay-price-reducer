@@ -3,6 +3,7 @@ const crypto = require('crypto');
 // Supabase configuration
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
 // Encryption helpers for refresh token
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex').slice(0, 32);
@@ -27,13 +28,16 @@ function decrypt(text) {
 }
 
 // Helper function to make Supabase API calls
-async function supabaseRequest(endpoint, method = 'GET', body = null, headers = {}) {
+async function supabaseRequest(endpoint, method = 'GET', body = null, headers = {}, useServiceKey = false) {
   const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+  // Use service key for write operations on protected tables
+  const apiKey = useServiceKey && SUPABASE_SERVICE_KEY ? SUPABASE_SERVICE_KEY : SUPABASE_ANON_KEY;
+
   const options = {
     method,
     headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': apiKey,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
       ...headers
@@ -155,7 +159,7 @@ exports.handler = async (event, context) => {
       const oauthState = crypto.randomBytes(32).toString('hex');
       console.log('Generated OAuth state:', oauthState);
 
-      // Store state in database with user association
+      // Store state in database with user association (use service key if needed)
       await supabaseRequest(
         'oauth_states',
         'POST',
@@ -163,7 +167,9 @@ exports.handler = async (event, context) => {
           state: oauthState,
           user_id: authUser.id,
           created_at: new Date().toISOString()
-        }
+        },
+        {},
+        true // Use service key for protected table
       );
 
       // Return eBay OAuth URL
@@ -199,10 +205,13 @@ exports.handler = async (event, context) => {
         throw new Error('Invalid OAuth state');
       }
 
-      // Delete used state
+      // Delete used state (use service key for protected table)
       await supabaseRequest(
         `oauth_states?state=eq.${state}`,
-        'DELETE'
+        'DELETE',
+        null,
+        {},
+        true // Use service key for protected table
       );
 
       // Exchange code for tokens
@@ -236,14 +245,16 @@ exports.handler = async (event, context) => {
       if (tokenData.refresh_token) {
         const encryptedToken = encrypt(tokenData.refresh_token);
 
-        // Update user record with encrypted refresh token
+        // Update user record with encrypted refresh token (use service key for protected table)
         await supabaseRequest(
           `users?id=eq.${authUser.id}`,
           'PATCH',
           {
             ebay_refresh_token: encryptedToken,
             ebay_token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
-          }
+          },
+          {},
+          true // Use service key for protected table
         );
 
         return {
