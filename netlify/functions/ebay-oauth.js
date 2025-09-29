@@ -119,6 +119,14 @@ exports.handler = async (event, context) => {
   try {
     const { action, code, state } = event.queryStringParameters || {};
 
+    // If we receive a code and state without an action, this is the OAuth callback
+    if (code && state && !action) {
+      console.log('OAuth callback detected, forwarding to callback handler');
+      // Import and call the callback handler directly
+      const callbackHandler = require('./ebay-oauth-callback');
+      return callbackHandler.handler(event, context);
+    }
+
     // Test endpoint - doesn't require auth
     if (action === 'test') {
       return {
@@ -208,10 +216,12 @@ exports.handler = async (event, context) => {
       );
 
       // Return eBay OAuth URL using USER'S credentials, not env vars
+      // Use the main ebay-oauth endpoint as redirect URI since eBay sends callback there
+      const redirectUri = process.env.EBAY_REDIRECT_URI || 'https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth';
       const ebayAuthUrl = `https://auth.ebay.com/oauth2/authorize?` +
         `client_id=${user.ebay_app_id}&` +
         `response_type=code&` +
-        `redirect_uri=${encodeURIComponent(process.env.EBAY_REDIRECT_URI)}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
         `scope=${encodeURIComponent('https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.marketing.readonly https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.inventory.readonly https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account.readonly https://api.ebay.com/oauth/api_scope/sell.account https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly https://api.ebay.com/oauth/api_scope/sell.fulfillment https://api.ebay.com/oauth/api_scope/sell.analytics.readonly')}&` +
         `state=${oauthState}`;
 

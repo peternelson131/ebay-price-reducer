@@ -171,7 +171,8 @@ exports.handler = async (event, context) => {
     const tokenUrl = 'https://api.ebay.com/identity/v1/oauth2/token';
 
     // Use the exact redirect URI that was used in the authorization request
-    const redirectUri = process.env.EBAY_REDIRECT_URI || 'https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth-callback';
+    // Since eBay redirects to /ebay-oauth, use that as the redirect URI
+    const redirectUri = process.env.EBAY_REDIRECT_URI || 'https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth';
 
     // Don't decode the code - use it as received from eBay
     const tokenParams = new URLSearchParams({
