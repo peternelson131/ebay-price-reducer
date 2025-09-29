@@ -57,22 +57,36 @@ async function supabaseRequest(endpoint, method = 'GET', body = null, headers = 
 // Helper function to get authenticated user
 async function getAuthUser(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('Auth failed: No bearer token in header');
     return null;
   }
 
   const token = authHeader.substring(7);
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${token}`
-    }
-  });
+  console.log('Attempting to validate token with Supabase');
 
-  if (!response.ok) {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('Supabase auth response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('Supabase auth failed:', errorText);
+      return null;
+    }
+
+    const user = await response.json();
+    console.log('User authenticated successfully:', user.id);
+    return user;
+  } catch (error) {
+    console.error('Error validating token:', error);
     return null;
   }
-
-  return await response.json();
 }
 
 exports.handler = async (event, context) => {
@@ -101,14 +115,22 @@ exports.handler = async (event, context) => {
   try {
     const { action, code, state } = event.queryStringParameters || {};
 
-    // Test endpoint
+    // Test endpoint - doesn't require auth
     if (action === 'test') {
       return {
-        statusCode: 401,
+        statusCode: 200,
         headers,
         body: JSON.stringify({
-          error: 'Authentication required',
-          message: 'Please authenticate to use this endpoint'
+          message: 'eBay OAuth function is working',
+          env: {
+            hasSupabaseUrl: !!SUPABASE_URL,
+            hasSupabaseKey: !!SUPABASE_ANON_KEY,
+            hasEbayAppId: !!process.env.EBAY_APP_ID,
+            hasEbayCertId: !!process.env.EBAY_CERT_ID,
+            hasEbayRedirectUri: !!process.env.EBAY_REDIRECT_URI,
+            hasEncryptionKey: !!process.env.ENCRYPTION_KEY
+          },
+          timestamp: new Date().toISOString()
         })
       };
     }

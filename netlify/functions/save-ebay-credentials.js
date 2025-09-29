@@ -33,22 +33,36 @@ async function supabaseRequest(endpoint, method = 'GET', body = null, headers = 
 // Helper function to get authenticated user
 async function getAuthUser(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('Auth failed: No bearer token in header');
     return null;
   }
 
   const token = authHeader.substring(7);
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${token}`
-    }
-  });
+  console.log('Attempting to validate token with Supabase');
 
-  if (!response.ok) {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('Supabase auth response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('Supabase auth failed:', errorText);
+      return null;
+    }
+
+    const user = await response.json();
+    console.log('User authenticated successfully:', user.id);
+    return user;
+  } catch (error) {
+    console.error('Error validating token:', error);
     return null;
   }
-
-  return await response.json();
 }
 
 exports.handler = async (event, context) => {
