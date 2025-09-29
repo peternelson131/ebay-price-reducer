@@ -240,27 +240,47 @@ export default function EbayConnect() {
 
             {/* Setup Steps */}
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <h4 className="font-medium text-gray-900">Quick Setup Guide:</h4>
+              <h4 className="font-medium text-gray-900">Two-Step Setup Process:</h4>
               <ol className="space-y-2 text-sm text-gray-700 list-decimal list-inside">
-                <li>Get your eBay developer credentials from <a href="https://developer.ebay.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">developer.ebay.com</a></li>
-                <li>Click the button below to open Admin Settings</li>
-                <li>Enter your App ID, Cert ID, and optionally Dev ID</li>
-                <li>Save the credentials</li>
-                <li>Come back here to connect your eBay account</li>
+                <li><strong>Step 1:</strong> Configure your eBay developer credentials (App ID, Cert ID)</li>
+                <li><strong>Step 2:</strong> Authorize this app to access your eBay seller account</li>
               </ol>
+
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-900">
+                  <strong>Security Note:</strong> Your credentials are stored securely and the OAuth flow uses
+                  industry-standard security practices including CSRF protection via state parameters.
+                </p>
+              </div>
             </div>
 
-            {/* Action Button */}
-            <div className="text-center">
-              <button
-                onClick={() => navigate('/admin-settings')}
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-blue-700 transition-colors"
-              >
-                Configure eBay Credentials
-              </button>
-              <p className="text-sm text-gray-500 mt-3">
-                This is a one-time setup process
-              </p>
+            {/* Action Buttons */}
+            <div className="space-y-4">
+              {/* Step 1: Configure Credentials */}
+              <div className="text-center">
+                <button
+                  onClick={() => navigate('/admin-settings')}
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-blue-700 transition-colors w-full sm:w-auto"
+                >
+                  Step 1: Configure eBay Credentials
+                </button>
+                <p className="text-sm text-gray-500 mt-2">
+                  Add your eBay App ID, Cert ID, and Dev ID
+                </p>
+              </div>
+
+              {/* Step 2: OAuth Authorization (available even without credentials for testing) */}
+              <div className="text-center">
+                <button
+                  onClick={connectEbay}
+                  className="bg-green-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-green-700 transition-colors w-full sm:w-auto"
+                >
+                  Step 2: Authorize eBay Access
+                </button>
+                <p className="text-sm text-gray-500 mt-2">
+                  Get OAuth refresh token for API access
+                </p>
+              </div>
             </div>
 
             {/* Help Link */}

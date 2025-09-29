@@ -143,7 +143,23 @@ exports.handler = async (event, context) => {
       true // Use service key for protected table
     );
 
-    // Exchange code for tokens
+    // Get user's eBay credentials for token exchange
+    const users = await supabaseRequest(
+      `users?id=eq.${userId}`,
+      'GET'
+    );
+
+    if (!users || users.length === 0) {
+      throw new Error('User not found');
+    }
+
+    const user = users[0];
+
+    if (!user.ebay_app_id || !user.ebay_cert_id) {
+      throw new Error('User eBay credentials not configured');
+    }
+
+    // Exchange code for tokens using USER'S credentials
     const tokenUrl = 'https://api.ebay.com/identity/v1/oauth2/token';
     const decodedCode = decodeURIComponent(code);
     const tokenParams = new URLSearchParams({
@@ -152,13 +168,13 @@ exports.handler = async (event, context) => {
       redirect_uri: process.env.EBAY_REDIRECT_URI
     });
 
-    console.log('Exchanging code for tokens...');
+    console.log('Exchanging code for tokens using user credentials...');
 
     const tokenResponse = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + Buffer.from(`${process.env.EBAY_APP_ID}:${process.env.EBAY_CERT_ID}`).toString('base64')
+        'Authorization': 'Basic ' + Buffer.from(`${user.ebay_app_id}:${user.ebay_cert_id}`).toString('base64')
       },
       body: tokenParams
     });

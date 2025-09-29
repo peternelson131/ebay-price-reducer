@@ -155,6 +155,34 @@ exports.handler = async (event, context) => {
 
     // Handle different OAuth actions
     if (action === 'initiate') {
+      // First, get the user's eBay credentials
+      const users = await supabaseRequest(
+        `users?id=eq.${authUser.id}`,
+        'GET'
+      );
+
+      if (!users || users.length === 0) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: 'User not found' })
+        };
+      }
+
+      const user = users[0];
+
+      // Check if user has configured their eBay credentials
+      if (!user.ebay_app_id || !user.ebay_cert_id) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: 'eBay credentials not configured',
+            message: 'Please configure your eBay App ID and Cert ID first'
+          })
+        };
+      }
+
       // Generate and store state
       const oauthState = crypto.randomBytes(32).toString('hex');
       console.log('Generated OAuth state:', oauthState);
@@ -172,9 +200,9 @@ exports.handler = async (event, context) => {
         true // Use service key for protected table
       );
 
-      // Return eBay OAuth URL
+      // Return eBay OAuth URL using USER'S credentials, not env vars
       const ebayAuthUrl = `https://auth.ebay.com/oauth2/authorize?` +
-        `client_id=${process.env.EBAY_APP_ID}&` +
+        `client_id=${user.ebay_app_id}&` +
         `response_type=code&` +
         `redirect_uri=${encodeURIComponent(process.env.EBAY_REDIRECT_URI)}&` +
         `scope=${encodeURIComponent('https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.marketing.readonly https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.inventory.readonly https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account.readonly https://api.ebay.com/oauth/api_scope/sell.account https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly https://api.ebay.com/oauth/api_scope/sell.fulfillment https://api.ebay.com/oauth/api_scope/sell.analytics.readonly')}&` +
@@ -185,7 +213,8 @@ exports.handler = async (event, context) => {
         headers,
         body: JSON.stringify({
           authUrl: ebayAuthUrl,
-          state: oauthState
+          state: oauthState,
+          usingUserCredentials: true
         })
       };
     }
@@ -205,6 +234,18 @@ exports.handler = async (event, context) => {
         throw new Error('Invalid OAuth state');
       }
 
+      // Get user's eBay credentials
+      const users = await supabaseRequest(
+        `users?id=eq.${authUser.id}`,
+        'GET'
+      );
+
+      if (!users || users.length === 0 || !users[0].ebay_app_id || !users[0].ebay_cert_id) {
+        throw new Error('User eBay credentials not configured');
+      }
+
+      const user = users[0];
+
       // Delete used state (use service key for protected table)
       await supabaseRequest(
         `oauth_states?state=eq.${state}`,
@@ -214,7 +255,7 @@ exports.handler = async (event, context) => {
         true // Use service key for protected table
       );
 
-      // Exchange code for tokens
+      // Exchange code for tokens using USER'S credentials
       const tokenUrl = 'https://api.ebay.com/identity/v1/oauth2/token';
       const decodedCode = decodeURIComponent(code);
       const tokenParams = new URLSearchParams({
@@ -227,7 +268,7 @@ exports.handler = async (event, context) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': 'Basic ' + Buffer.from(`${process.env.EBAY_APP_ID}:${process.env.EBAY_CERT_ID}`).toString('base64')
+          'Authorization': 'Basic ' + Buffer.from(`${user.ebay_app_id}:${user.ebay_cert_id}`).toString('base64')
         },
         body: tokenParams
       });
