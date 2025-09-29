@@ -1,15 +1,19 @@
 // Supabase configuration
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
 // Helper function to make Supabase API calls
-async function supabaseRequest(endpoint, method = 'GET', body = null, headers = {}) {
+async function supabaseRequest(endpoint, method = 'GET', body = null, headers = {}, useServiceKey = false) {
   const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+  // Use service key for write operations on protected tables
+  const apiKey = useServiceKey && SUPABASE_SERVICE_KEY ? SUPABASE_SERVICE_KEY : SUPABASE_ANON_KEY;
+
   const options = {
     method,
     headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': apiKey,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
       ...headers
@@ -121,20 +125,49 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`Updating credentials for user ${authUser.id}`);
+    console.log(`Saving credentials for user ${authUser.id}`);
 
-    // Update user record with eBay credentials
-    const updatedUser = await supabaseRequest(
+    // First, check if user record exists (use service key to bypass RLS)
+    const existingUsers = await supabaseRequest(
       `users?id=eq.${authUser.id}`,
-      'PATCH',
-      {
-        ebay_app_id: app_id,
-        ebay_cert_id: cert_id,
-        ebay_dev_id: dev_id || null
-      }
+      'GET',
+      null,
+      {},
+      true // Use service key
     );
 
-    console.log('Credentials updated successfully');
+    if (!existingUsers || existingUsers.length === 0) {
+      // Create user record if it doesn't exist
+      console.log('Creating new user record');
+      await supabaseRequest(
+        'users',
+        'POST',
+        {
+          id: authUser.id,
+          ebay_app_id: app_id,
+          ebay_cert_id: cert_id,
+          ebay_dev_id: dev_id || null
+        },
+        {},
+        true // Use service key for protected table
+      );
+    } else {
+      // Update existing user record
+      console.log('Updating existing user record');
+      await supabaseRequest(
+        `users?id=eq.${authUser.id}`,
+        'PATCH',
+        {
+          ebay_app_id: app_id,
+          ebay_cert_id: cert_id,
+          ebay_dev_id: dev_id || null
+        },
+        {},
+        true // Use service key for protected table
+      );
+    }
+
+    console.log('Credentials saved successfully');
 
     return {
       statusCode: 200,

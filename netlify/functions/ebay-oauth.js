@@ -155,17 +155,24 @@ exports.handler = async (event, context) => {
 
     // Handle different OAuth actions
     if (action === 'initiate') {
-      // First, get the user's eBay credentials
+      // First, get the user's eBay credentials (use service key to bypass RLS)
       const users = await supabaseRequest(
         `users?id=eq.${authUser.id}`,
-        'GET'
+        'GET',
+        null,
+        {},
+        true // Use service key to bypass RLS policies
       );
 
       if (!users || users.length === 0) {
+        // User record doesn't exist - they need to save credentials first
         return {
-          statusCode: 404,
+          statusCode: 400,
           headers,
-          body: JSON.stringify({ error: 'User not found' })
+          body: JSON.stringify({
+            error: 'User not found',
+            message: 'Please save your eBay credentials first'
+          })
         };
       }
 
@@ -234,10 +241,13 @@ exports.handler = async (event, context) => {
         throw new Error('Invalid OAuth state');
       }
 
-      // Get user's eBay credentials
+      // Get user's eBay credentials (use service key to bypass RLS)
       const users = await supabaseRequest(
         `users?id=eq.${authUser.id}`,
-        'GET'
+        'GET',
+        null,
+        {},
+        true // Use service key to bypass RLS policies
       );
 
       if (!users || users.length === 0 || !users[0].ebay_app_id || !users[0].ebay_cert_id) {
@@ -321,11 +331,14 @@ exports.handler = async (event, context) => {
     }
 
     if (action === 'get-credentials') {
-      // Get user's eBay credentials
+      // Get user's eBay credentials (use service key to bypass RLS)
       try {
         const users = await supabaseRequest(
           `users?id=eq.${authUser.id}`,
-          'GET'
+          'GET',
+          null,
+          {},
+          true // Use service key to bypass RLS policies
         );
 
         if (!users || users.length === 0) {
