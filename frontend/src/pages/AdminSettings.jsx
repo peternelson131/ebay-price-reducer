@@ -107,9 +107,9 @@ export default function AdminSettings() {
           type: 'success',
           text: 'eBay credentials saved successfully! You can now connect your eBay account.'
         })
-        // Clear sensitive data after successful save
+        // Redirect to integrations tab after successful save
         setTimeout(() => {
-          navigate('/account')
+          navigate('/account?tab=integrations')
         }, 2000)
       } else {
         setMessage({

@@ -66,6 +66,10 @@ export default function Account() {
     const tab = searchParams.get('tab')
     if (tab && ['profile', 'preferences', 'security', 'billing', 'integrations'].includes(tab)) {
       setActiveTab(tab)
+      // If navigating to integrations tab, expand the eBay section by default
+      if (tab === 'integrations') {
+        setExpandedSections(prev => ({ ...prev, ebay: true }))
+      }
     }
   }, [searchParams])
 

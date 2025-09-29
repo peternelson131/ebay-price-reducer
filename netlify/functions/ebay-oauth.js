@@ -322,30 +322,62 @@ exports.handler = async (event, context) => {
 
     if (action === 'get-credentials') {
       // Get user's eBay credentials
-      const users = await supabaseRequest(
-        `users?id=eq.${authUser.id}`,
-        'GET'
-      );
+      try {
+        const users = await supabaseRequest(
+          `users?id=eq.${authUser.id}`,
+          'GET'
+        );
 
-      if (!users || users.length === 0) {
-        throw new Error('User not found');
+        if (!users || users.length === 0) {
+          // User not found - return empty credentials
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+              hasAppId: false,
+              hasCertId: false,
+              hasDevId: false,
+              hasRefreshToken: false,
+              appId: null,
+              certId: null,
+              devId: null
+            })
+          };
+        }
+
+        const user = users[0];
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            hasAppId: !!user.ebay_app_id,
+            hasCertId: !!user.ebay_cert_id,
+            hasDevId: !!user.ebay_dev_id,
+            hasRefreshToken: !!user.ebay_refresh_token,
+            appId: user.ebay_app_id || null,
+            certId: user.ebay_cert_id || null,
+            devId: user.ebay_dev_id || null
+          })
+        };
+      } catch (error) {
+        console.error('Error getting credentials:', error);
+        // Return empty credentials on error
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            hasAppId: false,
+            hasCertId: false,
+            hasDevId: false,
+            hasRefreshToken: false,
+            appId: null,
+            certId: null,
+            devId: null,
+            error: error.message
+          })
+        };
       }
-
-      const user = users[0];
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          hasAppId: !!user.ebay_app_id,
-          hasCertId: !!user.ebay_cert_id,
-          hasDevId: !!user.ebay_dev_id,
-          hasRefreshToken: !!user.ebay_refresh_token,
-          appId: user.ebay_app_id || null,
-          certId: user.ebay_cert_id || null,
-          devId: user.ebay_dev_id || null
-        })
-      };
     }
 
     // Default response
