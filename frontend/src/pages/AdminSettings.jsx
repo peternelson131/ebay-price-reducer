@@ -161,7 +161,7 @@ export default function AdminSettings() {
               <li>Sign in and go to "My Account" → "Application Keys"</li>
               <li>Create a Production application if you haven't already</li>
               <li>Copy your App ID (Client ID) and Cert ID (Client Secret)</li>
-              <li>Set the redirect URI to: <code className="bg-blue-100 px-1">https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth</code></li>
+              <li>Set the redirect URI to: <code className="bg-blue-100 px-1">https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth-callback</code></li>
             </ol>
           </div>
 

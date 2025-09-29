@@ -30,13 +30,16 @@ export default function EbayConnect() {
         })
         const data = await response.json()
 
-        if (!data.credentials || !data.credentials.configured) {
+        // Check if user has saved their eBay App ID and Cert ID
+        if (!data.hasAppId || !data.hasCertId) {
           setConnectionStep('needs-setup')
-        } else if (profile?.ebay_credentials_valid) {
+        } else if (data.hasRefreshToken) {
+          // User has connected their eBay account (has refresh token)
           setConnectionStep('connected')
-        } else if (connectionStep === 'connecting' && !profile?.ebay_credentials_valid) {
+        } else if (connectionStep === 'connecting') {
           // Keep checking while connecting
         } else {
+          // Credentials exist but not connected yet
           setConnectionStep('idle')
         }
       } catch (error) {
@@ -58,7 +61,7 @@ export default function EbayConnect() {
       setConnectionStep('connecting')
 
       // Get OAuth authorization URL from backend
-      const response = await fetch('/.netlify/functions/ebay-oauth?action=auth-url', {
+      const response = await fetch('/.netlify/functions/ebay-oauth?action=initiate', {
         headers: {
           'Authorization': `Bearer ${await userAPI.getAuthToken()}`
         }
@@ -66,7 +69,7 @@ export default function EbayConnect() {
 
       const data = await response.json()
 
-      if (data.success && data.authUrl) {
+      if (data.authUrl) {
         // Open eBay OAuth in new window
         const authWindow = window.open(
           data.authUrl,
