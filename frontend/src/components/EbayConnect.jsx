@@ -7,6 +7,7 @@ export default function EbayConnect() {
   const [connectionStep, setConnectionStep] = useState('idle') // idle, connecting, connected, error, needs-setup
   const [showGuide, setShowGuide] = useState(false)
   const [checkingCredentials, setCheckingCredentials] = useState(true)
+  const [credentials, setCredentials] = useState(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
@@ -30,6 +31,9 @@ export default function EbayConnect() {
         })
         const data = await response.json()
 
+        // Store the credentials info for display
+        setCredentials(data)
+
         // Check if user has saved their eBay App ID and Cert ID
         if (!data.hasAppId || !data.hasCertId) {
           setConnectionStep('needs-setup')
@@ -39,7 +43,7 @@ export default function EbayConnect() {
         } else if (connectionStep === 'connecting') {
           // Keep checking while connecting
         } else {
-          // Credentials exist but not connected yet
+          // Credentials exist but not connected yet - this is the correct state for OAuth flow
           setConnectionStep('idle')
         }
       } catch (error) {
@@ -275,9 +279,31 @@ export default function EbayConnect() {
 
         {connectionStep === 'idle' && (
           <div className="space-y-6">
+            {/* Current Credentials Status */}
+            {credentials && (credentials.hasAppId || credentials.hasCertId) && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="font-medium text-green-900 mb-2">eBay Developer Credentials Configured</h4>
+                    <div className="text-sm text-green-700 space-y-1">
+                      <p>✓ App ID: {credentials.appId ? `${credentials.appId.substring(0, 10)}...` : 'Configured'}</p>
+                      <p>✓ Cert ID: {credentials.certId ? `${credentials.certId.substring(0, 10)}...` : 'Configured'}</p>
+                      {credentials.hasDevId && <p>✓ Dev ID: Configured</p>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate('/admin-settings')}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Edit Credentials
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Connection Benefits */}
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <h4 className="font-medium text-gray-900">Why Connect Your eBay Account?</h4>
+              <h4 className="font-medium text-gray-900">Ready to Connect Your eBay Account</h4>
               <ul className="space-y-2 text-sm text-gray-700">
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">✓</span>
@@ -380,6 +406,28 @@ export default function EbayConnect() {
                 <div className="text-3xl">✅</div>
               </div>
             </div>
+
+            {/* Credentials Info */}
+            {credentials && (credentials.hasAppId || credentials.hasCertId) && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h5 className="font-medium text-gray-900 mb-2">Developer Credentials</h5>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p>App ID: {credentials.appId ? `${credentials.appId.substring(0, 10)}...` : 'Configured'}</p>
+                      <p>Cert ID: {credentials.certId ? `${credentials.certId.substring(0, 10)}...` : 'Configured'}</p>
+                      {credentials.hasDevId && <p>Dev ID: Configured</p>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate('/admin-settings')}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Update Credentials
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3">
