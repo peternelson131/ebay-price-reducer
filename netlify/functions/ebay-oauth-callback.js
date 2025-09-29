@@ -120,9 +120,13 @@ exports.handler = async (event, context) => {
     console.log('Processing OAuth callback with state:', state);
 
     // Validate state - get the user ID from the state
+    // Use service key to bypass RLS policies
     const stateRecords = await supabaseRequest(
       `oauth_states?state=eq.${state}`,
-      'GET'
+      'GET',
+      null,
+      {},
+      true // Use service key to bypass RLS
     );
 
     if (!stateRecords || stateRecords.length === 0) {
@@ -144,9 +148,13 @@ exports.handler = async (event, context) => {
     );
 
     // Get user's eBay credentials for token exchange
+    // Use service key to bypass RLS policies
     const users = await supabaseRequest(
       `users?id=eq.${userId}`,
-      'GET'
+      'GET',
+      null,
+      {},
+      true // Use service key to bypass RLS
     );
 
     if (!users || users.length === 0) {
@@ -161,14 +169,24 @@ exports.handler = async (event, context) => {
 
     // Exchange code for tokens using USER'S credentials
     const tokenUrl = 'https://api.ebay.com/identity/v1/oauth2/token';
-    const decodedCode = decodeURIComponent(code);
+
+    // Use the exact redirect URI that was used in the authorization request
+    const redirectUri = process.env.EBAY_REDIRECT_URI || 'https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth-callback';
+
+    // Don't decode the code - use it as received from eBay
     const tokenParams = new URLSearchParams({
       grant_type: 'authorization_code',
-      code: decodedCode,
-      redirect_uri: process.env.EBAY_REDIRECT_URI
+      code: code, // Use code as-is, eBay handles encoding
+      redirect_uri: redirectUri
     });
 
     console.log('Exchanging code for tokens using user credentials...');
+    console.log('Token exchange params:', {
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      code_length: code.length,
+      app_id: user.ebay_app_id
+    });
 
     const tokenResponse = await fetch(tokenUrl, {
       method: 'POST',
@@ -179,14 +197,32 @@ exports.handler = async (event, context) => {
       body: tokenParams
     });
 
+    const responseText = await tokenResponse.text();
+    console.log('Token response status:', tokenResponse.status);
+
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('Token exchange failed:', errorText);
-      throw new Error(`Token exchange failed: ${errorText}`);
+      console.error('Token exchange failed:', responseText);
+
+      // Try to parse error response for better error messages
+      let errorMessage = 'Token exchange failed';
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.error_description || errorData.error || errorMessage;
+      } catch (e) {
+        errorMessage = responseText || errorMessage;
+      }
+
+      throw new Error(errorMessage);
     }
 
-    const tokenData = await tokenResponse.json();
+    const tokenData = JSON.parse(responseText);
     console.log('Token exchange successful');
+    console.log('Token data received:', {
+      has_access_token: !!tokenData.access_token,
+      has_refresh_token: !!tokenData.refresh_token,
+      expires_in: tokenData.expires_in,
+      token_type: tokenData.token_type
+    });
 
     // Get eBay user info (optional, for display purposes)
     let ebayUserId = null;
