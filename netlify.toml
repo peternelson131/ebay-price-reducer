@@ -1,6 +1,6 @@
 [build]
   publish = "frontend/dist"
-  command = "cd netlify/functions && npm install && cd ../.. && cd frontend && npm install && npx vite build"
+  command = "cd netlify/functions && npm install && cd ../.. && cd frontend && npm install && npm run build"
 
 [functions]
   directory = "netlify/functions"
