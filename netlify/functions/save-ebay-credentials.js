@@ -82,8 +82,12 @@ exports.handler = async (event, context) => {
 
   try {
     // Check for authenticated user
-    const authUser = await getAuthUser(event.headers.authorization);
+    // Netlify lowercases headers, so check both
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+    const authUser = await getAuthUser(authHeader);
     if (!authUser) {
+      console.log('Authentication failed - no valid user found');
+      console.log('Headers received:', Object.keys(event.headers));
       return {
         statusCode: 401,
         headers,
