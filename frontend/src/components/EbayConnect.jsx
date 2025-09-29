@@ -139,26 +139,30 @@ export default function EbayConnect() {
 
   // Disconnect eBay account
   const disconnectEbay = async () => {
-    if (!confirm('Are you sure you want to disconnect your eBay account?')) return
+    if (!confirm('Are you sure you want to disconnect your eBay account?\n\nThis will remove your refresh token but keep your eBay App credentials.')) return
 
     try {
-      const response = await fetch('/.netlify/functions/ebay-oauth', {
-        method: 'DELETE',
+      const token = await userAPI.getAuthToken()
+      const response = await fetch('/.netlify/functions/ebay-oauth?action=disconnect', {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${await userAPI.getAuthToken()}`
+          'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        // Refresh profile to update UI
         queryClient.invalidateQueries(['profile'])
         setConnectionStep('idle')
-        alert('eBay account disconnected successfully')
+        alert('eBay account disconnected successfully.\n\nYour App credentials are still saved.')
       } else {
-        throw new Error('Failed to disconnect')
+        throw new Error(data.error || 'Failed to disconnect')
       }
     } catch (error) {
       console.error('Disconnect error:', error)
-      alert('Failed to disconnect eBay account. Please try again.')
+      alert(`Failed to disconnect eBay account: ${error.message}`)
     }
   }
 

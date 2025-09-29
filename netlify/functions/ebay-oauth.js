@@ -420,6 +420,64 @@ exports.handler = async (event, context) => {
       }
     }
 
+    if (action === 'disconnect') {
+      // Disconnect eBay - remove OAuth tokens but keep credentials
+      try {
+        const users = await supabaseRequest(
+          `users?id=eq.${authUser.id}`,
+          'GET',
+          null,
+          {},
+          true // Use service key
+        );
+
+        if (!users || users.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({
+              error: 'User not found'
+            })
+          };
+        }
+
+        // Clear only OAuth-related fields, keep app credentials
+        await supabaseRequest(
+          `users?id=eq.${authUser.id}`,
+          'PATCH',
+          {
+            ebay_refresh_token: null,
+            ebay_token_expires_at: null,
+            ebay_user_id: null
+            // Keep: ebay_app_id, ebay_cert_id, ebay_dev_id
+          },
+          {},
+          true // Use service key
+        );
+
+        console.log('eBay OAuth disconnected for user:', authUser.id);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'eBay account disconnected successfully'
+          })
+        };
+      } catch (error) {
+        console.error('Error disconnecting eBay:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: 'Failed to disconnect eBay account',
+            message: error.message
+          })
+        };
+      }
+    }
+
     // Default response
     return {
       statusCode: 400,
