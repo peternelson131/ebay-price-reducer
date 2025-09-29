@@ -3,20 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI } from '../lib/supabase'
 import keepaApi from '../services/keepaApi'
+import EbayConnect from '../components/EbayConnect'
 
 export default function Account() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({})
   const [isEditingPreferences, setIsEditingPreferences] = useState(false)
   const [preferencesData, setPreferencesData] = useState({})
-  const [ebayCredentials, setEbayCredentials] = useState({
-    app_id: '',
-    dev_id: '',
-    cert_id: '',
-    refresh_token: ''
-  })
   const [keepaCredentials, setKeepaCredentials] = useState({
     api_key: ''
   })
@@ -34,6 +29,7 @@ export default function Account() {
     newPassword: '',
     confirmPassword: ''
   })
+  const [ebayConnectionMessage, setEbayConnectionMessage] = useState(null)
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading } = useQuery(
@@ -72,6 +68,53 @@ export default function Account() {
       setActiveTab(tab)
     }
   }, [searchParams])
+
+  // Handle eBay OAuth callback
+  useEffect(() => {
+    const ebayConnected = searchParams.get('ebay_connected')
+    const ebayUser = searchParams.get('ebay_user')
+    const error = searchParams.get('error')
+
+    if (ebayConnected === 'true') {
+      setEbayConnectionMessage({
+        type: 'success',
+        text: `Successfully connected to eBay${ebayUser ? ` as ${ebayUser}` : ''}! Your account is now linked and ready to manage listings.`
+      })
+      setActiveTab('integrations')
+      setExpandedSections(prev => ({ ...prev, ebay: true }))
+
+      // Refresh profile to get updated eBay connection status
+      queryClient.invalidateQueries(['profile'])
+
+      // Clear the URL parameters after showing the message
+      setTimeout(() => {
+        setSearchParams({})
+      }, 100)
+
+      // Auto-hide success message after 10 seconds
+      setTimeout(() => {
+        setEbayConnectionMessage(null)
+      }, 10000)
+    } else if (error) {
+      const errorDetails = searchParams.get('details')
+      setEbayConnectionMessage({
+        type: 'error',
+        text: `Failed to connect to eBay: ${errorDetails || error}. Please try again.`
+      })
+      setActiveTab('integrations')
+      setExpandedSections(prev => ({ ...prev, ebay: true }))
+
+      // Clear the URL parameters
+      setTimeout(() => {
+        setSearchParams({})
+      }, 100)
+
+      // Auto-hide error message after 10 seconds
+      setTimeout(() => {
+        setEbayConnectionMessage(null)
+      }, 10000)
+    }
+  }, [searchParams, queryClient, setSearchParams])
 
   // Test Keepa connection on profile load if API key exists
   useEffect(() => {
@@ -112,27 +155,6 @@ export default function Account() {
     }
   )
 
-  const saveEbayCredentialsMutation = useMutation(
-    (credentials) => userAPI.updateProfile({
-      ebay_user_token: credentials.refresh_token,
-      ebay_credentials_valid: true // Will be validated by backend
-    }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['profile'])
-        alert('eBay credentials saved successfully!')
-        setEbayCredentials({
-          app_id: '',
-          dev_id: '',
-          cert_id: '',
-          refresh_token: ''
-        })
-      },
-      onError: (error) => {
-        alert('Failed to save eBay credentials: ' + error.message)
-      }
-    }
-  )
 
   const handleProfileSave = () => {
     updateProfileMutation.mutate(profileData)
@@ -142,13 +164,6 @@ export default function Account() {
     updatePreferencesMutation.mutate(preferencesData)
   }
 
-  const handleSaveEbayCredentials = () => {
-    if (!ebayCredentials.refresh_token) {
-      alert('Please enter a refresh token')
-      return
-    }
-    saveEbayCredentialsMutation.mutate(ebayCredentials)
-  }
 
   const handleSaveKeepaCredentials = async () => {
     if (!keepaCredentials.api_key) {
@@ -218,9 +233,8 @@ export default function Account() {
         message: result.message
       })
 
-      if (result.success) {
-        alert(`Keepa connection successful! Tokens left: ${result.tokensLeft || 'Unknown'}`)
-      } else {
+      // Only show alert for failures, not success
+      if (!result.success) {
         alert(`Keepa connection failed: ${result.message}`)
       }
     } catch (error) {
@@ -247,15 +261,6 @@ export default function Account() {
     }))
   }
 
-  const handleTestEbayConnection = async () => {
-    if (!profile?.ebay_user_token) {
-      alert('Please save eBay credentials first')
-      return
-    }
-    // For now, just show a success message. In real implementation,
-    // this would test the actual eBay API connection
-    alert('eBay connection test would be performed here')
-  }
 
   const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -672,6 +677,32 @@ export default function Account() {
                 <p className="text-sm text-gray-600">Connect your accounts and configure API access for various platforms.</p>
               </div>
 
+              {/* eBay Connection Success/Error Message */}
+              {ebayConnectionMessage && (
+                <div className={`p-4 rounded-lg ${
+                  ebayConnectionMessage.type === 'success'
+                    ? 'bg-green-50 border border-green-200 text-green-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
+                }`}>
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      {ebayConnectionMessage.type === 'success' ? (
+                        <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium">{ebayConnectionMessage.text}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* eBay Integration - Collapsible */}
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                 <button
@@ -698,191 +729,8 @@ export default function Account() {
                 </button>
 
                 {expandedSections.ebay && (
-                  <div className="p-6 space-y-6 border-t border-gray-200">
-
-              {/* Step 1: Create Developer Account */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                <h5 className="font-medium text-gray-900 text-base mb-3">Step 1: Create eBay Developer Account</h5>
-                <div className="space-y-3 text-sm text-gray-700">
-                  <p>1. Visit the <a href="https://developer.ebay.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">eBay Developers Program</a></p>
-                  <p>2. Click "Join the Developer Program" and sign in with your eBay account</p>
-                  <p>3. Accept the developer agreement and complete the registration process</p>
-                  <p>4. Verify your email address when prompted</p>
-                </div>
-              </div>
-
-              {/* Step 2: Create Application */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                <h5 className="font-medium text-gray-900 text-base mb-3">Step 2: Create Your Application</h5>
-                <div className="space-y-3 text-sm text-gray-700">
-                  <p>1. Go to "My Account" → "Application Keys" in the developer portal</p>
-                  <p>2. Click "Create a Keyset" for production use</p>
-                  <p>3. Fill out the application form:</p>
-                  <div className="ml-4 space-y-1">
-                    <p>• <strong>Application Name:</strong> "eBay Price Reducer App"</p>
-                    <p>• <strong>Application Type:</strong> "Personal Use" or "Commercial"</p>
-                    <p>• <strong>Platform:</strong> "Web Application"</p>
-                    <p>• <strong>Application URL:</strong> Your app's URL (if hosted) or "localhost" for development</p>
-                  </div>
-                  <p>4. Submit the application for review (may take 1-3 business days)</p>
-                </div>
-              </div>
-
-              {/* Step 3: API Credentials */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                <h5 className="font-medium text-gray-900 text-base mb-3">Step 3: Obtain API Credentials</h5>
-                <div className="space-y-3 text-sm text-gray-700">
-                  <p>Once approved, you'll receive these credentials:</p>
-                  <div className="bg-gray-50 p-4 rounded border space-y-2">
-                    <p><strong>App ID (Client ID):</strong> Your unique application identifier</p>
-                    <p><strong>Dev ID:</strong> Your developer identifier</p>
-                    <p><strong>Cert ID (Client Secret):</strong> Your application secret</p>
-                  </div>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                    <p className="text-yellow-800 text-sm">
-                      <strong>⚠️ Important:</strong> Keep these credentials secure and never share them publicly.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 4: OAuth Setup */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                <h5 className="font-medium text-gray-900 text-base mb-3">Step 4: Set Up OAuth 2.0 for Refresh Tokens</h5>
-                <div className="space-y-3 text-sm text-gray-700">
-                  <p><strong>Why OAuth 2.0?</strong> Refresh tokens allow continuous API access without requiring users to re-authenticate frequently.</p>
-
-                  <div className="space-y-2">
-                    <p><strong>Configure OAuth Settings:</strong></p>
-                    <div className="ml-4 space-y-1">
-                      <p>• <strong>Grant Types:</strong> Select "Authorization Code"</p>
-                      <p>• <strong>Redirect URI:</strong> <code className="bg-gray-100 px-2 py-1 rounded text-xs">https://yourapp.com/auth/ebay/callback</code></p>
-                      <p>• <strong>Scopes Required:</strong></p>
-                      <div className="ml-4 space-y-1 text-xs">
-                        <p>- <code className="bg-gray-100 px-1 rounded">https://api.ebay.com/oauth/api_scope/sell.inventory</code></p>
-                        <p>- <code className="bg-gray-100 px-1 rounded">https://api.ebay.com/oauth/api_scope/sell.marketing</code></p>
-                        <p>- <code className="bg-gray-100 px-1 rounded">https://api.ebay.com/oauth/api_scope/sell.account</code></p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 5: Generate Refresh Token */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                <h5 className="font-medium text-gray-900 text-base mb-3">Step 5: Generate User Refresh Token</h5>
-                <div className="space-y-3 text-sm text-gray-700">
-                  <p>To get a refresh token that doesn't expire:</p>
-                  <div className="space-y-2">
-                    <p>1. <strong>Authorization URL:</strong> Direct users to eBay's OAuth consent page</p>
-                    <div className="bg-gray-50 p-3 rounded border overflow-x-auto">
-                      <code className="text-xs block whitespace-pre-wrap break-all">
-                        https://auth.ebay.com/oauth2/authorize?client_id=YOUR_APP_ID&response_type=code&redirect_uri=YOUR_REDIRECT_URI&scope=https://api.ebay.com/oauth/api_scope/sell.inventory%20https://api.ebay.com/oauth/api_scope/sell.marketing
-                      </code>
-                    </div>
-                    <p>2. <strong>Exchange Authorization Code:</strong> After user consent, exchange the authorization code for access and refresh tokens</p>
-                    <p>3. <strong>Store Refresh Token:</strong> Save the refresh token securely - it's valid for 18 months and can be renewed</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 6: Enter Credentials */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                <h5 className="font-medium text-gray-900 text-base mb-4">Step 6: Enter Your API Credentials</h5>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">App ID (Client ID)</label>
-                    <input
-                      type="text"
-                      placeholder="Enter your eBay App ID"
-                      value={ebayCredentials.app_id}
-                      onChange={(e) => setEbayCredentials(prev => ({ ...prev, app_id: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Dev ID</label>
-                    <input
-                      type="text"
-                      placeholder="Enter your eBay Dev ID"
-                      value={ebayCredentials.dev_id}
-                      onChange={(e) => setEbayCredentials(prev => ({ ...prev, dev_id: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Cert ID (Client Secret)</label>
-                    <input
-                      type="password"
-                      placeholder="Enter your eBay Cert ID"
-                      value={ebayCredentials.cert_id}
-                      onChange={(e) => setEbayCredentials(prev => ({ ...prev, cert_id: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Refresh Token</label>
-                    <input
-                      type="password"
-                      placeholder="Enter your eBay Refresh Token"
-                      value={ebayCredentials.refresh_token}
-                      onChange={(e) => setEbayCredentials(prev => ({ ...prev, refresh_token: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={handleSaveEbayCredentials}
-                      disabled={saveEbayCredentialsMutation.isLoading}
-                      className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      Save Credentials
-                    </button>
-                    <button
-                      onClick={handleTestEbayConnection}
-                      className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700"
-                    >
-                      Test Connection
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-                    {/* Connection Status */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${profile?.ebay_credentials_valid ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="text-sm font-medium text-gray-900">
-                      eBay API Status: {profile?.ebay_credentials_valid ? 'Connected' : 'Not Connected'}
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-500">
-                    {profile?.ebay_user_token ? 'Token saved' : 'No token'}
-                  </span>
-                </div>
-                {profile?.ebay_user_id && (
-                  <div className="mt-2 text-xs text-gray-600">
-                    eBay User ID: {profile.ebay_user_id}
-                  </div>
-                )}
-                {profile?.ebay_token_expires_at && (
-                  <div className="mt-1 text-xs text-gray-600">
-                    Token expires: {new Date(profile.ebay_token_expires_at).toLocaleDateString()}
-                  </div>
-                )}
-              </div>
-
-                    {/* Additional Resources */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                      <h5 className="font-medium text-gray-900 text-base mb-3">Additional Resources</h5>
-                      <div className="space-y-2 text-sm">
-                        <p>• <a href="https://developer.ebay.com/api-docs/static/oauth-tokens.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">eBay OAuth 2.0 Documentation</a></p>
-                        <p>• <a href="https://developer.ebay.com/api-docs/sell/inventory/overview.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Inventory API Documentation</a></p>
-                        <p>• <a href="https://developer.ebay.com/DevZone/guides/features-guide/default.html#development/Listing-AnItem.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">eBay Listing Management Guide</a></p>
-                        <p>• <a href="https://developer.ebay.com/support" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Developer Support</a></p>
-                      </div>
-                    </div>
+                  <div className="p-6 border-t border-gray-200">
+                    <EbayConnect />
                   </div>
                 )}
               </div>

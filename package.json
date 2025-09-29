@@ -7,6 +7,7 @@
     "dev": "netlify dev"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
     "axios": "^1.5.0",
     "dotenv": "^17.2.2",
     "xml2js": "^0.6.2"

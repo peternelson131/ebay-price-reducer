@@ -6,6 +6,7 @@ import Listings from './pages/Listings'
 import Analytics from './pages/Analytics'
 import Login from './pages/Login'
 import AutoList from './pages/AutoList'
+import AdminSettings from './pages/AdminSettings'
 
 // Simple components without complex dependencies
 function Dashboard() {
@@ -421,6 +422,7 @@ export default function App() {
             <Route path="/strategies" element={<Strategies />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/account" element={<Account />} />
+            <Route path="/admin-settings" element={<AdminSettings />} />
           </Routes>
         </div>
       </main>

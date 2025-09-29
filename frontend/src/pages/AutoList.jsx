@@ -10,7 +10,7 @@ export default function AutoList() {
   const [selectedItems, setSelectedItems] = useState(new Set())
   const [processing, setProcessing] = useState(false)
   const [inputMethod, setInputMethod] = useState(null) // 'file', 'manual', 'sheets'
-  const [step, setStep] = useState(0) // 0: Select Method, 1: Input Data, 2: Review, 3: Create Listings
+  const [step, setStep] = useState(1) // 1: Select Method, 2: Input Data, 3: Review, 4: Create Listings
   const [notification, setNotification] = useState(null)
   const [manualAsins, setManualAsins] = useState('')
   const [loadingAsins, setLoadingAsins] = useState(false)
@@ -113,7 +113,7 @@ export default function AutoList() {
       }
 
       setExcelData(validResults)
-      setStep(2) // Move to review step
+      setStep(3) // Move to review step
 
     } catch (error) {
       console.error('Error processing manual ASINs:', error)
@@ -206,7 +206,7 @@ export default function AutoList() {
       }
 
       setExcelData(processed)
-      setStep(2) // Move to review step
+      setStep(3) // Move to review step
 
     } catch (error) {
       console.error('Error processing Google Sheets:', error)
@@ -244,7 +244,7 @@ export default function AutoList() {
         })).filter(item => item.asin || item.sku) // Filter out empty rows
 
         setExcelData(processed)
-        setStep(2)
+        setStep(3)
         showNotification('success', `Loaded ${processed.length} items from Excel`)
       } catch (error) {
         showNotification('error', 'Failed to parse Excel file. Please ensure it contains the correct columns.')
@@ -287,7 +287,7 @@ export default function AutoList() {
     }))
 
     setProcessedData(ebayListings)
-    setStep(3)
+    setStep(4)
     setProcessing(false)
   }
 
@@ -407,10 +407,10 @@ export default function AutoList() {
       <div className="bg-white rounded-lg shadow p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-4">
           {[
-            { num: 0, label: 'Select Method' },
-            { num: 1, label: 'Input Data' },
-            { num: 2, label: 'Review & Select' },
-            { num: 3, label: 'Create Listings' }
+            { num: 1, label: 'Select Method' },
+            { num: 2, label: 'Input Data' },
+            { num: 3, label: 'Review & Select' },
+            { num: 4, label: 'Create Listings' }
           ].map((s, idx) => (
             <div key={s.num} className="flex items-center w-full sm:w-auto">
               <div className={`flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 ${
@@ -442,8 +442,8 @@ export default function AutoList() {
         </div>
       )}
 
-      {/* Step 0: Select Input Method */}
-      {step === 0 && (
+      {/* Step 1: Select Input Method */}
+      {step === 1 && (
         <div className="bg-white rounded-lg shadow">
           <div className="p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-6">
@@ -456,7 +456,7 @@ export default function AutoList() {
               <div
                 onClick={() => {
                   setInputMethod('file')
-                  setStep(1)
+                  setStep(2)
                 }}
                 className="border-2 border-gray-200 rounded-lg p-6 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-colors"
               >
@@ -480,7 +480,7 @@ export default function AutoList() {
               <div
                 onClick={() => {
                   setInputMethod('manual')
-                  setStep(1)
+                  setStep(2)
                 }}
                 className="border-2 border-gray-200 rounded-lg p-6 hover:border-green-500 hover:bg-green-50 cursor-pointer transition-colors"
               >
@@ -504,7 +504,7 @@ export default function AutoList() {
               <div
                 onClick={() => {
                   setInputMethod('sheets')
-                  setStep(1)
+                  setStep(2)
                 }}
                 className="border-2 border-gray-200 rounded-lg p-6 hover:border-purple-500 hover:bg-purple-50 cursor-pointer transition-colors"
               >
@@ -529,8 +529,8 @@ export default function AutoList() {
         </div>
       )}
 
-      {/* Step 1: Input Data */}
-      {step === 1 && (
+      {/* Step 2: Input Data */}
+      {step === 2 && (
         <div className="bg-white rounded-lg shadow">
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -541,7 +541,7 @@ export default function AutoList() {
               </h2>
               <button
                 onClick={() => {
-                  setStep(0)
+                  setStep(1)
                   setInputMethod(null)
                 }}
                 className="text-sm text-gray-500 hover:text-gray-700"
@@ -678,8 +678,8 @@ Enter multiple ASINs, one per line"
         </div>
       )}
 
-      {/* Step 2: Review & Select */}
-      {step === 2 && (
+      {/* Step 3: Review & Select */}
+      {step === 3 && (
         <div className="bg-white rounded-lg shadow">
           <div className="p-6">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
@@ -817,7 +817,7 @@ Enter multiple ASINs, one per line"
 
             <div className="mt-6 flex flex-col sm:flex-row sm:justify-between gap-3">
               <button
-                onClick={() => setStep(1)}
+                onClick={() => setStep(2)}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 w-full sm:w-auto"
               >
                 Back
@@ -834,8 +834,8 @@ Enter multiple ASINs, one per line"
         </div>
       )}
 
-      {/* Step 3: Create Listings */}
-      {step === 3 && (
+      {/* Step 4: Create Listings */}
+      {step === 4 && (
         <div className="bg-white rounded-lg shadow">
           <div className="p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">
@@ -863,7 +863,7 @@ Enter multiple ASINs, one per line"
 
             <div className="mt-6 flex flex-col sm:flex-row sm:justify-between gap-3">
               <button
-                onClick={() => setStep(2)}
+                onClick={() => setStep(3)}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 w-full sm:w-auto"
               >
                 Back

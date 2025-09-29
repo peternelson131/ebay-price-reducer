@@ -385,6 +385,11 @@ const mockUserAPI = {
   async updateProfile(updates) {
     await delay(300)
     return { ...mockUser, ...updates }
+  },
+
+  async getAuthToken() {
+    // Return a mock token for demo mode
+    return 'mock-auth-token-' + Date.now()
   }
 }
 
@@ -495,10 +500,18 @@ const realUserAPI = realSupabaseClient ? {
 
     // Return the first (and should be only) updated record
     return data && data.length > 0 ? data[0] : null
+  },
+
+  async getAuthToken() {
+    // Get the session token from Supabase auth
+    const { data: { session } } = await realSupabaseClient.auth.getSession()
+    if (!session?.access_token) throw new Error('No valid session')
+    return session.access_token
   }
 } : {
   getProfile: () => Promise.reject(new Error('Real Supabase not configured')),
-  updateProfile: () => Promise.reject(new Error('Real Supabase not configured'))
+  updateProfile: () => Promise.reject(new Error('Real Supabase not configured')),
+  getAuthToken: () => Promise.reject(new Error('Real Supabase not configured'))
 }
 
 export const userAPI = isDemoMode ? mockUserAPI : realUserAPI
