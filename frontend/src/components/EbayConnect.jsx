@@ -141,28 +141,58 @@ export default function EbayConnect() {
   const disconnectEbay = async () => {
     if (!confirm('Are you sure you want to disconnect your eBay account?\n\nThis will remove your refresh token but keep your eBay App credentials.')) return
 
+    console.log('Starting disconnect process...')
+    setIsLoading(true)
+
     try {
       const token = await userAPI.getAuthToken()
+      console.log('Auth token obtained, calling disconnect endpoint')
+
       const response = await fetch('/.netlify/functions/ebay-oauth?action=disconnect', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       })
 
+      console.log('Disconnect response status:', response.status)
       const data = await response.json()
+      console.log('Disconnect response data:', data)
 
       if (response.ok && data.success) {
-        // Refresh profile to update UI
-        queryClient.invalidateQueries(['profile'])
-        setConnectionStep('idle')
+        console.log('Disconnect successful, refreshing UI...')
+
+        // Clear the refresh token from credentials state immediately
+        setCredentials(prev => ({
+          ...prev,
+          hasRefreshToken: false
+        }))
+
+        // Force refetch profile data
+        await queryClient.invalidateQueries(['profile'])
+        await queryClient.refetchQueries(['profile'])
+
+        // Refetch credentials to get the latest state from the server
+        await fetchCredentials()
+
+        // Update connection step based on new credentials state
+        const updatedCreds = await fetchCredentials()
+        if (updatedCreds && !updatedCreds.hasRefreshToken && updatedCreds.hasAppId && updatedCreds.hasCertId) {
+          setConnectionStep('ready-to-connect')
+        } else if (updatedCreds && !updatedCreds.hasAppId) {
+          setConnectionStep('needs-setup')
+        }
+
         alert('eBay account disconnected successfully.\n\nYour App credentials are still saved.')
       } else {
-        throw new Error(data.error || 'Failed to disconnect')
+        throw new Error(data.error || data.message || 'Failed to disconnect')
       }
     } catch (error) {
       console.error('Disconnect error:', error)
       alert(`Failed to disconnect eBay account: ${error.message}`)
+    } finally {
+      setIsLoading(false)
     }
   }
 
