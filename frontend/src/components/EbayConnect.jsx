@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { userAPI } from '../lib/supabase'
+import { isTokenExpiringSoon, refreshEbayToken, getTokenStatus, formatTokenExpiry } from '../utils/ebayTokenManager'
 
 export default function EbayConnect() {
   const [connectionStep, setConnectionStep] = useState('idle') // idle, connecting, connected, error, needs-setup
   const [showGuide, setShowGuide] = useState(false)
   const [checkingCredentials, setCheckingCredentials] = useState(true)
   const [credentials, setCredentials] = useState(null)
+  const [isDisconnecting, setIsDisconnecting] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [refreshMessage, setRefreshMessage] = useState(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
@@ -19,6 +23,20 @@ export default function EbayConnect() {
       refetchInterval: connectionStep === 'connecting' ? 2000 : false // Poll during connection
     }
   )
+
+  // Automatic token refresh check - runs when profile loads
+  useEffect(() => {
+    if (!profile || !credentials?.hasRefreshToken) return
+
+    const tokenExpiresAt = profile.ebay_token_expires_at
+    if (!tokenExpiresAt) return
+
+    // Check if token needs refresh (within 30 minutes of expiry)
+    if (isTokenExpiringSoon(tokenExpiresAt, 30)) {
+      console.log('Token is expired or expiring soon, auto-refreshing...')
+      refreshToken()
+    }
+  }, [profile, credentials])
 
   // Check if credentials are configured
   useEffect(() => {
@@ -142,7 +160,7 @@ export default function EbayConnect() {
     if (!confirm('Are you sure you want to disconnect your eBay account?\n\nThis will remove your refresh token but keep your eBay App credentials.')) return
 
     console.log('Starting disconnect process...')
-    setIsLoading(true)
+    setIsDisconnecting(true)
 
     try {
       const token = await userAPI.getAuthToken()
@@ -174,6 +192,22 @@ export default function EbayConnect() {
         await queryClient.refetchQueries(['profile'])
 
         // Refetch credentials to get the latest state from the server
+        const fetchCredentials = async () => {
+          try {
+            const response = await fetch('/.netlify/functions/ebay-oauth?action=get-credentials', {
+              headers: {
+                'Authorization': `Bearer ${await userAPI.getAuthToken()}`
+              }
+            })
+            const data = await response.json()
+            setCredentials(data)
+            return data
+          } catch (error) {
+            console.error('Error fetching credentials:', error)
+            return null
+          }
+        }
+
         await fetchCredentials()
 
         // Update connection step based on new credentials state
@@ -192,7 +226,64 @@ export default function EbayConnect() {
       console.error('Disconnect error:', error)
       alert(`Failed to disconnect eBay account: ${error.message}`)
     } finally {
-      setIsLoading(false)
+      setIsDisconnecting(false)
+    }
+  }
+
+  // Refresh access token
+  const refreshToken = async () => {
+    console.log('Starting token refresh...')
+    setIsRefreshing(true)
+    setRefreshMessage(null)
+
+    try {
+      const result = await refreshEbayToken()
+
+      if (result.success) {
+        console.log('Token refresh successful')
+
+        // Invalidate and refetch profile to get updated token expiry
+        await queryClient.invalidateQueries(['profile'])
+        await queryClient.refetchQueries(['profile'])
+
+        setRefreshMessage({
+          type: 'success',
+          text: `Token refreshed successfully! New expiry: ${new Date(result.tokenExpiresAt).toLocaleString()}`
+        })
+
+        // Auto-hide success message after 5 seconds
+        setTimeout(() => {
+          setRefreshMessage(null)
+        }, 5000)
+      } else {
+        console.error('Token refresh failed:', result)
+
+        setRefreshMessage({
+          type: 'error',
+          text: result.error || 'Failed to refresh token',
+          needsReconnect: result.needsReconnect
+        })
+
+        // If refresh token is invalid, prompt user to reconnect
+        if (result.needsReconnect) {
+          const reconnect = confirm(
+            `${result.error || 'Your refresh token has expired.'}\n\nWould you like to reconnect your eBay account now?`
+          )
+          if (reconnect) {
+            // Disconnect and reset to idle state
+            setConnectionStep('idle')
+            setRefreshMessage(null)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error)
+      setRefreshMessage({
+        type: 'error',
+        text: `Failed to refresh token: ${error.message}`
+      })
+    } finally {
+      setIsRefreshing(false)
     }
   }
 
@@ -208,13 +299,40 @@ export default function EbayConnect() {
       const data = await response.json()
 
       if (data.success) {
-        alert(`eBay connection successful!\n\nConnected as: ${data.ebayUserId || 'Unknown User'}\nActive listings: ${data.activeListings || 0}`)
+        // Check if we're in a special mode (localStorage, demo, development)
+        if (data.environment && data.environment.mode) {
+          const mode = data.environment.mode;
+          const modeMessages = {
+            'localStorage': 'Connection test successful!\n\nNote: You are using localStorage mode. Full eBay integration testing requires database setup.',
+            'demo': 'Demo connection test successful!\n\nThis is a simulated connection for demonstration purposes.',
+            'development': 'Development mode connection test successful!\n\nFull eBay integration requires production setup.'
+          };
+
+          alert(modeMessages[mode] || `eBay connection successful!\n\nConnected as: ${data.ebayUserId || 'Unknown User'}\nActive listings: ${data.activeListings || 0}`);
+        } else {
+          // Real eBay connection response
+          alert(`✅ eBay API connection successful!\n\nConnected as: ${data.ebayUserId || 'Unknown User'}\nActive listings: ${data.activeListings || 0}\nStatus Code: ${data.statusCode || 200}`);
+        }
       } else {
-        alert('eBay connection test failed. Please reconnect your account.')
+        // Handle different failure scenarios
+        let message = data.message || 'Connection test failed';
+        if (data.hint) {
+          message += '\n\n' + data.hint;
+        }
+        if (data.needsCredentials) {
+          message = '⚠️ ' + message;
+        } else if (data.needsConnection) {
+          message = '🔌 ' + message;
+        } else if (data.needsSetup) {
+          message = '🚨 ' + message;
+        } else {
+          message = '❌ ' + message;
+        }
+        alert(message);
       }
     } catch (error) {
       console.error('Test error:', error)
-      alert('Failed to test eBay connection.')
+      alert('Failed to test eBay connection. Please check your network connection.')
     }
   }
 
@@ -451,15 +569,92 @@ export default function EbayConnect() {
                   <p className="text-sm text-green-700 mt-1">
                     {profile?.ebay_user_id ? `Connected as: ${profile.ebay_user_id}` : 'Your eBay account is successfully connected'}
                   </p>
-                  {profile?.ebay_token_expires_at && (
+                  {profile?.ebay_refresh_token_expires_at && (
                     <p className="text-xs text-green-600 mt-2">
-                      Token expires: {new Date(profile.ebay_token_expires_at).toLocaleDateString()}
+                      Refresh token expires: {new Date(profile.ebay_refresh_token_expires_at).toLocaleDateString()}
                     </p>
                   )}
                 </div>
                 <div className="text-3xl">✅</div>
               </div>
             </div>
+
+            {/* Token Refresh Message */}
+            {refreshMessage && (
+              <div className={`border rounded-lg p-4 ${
+                refreshMessage.type === 'success'
+                  ? 'bg-green-50 border-green-200'
+                  : 'bg-red-50 border-red-200'
+              }`}>
+                <div className="flex items-start space-x-3">
+                  <div className="text-2xl">
+                    {refreshMessage.type === 'success' ? '✅' : '⚠️'}
+                  </div>
+                  <div className="flex-1">
+                    <p className={`text-sm font-medium ${
+                      refreshMessage.type === 'success' ? 'text-green-900' : 'text-red-900'
+                    }`}>
+                      {refreshMessage.text}
+                    </p>
+                    {refreshMessage.needsReconnect && (
+                      <button
+                        onClick={connectEbay}
+                        className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        Reconnect eBay Account
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Token Status */}
+            {profile?.ebay_token_expires_at && (() => {
+              const tokenStatus = getTokenStatus(profile.ebay_token_expires_at)
+              const colorClasses = {
+                green: 'bg-green-50 border-green-200 text-green-900',
+                yellow: 'bg-yellow-50 border-yellow-200 text-yellow-900',
+                red: 'bg-red-50 border-red-200 text-red-900',
+                gray: 'bg-gray-50 border-gray-200 text-gray-900'
+              }
+
+              return (
+                <div className={`border rounded-lg p-4 ${colorClasses[tokenStatus.color]}`}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h5 className={`font-medium mb-2 ${tokenStatus.color === 'green' ? 'text-green-900' : tokenStatus.color === 'yellow' ? 'text-yellow-900' : 'text-red-900'}`}>
+                        Access Token Status
+                      </h5>
+                      <div className="text-sm space-y-1">
+                        <p>
+                          Expires: {new Date(profile.ebay_token_expires_at).toLocaleString()}
+                        </p>
+                        <p>
+                          Time remaining: {formatTokenExpiry(profile.ebay_token_expires_at)}
+                        </p>
+                        <p>
+                          <span className={`font-medium ${
+                            tokenStatus.status === 'valid' ? 'text-green-600' :
+                            tokenStatus.status === 'expiring' ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {tokenStatus.status === 'valid' ? '✓' : '⚠️'} {tokenStatus.message}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={refreshToken}
+                      disabled={isRefreshing}
+                      className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      {isRefreshing ? 'Refreshing...' : 'Refresh Now'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Credentials Info */}
             {credentials && (credentials.hasAppId || credentials.hasCertId) && (
@@ -499,9 +694,10 @@ export default function EbayConnect() {
               </button>
               <button
                 onClick={disconnectEbay}
-                className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                disabled={isDisconnecting}
+                className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
               >
-                Disconnect
+                {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
               </button>
             </div>
 

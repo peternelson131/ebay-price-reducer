@@ -83,6 +83,39 @@ async function getAuthUser(authHeader) {
   }
 
   const token = authHeader.substring(7);
+
+  // Check if this is a localStorage token (starts with 'localStorage-auth-token-')
+  if (token.startsWith('localStorage-auth-token-')) {
+    console.log('Using localStorage authentication mode');
+    // For localStorage mode, we'll use a simple user ID
+    // In a real system, you might want to store and validate these tokens
+    return {
+      id: 'local-user-1',
+      email: 'user@example.com',
+      isLocalStorageAuth: true
+    };
+  }
+
+  // Check if this is a mock token (for demo mode)
+  if (token.startsWith('mock-auth-token-')) {
+    console.log('Using mock authentication mode');
+    return {
+      id: 'demo-user-id',
+      email: 'demo@example.com',
+      isMockAuth: true
+    };
+  }
+
+  // Try Supabase authentication if configured
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.log('Supabase not configured, accepting any token in development mode');
+    return {
+      id: 'local-user-1',
+      email: 'user@example.com',
+      isDevelopmentAuth: true
+    };
+  }
+
   console.log('Attempting to validate token with Supabase');
 
   try {
@@ -180,6 +213,22 @@ exports.handler = async (event, context) => {
 
     // Handle different OAuth actions
     if (action === 'initiate') {
+      // For localStorage/mock/development auth, we'll need to handle credentials differently
+      if (authUser.isLocalStorageAuth || authUser.isMockAuth || authUser.isDevelopmentAuth) {
+        console.log('OAuth initiate for localStorage/demo mode user');
+
+        // For localStorage mode, temporarily show an informative message about needing real Supabase setup
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: 'Feature requires database setup',
+            message: 'OAuth flow requires Supabase database setup to store user credentials. Currently running in localStorage mode.',
+            needsRealSetup: true
+          })
+        };
+      }
+
       // First, get the user's eBay credentials (use service key to bypass RLS)
       const users = await supabaseRequest(
         `users?id=eq.${authUser.id}`,
@@ -358,6 +407,49 @@ exports.handler = async (event, context) => {
     }
 
     if (action === 'get-credentials') {
+      // For localStorage/mock/development auth, we still need to check user credentials in Supabase
+      // but with a simpler approach for demo/localStorage mode
+      if (authUser.isLocalStorageAuth || authUser.isMockAuth || authUser.isDevelopmentAuth) {
+        console.log('Getting credentials for localStorage/demo mode user');
+
+        // For localStorage mode, use a hardcoded user ID or return minimal demo credentials
+        if (authUser.isLocalStorageAuth || authUser.isDevelopmentAuth) {
+          // Check if user has credentials saved, otherwise return empty
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+              hasAppId: false,
+              hasCertId: false,
+              hasDevId: false,
+              hasRefreshToken: false,
+              appId: null,
+              certId: null,
+              devId: null,
+              needsCredentials: true
+            })
+          };
+        }
+
+        // For demo mode, show sample credentials
+        if (authUser.isMockAuth) {
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+              hasAppId: true,
+              hasCertId: true,
+              hasDevId: true,
+              hasRefreshToken: false,
+              appId: 'DemoApp123...',
+              certId: 'DemoCert456...',
+              devId: 'DemoDev789...',
+              needsCredentials: false
+            })
+          };
+        }
+      }
+
       // Get user's eBay credentials (use service key to bypass RLS)
       try {
         const users = await supabaseRequest(
@@ -420,8 +512,285 @@ exports.handler = async (event, context) => {
       }
     }
 
+    if (action === 'status') {
+      console.log('Status action triggered for user:', authUser.id);
+
+      // For localStorage/mock/development auth, return basic status
+      if (authUser.isLocalStorageAuth || authUser.isMockAuth || authUser.isDevelopmentAuth) {
+        console.log('Getting status for non-Supabase auth');
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            connected: false,
+            message: 'Status check for localStorage/demo mode',
+            tokenValid: false,
+            tokenExpiresAt: null,
+            refreshTokenExpiresAt: null,
+            userId: authUser.id
+          })
+        };
+      }
+
+      try {
+        // Get user data from Supabase with both token expiration fields
+        const userData = await supabaseRequest(
+          `users?id=eq.${authUser.id}&select=ebay_refresh_token,ebay_user_id,ebay_token_expires_at,ebay_refresh_token_expires_at,ebay_connection_status`,
+          'GET',
+          null,
+          {},
+          true // Use service key
+        );
+
+        if (!userData || userData.length === 0) {
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+              success: true,
+              connected: false,
+              message: 'User not found in database',
+              tokenValid: false,
+              tokenExpiresAt: null,
+              refreshTokenExpiresAt: null
+            })
+          };
+        }
+
+        const user = userData[0];
+        const hasRefreshToken = !!user.ebay_refresh_token;
+        const isTokenValid = user.ebay_token_expires_at ?
+          new Date(user.ebay_token_expires_at) > new Date() : false;
+        const isRefreshTokenValid = user.ebay_refresh_token_expires_at ?
+          new Date(user.ebay_refresh_token_expires_at) > new Date() : false;
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            connected: hasRefreshToken && isRefreshTokenValid,
+            message: hasRefreshToken ? 'eBay account connected' : 'eBay account not connected',
+            tokenValid: isTokenValid,
+            tokenExpiresAt: user.ebay_token_expires_at,
+            refreshTokenExpiresAt: user.ebay_refresh_token_expires_at, // Use refresh token expiration
+            userId: user.ebay_user_id,
+            connectionStatus: user.ebay_connection_status
+          })
+        };
+      } catch (error) {
+        console.error('Error getting connection status:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'Failed to get connection status',
+            message: error.message
+          })
+        };
+      }
+    }
+
+    if (action === 'refresh-token') {
+      console.log('Refresh token action triggered for user:', authUser.id);
+
+      // For localStorage/mock/development auth, return mock success
+      if (authUser.isLocalStorageAuth || authUser.isMockAuth || authUser.isDevelopmentAuth) {
+        console.log('Handling token refresh for non-Supabase auth');
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'Token refreshed (localStorage mode)',
+            tokenExpiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+          })
+        };
+      }
+
+      try {
+        // Get user's eBay credentials and refresh token
+        const users = await supabaseRequest(
+          `users?id=eq.${authUser.id}`,
+          'GET',
+          null,
+          {},
+          true // Use service key
+        );
+
+        if (!users || users.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: 'User not found'
+            })
+          };
+        }
+
+        const user = users[0];
+
+        // Check if user has required credentials
+        if (!user.ebay_app_id || !user.ebay_cert_id) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: 'eBay credentials not configured'
+            })
+          };
+        }
+
+        // Check if user has a refresh token
+        if (!user.ebay_refresh_token) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: 'No refresh token found. Please reconnect your eBay account.',
+              needsReconnect: true
+            })
+          };
+        }
+
+        // Decrypt the refresh token
+        let decryptedRefreshToken;
+        try {
+          decryptedRefreshToken = decrypt(user.ebay_refresh_token);
+        } catch (error) {
+          console.error('Failed to decrypt refresh token:', error);
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: 'Failed to decrypt refresh token',
+              needsReconnect: true
+            })
+          };
+        }
+
+        // Call eBay's token refresh endpoint
+        const tokenUrl = 'https://api.ebay.com/identity/v1/oauth2/token';
+        const tokenParams = new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: decryptedRefreshToken,
+          scope: 'https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.marketing.readonly https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.inventory.readonly https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account.readonly https://api.ebay.com/oauth/api_scope/sell.account https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly https://api.ebay.com/oauth/api_scope/sell.fulfillment https://api.ebay.com/oauth/api_scope/sell.analytics.readonly'
+        });
+
+        console.log('Calling eBay token refresh endpoint...');
+
+        const tokenResponse = await fetch(tokenUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': 'Basic ' + Buffer.from(`${user.ebay_app_id}:${user.ebay_cert_id}`).toString('base64')
+          },
+          body: tokenParams
+        });
+
+        const responseText = await tokenResponse.text();
+        console.log('Token refresh response status:', tokenResponse.status);
+
+        if (!tokenResponse.ok) {
+          console.error('Token refresh failed:', responseText);
+
+          let errorMessage = 'Token refresh failed';
+          let needsReconnect = false;
+
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.error_description || errorData.error || errorMessage;
+
+            // Check if refresh token is invalid/expired
+            if (errorData.error === 'invalid_grant' || errorMessage.includes('expired') || errorMessage.includes('invalid')) {
+              needsReconnect = true;
+              errorMessage = 'Refresh token has expired or been revoked. Please reconnect your eBay account.';
+            }
+          } catch (e) {
+            errorMessage = responseText || errorMessage;
+          }
+
+          return {
+            statusCode: tokenResponse.status,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: errorMessage,
+              needsReconnect
+            })
+          };
+        }
+
+        const tokenData = JSON.parse(responseText);
+        console.log('Token refresh successful:', {
+          has_access_token: !!tokenData.access_token,
+          expires_in: tokenData.expires_in
+        });
+
+        // Update the access token expiry time in database
+        // Note: We don't store the access token itself, only the expiry time
+        const accessTokenExpiry = new Date(Date.now() + tokenData.expires_in * 1000);
+
+        await supabaseRequest(
+          `users?id=eq.${authUser.id}`,
+          'PATCH',
+          {
+            ebay_token_expires_at: accessTokenExpiry.toISOString(),
+            ebay_connection_status: 'connected'
+          },
+          {},
+          true // Use service key
+        );
+
+        console.log('Token expiry updated successfully');
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'Access token refreshed successfully',
+            tokenExpiresAt: accessTokenExpiry.toISOString(),
+            expiresIn: tokenData.expires_in
+          })
+        };
+      } catch (error) {
+        console.error('Error refreshing token:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'Failed to refresh token',
+            message: error.message,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+          })
+        };
+      }
+    }
+
     if (action === 'disconnect') {
       console.log('Disconnect action triggered for user:', authUser.id);
+
+      // For localStorage/mock/development auth, just return success
+      if (authUser.isLocalStorageAuth || authUser.isMockAuth || authUser.isDevelopmentAuth) {
+        console.log('Handling disconnect for non-Supabase auth');
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'eBay account disconnected (localStorage mode)'
+          })
+        };
+      }
+
       // Disconnect eBay - remove OAuth tokens but keep credentials
       try {
         console.log('Fetching user record to verify existence');
@@ -464,7 +833,10 @@ exports.handler = async (event, context) => {
             {
               ebay_refresh_token: null,
               ebay_token_expires_at: null,
-              ebay_user_id: null
+              ebay_refresh_token_expires_at: null,
+              ebay_user_id: null,
+              ebay_connection_status: 'not_connected',
+              ebay_connected_at: null
               // Keep: ebay_app_id, ebay_cert_id, ebay_dev_id
             },
             {
@@ -481,7 +853,10 @@ exports.handler = async (event, context) => {
             {
               ebay_refresh_token: '',
               ebay_token_expires_at: null,
-              ebay_user_id: ''
+              ebay_refresh_token_expires_at: null,
+              ebay_user_id: '',
+              ebay_connection_status: 'not_connected',
+              ebay_connected_at: null
               // Keep: ebay_app_id, ebay_cert_id, ebay_dev_id
             },
             {
