@@ -15,17 +15,12 @@
 -- SECURITY: Marked as SECURITY DEFINER to bypass RLS policies
 -- Only returns credentials for the specified user
 
--- First, create a pass-through function for encrypted tokens
--- This function does NOT decrypt - actual decryption happens in backend (Node.js)
--- It's named "decrypt_ebay_token" for API compatibility but returns encrypted value
+-- Create a pass-through function for encrypted tokens
+-- This function returns encrypted token as-is for backend decryption
 CREATE OR REPLACE FUNCTION decrypt_ebay_token(encrypted_token TEXT)
 RETURNS TEXT AS $$
 BEGIN
-    -- Pass-through: Return encrypted token as-is for backend decryption
-    -- Backend uses Node.js crypto module (AES-256-CBC) to decrypt
-    -- This function exists for:
-    -- 1. Consistent API with existing get_user_ebay_credentials RPC
-    -- 2. Future PostgreSQL-based decryption if needed
+    -- Return encrypted token for backend to decrypt
     RETURN encrypted_token;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER IMMUTABLE;
