@@ -69,8 +69,34 @@ class EnhancedEbayClient {
       }
 
       const refreshToken = credentials[0].refresh_token;
-      const clientId = process.env.EBAY_APP_ID;
-      const clientSecret = process.env.EBAY_CERT_ID;
+
+      // Try to get user-specific credentials first (for legacy account)
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('ebay_app_id, ebay_cert_id_encrypted')
+        .eq('id', this.userId)
+        .single();
+
+      let clientId, clientSecret;
+
+      if (userData && userData.ebay_app_id && userData.ebay_cert_id_encrypted) {
+        // Use user-specific credentials (legacy account)
+        console.log('Using user-specific eBay credentials for token refresh');
+        clientId = userData.ebay_app_id;
+
+        // Import decrypt function
+        const { decrypt } = require('./ebay-oauth-helpers');
+        clientSecret = decrypt(userData.ebay_cert_id_encrypted);
+      } else {
+        // Fall back to global environment variables (new users)
+        console.log('Using global eBay credentials from environment');
+        clientId = process.env.EBAY_APP_ID;
+        clientSecret = process.env.EBAY_CERT_ID;
+
+        if (!clientId || !clientSecret) {
+          throw new Error('No eBay credentials available. Please configure EBAY_APP_ID and EBAY_CERT_ID environment variables.');
+        }
+      }
 
       const credentialsBase64 = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 

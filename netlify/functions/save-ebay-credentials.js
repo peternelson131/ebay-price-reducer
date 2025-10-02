@@ -1,38 +1,11 @@
 const crypto = require('crypto');
 const { getCorsHeaders } = require('./utils/cors');
+const { encrypt } = require('./utils/ebay-oauth-helpers');
 
 // Supabase configuration
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-
-// Encryption helpers for cert_id (same as refresh token encryption)
-const IV_LENGTH = 16;
-const getEncryptionKey = () => {
-  if (!process.env.ENCRYPTION_KEY) {
-    throw new Error(
-      'ENCRYPTION_KEY environment variable is required. ' +
-      'Generate with: openssl rand -hex 32'
-    );
-  }
-
-  const key = process.env.ENCRYPTION_KEY;
-  if (key.length === 64 && /^[0-9a-fA-F]+$/.test(key)) {
-    return Buffer.from(key, 'hex');
-  }
-
-  return crypto.createHash('sha256').update(key).digest();
-};
-
-const ENCRYPTION_KEY = getEncryptionKey();
-
-function encrypt(text) {
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return iv.toString('hex') + ':' + encrypted.toString('hex');
-}
 
 // Helper function to make Supabase API calls
 async function supabaseRequest(endpoint, method = 'GET', body = null, headers = {}, useServiceKey = false) {

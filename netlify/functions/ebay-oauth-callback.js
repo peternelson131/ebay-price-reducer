@@ -2,59 +2,12 @@
 // It's a separate function to handle the redirect properly
 
 const crypto = require('crypto');
+const { encrypt, decrypt } = require('./utils/ebay-oauth-helpers');
 
 // Supabase configuration
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-
-// Encryption helpers for refresh token
-// Ensure we have a proper 32-byte key for AES-256
-const getEncryptionKey = () => {
-  if (!process.env.ENCRYPTION_KEY) {
-    throw new Error(
-      'ENCRYPTION_KEY environment variable is required. ' +
-      'Generate with: openssl rand -hex 32'
-    );
-  }
-
-  const key = process.env.ENCRYPTION_KEY;
-  // If it's a hex string, convert it properly
-  if (key.length === 64 && /^[0-9a-fA-F]+$/.test(key)) {
-    return Buffer.from(key, 'hex');
-  }
-
-  // Otherwise, hash it to get consistent 32 bytes
-  return crypto.createHash('sha256').update(key).digest();
-};
-
-const ENCRYPTION_KEY = getEncryptionKey();
-const IV_LENGTH = 16;
-
-function encrypt(text) {
-  try {
-    console.log('Encrypting refresh token, key length:', ENCRYPTION_KEY.length);
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-    let encrypted = cipher.update(text);
-    encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return iv.toString('hex') + ':' + encrypted.toString('hex');
-  } catch (error) {
-    console.error('Encryption error:', error.message);
-    console.error('Key buffer length:', ENCRYPTION_KEY.length);
-    throw error;
-  }
-}
-
-function decrypt(text) {
-  const textParts = text.split(':');
-  const iv = Buffer.from(textParts.shift(), 'hex');
-  const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-  const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
-}
 
 // Helper function to make Supabase API calls
 async function supabaseRequest(endpoint, method = 'GET', body = null, headers = {}, useServiceKey = false) {
