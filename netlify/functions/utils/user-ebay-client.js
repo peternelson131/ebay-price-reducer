@@ -129,6 +129,8 @@ class UserEbayClient {
 
       // 3. Exchange refresh token for access token
       console.log('→ Calling eBay OAuth API...');
+      console.log('→ Using App ID:', clientId ? `${clientId.substring(0, 10)}...` : 'MISSING');
+      console.log('→ Cert ID length:', clientSecret ? clientSecret.length : 'MISSING');
       const credentialsBase64 = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
       const response = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
