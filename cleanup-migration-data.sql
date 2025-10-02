@@ -8,6 +8,20 @@
 -- credentials with 'NEEDS_MIGRATION:' but the actual encryption step was never implemented.
 -- These corrupted credentials cause decrypt() to fail during token refresh.
 
+-- 0. First, check if the column exists and add it if needed
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'users' AND column_name = 'ebay_cert_id_encrypted'
+    ) THEN
+        ALTER TABLE users ADD COLUMN ebay_cert_id_encrypted TEXT;
+        RAISE NOTICE 'Added ebay_cert_id_encrypted column';
+    ELSE
+        RAISE NOTICE 'Column ebay_cert_id_encrypted already exists';
+    END IF;
+END $$;
+
 -- 1. First, inspect what we're dealing with
 SELECT
     id,
