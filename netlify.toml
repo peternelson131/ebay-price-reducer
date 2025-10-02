@@ -23,9 +23,7 @@
   [headers.values]
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://api.ebay.com https://api.sandbox.ebay.com; img-src 'self' data: https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';"
 
-# Scheduled functions - commented out for now as plugin not available
-# [[plugins]]
-#   package = "@netlify/plugin-scheduled-functions"
-#
-# [plugins.inputs]
-#   timezone = "UTC"
+# Scheduled functions configuration
+[[functions]]
+  name = "scheduled-listings-sync"
+  schedule = "0 */6 * * *"  # Every 6 hours at minute 0 (00:00, 06:00, 12:00, 18:00 UTC)

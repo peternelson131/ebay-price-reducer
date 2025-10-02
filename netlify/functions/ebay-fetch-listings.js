@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { EnhancedEbayClient } = require('./utils/enhanced-ebay-client');
 
 // Memory cache for responses (survives during function execution)
 const cache = new Map();
@@ -466,92 +467,45 @@ async function processEbayRequest(userId, authUser) {
       throw new Error(`Failed to decrypt refresh token: ${error.message}`);
     }
 
-    // Get access token
-    const accessToken = await getAccessToken(refreshToken, user.ebay_app_id, user.ebay_cert_id);
+    // Use EnhancedEbayClient for comprehensive listing data
+    console.log('🚀 Using EnhancedEbayClient for comprehensive listing fetch...');
+    const ebayClient = new EnhancedEbayClient(userId);
 
-    // Fetch inventory items with caching
-    const inventoryData = await fetchInventoryItems(accessToken, userId);
+    // Initialize client (handles token refresh if needed)
+    await ebayClient.initialize();
 
-    const listings = [];
+    // Fetch all listings with view/watch counts
+    const ebayData = await ebayClient.fetchAllListings({
+      limit: 100,
+      offset: 0,
+      includeViewCounts: true,
+      includeWatchCounts: true
+    });
 
-    // Process each inventory item with rate limiting
-    if (inventoryData.inventoryItems && inventoryData.inventoryItems.length > 0) {
-      console.log(`📦 Processing ${inventoryData.inventoryItems.length} inventory items...`);
+    // Add price reduction defaults to each listing
+    const listings = ebayData.listings.map(listing => ({
+      ...listing,
+      // Add default price reduction settings if not present
+      price_reduction_enabled: listing.price_reduction_enabled || false,
+      reduction_strategy: listing.reduction_strategy || 'fixed_percentage',
+      reduction_percentage: listing.reduction_percentage || 5,
+      minimum_price: listing.minimum_price || (listing.current_price * 0.5),
+      reduction_interval: listing.reduction_interval || 7,
 
-      for (let i = 0; i < inventoryData.inventoryItems.length; i++) {
-        const item = inventoryData.inventoryItems[i];
-        console.log(`Processing item ${i + 1}/${inventoryData.inventoryItems.length}: ${item.sku}`);
+      // Calculate listing age in days if we have start_time
+      listing_age_days: listing.start_time
+        ? Math.floor((new Date() - new Date(listing.start_time)) / (1000 * 60 * 60 * 24))
+        : 0
+    }));
 
-        // Get offers for this SKU with caching and rate limiting
-        const offersData = await fetchOffersForSku(accessToken, userId, item.sku);
-
-        // Map the data to match our database schema
-        const listing = {
-          // From Inventory API
-          sku: item.sku,
-          title: item.product?.title || 'No title',
-          description: item.product?.description || '',
-          quantity: item.availability?.shipToLocationAvailability?.quantity || 1,
-          quantity_available: item.availability?.shipToLocationAvailability?.quantity || 1,
-          image_urls: item.product?.imageUrls || [],
-          condition: item.condition || 'Used',
-
-          // Default values - will be populated from offers if available
-          ebay_item_id: null,
-          current_price: null,
-          original_price: null,
-          listing_status: 'Active',
-          listing_format: 'FixedPriceItem',
-          currency: 'USD',
-          category: item.product?.aspects?.Category?.[0] || null,
-          category_id: item.product?.categoryId || null,
-          start_time: null,
-          end_time: null,
-
-          // Price reduction settings (defaults)
-          price_reduction_enabled: false,
-          reduction_strategy: 'fixed_percentage',
-          reduction_percentage: 5,
-          minimum_price: 0,
-          reduction_interval: 7
-        };
-
-        // If we have offers, extract pricing and listing info
-        if (offersData && offersData.offers && offersData.offers.length > 0) {
-          // Take the first published offer (there might be multiple for different marketplaces)
-          const offer = offersData.offers.find(o => o.status === 'PUBLISHED') || offersData.offers[0];
-
-          const price = parseFloat(offer.pricingSummary?.price?.value || 0);
-          listing.current_price = price;
-          listing.original_price = price; // Set original price same as current on import
-          listing.minimum_price = price * 0.5; // Default minimum to 50% of current price
-          listing.ebay_item_id = offer.listingId || offer.offerId;
-          listing.listing_status = offer.status === 'PUBLISHED' ? 'Active' : 'Ended';
-          listing.currency = offer.pricingSummary?.price?.currency || 'USD';
-          listing.start_time = offer.createdDate || new Date().toISOString();
-          listing.listing_format = offer.format || 'FixedPriceItem';
-
-          // Calculate listing age in days
-          if (offer.createdDate) {
-            const created = new Date(offer.createdDate);
-            const now = new Date();
-            const ageInDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
-            listing.listing_age_days = ageInDays;
-          }
-        }
-
-        listings.push(listing);
-      }
-    }
-
-    console.log(`✅ Successfully fetched ${listings.length} listings from eBay`);
+    console.log(`✅ Successfully fetched ${listings.length} listings from eBay with view/watch counts`);
 
     const response = {
       success: true,
-      total: inventoryData.total || 0,
+      total: ebayData.total || listings.length,
       listings: listings,
-      hasMore: inventoryData.next ? true : false,
-      nextOffset: inventoryData.next ? parseInt(inventoryData.next.split('offset=')[1]) : null
+      hasMore: ebayData.hasMore || false,
+      nextOffset: ebayData.nextOffset || null
     };
 
     // Cache the full response (reuse the same key from earlier)

@@ -17,7 +17,7 @@ const getStoredColumnOrder = () => {
   }
   return [
     'image', 'title', 'quantity', 'currentPrice', 'minimumPrice',
-    'priceReductionEnabled', 'strategy', 'suggestedPrice', 'listingAge', 'actions'
+    'priceReductionEnabled', 'strategy', 'viewCount', 'watchCount', 'listingAge', 'actions'
   ]
 }
 
@@ -38,7 +38,8 @@ const getStoredVisibleColumns = () => {
     minimumPrice: true,
     priceReductionEnabled: true,
     strategy: true,
-    suggestedPrice: true,
+    viewCount: true,
+    watchCount: true,
     listingAge: true,
     actions: true
   }
@@ -86,10 +87,10 @@ export default function Listings() {
       keepPreviousData: true,
       refetchOnWindowFocus: false,
       refetchOnMount: false, // Don't refetch on mount if data exists
-      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes (matches server cache)
-      cacheTime: 10 * 60 * 1000, // Keep cached data for 10 minutes
+      staleTime: 6 * 60 * 60 * 1000, // Consider data fresh for 6 hours (matches scheduled sync interval)
+      cacheTime: 12 * 60 * 60 * 1000, // Keep cached data for 12 hours
       retry: 1, // Only retry once on failure
-      refetchInterval: false, // Disable automatic polling
+      refetchInterval: false, // Disable automatic polling (use scheduled sync instead)
       refetchIntervalInBackground: false,
       refetchOnReconnect: 'always' // Refetch when network reconnects
     }
@@ -443,7 +444,8 @@ export default function Listings() {
       minimumPrice: { label: 'Minimum Price', sortable: false, width: 'w-24 lg:w-28' },
       priceReductionEnabled: { label: 'Price Reduction', sortable: true, sortKey: 'price_reduction_enabled', width: 'w-32 lg:w-36' },
       strategy: { label: 'Strategy', sortable: false, width: 'w-40 lg:w-48' },
-      suggestedPrice: { label: 'Suggested Price', sortable: false, width: 'w-24 lg:w-28' },
+      viewCount: { label: 'Views', sortable: true, sortKey: 'view_count', width: 'w-20 lg:w-24' },
+      watchCount: { label: 'Watchers', sortable: true, sortKey: 'watch_count', width: 'w-20 lg:w-24' },
       listingAge: { label: 'Listing Age', sortable: true, sortKey: 'created_at', width: 'w-20 lg:w-24' },
       actions: { label: 'Actions', sortable: false, width: 'w-32 lg:w-36' }
     }
@@ -813,10 +815,12 @@ export default function Listings() {
                     <div className="font-medium">{listing.quantity || 1}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">Suggested:</span>
-                    <div className="font-medium text-blue-600">
-                      ${calculateSuggestedPrice(listing.current_price, listing.original_price)}
-                    </div>
+                    <span className="text-gray-500">Views:</span>
+                    <div className="font-medium">{listing.view_count || 0}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Watchers:</span>
+                    <div className="font-medium">{listing.watch_count || 0}</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Age:</span>
@@ -1045,10 +1049,16 @@ export default function Listings() {
                               ))}
                             </select>
                           )
-                        case 'suggestedPrice':
+                        case 'viewCount':
                           return (
-                            <div className="text-sm text-blue-600 font-medium">
-                              ${calculateSuggestedPrice(listing.current_price, listing.original_price)}
+                            <div className="text-sm text-gray-900 text-center">
+                              {listing.view_count || 0}
+                            </div>
+                          )
+                        case 'watchCount':
+                          return (
+                            <div className="text-sm text-gray-900 text-center">
+                              {listing.watch_count || 0}
                             </div>
                           )
                         case 'listingAge':
