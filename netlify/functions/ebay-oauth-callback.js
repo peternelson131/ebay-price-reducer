@@ -11,19 +11,21 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.en
 // Encryption helpers for refresh token
 // Ensure we have a proper 32-byte key for AES-256
 const getEncryptionKey = () => {
-  if (process.env.ENCRYPTION_KEY) {
-    // If env var is set, ensure it's 32 bytes
-    const key = process.env.ENCRYPTION_KEY;
-    // If it's a hex string, convert it properly
-    if (key.length === 64 && /^[0-9a-fA-F]+$/.test(key)) {
-      return Buffer.from(key, 'hex');
-    }
-    // Otherwise, hash it to get consistent 32 bytes
-    return crypto.createHash('sha256').update(key).digest();
+  if (!process.env.ENCRYPTION_KEY) {
+    throw new Error(
+      'ENCRYPTION_KEY environment variable is required. ' +
+      'Generate with: openssl rand -hex 32'
+    );
   }
-  // Generate a consistent key based on other env vars as fallback
-  const seed = process.env.SUPABASE_URL || 'default-seed';
-  return crypto.createHash('sha256').update(seed).digest();
+
+  const key = process.env.ENCRYPTION_KEY;
+  // If it's a hex string, convert it properly
+  if (key.length === 64 && /^[0-9a-fA-F]+$/.test(key)) {
+    return Buffer.from(key, 'hex');
+  }
+
+  // Otherwise, hash it to get consistent 32 bytes
+  return crypto.createHash('sha256').update(key).digest();
 };
 
 const ENCRYPTION_KEY = getEncryptionKey();
@@ -42,6 +44,16 @@ function encrypt(text) {
     console.error('Key buffer length:', ENCRYPTION_KEY.length);
     throw error;
   }
+}
+
+function decrypt(text) {
+  const textParts = text.split(':');
+  const iv = Buffer.from(textParts.shift(), 'hex');
+  const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+  const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+  let decrypted = decipher.update(encryptedText);
+  decrypted = Buffer.concat([decrypted, decipher.final()]);
+  return decrypted.toString();
 }
 
 // Helper function to make Supabase API calls
@@ -159,6 +171,63 @@ exports.handler = async (event, context) => {
 
     const stateRecord = stateRecords[0];
     const userId = stateRecord.user_id;
+    const codeVerifier = stateRecord.code_verifier;
+
+    // Validate PKCE code_verifier is present
+    if (!codeVerifier) {
+      console.error('PKCE code_verifier missing from oauth_states record');
+      return {
+        statusCode: 400,
+        headers,
+        body: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>OAuth Error</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              }
+              .container {
+                background: white;
+                padding: 2rem;
+                border-radius: 10px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+                max-width: 500px;
+                text-align: center;
+              }
+              h1 { color: #e74c3c; margin-top: 0; }
+              p { color: #555; line-height: 1.6; }
+              .error-code { color: #999; font-size: 0.9em; margin-top: 1rem; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>OAuth Error</h1>
+              <p>PKCE code verifier missing. Please restart the connection process.</p>
+              <p class="error-code">This window will close automatically in 5 seconds...</p>
+            </div>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({
+                  type: 'ebay-oauth-error',
+                  error: 'pkce_verifier_missing',
+                  message: 'PKCE code verifier missing. Please restart the connection process.'
+                }, '*');
+              }
+              setTimeout(() => window.close(), 5000);
+            </script>
+          </body>
+          </html>
+        `
+      };
+    }
 
     console.log('State validated for user:', userId);
 
@@ -187,6 +256,11 @@ exports.handler = async (event, context) => {
 
     const user = users[0];
 
+    // Decrypt cert_id if encrypted
+    if (user.ebay_cert_id_encrypted) {
+      user.ebay_cert_id = decrypt(user.ebay_cert_id_encrypted);
+    }
+
     if (!user.ebay_app_id || !user.ebay_cert_id) {
       throw new Error('User eBay credentials not configured');
     }
@@ -199,10 +273,12 @@ exports.handler = async (event, context) => {
     const redirectUri = process.env.EBAY_REDIRECT_URI || 'https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth';
 
     // Don't decode the code - use it as received from eBay
+    // Include code_verifier for PKCE verification
     const tokenParams = new URLSearchParams({
       grant_type: 'authorization_code',
       code: code, // Use code as-is, eBay handles encoding
-      redirect_uri: redirectUri
+      redirect_uri: redirectUri,
+      code_verifier: codeVerifier
     });
 
     console.log('Exchanging code for tokens using user credentials...');

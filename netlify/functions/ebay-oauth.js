@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { getCorsHeaders } = require('./utils/cors');
 
 // Supabase configuration
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -8,19 +9,21 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.en
 // Encryption helpers for refresh token
 // Ensure we have a proper 32-byte key for AES-256
 const getEncryptionKey = () => {
-  if (process.env.ENCRYPTION_KEY) {
-    // If env var is set, ensure it's 32 bytes
-    const key = process.env.ENCRYPTION_KEY;
-    // If it's a hex string, convert it properly
-    if (key.length === 64 && /^[0-9a-fA-F]+$/.test(key)) {
-      return Buffer.from(key, 'hex');
-    }
-    // Otherwise, hash it to get consistent 32 bytes
-    return crypto.createHash('sha256').update(key).digest();
+  if (!process.env.ENCRYPTION_KEY) {
+    throw new Error(
+      'ENCRYPTION_KEY environment variable is required. ' +
+      'Generate with: openssl rand -hex 32'
+    );
   }
-  // Generate a consistent key based on other env vars as fallback
-  const seed = process.env.SUPABASE_URL || 'default-seed';
-  return crypto.createHash('sha256').update(seed).digest();
+
+  const key = process.env.ENCRYPTION_KEY;
+  // If it's a hex string, convert it properly
+  if (key.length === 64 && /^[0-9a-fA-F]+$/.test(key)) {
+    return Buffer.from(key, 'hex');
+  }
+
+  // Otherwise, hash it to get consistent 32 bytes
+  return crypto.createHash('sha256').update(key).digest();
 };
 
 const ENCRYPTION_KEY = getEncryptionKey();
@@ -42,6 +45,31 @@ function decrypt(text) {
   let decrypted = decipher.update(encryptedText);
   decrypted = Buffer.concat([decrypted, decipher.final()]);
   return decrypted.toString();
+}
+
+// PKCE helper functions for OAuth security
+
+// Base64url encoding polyfill for Node < 15 compatibility
+function toBase64Url(buffer) {
+  try {
+    return buffer.toString('base64url');
+  } catch (e) {
+    // Fallback for Node < 15
+    return buffer.toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+  }
+}
+
+function generateCodeVerifier() {
+  return toBase64Url(crypto.randomBytes(32));
+}
+
+function generateCodeChallenge(verifier) {
+  return toBase64Url(
+    crypto.createHash('sha256').update(verifier).digest()
+  );
 }
 
 // Helper function to make Supabase API calls
@@ -149,13 +177,8 @@ exports.handler = async (event, context) => {
   console.log('Path:', event.path);
   console.log('Query params:', event.queryStringParameters);
 
-  // CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Content-Type': 'application/json'
-  };
+  // Get CORS headers from shared utility
+  const headers = getCorsHeaders(event);
 
   // Handle OPTIONS request for CORS
   if (event.httpMethod === 'OPTIONS') {
@@ -252,6 +275,11 @@ exports.handler = async (event, context) => {
 
       const user = users[0];
 
+      // Decrypt cert_id if encrypted
+      if (user.ebay_cert_id_encrypted) {
+        user.ebay_cert_id = decrypt(user.ebay_cert_id_encrypted);
+      }
+
       // Check if user has configured their eBay credentials
       if (!user.ebay_app_id || !user.ebay_cert_id) {
         return {
@@ -264,24 +292,29 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Generate and store state
+      // Generate PKCE values
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = generateCodeChallenge(codeVerifier);
+
+      // Generate OAuth state
       const oauthState = crypto.randomBytes(32).toString('hex');
       console.log('Generated OAuth state:', oauthState);
 
-      // Store state in database with user association (use service key if needed)
+      // Store state AND code_verifier in database (use service key if needed)
       await supabaseRequest(
         'oauth_states',
         'POST',
         {
           state: oauthState,
           user_id: authUser.id,
+          code_verifier: codeVerifier,
           created_at: new Date().toISOString()
         },
         {},
         true // Use service key for protected table
       );
 
-      // Return eBay OAuth URL using USER'S credentials, not env vars
+      // Return eBay OAuth URL using USER'S credentials with PKCE
       // Use the main ebay-oauth endpoint as redirect URI since eBay sends callback there
       const redirectUri = process.env.EBAY_REDIRECT_URI || 'https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth';
       const ebayAuthUrl = `https://auth.ebay.com/oauth2/authorize?` +
@@ -289,7 +322,9 @@ exports.handler = async (event, context) => {
         `response_type=code&` +
         `redirect_uri=${encodeURIComponent(redirectUri)}&` +
         `scope=${encodeURIComponent('https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.marketing.readonly https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.inventory.readonly https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account.readonly https://api.ebay.com/oauth/api_scope/sell.account https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly https://api.ebay.com/oauth/api_scope/sell.fulfillment https://api.ebay.com/oauth/api_scope/sell.analytics.readonly')}&` +
-        `state=${oauthState}`;
+        `state=${oauthState}&` +
+        `code_challenge=${codeChallenge}&` +
+        `code_challenge_method=S256`;
 
       return {
         statusCode: 200,
@@ -326,11 +361,16 @@ exports.handler = async (event, context) => {
         true // Use service key to bypass RLS policies
       );
 
-      if (!users || users.length === 0 || !users[0].ebay_app_id || !users[0].ebay_cert_id) {
-        throw new Error('User eBay credentials not configured');
+      const user = users[0];
+
+      // Decrypt cert_id if encrypted
+      if (user && user.ebay_cert_id_encrypted) {
+        user.ebay_cert_id = decrypt(user.ebay_cert_id_encrypted);
       }
 
-      const user = users[0];
+      if (!users || users.length === 0 || !user.ebay_app_id || !user.ebay_cert_id) {
+        throw new Error('User eBay credentials not configured');
+      }
 
       // Delete used state (use service key for protected table)
       await supabaseRequest(
@@ -479,12 +519,17 @@ exports.handler = async (event, context) => {
 
         const user = users[0];
 
+        // Decrypt cert_id if encrypted (for status display)
+        if (user.ebay_cert_id_encrypted) {
+          user.ebay_cert_id = decrypt(user.ebay_cert_id_encrypted);
+        }
+
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
             hasAppId: !!user.ebay_app_id,
-            hasCertId: !!user.ebay_cert_id,
+            hasCertId: !!user.ebay_cert_id || !!user.ebay_cert_id_encrypted,
             hasDevId: !!user.ebay_dev_id,
             hasRefreshToken: !!user.ebay_refresh_token,
             appId: user.ebay_app_id || null,
@@ -632,6 +677,11 @@ exports.handler = async (event, context) => {
         }
 
         const user = users[0];
+
+        // Decrypt cert_id if encrypted
+        if (user.ebay_cert_id_encrypted) {
+          user.ebay_cert_id = decrypt(user.ebay_cert_id_encrypted);
+        }
 
         // Check if user has required credentials
         if (!user.ebay_app_id || !user.ebay_cert_id) {
