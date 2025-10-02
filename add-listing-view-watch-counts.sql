@@ -3,6 +3,10 @@
 -- Migration for eBay API optimization (Phase 2)
 -- =============================================
 
+-- Add archived_at column if it doesn't exist (needed for indexes)
+ALTER TABLE listings
+ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP WITH TIME ZONE;
+
 -- Add new columns to listings table
 ALTER TABLE listings
 ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0,
@@ -31,10 +35,8 @@ SELECT
     COUNT(*) FILTER (WHERE listing_status = 'Active') as active_listings,
     COUNT(*) FILTER (WHERE price_reduction_enabled = true) as reduction_enabled,
     AVG(current_price) as avg_price,
-    SUM(quantity_sold) as total_sold,
     AVG(view_count) as avg_views,
     AVG(watch_count) as avg_watchers,
-    MAX(last_synced) as last_sync,
     MAX(last_synced_at) as last_synced_at
 FROM listings
 WHERE archived_at IS NULL
