@@ -1,5 +1,6 @@
 const { Handler } = require('@netlify/functions');
 const { createClient } = require('@supabase/supabase-js');
+const { getCorsHeaders } = require('./utils/cors');
 const { UserEbayClient } = require('./utils/user-ebay-client');
 
 // Initialize Supabase client
@@ -9,12 +10,7 @@ const supabase = createClient(
 );
 
 const handler = async (event, context) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Content-Type': 'application/json'
-  };
+  const headers = getCorsHeaders(event);
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };

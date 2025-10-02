@@ -65,3 +65,6 @@ Desktop.ini
 
 # Demo/development files
 backend/src/server-demo.js
+
+# Legacy backend - archived, not in use
+legacy-backend/node_modules/

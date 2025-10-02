@@ -1,17 +1,16 @@
 const { Handler } = require('@netlify/functions')
+const { getCorsHeaders } = require('./utils/cors')
 const { supabase } = require('./utils/supabase')
 const EbayService = require('./utils/ebay')
 
 const handler = async (event, context) => {
+  const headers = getCorsHeaders(event);
+
   // Handle CORS
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE'
-      }
+      headers
     }
   }
 

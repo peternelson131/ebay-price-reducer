@@ -1,6 +1,8 @@
 // API Service for eBay Price Reducer
 // Connects frontend to Netlify Functions backend
 
+import { logger } from '../utils/logger';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/.netlify/functions';
 
 class ApiService {
@@ -8,30 +10,61 @@ class ApiService {
     this.baseURL = API_BASE_URL;
   }
 
-  // Helper method for making requests
-  async request(endpoint, options = {}) {
+  // Helper method for making requests with retry logic
+  async request(endpoint, options = {}, retries = 3) {
     const url = `${this.baseURL}${endpoint}`;
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    };
+    let lastError;
 
-    try {
-      const response = await fetch(url, config);
-      const data = await response.json();
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const config = {
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers,
+          },
+          ...options,
+        };
 
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        const response = await fetch(url, config);
+        const data = await response.json();
+
+        if (!response.ok) {
+          // Don't retry client errors (4xx)
+          if (response.status >= 400 && response.status < 500) {
+            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+          }
+
+          // Retry server errors (5xx) and network errors
+          if (attempt < retries) {
+            const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+
+          throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+
+        return data;
+      } catch (error) {
+        lastError = error;
+
+        // Don't retry on abort or client errors
+        if (error.name === 'AbortError' || error.message.includes('HTTP error!')) {
+          throw error;
+        }
+
+        // Retry network errors
+        if (attempt < retries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+          logger.warn(`API request failed, retrying in ${delay}ms...`, error);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
       }
-
-      return data;
-    } catch (error) {
-      console.error(`API Error for ${endpoint}:`, error);
-      throw error;
     }
+
+    logger.error(`API Error for ${endpoint} after ${retries} retries:`, lastError);
+    throw lastError;
   }
 
   // Authentication & User Management
@@ -169,7 +202,7 @@ export default apiService;
 
 // Helper function to handle API errors consistently
 export const handleApiError = (error, defaultMessage = 'An error occurred') => {
-  console.error('API Error:', error);
+  logger.error('API Error:', error);
 
   if (error.message) {
     return error.message;

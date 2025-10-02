@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { userAPI } from '../lib/supabase'
 import { isTokenExpiringSoon, refreshEbayToken, getTokenStatus, formatTokenExpiry } from '../utils/ebayTokenManager'
+import { toast } from '../utils/toast'
 
 export default function EbayConnect() {
   const [connectionStep, setConnectionStep] = useState('idle') // idle, connecting, connected, error, needs-setup
@@ -109,14 +110,14 @@ export default function EbayConnect() {
             queryClient.invalidateQueries(['profile'])
             setConnectionStep('idle')
             // Show success message
-            alert(`Successfully connected to eBay${event.data.ebayUser ? ` as ${event.data.ebayUser}` : ''}!\n\nYour refresh token has been securely encrypted and stored.`)
+            toast.success(`Successfully connected to eBay${event.data.ebayUser ? ` as ${event.data.ebayUser}` : ''}! Your refresh token has been securely encrypted and stored.`)
           } else if (event.data.type === 'ebay-oauth-error') {
             console.error('eBay OAuth error:', event.data)
             // Clear the reference
             window.ebayAuthWindow = null
             setConnectionStep('idle')
             // Show error message
-            alert(`Failed to connect to eBay: ${event.data.error || 'Unknown error'}\n\n${event.data.message || 'Please try again.'}`)
+            toast.error(`Failed to connect to eBay: ${event.data.error || 'Unknown error'}. ${event.data.message || 'Please try again.'}`)
           }
         }
 
@@ -141,7 +142,7 @@ export default function EbayConnect() {
     } catch (error) {
       console.error('Connection error:', error)
       setConnectionStep('error')
-      alert('Failed to connect to eBay. Please try again.')
+      toast.error('Failed to connect to eBay. Please try again.')
     }
   }
 
@@ -208,13 +209,13 @@ export default function EbayConnect() {
           setConnectionStep('needs-setup')
         }
 
-        alert('eBay account disconnected successfully.\n\nYour App credentials are still saved.')
+        toast.success('eBay account disconnected successfully. Your App credentials are still saved.')
       } else {
         throw new Error(data.error || data.message || 'Failed to disconnect')
       }
     } catch (error) {
       console.error('Disconnect error:', error)
-      alert(`Failed to disconnect eBay account: ${error.message}`)
+      toast.error(`Failed to disconnect eBay account: ${error.message}`)
     } finally {
       setIsDisconnecting(false)
     }
@@ -298,10 +299,10 @@ export default function EbayConnect() {
             'development': 'Development mode connection test successful!\n\nFull eBay integration requires production setup.'
           };
 
-          alert(modeMessages[mode] || `eBay connection successful!\n\nConnected as: ${data.ebayUserId || 'Unknown User'}\nActive listings: ${data.activeListings || 0}`);
+          toast.info(modeMessages[mode] || `eBay connection successful! Connected as: ${data.ebayUserId || 'Unknown User'}, Active listings: ${data.activeListings || 0}`);
         } else {
           // Real eBay connection response
-          alert(`✅ eBay API connection successful!\n\nConnected as: ${data.ebayUserId || 'Unknown User'}\nActive listings: ${data.activeListings || 0}\nStatus Code: ${data.statusCode || 200}`);
+          toast.success(`eBay API connection successful! Connected as: ${data.ebayUserId || 'Unknown User'}, Active listings: ${data.activeListings || 0}, Status Code: ${data.statusCode || 200}`);
         }
       } else {
         // Handle different failure scenarios
@@ -318,11 +319,11 @@ export default function EbayConnect() {
         } else {
           message = '❌ ' + message;
         }
-        alert(message);
+        toast.error(message);
       }
     } catch (error) {
       console.error('Test error:', error)
-      alert('Failed to test eBay connection. Please check your network connection.')
+      toast.error('Failed to test eBay connection. Please check your network connection.')
     }
   }
 

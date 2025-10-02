@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { getCorsHeaders } = require('./utils/cors');
 const { EnhancedEbayClient } = require('./utils/enhanced-ebay-client');
 
 // Memory cache for responses (survives during function execution)
@@ -340,12 +341,7 @@ exports.handler = async (event, context) => {
   console.log('Method:', event.httpMethod);
 
   // CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'application/json'
-  };
+  const headers = getCorsHeaders(event);
 
   // Handle OPTIONS request for CORS
   if (event.httpMethod === 'OPTIONS') {
@@ -405,12 +401,7 @@ exports.handler = async (event, context) => {
 
 // Separate function to process eBay request
 async function processEbayRequest(userId, authUser) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'application/json'
-  };
+  const headers = getCorsHeaders(event);
 
   try {
     // Check for cached full response first

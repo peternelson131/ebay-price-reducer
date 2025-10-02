@@ -1,7 +1,38 @@
+const crypto = require('crypto');
+const { getCorsHeaders } = require('./utils/cors');
+
 // Supabase configuration
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+// Encryption helpers for cert_id (same as refresh token encryption)
+const IV_LENGTH = 16;
+const getEncryptionKey = () => {
+  if (!process.env.ENCRYPTION_KEY) {
+    throw new Error(
+      'ENCRYPTION_KEY environment variable is required. ' +
+      'Generate with: openssl rand -hex 32'
+    );
+  }
+
+  const key = process.env.ENCRYPTION_KEY;
+  if (key.length === 64 && /^[0-9a-fA-F]+$/.test(key)) {
+    return Buffer.from(key, 'hex');
+  }
+
+  return crypto.createHash('sha256').update(key).digest();
+};
+
+const ENCRYPTION_KEY = getEncryptionKey();
+
+function encrypt(text) {
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+  let encrypted = cipher.update(text);
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  return iv.toString('hex') + ':' + encrypted.toString('hex');
+}
 
 // Helper function to make Supabase API calls
 async function supabaseRequest(endpoint, method = 'GET', body = null, headers = {}, useServiceKey = false) {
@@ -106,12 +137,7 @@ exports.handler = async (event, context) => {
   console.log('Method:', event.httpMethod);
 
   // CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Content-Type': 'application/json'
-  };
+  const headers = getCorsHeaders(event);
 
   // Handle OPTIONS request for CORS
   if (event.httpMethod === 'OPTIONS') {
@@ -182,6 +208,9 @@ exports.handler = async (event, context) => {
       true // Use service key
     );
 
+    // Encrypt cert_id before storing
+    const encryptedCertId = encrypt(cert_id);
+
     if (!existingUsers || existingUsers.length === 0) {
       // Create user record if it doesn't exist
       console.log('Creating new user record');
@@ -191,7 +220,7 @@ exports.handler = async (event, context) => {
         {
           id: authUser.id,
           ebay_app_id: app_id,
-          ebay_cert_id: cert_id,
+          ebay_cert_id_encrypted: encryptedCertId,
           ebay_dev_id: dev_id || null
         },
         {},
@@ -205,7 +234,7 @@ exports.handler = async (event, context) => {
         'PATCH',
         {
           ebay_app_id: app_id,
-          ebay_cert_id: cert_id,
+          ebay_cert_id_encrypted: encryptedCertId,
           ebay_dev_id: dev_id || null
         },
         {},
