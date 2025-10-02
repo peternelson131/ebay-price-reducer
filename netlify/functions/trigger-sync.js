@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
-const { EnhancedEbayClient } = require('./utils/enhanced-ebay-client');
+const { EbayApiClient } = require('./utils/ebay-api-client');
+const { TokenError } = require('./utils/ebay-token-service');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -18,48 +19,51 @@ exports.handler = async (event, context) => {
     return { statusCode: 200, headers, body: '' };
   }
 
-  let user = null; // Declare user outside try block for error handling
-
   try {
-    // Get authenticated user
+    // 1. Validate Supabase JWT (standard pattern)
     const authHeader = event.headers.authorization || event.headers.Authorization;
     if (!authHeader?.startsWith('Bearer ')) {
       return {
         statusCode: 401,
         headers,
-        body: JSON.stringify({ error: 'Unauthorized' })
+        body: JSON.stringify({
+          error: 'Unauthorized',
+          code: 'NO_AUTH_TOKEN'
+        })
       };
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: userData, error: authError } = await supabase.auth.getUser(token);
-    user = userData?.user; // Assign to outer scope variable
+    const user = userData?.user;
 
     if (authError || !user) {
       return {
         statusCode: 401,
         headers,
-        body: JSON.stringify({ error: 'Invalid token' })
+        body: JSON.stringify({
+          error: 'Invalid token',
+          code: 'INVALID_AUTH_TOKEN'
+        })
       };
     }
 
-    console.log(`🔄 Manual sync triggered for user: ${user.email}`);
+    console.log(`📥 Manual sync triggered for user: ${user.email}`);
 
-    // Initialize EnhancedEbayClient
-    const ebayClient = new EnhancedEbayClient(user.id);
+    // 2. Initialize eBay client (handles token refresh automatically)
+    const ebayClient = new EbayApiClient(user.id);
     await ebayClient.initialize();
 
-    // Fetch all listings with view/watch counts
-    const ebayData = await ebayClient.fetchAllListings({
-      limit: 100,
-      offset: 0,
-      includeViewCounts: true,
-      includeWatchCounts: true
-    });
+    // 3. Fetch listings from eBay
+    const ebayData = await ebayClient.getActiveListings(1, 100);
 
-    console.log(`✅ Fetched ${ebayData.listings.length} listings from eBay`);
+    // Note: The new simplified client returns eBay Trading API response directly
+    // We need to parse it to get listings
+    const listings = ebayData.ActiveList?.ItemArray?.Item || [];
 
-    if (ebayData.listings.length === 0) {
+    console.log(`✅ Fetched ${listings.length} listings from eBay`);
+
+    if (listings.length === 0) {
       return {
         statusCode: 200,
         headers,
@@ -71,34 +75,34 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Prepare listings for upsert
-    const listingsToUpsert = ebayData.listings.map(listing => ({
+    // 4. Prepare listings for upsert (simplified format from Trading API)
+    const listingsToUpsert = listings.map(item => ({
       user_id: user.id,
-      ebay_item_id: listing.ebay_item_id,
-      sku: listing.sku,
-      title: listing.title,
-      description: listing.description,
-      current_price: listing.current_price,
-      original_price: listing.original_price || listing.current_price,
-      currency: listing.currency,
-      quantity: listing.quantity,
-      quantity_available: listing.quantity,
-      image_urls: listing.image_urls,
-      condition: listing.condition || 'Used',
-      category_id: listing.category_id,
-      category: listing.category_name,
-      listing_status: listing.listing_status,
-      listing_format: listing.listing_type || 'FixedPriceItem',
-      start_time: listing.start_time,
-      end_time: listing.end_time,
-      view_count: listing.view_count || 0,
-      watch_count: listing.watch_count || 0,
-      hit_count: listing.hit_count || 0,
+      ebay_item_id: item.ItemID,
+      sku: item.SKU || null,
+      title: item.Title,
+      description: item.Description || null,
+      current_price: parseFloat(item.SellingStatus?.CurrentPrice?.value || 0),
+      original_price: parseFloat(item.StartPrice?.value || item.SellingStatus?.CurrentPrice?.value || 0),
+      currency: item.SellingStatus?.CurrentPrice?.currencyID || 'USD',
+      quantity: parseInt(item.Quantity) || 0,
+      quantity_available: parseInt(item.QuantityAvailable || item.Quantity) || 0,
+      image_urls: item.PictureDetails?.PictureURL ? [item.PictureDetails.PictureURL].flat() : [],
+      condition: item.ConditionDisplayName || 'Used',
+      category_id: item.PrimaryCategory?.CategoryID || null,
+      category: item.PrimaryCategory?.CategoryName || null,
+      listing_status: item.SellingStatus?.ListingStatus || 'Active',
+      listing_format: item.ListingType || 'FixedPriceItem',
+      start_time: item.ListingDetails?.StartTime || null,
+      end_time: item.ListingDetails?.EndTime || null,
+      view_count: parseInt(item.HitCount) || 0,
+      watch_count: parseInt(item.WatchCount) || 0,
+      hit_count: parseInt(item.HitCount) || 0,
       last_synced_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }));
 
-    // Upsert to database
+    // 5. Upsert to database
     const { data, error } = await supabase
       .from('listings')
       .upsert(listingsToUpsert, {
@@ -120,7 +124,7 @@ exports.handler = async (event, context) => {
         success: true,
         message: 'Sync completed successfully',
         count: listingsToUpsert.length,
-        listings: ebayData.listings.map(l => ({
+        listings: listingsToUpsert.map(l => ({
           sku: l.sku,
           title: l.title,
           price: l.current_price,
@@ -131,22 +135,31 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('💥 Sync failed:', {
-      userId: user?.id || 'unknown',
-      error: error.message,
-      stack: error.stack
-    });
+    console.error('Sync failed:', error);
 
+    // Handle TokenError with detailed error response (standard pattern)
+    if (error instanceof TokenError) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: error.message,
+          code: error.code,
+          action: error.action
+        })
+      };
+    }
+
+    // Handle other errors
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
+        success: false,
         error: 'Sync failed',
         message: error.message,
-        details: {
-          userId: user?.id,
-          timestamp: new Date().toISOString()
-        }
+        code: 'UNKNOWN_ERROR'
       })
     };
   }
