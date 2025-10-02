@@ -828,53 +828,28 @@ exports.handler = async (event, context) => {
         const currentUser = users[0];
         console.log('Current user has refresh token:', !!currentUser.ebay_refresh_token);
         console.log('Current user eBay user ID:', currentUser.ebay_user_id);
-        console.log('Current token expiry:', currentUser.ebay_token_expires_at);
+        console.log('Current connection status:', currentUser.ebay_connection_status);
 
         // Clear only OAuth-related fields, keep app credentials
         // Use empty string instead of null for better REST API compatibility
         console.log('Clearing OAuth fields for user:', authUser.id);
 
-        // First approach: Try with nulls
-        let updateResult;
-        try {
-          updateResult = await supabaseRequest(
-            `users?id=eq.${authUser.id}&select=*`,
-            'PATCH',
-            {
-              ebay_refresh_token: null,
-              ebay_token_expires_at: null,
-              ebay_refresh_token_expires_at: null,
-              ebay_user_id: null,
-              ebay_connection_status: 'not_connected',
-              ebay_connected_at: null
-              // Keep: ebay_app_id, ebay_cert_id, ebay_dev_id
-            },
-            {
-              'Prefer': 'return=representation'
-            },
-            true // Use service key
-          );
-        } catch (nullError) {
-          console.log('Null update failed, trying with empty strings:', nullError.message);
-          // Fallback: Try with empty strings if null doesn't work
-          updateResult = await supabaseRequest(
-            `users?id=eq.${authUser.id}&select=*`,
-            'PATCH',
-            {
-              ebay_refresh_token: '',
-              ebay_token_expires_at: null,
-              ebay_refresh_token_expires_at: null,
-              ebay_user_id: '',
-              ebay_connection_status: 'not_connected',
-              ebay_connected_at: null
-              // Keep: ebay_app_id, ebay_cert_id, ebay_dev_id
-            },
-            {
-              'Prefer': 'return=representation'
-            },
-            true // Use service key
-          );
-        }
+        // Clear OAuth tokens but keep app credentials
+        const updateResult = await supabaseRequest(
+          `users?id=eq.${authUser.id}&select=*`,
+          'PATCH',
+          {
+            ebay_refresh_token: null,
+            ebay_user_id: null,
+            ebay_connection_status: 'disconnected',
+            ebay_connected_at: null
+            // Keep: ebay_app_id, ebay_cert_id_encrypted, ebay_dev_id
+          },
+          {
+            'Prefer': 'return=representation'
+          },
+          true // Use service key
+        );
 
         console.log('Update result:', updateResult);
 
@@ -883,25 +858,9 @@ exports.handler = async (event, context) => {
           const updatedUser = updateResult[0];
           console.log('After update - refresh token cleared:', !updatedUser.ebay_refresh_token);
           console.log('After update - user ID cleared:', !updatedUser.ebay_user_id);
-          console.log('After update - expiry cleared:', !updatedUser.ebay_token_expires_at);
+          console.log('After update - connection status:', updatedUser.ebay_connection_status);
           console.log('After update - app_id preserved:', !!updatedUser.ebay_app_id);
-          console.log('After update - cert_id preserved:', !!updatedUser.ebay_cert_id);
-        }
-
-        // Double-check by fetching again
-        const verifyUsers = await supabaseRequest(
-          `users?id=eq.${authUser.id}&select=ebay_refresh_token,ebay_user_id,ebay_token_expires_at`,
-          'GET',
-          null,
-          {},
-          true
-        );
-
-        if (verifyUsers && verifyUsers.length > 0) {
-          const verifiedUser = verifyUsers[0];
-          console.log('Verification - refresh token is null/empty:', !verifiedUser.ebay_refresh_token);
-          console.log('Verification - user ID is null/empty:', !verifiedUser.ebay_user_id);
-          console.log('Verification - expiry is null:', !verifiedUser.ebay_token_expires_at);
+          console.log('After update - cert_id_encrypted preserved:', !!updatedUser.ebay_cert_id_encrypted);
         }
 
         console.log('eBay OAuth disconnected successfully for user:', authUser.id);
