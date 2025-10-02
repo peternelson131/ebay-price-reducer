@@ -388,11 +388,10 @@ const localStorageUserAPI = {
       default_reduction_strategy: 'fixed_percentage',
       default_reduction_percentage: 5,
       default_reduction_interval: 7,
-      ebay_user_token: ebayConnection.refresh_token || null,
-      ebay_connection_status: ebayConnection.status || 'not_connected',
+      ebay_refresh_token: ebayConnection.refresh_token || null,
+      ebay_connection_status: ebayConnection.status || 'disconnected',
       ebay_connected_at: ebayConnection.connected_at || null,
       ebay_user_id: ebayConnection.user_id || null,
-      ebay_token_expires_at: ebayConnection.token_expires_at || null,
       ebay_refresh_token_expires_at: ebayConnection.refresh_token_expires_at || null,
       subscription_plan: 'free',
       listing_limit: 10,
@@ -412,17 +411,15 @@ const localStorageUserAPI = {
 
     // If updating eBay connection data, store separately
     if (updates.ebay_connection_status !== undefined ||
-        updates.ebay_user_token !== undefined ||
+        updates.ebay_refresh_token !== undefined ||
         updates.ebay_connected_at !== undefined ||
         updates.ebay_user_id !== undefined ||
-        updates.ebay_token_expires_at !== undefined ||
         updates.ebay_refresh_token_expires_at !== undefined) {
       const ebayConnection = {
         status: updates.ebay_connection_status,
-        refresh_token: updates.ebay_user_token,
+        refresh_token: updates.ebay_refresh_token,
         connected_at: updates.ebay_connected_at,
         user_id: updates.ebay_user_id,
-        token_expires_at: updates.ebay_token_expires_at,
         refresh_token_expires_at: updates.ebay_refresh_token_expires_at
       }
       localStorage.setItem('ebayConnection', JSON.stringify(ebayConnection))
@@ -451,7 +448,7 @@ const mockUserAPI = {
       default_reduction_strategy: 'fixed_percentage',
       default_reduction_percentage: 5,
       default_reduction_interval: 7,
-      ebay_user_token: null,
+      ebay_refresh_token: null,
       ebay_connection_status: 'disconnected',
       ebay_connected_at: null,
       subscription_plan: 'free',
@@ -483,7 +480,7 @@ const realUserAPI = realSupabaseClient ? {
       .from('users')
       .select(`
         id, email, name, created_at, updated_at,
-        ebay_user_token, ebay_user_id, ebay_token_expires_at, ebay_credentials_valid,
+        ebay_refresh_token, ebay_user_id, ebay_connection_status, ebay_connected_at, ebay_refresh_token_expires_at,
         default_reduction_strategy, default_reduction_percentage, default_reduction_interval,
         email_notifications, price_reduction_alerts,
         subscription_plan, subscription_active, subscription_expires_at, listing_limit,
@@ -510,10 +507,11 @@ const realUserAPI = realSupabaseClient ? {
       updated_at: new Date().toISOString(),
 
       // eBay credentials
-      ebay_user_token: null,
+      ebay_refresh_token: null,
       ebay_user_id: null,
-      ebay_token_expires_at: null,
-      ebay_credentials_valid: false,
+      ebay_connection_status: 'disconnected',
+      ebay_connected_at: null,
+      ebay_refresh_token_expires_at: null,
 
       // User preferences with schema defaults
       default_reduction_strategy: 'fixed_percentage',

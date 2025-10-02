@@ -24,19 +24,9 @@ export default function EbayConnect() {
     }
   )
 
-  // Automatic token refresh check - runs when profile loads
-  useEffect(() => {
-    if (!profile || !credentials?.hasRefreshToken) return
-
-    const tokenExpiresAt = profile.ebay_token_expires_at
-    if (!tokenExpiresAt) return
-
-    // Check if token needs refresh (within 30 minutes of expiry)
-    if (isTokenExpiringSoon(tokenExpiresAt, 30)) {
-      console.log('Token is expired or expiring soon, auto-refreshing...')
-      refreshToken()
-    }
-  }, [profile, credentials])
+  // Note: Automatic token refresh removed - access tokens are managed server-side
+  // The backend automatically refreshes access tokens using the stored refresh token
+  // when making API calls
 
   // Check if credentials are configured
   useEffect(() => {
@@ -609,52 +599,26 @@ export default function EbayConnect() {
               </div>
             )}
 
-            {/* Token Status */}
-            {profile?.ebay_token_expires_at && (() => {
-              const tokenStatus = getTokenStatus(profile.ebay_token_expires_at)
-              const colorClasses = {
-                green: 'bg-green-50 border-green-200 text-green-900',
-                yellow: 'bg-yellow-50 border-yellow-200 text-yellow-900',
-                red: 'bg-red-50 border-red-200 text-red-900',
-                gray: 'bg-gray-50 border-gray-200 text-gray-900'
-              }
-
-              return (
-                <div className={`border rounded-lg p-4 ${colorClasses[tokenStatus.color]}`}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h5 className={`font-medium mb-2 ${tokenStatus.color === 'green' ? 'text-green-900' : tokenStatus.color === 'yellow' ? 'text-yellow-900' : 'text-red-900'}`}>
-                        Access Token Status
-                      </h5>
-                      <div className="text-sm space-y-1">
-                        <p>
-                          Expires: {new Date(profile.ebay_token_expires_at).toLocaleString()}
-                        </p>
-                        <p>
-                          Time remaining: {formatTokenExpiry(profile.ebay_token_expires_at)}
-                        </p>
-                        <p>
-                          <span className={`font-medium ${
-                            tokenStatus.status === 'valid' ? 'text-green-600' :
-                            tokenStatus.status === 'expiring' ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
-                            {tokenStatus.status === 'valid' ? '✓' : '⚠️'} {tokenStatus.message}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={refreshToken}
-                      disabled={isRefreshing}
-                      className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                    >
-                      {isRefreshing ? 'Refreshing...' : 'Refresh Now'}
-                    </button>
+            {/* Token Status - Note: Access tokens are automatically refreshed by the backend */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h5 className="font-medium text-blue-900 mb-2">
+                    Token Management
+                  </h5>
+                  <div className="text-sm text-blue-800 space-y-1">
+                    <p>
+                      Access tokens are automatically managed by the backend using your stored refresh token.
+                    </p>
+                    {profile?.ebay_refresh_token_expires_at && (
+                      <p className="mt-2">
+                        Refresh token expires: {new Date(profile.ebay_refresh_token_expires_at).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
                 </div>
-              )
-            })()}
+              </div>
+            </div>
 
             {/* Credentials Info */}
             {credentials && (credentials.hasAppId || credentials.hasCertId) && (

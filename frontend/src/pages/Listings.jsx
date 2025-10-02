@@ -908,12 +908,12 @@ export default function Listings() {
         {sortedListings.length === 0 && (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <div className="text-gray-500 mb-4">
-              {userProfile?.ebay_user_token
+              {userProfile?.ebay_connection_status === 'connected'
                 ? 'No listings found. Click "Import from eBay" to sync your listings.'
                 : 'Connect your eBay account to import listings.'
               }
             </div>
-            {userProfile?.ebay_user_token ? (
+            {userProfile?.ebay_connection_status === 'connected' ? (
               <button
                 onClick={handleSyncFromEbay}
                 className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
@@ -1125,12 +1125,12 @@ export default function Listings() {
         {(!listings?.listings || listings.listings.length === 0) && (
           <div className="text-center py-12">
             <div className="text-gray-500 mb-4">
-              {userProfile?.ebay_user_token
+              {userProfile?.ebay_connection_status === 'connected'
                 ? 'No listings found. Click "Import from eBay" to sync your listings.'
                 : 'Connect your eBay account to import listings.'
               }
             </div>
-            {userProfile?.ebay_user_token ? (
+            {userProfile?.ebay_connection_status === 'connected' ? (
               <button
                 onClick={handleSyncFromEbay}
                 className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"

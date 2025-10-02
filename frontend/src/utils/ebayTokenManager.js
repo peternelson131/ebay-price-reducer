@@ -1,8 +1,18 @@
 /**
  * eBay Token Management Utility
  *
- * Provides centralized token refresh and validation logic
- * for the eBay OAuth integration.
+ * NOTE: As of the database migration, access token expiration (ebay_token_expires_at) is no longer
+ * stored in the database. Access tokens are now managed server-side and automatically refreshed
+ * using the stored refresh token when making API calls.
+ *
+ * This utility is retained for backward compatibility and manual token refresh operations.
+ * Most functions that reference ebay_token_expires_at are deprecated.
+ *
+ * Current active columns:
+ * - ebay_refresh_token (replaces ebay_user_token)
+ * - ebay_connection_status (replaces ebay_credentials_valid)
+ * - ebay_connected_at
+ * - ebay_refresh_token_expires_at
  */
 
 import { userAPI } from '../lib/supabase'
