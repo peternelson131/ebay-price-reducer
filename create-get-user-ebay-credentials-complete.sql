@@ -15,25 +15,17 @@
 -- SECURITY: Marked as SECURITY DEFINER to bypass RLS policies
 -- Only returns credentials for the specified user
 
--- First, ensure we have the decrypt_ebay_token function
--- This function decrypts tokens that were encrypted with the same method as cert_id
+-- First, create a pass-through function for encrypted tokens
+-- This function does NOT decrypt - actual decryption happens in backend (Node.js)
+-- It's named "decrypt_ebay_token" for API compatibility but returns encrypted value
 CREATE OR REPLACE FUNCTION decrypt_ebay_token(encrypted_token TEXT)
 RETURNS TEXT AS $$
 BEGIN
-    -- If token is NULL, return NULL
-    IF encrypted_token IS NULL THEN
-        RETURN NULL;
-    END IF;
-
-    -- If token starts with NEEDS_MIGRATION, return as-is for backend to handle
-    IF encrypted_token LIKE 'NEEDS_MIGRATION:%' THEN
-        RETURN encrypted_token;
-    END IF;
-
-    -- Note: Actual decryption happens in the backend (Netlify functions)
-    -- This function is a pass-through for compatibility
-    -- The backend uses pgcrypto or Node.js crypto to decrypt
-    -- For now, we just return the encrypted token and let backend decrypt it
+    -- Pass-through: Return encrypted token as-is for backend decryption
+    -- Backend uses Node.js crypto module (AES-256-CBC) to decrypt
+    -- This function exists for:
+    -- 1. Consistent API with existing get_user_ebay_credentials RPC
+    -- 2. Future PostgreSQL-based decryption if needed
     RETURN encrypted_token;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER IMMUTABLE;

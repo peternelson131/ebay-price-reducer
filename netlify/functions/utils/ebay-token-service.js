@@ -110,7 +110,7 @@ class EbayTokenService {
     return {
       appId: creds.ebay_app_id,
       certId: this.decryptCertId(creds.ebay_cert_id_encrypted),
-      refreshToken: creds.ebay_refresh_token, // Already decrypted by RPC
+      refreshToken: this.decryptRefreshToken(creds.ebay_refresh_token),
       ebayUserId: creds.ebay_user_id,
       connectionStatus: creds.ebay_connection_status,
       connectedAt: creds.ebay_connected_at
@@ -155,6 +155,8 @@ class EbayTokenService {
           connected: false,
           hasCredentials: false,
           canSync: false,
+          ebayUserId: null,
+          connectedAt: null,
           issues: [{
             code: 'CREDENTIALS_NOT_CONFIGURED',
             message: 'eBay App ID and Cert ID not configured',
@@ -166,6 +168,8 @@ class EbayTokenService {
           connected: false,
           hasCredentials: true,
           canSync: false,
+          ebayUserId: null,
+          connectedAt: null,
           issues: [{
             code: 'NOT_CONNECTED',
             message: 'eBay account not connected via OAuth',
@@ -177,6 +181,8 @@ class EbayTokenService {
           connected: false,
           hasCredentials: false,
           canSync: false,
+          ebayUserId: null,
+          connectedAt: null,
           issues: [{
             code: 'UNKNOWN_ERROR',
             message: error.message,
@@ -244,6 +250,13 @@ class EbayTokenService {
    * Decrypt Cert ID (with validation)
    */
   decryptCertId(encryptedCertId) {
+    // Null check
+    if (!encryptedCertId) {
+      throw new TokenError('CREDENTIALS_NOT_CONFIGURED',
+        'Cert ID not configured',
+        'GO_TO_ADMIN_SETTINGS');
+    }
+
     // Check for migration marker
     if (encryptedCertId.startsWith('NEEDS_MIGRATION:')) {
       throw new TokenError('NEEDS_MIGRATION',
@@ -264,6 +277,41 @@ class EbayTokenService {
     } catch (error) {
       throw new TokenError('DECRYPTION_FAILED',
         `Failed to decrypt Cert ID: ${error.message}`,
+        'DISCONNECT_AND_RECONNECT');
+    }
+  }
+
+  /**
+   * Decrypt Refresh Token (with validation)
+   */
+  decryptRefreshToken(encryptedToken) {
+    // Null check
+    if (!encryptedToken) {
+      throw new TokenError('NOT_CONNECTED',
+        'Refresh token not found. Please connect your eBay account.',
+        'CONNECT_EBAY');
+    }
+
+    // Check for migration marker
+    if (encryptedToken.startsWith('NEEDS_MIGRATION:')) {
+      throw new TokenError('NEEDS_MIGRATION',
+        'Credentials need migration. Please disconnect and reconnect your eBay account.',
+        'DISCONNECT_AND_RECONNECT');
+    }
+
+    // Validate encryption format (hex:hex)
+    if (!/^[0-9a-f]+:[0-9a-f]+$/i.test(encryptedToken)) {
+      throw new TokenError('INVALID_ENCRYPTION_FORMAT',
+        `Invalid refresh token encryption format. Expected hex:hex, got: ${encryptedToken.substring(0, 20)}...`,
+        'DISCONNECT_AND_RECONNECT');
+    }
+
+    // Decrypt
+    try {
+      return decrypt(encryptedToken);
+    } catch (error) {
+      throw new TokenError('DECRYPTION_FAILED',
+        `Failed to decrypt refresh token: ${error.message}`,
         'DISCONNECT_AND_RECONNECT');
     }
   }

@@ -58,8 +58,7 @@ class EbayApiClient {
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(`eBay API Error: ${responseData.error?.message || 'Unknown error'}`)
-;
+        throw new Error(`eBay API Error: ${responseData.error?.message || 'Unknown error'}`);
       }
 
       return responseData;
