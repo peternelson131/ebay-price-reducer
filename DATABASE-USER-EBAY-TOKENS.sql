@@ -145,7 +145,7 @@ SELECT
     u.id,
     u.email,
     u.name,
-    u.active,
+    u.is_active,
     u.created_at,
     u.updated_at,
     u.ebay_connection_status,
@@ -159,8 +159,8 @@ SELECT
     COUNT(l.id) AS total_listings,
     COUNT(CASE WHEN l.price_reduction_enabled THEN 1 END) AS enabled_listings
 FROM users u
-LEFT JOIN listings l ON u.id = l.user_id AND l.status = 'Active'
-GROUP BY u.id, u.email, u.name, u.active, u.created_at, u.updated_at,
+LEFT JOIN listings l ON u.id = l.user_id AND l.listing_status = 'Active'
+GROUP BY u.id, u.email, u.name, u.is_active, u.created_at, u.updated_at,
          u.ebay_connection_status, u.ebay_connected_at, u.ebay_user_id, u.ebay_token_expires_at;
 
 -- 13. Grant necessary permissions
