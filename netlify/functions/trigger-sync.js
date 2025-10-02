@@ -18,6 +18,8 @@ exports.handler = async (event, context) => {
     return { statusCode: 200, headers, body: '' };
   }
 
+  let user = null; // Declare user outside try block for error handling
+
   try {
     // Get authenticated user
     const authHeader = event.headers.authorization || event.headers.Authorization;
@@ -30,7 +32,8 @@ exports.handler = async (event, context) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
+    user = userData?.user; // Assign to outer scope variable
 
     if (authError || !user) {
       return {
