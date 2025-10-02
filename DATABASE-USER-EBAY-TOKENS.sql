@@ -12,6 +12,9 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS ebay_user_id TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ebay_connected_at TIMESTAMP WITH TIME ZONE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ebay_connection_status TEXT DEFAULT 'disconnected';
 
+-- Drop the user_profiles view first (will be recreated later in this script)
+DROP VIEW IF EXISTS user_profiles CASCADE;
+
 -- Remove ebay_access_token column if it exists (should never store access tokens)
 ALTER TABLE users DROP COLUMN IF EXISTS ebay_access_token;
 ALTER TABLE users DROP COLUMN IF EXISTS ebay_token_expires_at;
@@ -42,14 +45,23 @@ CREATE INDEX IF NOT EXISTS idx_ebay_api_logs_api_call ON ebay_api_logs(api_call)
 -- 5. Enable RLS on eBay API logs
 ALTER TABLE ebay_api_logs ENABLE ROW LEVEL SECURITY;
 
--- 6. Create RLS policies for eBay API logs
+-- 6. Create RLS policies for eBay API logs (drop existing first to avoid conflicts)
+DROP POLICY IF EXISTS "Users can view their own eBay API logs" ON ebay_api_logs;
+DROP POLICY IF EXISTS "Users can insert their own eBay API logs" ON ebay_api_logs;
+
 CREATE POLICY "Users can view their own eBay API logs" ON ebay_api_logs
     FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert their own eBay API logs" ON ebay_api_logs
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- 7. Create function to check if user has valid eBay token
+-- 7. Drop existing functions first (in case signatures changed)
+DROP FUNCTION IF EXISTS get_user_ebay_credentials(UUID);
+DROP FUNCTION IF EXISTS update_user_ebay_token(UUID, TEXT, TEXT, INTEGER, TEXT);
+DROP FUNCTION IF EXISTS has_valid_ebay_token(UUID);
+DROP FUNCTION IF EXISTS disconnect_user_ebay_account(UUID);
+
+-- 8. Create function to check if user has valid eBay token
 CREATE OR REPLACE FUNCTION has_valid_ebay_token(user_uuid UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -62,7 +74,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 8. Create function to get user's eBay credentials
+-- 9. Create function to get user's eBay credentials
 -- NOTE: Only returns refresh_token - access tokens must be obtained on-demand
 CREATE OR REPLACE FUNCTION get_user_ebay_credentials(user_uuid UUID)
 RETURNS TABLE (
@@ -80,7 +92,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 9. Create function to update user's eBay token
+-- 10. Create function to update user's eBay token
 -- NOTE: Only stores refresh_token - access tokens are never stored
 CREATE OR REPLACE FUNCTION update_user_ebay_token(
     user_uuid UUID,
@@ -102,7 +114,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 10. Create function to disconnect user's eBay account
+-- 11. Create function to disconnect user's eBay account
 CREATE OR REPLACE FUNCTION disconnect_user_ebay_account(user_uuid UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
