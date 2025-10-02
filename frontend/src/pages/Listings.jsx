@@ -199,6 +199,47 @@ export default function Listings() {
     navigate('/account?tab=integrations')
   }
 
+  const handleSyncFromEbay = async () => {
+    try {
+      setNotification({ type: 'info', message: 'Syncing listings from eBay...' })
+
+      const { supabase } = await import('../lib/supabase')
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch('/.netlify/functions/trigger-sync', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Sync failed')
+      }
+
+      setNotification({
+        type: 'success',
+        message: `Successfully synced ${result.count} listings from eBay!`
+      })
+
+      // Refresh the listings
+      refetch()
+    } catch (error) {
+      console.error('Sync error:', error)
+      setNotification({
+        type: 'error',
+        message: error.message || 'Failed to sync listings'
+      })
+    }
+  }
+
   const handleSort = (key) => {
     let direction = 'asc'
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -260,49 +301,9 @@ export default function Listings() {
   const sortedListings = useMemo(() => {
     let listingsToSort = listings?.listings || []
 
-    // Add mock data if we don't have real listings
-    if (!listingsToSort || listingsToSort.length === 0) {
-      listingsToSort = [
-        {
-          id: '1',
-          title: 'iPhone 14 Pro Max 256GB Space Black',
-          sku: 'IPH14PM-256-SB',
-          current_price: 899.99,
-          original_price: 999.99,
-          quantity: 1,
-          minimum_price: 850.00,
-          reduction_strategy: '1',
-          image_urls: ['https://via.placeholder.com/150x150?text=iPhone'],
-          created_at: '2024-01-15',
-          price_reduction_enabled: true
-        },
-        {
-          id: '2',
-          title: 'Samsung Galaxy S23 Ultra 512GB Phantom Black',
-          sku: 'SGS23U-512-PB',
-          current_price: 799.99,
-          original_price: 849.99,
-          quantity: 2,
-          minimum_price: 750.00,
-          reduction_strategy: '2',
-          image_urls: ['https://via.placeholder.com/150x150?text=Galaxy'],
-          created_at: '2024-01-20',
-          price_reduction_enabled: true
-        },
-        {
-          id: '3',
-          title: 'MacBook Air M2 13-inch 256GB Silver',
-          sku: 'MBA-M2-256-SLV',
-          current_price: 1099.99,
-          original_price: 1199.99,
-          quantity: 1,
-          minimum_price: 1050.00,
-          reduction_strategy: '',
-          image_urls: ['https://via.placeholder.com/150x150?text=MacBook'],
-          created_at: '2024-02-01',
-          price_reduction_enabled: false
-        }
-      ]
+    // Use empty array if no listings
+    if (!listingsToSort) {
+      listingsToSort = []
     }
 
     // Apply search filter
@@ -573,16 +574,7 @@ export default function Listings() {
           <p className="text-gray-600">Manage and monitor your eBay listing prices</p>
         </div>
         <button
-          onClick={async () => {
-            try {
-              showNotification('info', 'Refreshing listings from eBay...')
-              await refetch()
-              showNotification('success', 'Listings updated successfully!')
-            } catch (error) {
-              console.error('Error refreshing listings:', error)
-              showNotification('error', 'Failed to refresh listings. Please try again.')
-            }
-          }}
+          onClick={handleSyncFromEbay}
           disabled={isLoading}
           className={`px-4 py-2 rounded text-white ${
             isLoading
@@ -915,10 +907,27 @@ export default function Listings() {
 
         {sortedListings.length === 0 && (
           <div className="text-center py-12 bg-white rounded-lg shadow">
-            <div className="text-gray-500 mb-4">No listings found</div>
-            <button className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-              Import Your First Listing
-            </button>
+            <div className="text-gray-500 mb-4">
+              {userProfile?.ebay_user_token
+                ? 'No listings found. Click "Import from eBay" to sync your listings.'
+                : 'Connect your eBay account to import listings.'
+              }
+            </div>
+            {userProfile?.ebay_user_token ? (
+              <button
+                onClick={handleSyncFromEbay}
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+              >
+                Import from eBay
+              </button>
+            ) : (
+              <button
+                onClick={handleConnectEbay}
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+              >
+                Connect eBay Account
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -1115,10 +1124,27 @@ export default function Listings() {
 
         {(!listings?.listings || listings.listings.length === 0) && (
           <div className="text-center py-12">
-            <div className="text-gray-500 mb-4">No listings found</div>
-            <button className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-              Import Your First Listing
-            </button>
+            <div className="text-gray-500 mb-4">
+              {userProfile?.ebay_user_token
+                ? 'No listings found. Click "Import from eBay" to sync your listings.'
+                : 'Connect your eBay account to import listings.'
+              }
+            </div>
+            {userProfile?.ebay_user_token ? (
+              <button
+                onClick={handleSyncFromEbay}
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+              >
+                Import from eBay
+              </button>
+            ) : (
+              <button
+                onClick={handleConnectEbay}
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+              >
+                Connect eBay Account
+              </button>
+            )}
           </div>
         )}
       </div>
