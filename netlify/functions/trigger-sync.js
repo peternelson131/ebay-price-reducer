@@ -128,13 +128,22 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('💥 Sync failed:', error);
+    console.error('💥 Sync failed:', {
+      userId: user?.id || 'unknown',
+      error: error.message,
+      stack: error.stack
+    });
+
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         error: 'Sync failed',
-        message: error.message
+        message: error.message,
+        details: {
+          userId: user?.id,
+          timestamp: new Date().toISOString()
+        }
       })
     };
   }

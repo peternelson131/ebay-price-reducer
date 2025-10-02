@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { decrypt } = require('./ebay-oauth-helpers');
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -60,44 +61,76 @@ class EnhancedEbayClient {
    */
   async refreshToken() {
     try {
-      const { data: credentials } = await supabase.rpc('get_user_ebay_credentials', {
-        user_uuid: this.userId
-      });
+      console.log('🔍 Token refresh started', { userId: this.userId });
 
-      if (!credentials || !credentials[0]?.refresh_token) {
-        return false;
+      // 1. Get refresh token via existing RPC
+      const { data: tokenData, error: tokenError } = await supabase.rpc(
+        'get_user_ebay_credentials',
+        { user_uuid: this.userId }
+      );
+
+      if (tokenError) {
+        throw new Error(`Failed to fetch refresh token: ${tokenError.message}`);
       }
 
-      const refreshToken = credentials[0].refresh_token;
+      if (!tokenData || !tokenData[0]?.refresh_token) {
+        throw new Error('No refresh token found. User has not connected their eBay account.');
+      }
 
-      // Try to get user-specific credentials first (for legacy account)
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('ebay_app_id, ebay_cert_id_encrypted')
-        .eq('id', this.userId)
-        .single();
+      const refreshToken = tokenData[0].refresh_token;
+      console.log('✓ Refresh token retrieved');
+
+      // 2. Get app credentials via NEW RPC function
+      const { data: appCreds, error: appError } = await supabase.rpc(
+        'get_user_ebay_app_credentials',
+        { user_uuid: this.userId }
+      );
 
       let clientId, clientSecret;
 
-      if (userData && userData.ebay_app_id && userData.ebay_cert_id_encrypted) {
-        // Use user-specific credentials (legacy account)
-        console.log('Using user-specific eBay credentials for token refresh');
-        clientId = userData.ebay_app_id;
+      if (appCreds && appCreds[0]?.ebay_app_id && appCreds[0]?.ebay_cert_id_encrypted) {
+        // User has custom credentials
+        console.log('✓ Using user-specific eBay app credentials');
+        clientId = appCreds[0].ebay_app_id;
 
-        // Import decrypt function
-        const { decrypt } = require('./ebay-oauth-helpers');
-        clientSecret = decrypt(userData.ebay_cert_id_encrypted);
+        // Validate encryption format before decrypt
+        const encrypted = appCreds[0].ebay_cert_id_encrypted;
+
+        if (encrypted.startsWith('NEEDS_MIGRATION:')) {
+          throw new Error(
+            'eBay credentials need migration. Please disconnect and reconnect your eBay account.'
+          );
+        }
+
+        if (!/^[0-9a-f]+:[0-9a-f]+$/i.test(encrypted)) {
+          throw new Error(
+            `Invalid credential encryption format. Expected hex:hex, got: ${encrypted.substring(0, 20)}...`
+          );
+        }
+
+        try {
+          clientSecret = decrypt(encrypted);
+          console.log('✓ Credential decryption successful');
+        } catch (decryptError) {
+          throw new Error(`Credential decryption failed: ${decryptError.message}`);
+        }
       } else {
-        // Fall back to global environment variables (new users)
-        console.log('Using global eBay credentials from environment');
+        // Fall back to environment variables
+        console.log('→ Using global eBay credentials from environment');
         clientId = process.env.EBAY_APP_ID;
         clientSecret = process.env.EBAY_CERT_ID;
 
         if (!clientId || !clientSecret) {
-          throw new Error('No eBay credentials available. Please configure EBAY_APP_ID and EBAY_CERT_ID environment variables.');
+          throw new Error(
+            'No eBay app credentials configured. ' +
+            'Set EBAY_APP_ID and EBAY_CERT_ID in Netlify environment variables, ' +
+            'or save custom credentials in your account settings.'
+          );
         }
       }
 
+      // 3. Exchange refresh token for access token
+      console.log('→ Calling eBay OAuth API...');
       const credentialsBase64 = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
       const response = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
@@ -115,17 +148,31 @@ class EnhancedEbayClient {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('Token refresh failed:', data);
-        return false;
+        // Log detailed eBay error
+        const ebayError = data.error_description || data.error || 'Unknown eBay error';
+        console.error('❌ eBay token refresh rejected:', {
+          status: response.status,
+          error: ebayError,
+          userId: this.userId
+        });
+
+        throw new Error(`eBay API error (${response.status}): ${ebayError}`);
       }
 
-      // Store access token in memory (don't store in database)
+      // Success!
       this.accessToken = data.access_token;
+      console.log('✓ Access token obtained successfully, expires in:', data.expires_in, 'seconds');
       return true;
 
     } catch (error) {
-      console.error('Error refreshing token:', error);
-      return false;
+      console.error('💥 Token refresh failed:', {
+        userId: this.userId,
+        error: error.message,
+        stack: error.stack
+      });
+
+      // Re-throw with context instead of returning false
+      throw new Error(`Token refresh failed: ${error.message}`);
     }
   }
 
