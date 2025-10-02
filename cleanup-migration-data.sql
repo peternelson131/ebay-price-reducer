@@ -57,7 +57,6 @@ SET
     ebay_connection_status = 'disconnected',
     ebay_refresh_token = NULL,
     ebay_user_id = NULL,
-    ebay_token_expires_at = NULL,
     ebay_connected_at = NULL
 WHERE ebay_cert_id_encrypted LIKE 'NEEDS_MIGRATION:%';
 
