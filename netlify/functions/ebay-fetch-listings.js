@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { getCorsHeaders } = require('./utils/cors');
 const { EnhancedEbayClient } = require('./utils/enhanced-ebay-client');
+const { decrypt } = require('./utils/ebay-oauth-helpers');
 
 // Memory cache for responses (survives during function execution)
 const cache = new Map();
@@ -55,62 +56,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
-// Encryption helpers for refresh token
-const getEncryptionKey = () => {
-  if (process.env.ENCRYPTION_KEY) {
-    const key = process.env.ENCRYPTION_KEY;
-    if (key.length === 64 && /^[0-9a-fA-F]+$/.test(key)) {
-      return Buffer.from(key, 'hex');
-    }
-    return crypto.createHash('sha256').update(key).digest();
-  }
-  const seed = process.env.SUPABASE_URL || 'default-seed';
-  return crypto.createHash('sha256').update(seed).digest();
-};
-
-const ENCRYPTION_KEY = getEncryptionKey();
-const IV_LENGTH = 16;
-
-function decrypt(encryptedData) {
-  try {
-    // Handle both object format and string format
-    if (typeof encryptedData === 'object' && encryptedData !== null) {
-      // Object format: {iv: '...', encrypted: '...'}
-      if (encryptedData.iv && encryptedData.encrypted) {
-        const iv = Buffer.from(encryptedData.iv, 'hex');
-        const encryptedText = Buffer.from(encryptedData.encrypted, 'hex');
-        const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-        let decrypted = decipher.update(encryptedText);
-        decrypted = Buffer.concat([decrypted, decipher.final()]);
-        return decrypted.toString();
-      }
-      throw new Error('Invalid encrypted object format');
-    } else if (typeof encryptedData === 'string') {
-      // String format: 'iv:encryptedText'
-      const textParts = encryptedData.split(':');
-      if (textParts.length < 2) {
-        // Maybe it's not encrypted at all (for testing)
-        console.warn('Warning: Token appears to be unencrypted');
-        return encryptedData;
-      }
-      const iv = Buffer.from(textParts.shift(), 'hex');
-      const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-      const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-      let decrypted = decipher.update(encryptedText);
-      decrypted = Buffer.concat([decrypted, decipher.final()]);
-      return decrypted.toString();
-    } else {
-      throw new Error(`Unexpected encrypted data type: ${typeof encryptedData}`);
-    }
-  } catch (error) {
-    console.error('Decryption error:', error.message);
-    console.error('Encrypted data type:', typeof encryptedData);
-    if (encryptedData) {
-      console.error('Encrypted data sample:', JSON.stringify(encryptedData).substring(0, 100));
-    }
-    throw new Error(`Failed to decrypt: ${error.message}`);
-  }
-}
+// Note: decrypt() function now imported from shared module ./utils/ebay-oauth-helpers
 
 // Helper function to make Supabase API calls
 async function supabaseRequest(endpoint, method = 'GET', body = null, headers = {}, useServiceKey = false) {

@@ -16,6 +16,7 @@ class UserEbayClient {
     this.userId = userId;
     this.accessToken = null;
     this.ebayUserId = null;
+    this.appId = null; // Store user's App ID for API calls
   }
 
   /**
@@ -87,6 +88,7 @@ class UserEbayClient {
         // User has custom credentials
         console.log('✓ Using user-specific eBay app credentials');
         clientId = appCreds[0].ebay_app_id;
+        this.appId = clientId; // Store for later use in API calls
 
         // Validate encryption format before decrypt
         const encrypted = appCreds[0].ebay_cert_id_encrypted;
@@ -113,6 +115,7 @@ class UserEbayClient {
         // Fall back to environment variables
         console.log('→ Using global eBay credentials from environment');
         clientId = process.env.EBAY_APP_ID;
+        this.appId = clientId; // Store for later use in API calls
         clientSecret = process.env.EBAY_CERT_ID;
 
         if (!clientId || !clientSecret) {
@@ -297,10 +300,17 @@ class UserEbayClient {
    * Search for similar items (for competitive pricing)
    */
   async searchSimilarItems(keywords, category = null, maxResults = 10) {
+    // Use user's App ID if available, otherwise fall back to environment variable
+    const appId = this.appId || process.env.EBAY_APP_ID;
+
+    if (!appId) {
+      throw new Error('eBay App ID not configured. Please initialize the client first or set EBAY_APP_ID environment variable.');
+    }
+
     const params = new URLSearchParams({
       'OPERATION-NAME': 'findItemsAdvanced',
       'SERVICE-VERSION': '1.0.0',
-      'SECURITY-APPNAME': process.env.EBAY_APP_ID,
+      'SECURITY-APPNAME': appId,
       'RESPONSE-DATA-FORMAT': 'JSON',
       'keywords': keywords,
       'paginationInput.entriesPerPage': maxResults.toString(),

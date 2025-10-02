@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
+const { decrypt } = require('./utils/ebay-oauth-helpers');
 
 // =============================================
 // CONFIGURATION
@@ -32,31 +33,7 @@ const SYNC_CONFIG = {
 // EBAY API HELPERS
 // =============================================
 
-// Get encryption key for tokens
-const getEncryptionKey = () => {
-  if (process.env.ENCRYPTION_KEY) {
-    const key = process.env.ENCRYPTION_KEY;
-    if (key.length === 64 && /^[0-9a-fA-F]+$/.test(key)) {
-      return Buffer.from(key, 'hex');
-    }
-    return crypto.createHash('sha256').update(key).digest();
-  }
-  const seed = process.env.SUPABASE_URL || 'default-seed';
-  return crypto.createHash('sha256').update(seed).digest();
-};
-
-const ENCRYPTION_KEY = getEncryptionKey();
-
-// Decrypt tokens
-function decrypt(text) {
-  const textParts = text.split(':');
-  const iv = Buffer.from(textParts.shift(), 'hex');
-  const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-  const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
-}
+// Note: decrypt() function now imported from shared module ./utils/ebay-oauth-helpers
 
 // Get access token from refresh token
 async function getAccessToken(refreshToken, appId, certId) {
