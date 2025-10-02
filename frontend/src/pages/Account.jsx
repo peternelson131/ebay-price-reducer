@@ -710,6 +710,7 @@ export default function Account() {
               {/* eBay Integration - Collapsible */}
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                 <button
+                  type="button"
                   onClick={() => toggleSection('ebay')}
                   className="w-full px-6 py-4 bg-blue-50 hover:bg-blue-100 transition-colors flex items-center justify-between"
                 >
@@ -742,6 +743,7 @@ export default function Account() {
               {/* Keepa Integration - Collapsible */}
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                 <button
+                  type="button"
                   onClick={() => toggleSection('keepa')}
                   className="w-full px-6 py-4 bg-orange-50 hover:bg-orange-100 transition-colors flex items-center justify-between"
                 >
@@ -960,6 +962,7 @@ export default function Account() {
               {/* Other Integrations - Collapsible */}
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                 <button
+                  type="button"
                   onClick={() => toggleSection('other')}
                   className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
                 >

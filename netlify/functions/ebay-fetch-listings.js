@@ -1,5 +1,53 @@
 const crypto = require('crypto');
 
+// Memory cache for responses (survives during function execution)
+const cache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const REQUEST_DELAY = 200; // 200ms delay between offer requests
+
+// Request deduplication map
+const pendingRequests = new Map();
+
+// Helper function for delays
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to create cache key
+const createCacheKey = (userId, type, identifier = '') => {
+  return `${userId}_${type}_${identifier}`;
+};
+
+// Helper function to get from cache
+const getFromCache = (key) => {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    console.log(`✅ Cache hit for key: ${key}`);
+    return cached.data;
+  }
+  if (cached) {
+    cache.delete(key); // Remove expired cache
+  }
+  return null;
+};
+
+// Helper function to set cache
+const setCache = (key, data) => {
+  console.log(`💾 Caching data for key: ${key}`);
+  cache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+};
+
+// Exponential backoff helper
+const exponentialBackoff = async (attempt, maxRetries = 3) => {
+  if (attempt >= maxRetries) {
+    throw new Error('Max retries exceeded');
+  }
+  const backoffTime = Math.min(1000 * Math.pow(2, attempt), 10000); // Max 10 seconds
+  console.log(`⏳ Backing off for ${backoffTime}ms (attempt ${attempt + 1})`);
+  await delay(backoffTime);
+};
+
 // Supabase configuration
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -21,14 +69,45 @@ const getEncryptionKey = () => {
 const ENCRYPTION_KEY = getEncryptionKey();
 const IV_LENGTH = 16;
 
-function decrypt(text) {
-  const textParts = text.split(':');
-  const iv = Buffer.from(textParts.shift(), 'hex');
-  const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-  const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
+function decrypt(encryptedData) {
+  try {
+    // Handle both object format and string format
+    if (typeof encryptedData === 'object' && encryptedData !== null) {
+      // Object format: {iv: '...', encrypted: '...'}
+      if (encryptedData.iv && encryptedData.encrypted) {
+        const iv = Buffer.from(encryptedData.iv, 'hex');
+        const encryptedText = Buffer.from(encryptedData.encrypted, 'hex');
+        const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+        let decrypted = decipher.update(encryptedText);
+        decrypted = Buffer.concat([decrypted, decipher.final()]);
+        return decrypted.toString();
+      }
+      throw new Error('Invalid encrypted object format');
+    } else if (typeof encryptedData === 'string') {
+      // String format: 'iv:encryptedText'
+      const textParts = encryptedData.split(':');
+      if (textParts.length < 2) {
+        // Maybe it's not encrypted at all (for testing)
+        console.warn('Warning: Token appears to be unencrypted');
+        return encryptedData;
+      }
+      const iv = Buffer.from(textParts.shift(), 'hex');
+      const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+      const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+      let decrypted = decipher.update(encryptedText);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      return decrypted.toString();
+    } else {
+      throw new Error(`Unexpected encrypted data type: ${typeof encryptedData}`);
+    }
+  } catch (error) {
+    console.error('Decryption error:', error.message);
+    console.error('Encrypted data type:', typeof encryptedData);
+    if (encryptedData) {
+      console.error('Encrypted data sample:', JSON.stringify(encryptedData).substring(0, 100));
+    }
+    throw new Error(`Failed to decrypt: ${error.message}`);
+  }
 }
 
 // Helper function to make Supabase API calls
@@ -113,59 +192,145 @@ async function getAccessToken(refreshToken, appId, certId) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Failed to get access token:', errorText);
-    throw new Error('Failed to get access token from eBay');
+    console.error('Failed to get access token. Status:', response.status);
+    console.error('Error response:', errorText);
+
+    let errorObj;
+    try {
+      errorObj = JSON.parse(errorText);
+    } catch (e) {
+      errorObj = { error: errorText };
+    }
+
+    // Check for specific eBay OAuth errors
+    if (response.status === 401 || errorObj.error === 'invalid_grant') {
+      throw new Error('Failed to get access token: Refresh token expired or invalid');
+    } else if (errorObj.error === 'invalid_client') {
+      throw new Error('Failed to get access token: Invalid eBay app credentials');
+    } else if (errorObj.error === 'insufficient_scope') {
+      throw new Error('Failed to get access token: Insufficient permissions');
+    }
+
+    throw new Error(`Failed to get access token: ${errorObj.error_description || errorObj.error || 'Unknown error'}`);
   }
 
   const data = await response.json();
   return data.access_token;
 }
 
-// Fetch inventory items from eBay
-async function fetchInventoryItems(accessToken, limit = 100, offset = 0) {
-  console.log(`Fetching inventory items (limit: ${limit}, offset: ${offset})...`);
+// Fetch inventory items from eBay with caching and retry logic
+async function fetchInventoryItems(accessToken, userId, limit = 100, offset = 0, attempt = 0) {
+  const cacheKey = createCacheKey(userId, 'inventory', `${limit}_${offset}`);
+
+  // Check cache first
+  const cached = getFromCache(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  console.log(`🔄 Fetching inventory items (limit: ${limit}, offset: ${offset}, attempt: ${attempt + 1})...`);
 
   const url = `https://api.ebay.com/sell/inventory/v1/inventory_item?limit=${limit}&offset=${offset}`;
 
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 429 || response.status >= 500) {
+      // Rate limited or server error - retry with backoff
+      if (attempt < 3) {
+        await exponentialBackoff(attempt);
+        return fetchInventoryItems(accessToken, userId, limit, offset, attempt + 1);
+      }
+      throw new Error('eBay service temporarily unavailable. Please try again later.');
     }
-  });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Failed to fetch inventory items:', errorText);
-    throw new Error('Failed to fetch inventory items from eBay');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to fetch inventory items:', errorText);
+      throw new Error('Failed to fetch inventory items from eBay');
+    }
+
+    const data = await response.json();
+
+    // Cache successful response
+    setCache(cacheKey, data);
+
+    return data;
+  } catch (error) {
+    if (attempt < 3 && (error.message.includes('timeout') || error.message.includes('ECONNRESET'))) {
+      await exponentialBackoff(attempt);
+      return fetchInventoryItems(accessToken, userId, limit, offset, attempt + 1);
+    }
+    throw error;
   }
-
-  return await response.json();
 }
 
-// Fetch offers for a specific SKU
-async function fetchOffersForSku(accessToken, sku) {
-  console.log(`Fetching offers for SKU: ${sku}`);
+// Fetch offers for a specific SKU with caching and rate limiting
+async function fetchOffersForSku(accessToken, userId, sku, attempt = 0) {
+  const cacheKey = createCacheKey(userId, 'offers', sku);
+
+  // Check cache first
+  const cached = getFromCache(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  console.log(`🔄 Fetching offers for SKU: ${sku} (attempt: ${attempt + 1})`);
+
+  // Add delay to respect rate limits
+  if (attempt === 0) {
+    await delay(REQUEST_DELAY);
+  }
 
   const url = `https://api.ebay.com/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}`;
 
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    }
-  });
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Failed to fetch offers for SKU ${sku}:`, errorText);
-    // Return null instead of throwing to handle items without offers
+    if (response.status === 429 || response.status >= 500) {
+      // Rate limited or server error - retry with backoff
+      if (attempt < 3) {
+        await exponentialBackoff(attempt);
+        return fetchOffersForSku(accessToken, userId, sku, attempt + 1);
+      }
+      console.warn(`⚠️ Max retries exceeded for SKU ${sku}, returning null`);
+      return null;
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to fetch offers for SKU ${sku}:`, errorText);
+      // Cache null result to avoid repeated failures
+      setCache(cacheKey, null);
+      return null;
+    }
+
+    const data = await response.json();
+
+    // Cache successful response
+    setCache(cacheKey, data);
+
+    return data;
+  } catch (error) {
+    if (attempt < 3 && (error.message.includes('timeout') || error.message.includes('ECONNRESET'))) {
+      await exponentialBackoff(attempt);
+      return fetchOffersForSku(accessToken, userId, sku, attempt + 1);
+    }
+    console.warn(`⚠️ Error fetching offers for SKU ${sku}:`, error.message);
     return null;
   }
-
-  return await response.json();
 }
 
 // Main handler
@@ -203,9 +368,65 @@ exports.handler = async (event, context) => {
       };
     }
 
+    const userId = authUser.id;
+
+    // Request deduplication - check if there's already a pending request for this user
+    const requestKey = `fetch_listings_${userId}`;
+    if (pendingRequests.has(requestKey)) {
+      console.log(`🔄 Request already in progress for user ${userId}, waiting...`);
+      return await pendingRequests.get(requestKey);
+    }
+
+    // Create promise for this request and store it
+    const requestPromise = processEbayRequest(userId, authUser);
+    pendingRequests.set(requestKey, requestPromise);
+
+    try {
+      const result = await requestPromise;
+      return result;
+    } finally {
+      // Clean up pending request
+      pendingRequests.delete(requestKey);
+    }
+
+  } catch (error) {
+    console.error('Error in main handler:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: 'Failed to fetch listings',
+        message: error.message
+      })
+    };
+  }
+};
+
+// Separate function to process eBay request
+async function processEbayRequest(userId, authUser) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+
+  try {
+    // Check for cached full response first
+    const fullCacheKey = createCacheKey(userId, 'full_listings');
+    const cachedFullResponse = getFromCache(fullCacheKey);
+    if (cachedFullResponse) {
+      console.log('✅ Returning cached full response');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(cachedFullResponse)
+      };
+    }
+
     // Get user's eBay credentials and refresh token
     const users = await supabaseRequest(
-      `users?id=eq.${authUser.id}`,
+      `users?id=eq.${userId}`,
       'GET',
       null,
       {},
@@ -235,21 +456,34 @@ exports.handler = async (event, context) => {
     }
 
     // Decrypt refresh token
-    const refreshToken = decrypt(user.ebay_refresh_token);
+    console.log('Decrypting refresh token...');
+    let refreshToken;
+    try {
+      refreshToken = decrypt(user.ebay_refresh_token);
+      console.log('Refresh token decrypted successfully');
+    } catch (error) {
+      console.error('Failed to decrypt refresh token:', error.message);
+      throw new Error(`Failed to decrypt refresh token: ${error.message}`);
+    }
 
     // Get access token
     const accessToken = await getAccessToken(refreshToken, user.ebay_app_id, user.ebay_cert_id);
 
-    // Fetch inventory items
-    const inventoryData = await fetchInventoryItems(accessToken);
+    // Fetch inventory items with caching
+    const inventoryData = await fetchInventoryItems(accessToken, userId);
 
     const listings = [];
 
-    // Process each inventory item
+    // Process each inventory item with rate limiting
     if (inventoryData.inventoryItems && inventoryData.inventoryItems.length > 0) {
-      for (const item of inventoryData.inventoryItems) {
-        // Get offers for this SKU to get pricing and listing info
-        const offersData = await fetchOffersForSku(accessToken, item.sku);
+      console.log(`📦 Processing ${inventoryData.inventoryItems.length} inventory items...`);
+
+      for (let i = 0; i < inventoryData.inventoryItems.length; i++) {
+        const item = inventoryData.inventoryItems[i];
+        console.log(`Processing item ${i + 1}/${inventoryData.inventoryItems.length}: ${item.sku}`);
+
+        // Get offers for this SKU with caching and rate limiting
+        const offersData = await fetchOffersForSku(accessToken, userId, item.sku);
 
         // Map the data to match our database schema
         const listing = {
@@ -310,29 +544,79 @@ exports.handler = async (event, context) => {
       }
     }
 
-    console.log(`Fetched ${listings.length} listings from eBay`);
+    console.log(`✅ Successfully fetched ${listings.length} listings from eBay`);
+
+    const response = {
+      success: true,
+      total: inventoryData.total || 0,
+      listings: listings,
+      hasMore: inventoryData.next ? true : false,
+      nextOffset: inventoryData.next ? parseInt(inventoryData.next.split('offset=')[1]) : null
+    };
+
+    // Cache the full response (reuse the same key from earlier)
+    setCache(fullCacheKey, response);
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        success: true,
-        total: inventoryData.total || 0,
-        listings: listings,
-        hasMore: inventoryData.next ? true : false,
-        nextOffset: inventoryData.next ? parseInt(inventoryData.next.split('offset=')[1]) : null
-      })
+      body: JSON.stringify(response)
     };
 
   } catch (error) {
-    console.error('Error fetching eBay listings:', error);
+    console.error('❌ Error processing eBay request:', error.message);
+    console.error('Error stack:', error.stack);
+
+    // Determine the specific error type and provide helpful message
+    let statusCode = 500;
+    let errorMessage = 'Failed to fetch listings';
+    let userMessage = 'eBay service temporarily unavailable. Please try again later.';
+    let errorDetails = {};
+
+    if (error.message.includes('Failed to get access token')) {
+      if (error.message.includes('expired or invalid')) {
+        statusCode = 401;
+        errorMessage = 'eBay authentication expired';
+        userMessage = 'Your eBay connection has expired. Please reconnect your eBay account in Account settings.';
+        errorDetails.needsReauth = true;
+      } else {
+        statusCode = 401;
+        errorMessage = 'eBay authentication failed';
+        userMessage = 'Unable to authenticate with eBay. Please check your eBay connection in Account settings.';
+        errorDetails.authError = true;
+      }
+    } else if (error.message.includes('Failed to decrypt')) {
+      statusCode = 500;
+      errorMessage = 'Encryption error';
+      userMessage = 'There was a problem accessing your eBay credentials. Please reconnect your eBay account in Account settings.';
+      errorDetails.encryptionError = true;
+    } else if (error.message.includes('Rate limit')) {
+      statusCode = 429;
+      errorMessage = 'Rate limited by eBay';
+      userMessage = 'Too many requests to eBay. Please wait a moment and try again.';
+      errorDetails.retryAfter = 60;
+    } else if (error.message.includes('Cannot read properties')) {
+      statusCode = 400;
+      errorMessage = 'Configuration error';
+      userMessage = 'eBay account not properly connected. Please connect your eBay account in Account settings.';
+      errorDetails.configError = true;
+    } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+      statusCode = 503;
+      errorMessage = 'Network error';
+      userMessage = 'Unable to connect to eBay. Please check your internet connection and try again.';
+    }
+
     return {
-      statusCode: 500,
+      statusCode,
       headers,
       body: JSON.stringify({
-        error: 'Failed to fetch listings',
-        message: error.message
+        error: errorMessage,
+        message: userMessage,
+        details: {
+          ...errorDetails,
+          timestamp: new Date().toISOString()
+        }
       })
     };
   }
-};
+}

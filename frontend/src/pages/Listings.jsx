@@ -79,12 +79,19 @@ export default function Listings() {
     }
   }, [visibleColumns])
 
-  const { data: listings, isLoading, error } = useQuery(
+  const { data: listings, isLoading, error, refetch } = useQuery(
     ['listings', { status }],
     () => listingsAPI.getListings({ status }),
     {
       keepPreviousData: true,
-      refetchOnWindowFocus: false
+      refetchOnWindowFocus: false,
+      refetchOnMount: false, // Don't refetch on mount if data exists
+      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes (matches server cache)
+      cacheTime: 10 * 60 * 1000, // Keep cached data for 10 minutes
+      retry: 1, // Only retry once on failure
+      refetchInterval: false, // Disable automatic polling
+      refetchIntervalInBackground: false,
+      refetchOnReconnect: 'always' // Refetch when network reconnects
     }
   )
 
@@ -448,7 +455,69 @@ export default function Listings() {
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red-600">Error loading listings</div>
+    const errorMessage = error?.message || 'Unknown error occurred'
+    const isEbayConnectionError = errorMessage.includes('eBay account not connected')
+    const isAuthError = errorMessage.includes('Authentication') || errorMessage.includes('log in')
+    const isServiceError = errorMessage.includes('service') || errorMessage.includes('unavailable')
+
+    return (
+      <div className="max-w-2xl mx-auto py-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-center mb-4">
+            <svg className="w-6 h-6 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h3 className="text-lg font-medium text-red-800">Unable to Load Listings</h3>
+          </div>
+
+          <p className="text-red-700 mb-4">{errorMessage}</p>
+
+          <div className="space-y-3">
+            {isEbayConnectionError && (
+              <button
+                onClick={handleConnectEbay}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                Connect eBay Account
+              </button>
+            )}
+
+            {isAuthError && (
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                Refresh Page
+              </button>
+            )}
+
+            {isServiceError && (
+              <div className="text-sm text-red-600">
+                <p>This is usually temporary. Please try again in a few minutes.</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+
+            {!isEbayConnectionError && !isAuthError && !isServiceError && (
+              <div className="text-sm text-red-600">
+                <p>If this problem persists, please contact support.</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -501,8 +570,25 @@ export default function Listings() {
           <h1 className="text-2xl font-bold text-gray-900">Your eBay Listings</h1>
           <p className="text-gray-600">Manage and monitor your eBay listing prices</p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-          Import from eBay
+        <button
+          onClick={async () => {
+            try {
+              showNotification('info', 'Refreshing listings from eBay...')
+              await refetch()
+              showNotification('success', 'Listings updated successfully!')
+            } catch (error) {
+              console.error('Error refreshing listings:', error)
+              showNotification('error', 'Failed to refresh listings. Please try again.')
+            }
+          }}
+          disabled={isLoading}
+          className={`px-4 py-2 rounded text-white ${
+            isLoading
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700'
+          }`}
+        >
+          {isLoading ? 'Loading...' : 'Import from eBay'}
         </button>
       </div>
 

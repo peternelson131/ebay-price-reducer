@@ -128,10 +128,10 @@ export default function EbaySetup() {
                 </p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-900 mb-1">Token Expires</h3>
+                <h3 className="text-sm font-medium text-gray-900 mb-1">Refresh Token Expires</h3>
                 <p className="text-sm text-gray-600">
-                  {connectionData.tokenExpiresAt ?
-                    new Date(connectionData.tokenExpiresAt).toLocaleDateString() : 'N/A'}
+                  {connectionData.refreshTokenExpiresAt ?
+                    new Date(connectionData.refreshTokenExpiresAt).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
             </div>

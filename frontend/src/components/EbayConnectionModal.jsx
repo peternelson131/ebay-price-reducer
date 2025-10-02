@@ -191,11 +191,11 @@ export default function EbayConnectionModal({ isOpen, onClose, user }) {
                     {connectionData.tokenValid ? 'Valid' : 'Expired'}
                   </span>
                 </div>
-                {connectionData.tokenExpiresAt && (
+                {connectionData.refreshTokenExpiresAt && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Expires:</span>
+                    <span className="text-gray-600">Refresh Token Expires:</span>
                     <span className="font-medium">
-                      {new Date(connectionData.tokenExpiresAt).toLocaleDateString()}
+                      {new Date(connectionData.refreshTokenExpiresAt).toLocaleDateString()}
                     </span>
                   </div>
                 )}

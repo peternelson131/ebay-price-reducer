@@ -278,17 +278,45 @@ exports.handler = async (event, context) => {
       console.log('Could not fetch eBay user ID:', e);
     }
 
-    // Encrypt and store refresh token
+    // Validate and store refresh token
     if (tokenData.refresh_token) {
-      const encryptedToken = encrypt(tokenData.refresh_token);
+      // Validate that this is actually a refresh token, not an access token
+      // eBay refresh tokens typically start with "v^1.1" pattern
+      // Access tokens are JWTs with 3 parts separated by dots
+      const isJWT = tokenData.refresh_token.split('.').length === 3;
+      if (isJWT) {
+        console.error('Received JWT access token instead of refresh token!');
+        throw new Error('Invalid token type: Expected refresh token but received access token. Please check your OAuth scopes.');
+      }
 
-      // Update user record with encrypted refresh token (use service key for protected table)
+      // Validate refresh token format (should start with v^1.1 or similar)
+      if (!tokenData.refresh_token.startsWith('v^1')) {
+        console.warn('Unexpected refresh token format:', tokenData.refresh_token.substring(0, 10));
+      }
+
+      const encryptedToken = encrypt(tokenData.refresh_token);
+      const now = new Date();
+
+      // Calculate expiration dates
+      // Access token expires in tokenData.expires_in seconds (typically 2 hours)
+      // Refresh token expires in 18 months (547.5 days)
+      const accessTokenExpiry = new Date(Date.now() + tokenData.expires_in * 1000);
+      const refreshTokenExpiry = new Date(now.getTime() + (18 * 30 * 24 * 60 * 60 * 1000)); // 18 months
+
+      console.log('Token expiration times:');
+      console.log('- Access token expires:', accessTokenExpiry.toISOString());
+      console.log('- Refresh token expires:', refreshTokenExpiry.toISOString());
+
+      // Update user record with all required fields
       await supabaseRequest(
         `users?id=eq.${userId}`,
         'PATCH',
         {
           ebay_refresh_token: encryptedToken,
-          ebay_token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
+          ebay_token_expires_at: accessTokenExpiry.toISOString(), // Access token expiry (2 hours)
+          ebay_refresh_token_expires_at: refreshTokenExpiry.toISOString(), // Refresh token expiry (18 months)
+          ebay_connection_status: 'connected',
+          ebay_connected_at: now.toISOString(),
           ebay_user_id: ebayUserId
         },
         {},

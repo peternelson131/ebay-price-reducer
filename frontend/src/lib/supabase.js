@@ -7,12 +7,15 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 // Demo mode configuration - ONLY enable if explicitly set to true
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 
+// Check if we're in localStorage auth mode (no Supabase configured)
+const isLocalStorageMode = !supabaseUrl || !supabaseAnonKey
+
 // Initialize real Supabase client
 let realSupabaseClient = null
 if (!isDemoMode) {
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Supabase configuration missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.')
-    // In production, these should always be set by Netlify
+    console.log('📦 Supabase not configured - using localStorage mode')
+    // Using localStorage mode when Supabase is not configured
   } else {
     realSupabaseClient = createClient(supabaseUrl, supabaseAnonKey)
     console.log('🔌 Supabase client initialized with real configuration')
@@ -268,11 +271,11 @@ const realListingsAPI = realSupabaseClient ? {
 
     let query = realSupabaseClient
       .from('listings')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', user.id)
 
     if (status !== 'all') {
-      query = query.eq('status', status)
+      query = query.eq('listing_status', status)  // Changed from 'status' to 'listing_status'
     }
 
     const { data, error, count } = await query
@@ -362,6 +365,81 @@ const realListingsAPI = realSupabaseClient ? {
 export const listingsAPI = isDemoMode ? mockListingsAPI : realListingsAPI
 
 // Note: priceHistoryAPI removed - price_history table has been dropped from database schema
+
+// localStorage user API for when Supabase is not configured
+const localStorageUserAPI = {
+  async getProfile() {
+    // Get user data from localStorage (set by App.jsx)
+    const userData = localStorage.getItem('userData')
+    if (!userData) {
+      throw new Error('User not authenticated')
+    }
+
+    const user = JSON.parse(userData)
+
+    // Get eBay connection status from localStorage
+    const ebayConnectionData = localStorage.getItem('ebayConnection')
+    const ebayConnection = ebayConnectionData ? JSON.parse(ebayConnectionData) : {}
+
+    return {
+      id: user.id || 'local-user-1',
+      email: user.email || 'user@example.com',
+      name: user.name || user.username || 'User',
+      default_reduction_strategy: 'fixed_percentage',
+      default_reduction_percentage: 5,
+      default_reduction_interval: 7,
+      ebay_user_token: ebayConnection.refresh_token || null,
+      ebay_connection_status: ebayConnection.status || 'not_connected',
+      ebay_connected_at: ebayConnection.connected_at || null,
+      ebay_user_id: ebayConnection.user_id || null,
+      ebay_token_expires_at: ebayConnection.token_expires_at || null,
+      ebay_refresh_token_expires_at: ebayConnection.refresh_token_expires_at || null,
+      subscription_plan: 'free',
+      listing_limit: 10,
+      keepa_api_key: null
+    }
+  },
+
+  async updateProfile(updates) {
+    const userData = localStorage.getItem('userData')
+    if (!userData) {
+      throw new Error('User not authenticated')
+    }
+
+    const user = JSON.parse(userData)
+    const updatedUser = { ...user, ...updates }
+    localStorage.setItem('userData', JSON.stringify(updatedUser))
+
+    // If updating eBay connection data, store separately
+    if (updates.ebay_connection_status !== undefined ||
+        updates.ebay_user_token !== undefined ||
+        updates.ebay_connected_at !== undefined ||
+        updates.ebay_user_id !== undefined ||
+        updates.ebay_token_expires_at !== undefined ||
+        updates.ebay_refresh_token_expires_at !== undefined) {
+      const ebayConnection = {
+        status: updates.ebay_connection_status,
+        refresh_token: updates.ebay_user_token,
+        connected_at: updates.ebay_connected_at,
+        user_id: updates.ebay_user_id,
+        token_expires_at: updates.ebay_token_expires_at,
+        refresh_token_expires_at: updates.ebay_refresh_token_expires_at
+      }
+      localStorage.setItem('ebayConnection', JSON.stringify(ebayConnection))
+    }
+
+    return updatedUser
+  },
+
+  async getAuthToken() {
+    // Return a simple token for localStorage mode
+    const userData = localStorage.getItem('userData')
+    if (!userData) {
+      throw new Error('User not authenticated')
+    }
+    return 'localStorage-auth-token-' + Date.now()
+  }
+}
 
 const mockUserAPI = {
   async getProfile() {
@@ -514,17 +592,19 @@ const realUserAPI = realSupabaseClient ? {
   getAuthToken: () => Promise.reject(new Error('Real Supabase not configured'))
 }
 
-export const userAPI = isDemoMode ? mockUserAPI : realUserAPI
+// Choose the appropriate API based on configuration
+export const userAPI = isDemoMode ? mockUserAPI : (isLocalStorageMode ? localStorageUserAPI : realUserAPI)
 
 // Debug logging
 console.log('🔍 API Mode Debug:', {
   isDemoMode,
+  isLocalStorageMode,
   hasSupabaseUrl: !!supabaseUrl,
   hasSupabaseKey: !!supabaseAnonKey,
   hasRealClient: !!realSupabaseClient,
   demoModeEnv: import.meta.env.VITE_DEMO_MODE,
   supabaseUrl: supabaseUrl?.substring(0, 30) + '...',
-  usingAPI: isDemoMode ? 'mockUserAPI' : 'realUserAPI'
+  usingAPI: isDemoMode ? 'mockUserAPI' : (isLocalStorageMode ? 'localStorageUserAPI' : 'realUserAPI')
 })
 
 const mockAuthAPI = {

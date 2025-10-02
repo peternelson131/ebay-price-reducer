@@ -28,6 +28,21 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks - separate large libraries
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-ui': ['@headlessui/react', '@heroicons/react'],
+          'vendor-query': ['@tanstack/react-query', '@tanstack/react-virtual'],
+          'vendor-forms': ['react-hook-form', 'react-dropzone'],
+          'vendor-utils': ['lodash', 'date-fns', 'xlsx'],
+          'vendor-toast': ['react-toastify']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500
   }
 })

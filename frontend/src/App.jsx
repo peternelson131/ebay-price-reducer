@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
-import Account from './pages/Account'
-import Strategies from './pages/Strategies'
-import Listings from './pages/Listings'
-import Analytics from './pages/Analytics'
-import Login from './pages/Login'
-import AutoList from './pages/AutoList'
-import AdminSettings from './pages/AdminSettings'
+
+// Lazy load all page components for code splitting
+const Account = lazy(() => import('./pages/Account'))
+const Strategies = lazy(() => import('./pages/Strategies'))
+const Listings = lazy(() => import('./pages/Listings'))
+const Analytics = lazy(() => import('./pages/Analytics'))
+const Login = lazy(() => import('./pages/Login'))
+const AutoList = lazy(() => import('./pages/AutoList'))
+const AdminSettings = lazy(() => import('./pages/AdminSettings'))
 
 // Simple components without complex dependencies
 function Dashboard() {
@@ -166,7 +168,11 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />
+    return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="text-lg">Loading...</div></div>}>
+        <Login onLogin={handleLogin} />
+      </Suspense>
+    )
   }
 
   return (
@@ -415,15 +421,24 @@ export default function App() {
 
       <main className={location.pathname === '/listings' ? 'w-full py-4 px-2 sm:py-6 sm:px-4 lg:px-8' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
         <div className={location.pathname === '/listings' ? '' : 'sm:px-0'}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/listings" element={<Listings />} />
-            <Route path="/auto-list" element={<AutoList />} />
-            <Route path="/strategies" element={<Strategies />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/account" element={<Account />} />
-            <Route path="/admin-settings" element={<AdminSettings />} />
-          </Routes>
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-gray-600">Loading...</p>
+              </div>
+            </div>
+          }>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/listings" element={<Listings />} />
+              <Route path="/auto-list" element={<AutoList />} />
+              <Route path="/strategies" element={<Strategies />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/account" element={<Account />} />
+              <Route path="/admin-settings" element={<AdminSettings />} />
+            </Routes>
+          </Suspense>
         </div>
       </main>
     </div>
