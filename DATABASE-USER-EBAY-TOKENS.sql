@@ -5,12 +5,16 @@
 -- allowing multiple users to connect their own eBay accounts
 
 -- 1. Add eBay token columns to users table
-ALTER TABLE users ADD COLUMN IF NOT EXISTS ebay_access_token TEXT;
+-- NOTE: We only store refresh_token (18-month lifetime)
+-- Access tokens are obtained on-demand by exchanging the refresh_token
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ebay_refresh_token TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS ebay_token_expires_at TIMESTAMP WITH TIME ZONE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ebay_user_id TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ebay_connected_at TIMESTAMP WITH TIME ZONE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ebay_connection_status TEXT DEFAULT 'disconnected';
+
+-- Remove ebay_access_token column if it exists (should never store access tokens)
+ALTER TABLE users DROP COLUMN IF EXISTS ebay_access_token;
+ALTER TABLE users DROP COLUMN IF EXISTS ebay_token_expires_at;
 
 -- 2. Create index for eBay user lookups
 CREATE INDEX IF NOT EXISTS idx_users_ebay_user_id ON users(ebay_user_id);
@@ -52,56 +56,42 @@ BEGIN
     RETURN EXISTS (
         SELECT 1 FROM users
         WHERE id = user_uuid
-        AND ebay_access_token IS NOT NULL
+        AND ebay_refresh_token IS NOT NULL
         AND ebay_connection_status = 'connected'
-        AND (ebay_token_expires_at IS NULL OR ebay_token_expires_at > NOW())
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 8. Create function to get user's eBay credentials
+-- NOTE: Only returns refresh_token - access tokens must be obtained on-demand
 CREATE OR REPLACE FUNCTION get_user_ebay_credentials(user_uuid UUID)
 RETURNS TABLE (
-    access_token TEXT,
     refresh_token TEXT,
-    expires_at TIMESTAMP WITH TIME ZONE,
     ebay_user_id TEXT
 ) AS $$
 BEGIN
     RETURN QUERY
     SELECT
-        users.ebay_access_token,
         users.ebay_refresh_token,
-        users.ebay_token_expires_at,
         users.ebay_user_id
     FROM users
     WHERE users.id = user_uuid
-    AND users.ebay_connection_status = 'connected';
+    AND users.ebay_refresh_token IS NOT NULL;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 9. Create function to update user's eBay token
+-- NOTE: Only stores refresh_token - access tokens are never stored
 CREATE OR REPLACE FUNCTION update_user_ebay_token(
     user_uuid UUID,
-    access_token TEXT,
-    refresh_token TEXT DEFAULT NULL,
-    expires_in INTEGER DEFAULT NULL,
+    refresh_token TEXT,
     ebay_user_id_param TEXT DEFAULT NULL
 )
 RETURNS BOOLEAN AS $$
-DECLARE
-    expires_at TIMESTAMP WITH TIME ZONE;
 BEGIN
-    -- Calculate expiration time
-    IF expires_in IS NOT NULL THEN
-        expires_at := NOW() + (expires_in || ' seconds')::INTERVAL;
-    END IF;
-
-    -- Update user's eBay credentials
+    -- Update user's eBay credentials (only refresh token)
     UPDATE users SET
-        ebay_access_token = access_token,
-        ebay_refresh_token = COALESCE(refresh_token, ebay_refresh_token),
-        ebay_token_expires_at = COALESCE(expires_at, ebay_token_expires_at),
+        ebay_refresh_token = refresh_token,
         ebay_user_id = COALESCE(ebay_user_id_param, ebay_user_id),
         ebay_connected_at = NOW(),
         ebay_connection_status = 'connected',
@@ -117,9 +107,7 @@ CREATE OR REPLACE FUNCTION disconnect_user_ebay_account(user_uuid UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
     UPDATE users SET
-        ebay_access_token = NULL,
         ebay_refresh_token = NULL,
-        ebay_token_expires_at = NULL,
         ebay_user_id = NULL,
         ebay_connection_status = 'disconnected',
         updated_at = NOW()
@@ -152,8 +140,7 @@ SELECT
     u.ebay_connected_at,
     u.ebay_user_id,
     CASE
-        WHEN u.ebay_token_expires_at IS NULL THEN NULL
-        WHEN u.ebay_token_expires_at > NOW() THEN true
+        WHEN u.ebay_refresh_token IS NOT NULL THEN true
         ELSE false
     END AS ebay_token_valid,
     COUNT(l.id) AS total_listings,
@@ -161,7 +148,7 @@ SELECT
 FROM users u
 LEFT JOIN listings l ON u.id = l.user_id AND l.listing_status = 'Active'
 GROUP BY u.id, u.email, u.name, u.is_active, u.created_at, u.updated_at,
-         u.ebay_connection_status, u.ebay_connected_at, u.ebay_user_id, u.ebay_token_expires_at;
+         u.ebay_connection_status, u.ebay_connected_at, u.ebay_user_id, u.ebay_refresh_token;
 
 -- 13. Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO authenticated;
@@ -169,10 +156,31 @@ GRANT SELECT, INSERT, UPDATE ON ebay_api_logs TO authenticated;
 GRANT SELECT ON user_profiles TO authenticated;
 GRANT EXECUTE ON FUNCTION has_valid_ebay_token(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_user_ebay_credentials(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION update_user_ebay_token(UUID, TEXT, TEXT, INTEGER, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION update_user_ebay_token(UUID, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION disconnect_user_ebay_account(UUID) TO authenticated;
 
--- 14. Update existing users to have disconnected status
+-- 14. Migrate old ebay_user_token data to ebay_refresh_token (if column exists)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_name = 'users' AND column_name = 'ebay_user_token') THEN
+        -- Migrate data from old column to new column
+        UPDATE users
+        SET ebay_refresh_token = ebay_user_token,
+            ebay_connection_status = 'connected',
+            ebay_connected_at = NOW()
+        WHERE ebay_user_token IS NOT NULL
+        AND ebay_refresh_token IS NULL;
+
+        RAISE NOTICE 'Migrated ebay_user_token data to ebay_refresh_token';
+
+        -- Drop old column
+        ALTER TABLE users DROP COLUMN ebay_user_token;
+        RAISE NOTICE 'Dropped ebay_user_token column';
+    END IF;
+END $$;
+
+-- 15. Update existing users to have disconnected status
 UPDATE users SET ebay_connection_status = 'disconnected' WHERE ebay_connection_status IS NULL;
 
 -- ===============================================

@@ -35,22 +35,17 @@ class EnhancedEbayClient {
         throw new Error(`Failed to get eBay credentials: ${error.message}`);
       }
 
-      if (!data || data.length === 0 || !data[0].access_token) {
+      if (!data || data.length === 0 || !data[0].refresh_token) {
         throw new Error('User has not connected their eBay account');
       }
 
       const credentials = data[0];
+      this.ebayUserId = credentials.ebay_user_id;
 
-      // Check if token is expired
-      if (credentials.expires_at && new Date(credentials.expires_at) <= new Date()) {
-        // Try to refresh the token
-        const refreshResult = await this.refreshToken();
-        if (!refreshResult) {
-          throw new Error('eBay token expired and refresh failed');
-        }
-      } else {
-        this.accessToken = credentials.access_token;
-        this.ebayUserId = credentials.ebay_user_id;
+      // Always get fresh access token by exchanging refresh token
+      const refreshResult = await this.refreshToken();
+      if (!refreshResult) {
+        throw new Error('Failed to obtain eBay access token');
       }
 
       return true;
@@ -98,13 +93,7 @@ class EnhancedEbayClient {
         return false;
       }
 
-      // Update token in database
-      await supabase.rpc('update_user_ebay_token', {
-        user_uuid: this.userId,
-        access_token: data.access_token,
-        expires_in: data.expires_in
-      });
-
+      // Store access token in memory (don't store in database)
       this.accessToken = data.access_token;
       return true;
 
