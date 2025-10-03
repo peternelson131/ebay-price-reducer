@@ -229,7 +229,7 @@ export default function Listings() {
 
   const handleBulkCloseSoldOut = async () => {
     // Get all sold-out listings (quantity = 0) from the current filtered view
-    const soldOutListings = filteredListings.filter(listing => listing.quantity === 0)
+    const soldOutListings = sortedAndFilteredListings.filter(listing => listing.quantity === 0)
 
     if (soldOutListings.length === 0) {
       showNotification('info', 'No sold-out listings to close')
@@ -810,13 +810,13 @@ export default function Listings() {
           ))}
 
           {/* Bulk Close Sold-Out Button - Only show in Ended view */}
-          {status === 'Ended' && filteredListings?.filter(l => l.quantity === 0).length > 0 && (
+          {status === 'Ended' && sortedAndFilteredListings?.filter(l => l.quantity === 0).length > 0 && (
             <button
               onClick={handleBulkCloseSoldOut}
               className="bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 flex items-center gap-1 flex-shrink-0"
               title="Close all sold-out listings on eBay"
             >
-              <span>Close All Sold-Out ({filteredListings.filter(l => l.quantity === 0).length})</span>
+              <span>Close All Sold-Out ({sortedAndFilteredListings.filter(l => l.quantity === 0).length})</span>
             </button>
           )}
         </div>
