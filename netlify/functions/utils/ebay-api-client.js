@@ -1,4 +1,5 @@
 const { EbayTokenService } = require('./ebay-token-service');
+const xml2js = require('xml2js');
 
 /**
  * Simplified eBay API client
@@ -20,6 +21,33 @@ class EbayApiClient {
   }
 
   /**
+   * Build XML request for Trading API
+   */
+  buildXmlRequest(callName, requestBody) {
+    const authToken = this.accessToken ? `<eBayAuthToken>${this.accessToken}</eBayAuthToken>` : '';
+
+    return `<?xml version="1.0" encoding="utf-8"?>
+      <${callName}Request xmlns="urn:ebay:apis:eBLBaseComponents">
+        <RequesterCredentials>
+          ${authToken}
+        </RequesterCredentials>
+        ${requestBody}
+      </${callName}Request>`;
+  }
+
+  /**
+   * Parse XML response from Trading API
+   */
+  async parseXmlResponse(xmlData) {
+    const parser = new xml2js.Parser({
+      explicitArray: false,
+      ignoreAttrs: false,
+      tagNameProcessors: [xml2js.processors.stripPrefix]
+    });
+    return await parser.parseStringPromise(xmlData);
+  }
+
+  /**
    * Make authenticated eBay API call
    */
   async makeApiCall(endpoint, method = 'GET', data = null, apiType = 'trading') {
@@ -34,38 +62,71 @@ class EbayApiClient {
       sell: 'https://api.ebay.com/sell'
     };
 
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.accessToken}`
-    };
-
-    // Add API-specific headers
+    // Trading API uses XML, others use JSON
     if (apiType === 'trading') {
-      headers['X-EBAY-API-SITEID'] = '0';
-      headers['X-EBAY-API-COMPATIBILITY-LEVEL'] = '967';
-      headers['X-EBAY-API-CALL-NAME'] = endpoint;
-    }
+      const xmlRequest = this.buildXmlRequest(endpoint, data || '');
 
-    const url = apiType === 'trading' ? baseUrls.trading : `${baseUrls[apiType]}${endpoint}`;
+      const headers = {
+        'Content-Type': 'text/xml',
+        'X-EBAY-API-SITEID': '0',
+        'X-EBAY-API-COMPATIBILITY-LEVEL': '967',
+        'X-EBAY-API-CALL-NAME': endpoint
+      };
 
-    try {
-      const response = await fetch(url, {
-        method,
-        headers,
-        body: data ? JSON.stringify(data) : undefined
-      });
+      try {
+        const response = await fetch(baseUrls.trading, {
+          method: 'POST',
+          headers,
+          body: xmlRequest
+        });
 
-      const responseData = await response.json();
+        const responseText = await response.text();
+        const parsedResponse = await this.parseXmlResponse(responseText);
 
-      if (!response.ok) {
-        throw new Error(`eBay API Error: ${responseData.error?.message || 'Unknown error'}`);
+        // Check for eBay API errors
+        const responseKey = `${endpoint}Response`;
+        if (parsedResponse[responseKey] && parsedResponse[responseKey].Errors) {
+          const errors = Array.isArray(parsedResponse[responseKey].Errors)
+            ? parsedResponse[responseKey].Errors
+            : [parsedResponse[responseKey].Errors];
+          const errorMsg = errors.map(e => e.LongMessage || e.ShortMessage).join('; ');
+          throw new Error(`eBay API Error: ${errorMsg}`);
+        }
+
+        return parsedResponse[responseKey];
+
+      } catch (error) {
+        console.error(`eBay Trading API call failed (${endpoint}):`, error);
+        throw error;
       }
+    } else {
+      // JSON API (Finding, Sell APIs)
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.accessToken}`
+      };
 
-      return responseData;
+      const url = `${baseUrls[apiType]}${endpoint}`;
 
-    } catch (error) {
-      console.error(`eBay API call failed (${endpoint}):`, error);
-      throw error;
+      try {
+        const response = await fetch(url, {
+          method,
+          headers,
+          body: data ? JSON.stringify(data) : undefined
+        });
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(`eBay API Error: ${responseData.error?.message || 'Unknown error'}`);
+        }
+
+        return responseData;
+
+      } catch (error) {
+        console.error(`eBay API call failed (${endpoint}):`, error);
+        throw error;
+      }
     }
   }
 
@@ -80,20 +141,21 @@ class EbayApiClient {
    * @returns {Promise<Object>} eBay GetMyeBaySelling response
    */
   async getActiveListings(page = 1, limit = 50) {
-    const requestData = {
-      RequesterCredentials: {
-        eBayAuthToken: this.accessToken
-      },
-      Pagination: {
-        EntriesPerPage: limit,
-        PageNumber: page
-      },
-      DetailLevel: 'ReturnAll',
-      StartTimeFrom: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), // Last 90 days
-      StartTimeTo: new Date().toISOString()
-    };
+    const startTimeFrom = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const startTimeTo = new Date().toISOString();
 
-    return await this.makeApiCall('GetMyeBaySelling', 'POST', requestData, 'trading');
+    const requestBody = `
+      <ActiveList>
+        <Include>true</Include>
+        <Pagination>
+          <EntriesPerPage>${limit}</EntriesPerPage>
+          <PageNumber>${page}</PageNumber>
+        </Pagination>
+      </ActiveList>
+      <DetailLevel>ReturnAll</DetailLevel>
+    `;
+
+    return await this.makeApiCall('GetMyeBaySelling', 'POST', requestBody, 'trading');
   }
 
   /**
@@ -102,15 +164,12 @@ class EbayApiClient {
    * @returns {Promise<Object>} eBay GetItem response
    */
   async getItemDetails(itemId) {
-    const requestData = {
-      RequesterCredentials: {
-        eBayAuthToken: this.accessToken
-      },
-      ItemID: itemId,
-      DetailLevel: 'ReturnAll'
-    };
+    const requestBody = `
+      <ItemID>${itemId}</ItemID>
+      <DetailLevel>ReturnAll</DetailLevel>
+    `;
 
-    return await this.makeApiCall('GetItem', 'POST', requestData, 'trading');
+    return await this.makeApiCall('GetItem', 'POST', requestBody, 'trading');
   }
 
   /**
@@ -120,17 +179,14 @@ class EbayApiClient {
    * @returns {Promise<Object>} eBay ReviseItem response
    */
   async updateItemPrice(itemId, newPrice) {
-    const requestData = {
-      RequesterCredentials: {
-        eBayAuthToken: this.accessToken
-      },
-      Item: {
-        ItemID: itemId,
-        StartPrice: newPrice
-      }
-    };
+    const requestBody = `
+      <Item>
+        <ItemID>${itemId}</ItemID>
+        <StartPrice>${newPrice}</StartPrice>
+      </Item>
+    `;
 
-    return await this.makeApiCall('ReviseItem', 'POST', requestData, 'trading');
+    return await this.makeApiCall('ReviseItem', 'POST', requestBody, 'trading');
   }
 
   /**
@@ -140,15 +196,12 @@ class EbayApiClient {
    * @returns {Promise<Object>} eBay EndItem response
    */
   async endListing(itemId, reason = 'NotAvailable') {
-    const requestData = {
-      RequesterCredentials: {
-        eBayAuthToken: this.accessToken
-      },
-      ItemID: itemId,
-      EndingReason: reason
-    };
+    const requestBody = `
+      <ItemID>${itemId}</ItemID>
+      <EndingReason>${reason}</EndingReason>
+    `;
 
-    return await this.makeApiCall('EndItem', 'POST', requestData, 'trading');
+    return await this.makeApiCall('EndItem', 'POST', requestBody, 'trading');
   }
 
   /**
