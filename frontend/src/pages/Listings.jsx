@@ -227,6 +227,46 @@ export default function Listings() {
     }
   }
 
+  const handleBulkCloseSoldOut = async () => {
+    // Get all sold-out listings (quantity = 0) from the current filtered view
+    const soldOutListings = filteredListings.filter(listing => listing.quantity === 0)
+
+    if (soldOutListings.length === 0) {
+      showNotification('info', 'No sold-out listings to close')
+      return
+    }
+
+    const confirmMessage = `Close ${soldOutListings.length} sold-out listing(s) on eBay? This action cannot be undone.`
+    if (!window.confirm(confirmMessage)) {
+      return
+    }
+
+    setNotification({ type: 'info', message: `Closing ${soldOutListings.length} listings...` })
+
+    let successCount = 0
+    let failCount = 0
+
+    for (const listing of soldOutListings) {
+      try {
+        await listingsAPI.endListing(listing.id)
+        successCount++
+      } catch (error) {
+        console.error(`Failed to close listing ${listing.id}:`, error)
+        failCount++
+      }
+    }
+
+    // Refetch listings to update UI
+    queryClient.invalidateQueries('listings')
+
+    // Show final notification
+    if (failCount === 0) {
+      showNotification('success', `Successfully closed ${successCount} listing(s)`)
+    } else {
+      showNotification('warning', `Closed ${successCount} listing(s), ${failCount} failed`)
+    }
+  }
+
   const handleMinimumPriceUpdate = (listingId, value) => {
     const minimumPrice = parseFloat(value)
     if (!isNaN(minimumPrice) && minimumPrice >= 0) {
@@ -768,6 +808,17 @@ export default function Listings() {
               {statusOption === 'all' ? 'All' : statusOption}
             </button>
           ))}
+
+          {/* Bulk Close Sold-Out Button - Only show in Ended view */}
+          {status === 'Ended' && filteredListings?.filter(l => l.quantity === 0).length > 0 && (
+            <button
+              onClick={handleBulkCloseSoldOut}
+              className="bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 flex items-center gap-1 flex-shrink-0"
+              title="Close all sold-out listings on eBay"
+            >
+              <span>Close All Sold-Out ({filteredListings.filter(l => l.quantity === 0).length})</span>
+            </button>
+          )}
         </div>
 
         {/* Filter and Column Controls */}
@@ -1016,7 +1067,7 @@ export default function Listings() {
                   </div>
                   <div>
                     <span className="text-gray-500">Quantity:</span>
-                    <div className="font-medium">{listing.quantity || 1}</div>
+                    <div className="font-medium">{listing.quantity ?? 1}</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Views:</span>
@@ -1232,7 +1283,7 @@ export default function Listings() {
                           )
                         case 'quantity':
                           return (
-                            <div className="text-sm text-gray-900">{listing.quantity || 1}</div>
+                            <div className="text-sm text-gray-900">{listing.quantity ?? 1}</div>
                           )
                         case 'currentPrice':
                           return (

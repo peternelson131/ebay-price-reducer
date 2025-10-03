@@ -131,7 +131,21 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 4. Prepare listings for upsert (simplified format from Trading API)
+    // 4. Get existing listings to preserve manual 'Ended' status
+    const { data: existingListings } = await supabase
+      .from('listings')
+      .select('ebay_item_id, listing_status')
+      .eq('user_id', user.id);
+
+    // Create a map of existing statuses
+    const existingStatusMap = new Map();
+    if (existingListings) {
+      existingListings.forEach(listing => {
+        existingStatusMap.set(listing.ebay_item_id, listing.listing_status);
+      });
+    }
+
+    // 5. Prepare listings for upsert (simplified format from Trading API)
     const listingsToUpsert = listings.map(item => {
       // Extract image URLs - handle both single URL and array of URLs
       let imageUrls = [];
@@ -152,6 +166,23 @@ exports.handler = async (event, context) => {
         imageUrls = [item.GalleryURL];
       }
 
+      // Extract quantity
+      const quantity = parseInt(item.Quantity) || 0;
+
+      // Determine listing status
+      let listing_status = item.SellingStatus?.ListingStatus || 'Active';
+
+      // Auto-mark sold-out listings as 'Ended'
+      if (quantity === 0 && listing_status === 'Active') {
+        listing_status = 'Ended';
+      }
+
+      // Preserve manual 'Ended' status if it was manually set
+      const existingStatus = existingStatusMap.get(item.ItemID);
+      if (existingStatus === 'Ended') {
+        listing_status = 'Ended';
+      }
+
       return {
         user_id: user.id,
         ebay_item_id: item.ItemID,
@@ -162,14 +193,14 @@ exports.handler = async (event, context) => {
         current_price: parseFloat(item.SellingStatus?.CurrentPrice?._ || item.SellingStatus?.CurrentPrice || 0),
         original_price: parseFloat(item.StartPrice?._ || item.StartPrice || item.SellingStatus?.CurrentPrice?._ || item.SellingStatus?.CurrentPrice || 0),
         currency: item.SellingStatus?.CurrentPrice?.currencyID || 'USD',
-        quantity: parseInt(item.Quantity) || 0,
+        quantity: quantity,
         quantity_available: parseInt(item.QuantityAvailable || item.Quantity) || 0,
         image_urls: imageUrls,
         primary_image_url: imageUrls[0] || null,
         condition: item.ConditionDisplayName || 'Used',
         category_id: item.PrimaryCategory?.CategoryID || null,
         category: item.PrimaryCategory?.CategoryName || null,
-        listing_status: item.SellingStatus?.ListingStatus || 'Active',
+        listing_status: listing_status,
         listing_format: item.ListingType || 'FixedPriceItem',
         start_time: item.ListingDetails?.StartTime || null,
         end_time: item.ListingDetails?.EndTime || null,
@@ -182,7 +213,7 @@ exports.handler = async (event, context) => {
       };
     });
 
-    // 5. Upsert to database
+    // 6. Upsert to database
     const { data, error } = await supabase
       .from('listings')
       .upsert(listingsToUpsert, {

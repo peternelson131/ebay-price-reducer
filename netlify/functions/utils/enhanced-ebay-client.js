@@ -483,6 +483,17 @@ class EnhancedEbayClient {
   mapToUnifiedSchema(listing) {
     const offer = listing.primaryOffer;
 
+    // Extract quantity and status
+    const quantity = offer?.availableQuantity || listing.availability?.shipToLocationAvailability?.quantity || 0;
+    const ebayStatus = offer?.status || 'PUBLISHED';
+
+    // Auto-mark sold-out listings as 'Ended'
+    // If quantity is 0 but eBay still shows as PUBLISHED, treat as ended
+    let listing_status = this.mapOfferStatusToListingStatus(ebayStatus);
+    if (quantity === 0 && ebayStatus === 'PUBLISHED') {
+      listing_status = 'Ended';
+    }
+
     return {
       // Core identifiers
       sku: listing.sku,
@@ -498,7 +509,7 @@ class EnhancedEbayClient {
       original_price: offer?.pricingSummary?.originalRetailPrice?.value || offer?.pricingSummary?.price?.value || 0,
 
       // Inventory
-      quantity: offer?.availableQuantity || listing.availability?.shipToLocationAvailability?.quantity || 0,
+      quantity: quantity,
 
       // Category
       category_id: offer?.categoryId || null,
@@ -517,8 +528,8 @@ class EnhancedEbayClient {
       hit_count: listing.hitCount || 0,
 
       // Status
-      status: offer?.status || 'PUBLISHED',
-      listing_status: this.mapOfferStatusToListingStatus(offer?.status),
+      status: ebayStatus,
+      listing_status: listing_status,
 
       // Timestamps
       start_time: offer?.listing?.listingStartDate || null,

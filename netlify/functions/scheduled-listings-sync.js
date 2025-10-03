@@ -131,32 +131,53 @@ async function syncUserListings(user) {
     return { count: 0 };
   }
 
+  // Get existing listings to preserve manual 'Ended' status
+  const { data: existingListings } = await supabase
+    .from('listings')
+    .select('ebay_item_id, listing_status')
+    .eq('user_id', user.id);
+
+  // Create a map of existing statuses
+  const existingStatusMap = new Map();
+  if (existingListings) {
+    existingListings.forEach(listing => {
+      existingStatusMap.set(listing.ebay_item_id, listing.listing_status);
+    });
+  }
+
   // Prepare listings for upsert
-  const listingsToUpsert = ebayData.listings.map(listing => ({
-    user_id: user.id,
-    ebay_item_id: listing.ebay_item_id,
-    sku: listing.sku,
-    title: listing.title,
-    description: listing.description,
-    current_price: listing.current_price,
-    original_price: listing.original_price || listing.current_price,
-    currency: listing.currency,
-    quantity: listing.quantity,
-    quantity_available: listing.quantity,
-    image_urls: listing.image_urls,
-    condition: listing.condition || 'Used',
-    category_id: listing.category_id,
-    category: listing.category_name,
-    listing_status: listing.listing_status,
-    listing_format: listing.listing_type || 'FixedPriceItem',
-    start_time: listing.start_time,
-    end_time: listing.end_time,
-    view_count: listing.view_count || 0,
-    watch_count: listing.watch_count || 0,
-    hit_count: listing.hit_count || 0,
-    last_synced_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }));
+  const listingsToUpsert = ebayData.listings.map(listing => {
+    // Preserve manual 'Ended' status if it was manually set
+    // (i.e., if existing status is 'Ended' but eBay still shows it as active)
+    const existingStatus = existingStatusMap.get(listing.ebay_item_id);
+    const listing_status = existingStatus === 'Ended' ? 'Ended' : listing.listing_status;
+
+    return {
+      user_id: user.id,
+      ebay_item_id: listing.ebay_item_id,
+      sku: listing.sku,
+      title: listing.title,
+      description: listing.description,
+      current_price: listing.current_price,
+      original_price: listing.original_price || listing.current_price,
+      currency: listing.currency,
+      quantity: listing.quantity,
+      quantity_available: listing.quantity,
+      image_urls: listing.image_urls,
+      condition: listing.condition || 'Used',
+      category_id: listing.category_id,
+      category: listing.category_name,
+      listing_status: listing_status,
+      listing_format: listing.listing_type || 'FixedPriceItem',
+      start_time: listing.start_time,
+      end_time: listing.end_time,
+      view_count: listing.view_count || 0,
+      watch_count: listing.watch_count || 0,
+      hit_count: listing.hit_count || 0,
+      last_synced_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  });
 
   // Upsert to database
   const { data, error } = await supabase
