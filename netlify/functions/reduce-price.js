@@ -93,14 +93,15 @@ const handler = async (event, context) => {
       }
     }
 
-    if (isNaN(minimumPrice) || minimumPrice < 0) {
+    // Check if minimum_price is set (not null, undefined, 0, or empty string)
+    if (!listing.minimum_price || isNaN(minimumPrice) || minimumPrice <= 0) {
       return {
         statusCode: 400,
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ error: 'Invalid minimum price' })
+        body: JSON.stringify({ error: 'Minimum price must be set before reducing prices' })
       }
     }
 

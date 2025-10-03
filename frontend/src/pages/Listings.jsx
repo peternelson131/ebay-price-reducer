@@ -198,7 +198,12 @@ export default function Listings() {
     }
   )
 
-  const handleReducePrice = (listingId) => {
+  const handleReducePrice = (listingId, minimumPrice) => {
+    // Check if minimum price is set
+    if (!minimumPrice || minimumPrice <= 0) {
+      showNotification('error', 'Please set a minimum price before reducing prices')
+      return
+    }
     if (window.confirm('Are you sure you want to reduce the price now?')) {
       reducePriceMutation.mutate({ listingId, customPrice: null })
     }
@@ -221,7 +226,12 @@ export default function Listings() {
     updateStrategyMutation.mutate({ listingId, strategy })
   }
 
-  const handleTogglePriceReduction = (listingId, currentState) => {
+  const handleTogglePriceReduction = (listingId, currentState, minimumPrice) => {
+    // Prevent enabling price reduction if minimum price is not set
+    if (!currentState && (!minimumPrice || minimumPrice <= 0)) {
+      showNotification('error', 'Please set a minimum price before enabling price reduction')
+      return
+    }
     togglePriceReductionMutation.mutate({ listingId, enabled: !currentState })
   }
 
@@ -1030,11 +1040,20 @@ export default function Listings() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Price Reduction:</span>
                     <div className="flex items-center">
-                      <label className="relative inline-flex items-center cursor-pointer">
+                      <label
+                        className={`relative inline-flex items-center ${
+                          (!listing.minimum_price || listing.minimum_price <= 0) && !listing.price_reduction_enabled
+                            ? 'cursor-not-allowed'
+                            : 'cursor-pointer'
+                        }`}
+                        title={(!listing.minimum_price || listing.minimum_price <= 0) && !listing.price_reduction_enabled
+                          ? 'Set a minimum price before enabling price reduction'
+                          : ''}
+                      >
                         <input
                           type="checkbox"
                           checked={listing.price_reduction_enabled}
-                          onChange={() => handleTogglePriceReduction(listing.id, listing.price_reduction_enabled)}
+                          onChange={() => handleTogglePriceReduction(listing.id, listing.price_reduction_enabled, listing.minimum_price)}
                           disabled={togglePriceReductionMutation.isLoading}
                           className="sr-only"
                         />
@@ -1082,9 +1101,16 @@ export default function Listings() {
                     View on eBay
                   </a>
                   <button
-                    onClick={() => handleReducePrice(listing.id)}
-                    disabled={reducePriceMutation.isLoading}
-                    className="bg-orange-600 text-white px-3 py-1 rounded text-xs hover:bg-orange-700 disabled:opacity-50"
+                    onClick={() => handleReducePrice(listing.id, listing.minimum_price)}
+                    disabled={reducePriceMutation.isLoading || !listing.minimum_price || listing.minimum_price <= 0}
+                    className={`px-3 py-1 rounded text-xs ${
+                      !listing.minimum_price || listing.minimum_price <= 0
+                        ? 'bg-gray-400 text-white cursor-not-allowed opacity-50'
+                        : 'bg-orange-600 text-white hover:bg-orange-700'
+                    } disabled:opacity-50`}
+                    title={!listing.minimum_price || listing.minimum_price <= 0
+                      ? 'Set a minimum price before reducing prices'
+                      : 'Reduce price now'}
                   >
                     Reduce Price
                   </button>
@@ -1215,11 +1241,20 @@ export default function Listings() {
                         case 'priceReductionEnabled':
                           return (
                             <div className="flex items-center">
-                              <label className="relative inline-flex items-center cursor-pointer">
+                              <label
+                                className={`relative inline-flex items-center ${
+                                  (!listing.minimum_price || listing.minimum_price <= 0) && !listing.price_reduction_enabled
+                                    ? 'cursor-not-allowed'
+                                    : 'cursor-pointer'
+                                }`}
+                                title={(!listing.minimum_price || listing.minimum_price <= 0) && !listing.price_reduction_enabled
+                                  ? 'Set a minimum price before enabling price reduction'
+                                  : ''}
+                              >
                                 <input
                                   type="checkbox"
                                   checked={listing.price_reduction_enabled}
-                                  onChange={() => handleTogglePriceReduction(listing.id, listing.price_reduction_enabled)}
+                                  onChange={() => handleTogglePriceReduction(listing.id, listing.price_reduction_enabled, listing.minimum_price)}
                                   disabled={togglePriceReductionMutation.isLoading}
                                   className="sr-only"
                                 />
@@ -1285,9 +1320,16 @@ export default function Listings() {
                                 View
                               </a>
                               <button
-                                onClick={() => handleReducePrice(listing.id)}
-                                disabled={reducePriceMutation.isLoading}
-                                className="bg-orange-600 text-white px-2 py-1 rounded text-xs hover:bg-orange-700 disabled:opacity-50"
+                                onClick={() => handleReducePrice(listing.id, listing.minimum_price)}
+                                disabled={reducePriceMutation.isLoading || !listing.minimum_price || listing.minimum_price <= 0}
+                                className={`px-2 py-1 rounded text-xs ${
+                                  !listing.minimum_price || listing.minimum_price <= 0
+                                    ? 'bg-gray-400 text-white cursor-not-allowed opacity-50'
+                                    : 'bg-orange-600 text-white hover:bg-orange-700'
+                                } disabled:opacity-50`}
+                                title={!listing.minimum_price || listing.minimum_price <= 0
+                                  ? 'Set a minimum price before reducing prices'
+                                  : 'Reduce price now'}
                               >
                                 Reduce
                               </button>

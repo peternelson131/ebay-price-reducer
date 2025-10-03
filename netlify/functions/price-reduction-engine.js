@@ -255,8 +255,9 @@ function calculateNewPrice(listing, strategy) {
     throw new Error('Invalid reduction percentage');
   }
 
-  if (isNaN(minimumPrice) || minimumPrice < 0) {
-    throw new Error('Invalid minimum price');
+  // Check if minimum_price is set (not null, undefined, 0, or empty string)
+  if (!listing.minimum_price || isNaN(minimumPrice) || minimumPrice <= 0) {
+    throw new Error('Minimum price must be set before reducing prices');
   }
 
   const reductionAmount = currentPrice * (reductionPercentage / 100);
