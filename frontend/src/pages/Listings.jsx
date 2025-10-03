@@ -218,11 +218,22 @@ export default function Listings() {
         }
       })
 
-      const result = await response.json()
-
+      // Handle non-JSON responses (like HTML error pages)
       if (!response.ok) {
-        throw new Error(result.message || 'Sync failed')
+        let errorMessage = 'Sync failed'
+        try {
+          const result = await response.json()
+          errorMessage = result.message || result.error || errorMessage
+        } catch (jsonError) {
+          // Response wasn't JSON (probably HTML error page)
+          const text = await response.text()
+          console.error('Non-JSON error response:', text.substring(0, 500))
+          errorMessage = `Server error (${response.status}). Please try again or check your eBay connection.`
+        }
+        throw new Error(errorMessage)
       }
+
+      const result = await response.json()
 
       setNotification({
         type: 'success',
