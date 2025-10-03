@@ -94,11 +94,16 @@ exports.handler = async (event, context) => {
         imageUrls = Array.isArray(item.PictureDetails.PictureURL)
           ? item.PictureDetails.PictureURL
           : [item.PictureDetails.PictureURL];
+      } else if (item.PictureDetails?.GalleryURL) {
+        // GalleryURL is inside PictureDetails
+        imageUrls = Array.isArray(item.PictureDetails.GalleryURL)
+          ? item.PictureDetails.GalleryURL
+          : [item.PictureDetails.GalleryURL];
       } else if (item.PictureURL) {
         // Sometimes it's directly on the item
         imageUrls = Array.isArray(item.PictureURL) ? item.PictureURL : [item.PictureURL];
       } else if (item.GalleryURL) {
-        // Fallback to gallery image
+        // Fallback to gallery image directly on item
         imageUrls = [item.GalleryURL];
       }
 
