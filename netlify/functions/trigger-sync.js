@@ -113,8 +113,9 @@ exports.handler = async (event, context) => {
         sku: item.SKU || null,
         title: item.Title,
         description: item.Description || null,
-        current_price: parseFloat(item.SellingStatus?.CurrentPrice?.value || 0),
-        original_price: parseFloat(item.StartPrice?.value || item.SellingStatus?.CurrentPrice?.value || 0),
+        // xml2js stores text content in _ when attributes are present
+        current_price: parseFloat(item.SellingStatus?.CurrentPrice?._ || item.SellingStatus?.CurrentPrice || 0),
+        original_price: parseFloat(item.StartPrice?._ || item.StartPrice || item.SellingStatus?.CurrentPrice?._ || item.SellingStatus?.CurrentPrice || 0),
         currency: item.SellingStatus?.CurrentPrice?.currencyID || 'USD',
         quantity: parseInt(item.Quantity) || 0,
         quantity_available: parseInt(item.QuantityAvailable || item.Quantity) || 0,
