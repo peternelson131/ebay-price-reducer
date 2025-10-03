@@ -63,6 +63,17 @@ exports.handler = async (event, context) => {
 
     console.log(`✅ Fetched ${listings.length} listings from eBay`);
 
+    // Debug: Log first listing's image structure
+    if (listings.length > 0) {
+      console.log('📸 First listing image debug:', {
+        hasPictureDetails: !!listings[0].PictureDetails,
+        pictureURL: listings[0].PictureDetails?.PictureURL,
+        hasDirectPictureURL: !!listings[0].PictureURL,
+        hasGalleryURL: !!listings[0].GalleryURL,
+        galleryURL: listings[0].GalleryURL
+      });
+    }
+
     if (listings.length === 0) {
       return {
         statusCode: 200,
@@ -76,31 +87,48 @@ exports.handler = async (event, context) => {
     }
 
     // 4. Prepare listings for upsert (simplified format from Trading API)
-    const listingsToUpsert = listings.map(item => ({
-      user_id: user.id,
-      ebay_item_id: item.ItemID,
-      sku: item.SKU || null,
-      title: item.Title,
-      description: item.Description || null,
-      current_price: parseFloat(item.SellingStatus?.CurrentPrice?.value || 0),
-      original_price: parseFloat(item.StartPrice?.value || item.SellingStatus?.CurrentPrice?.value || 0),
-      currency: item.SellingStatus?.CurrentPrice?.currencyID || 'USD',
-      quantity: parseInt(item.Quantity) || 0,
-      quantity_available: parseInt(item.QuantityAvailable || item.Quantity) || 0,
-      image_urls: item.PictureDetails?.PictureURL ? [item.PictureDetails.PictureURL].flat() : [],
-      condition: item.ConditionDisplayName || 'Used',
-      category_id: item.PrimaryCategory?.CategoryID || null,
-      category: item.PrimaryCategory?.CategoryName || null,
-      listing_status: item.SellingStatus?.ListingStatus || 'Active',
-      listing_format: item.ListingType || 'FixedPriceItem',
-      start_time: item.ListingDetails?.StartTime || null,
-      end_time: item.ListingDetails?.EndTime || null,
-      view_count: parseInt(item.HitCount) || 0,
-      watch_count: parseInt(item.WatchCount) || 0,
-      hit_count: parseInt(item.HitCount) || 0,
-      last_synced_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }));
+    const listingsToUpsert = listings.map(item => {
+      // Extract image URLs - handle both single URL and array of URLs
+      let imageUrls = [];
+      if (item.PictureDetails?.PictureURL) {
+        imageUrls = Array.isArray(item.PictureDetails.PictureURL)
+          ? item.PictureDetails.PictureURL
+          : [item.PictureDetails.PictureURL];
+      } else if (item.PictureURL) {
+        // Sometimes it's directly on the item
+        imageUrls = Array.isArray(item.PictureURL) ? item.PictureURL : [item.PictureURL];
+      } else if (item.GalleryURL) {
+        // Fallback to gallery image
+        imageUrls = [item.GalleryURL];
+      }
+
+      return {
+        user_id: user.id,
+        ebay_item_id: item.ItemID,
+        sku: item.SKU || null,
+        title: item.Title,
+        description: item.Description || null,
+        current_price: parseFloat(item.SellingStatus?.CurrentPrice?.value || 0),
+        original_price: parseFloat(item.StartPrice?.value || item.SellingStatus?.CurrentPrice?.value || 0),
+        currency: item.SellingStatus?.CurrentPrice?.currencyID || 'USD',
+        quantity: parseInt(item.Quantity) || 0,
+        quantity_available: parseInt(item.QuantityAvailable || item.Quantity) || 0,
+        image_urls: imageUrls,
+        primary_image_url: imageUrls[0] || null,
+        condition: item.ConditionDisplayName || 'Used',
+        category_id: item.PrimaryCategory?.CategoryID || null,
+        category: item.PrimaryCategory?.CategoryName || null,
+        listing_status: item.SellingStatus?.ListingStatus || 'Active',
+        listing_format: item.ListingType || 'FixedPriceItem',
+        start_time: item.ListingDetails?.StartTime || null,
+        end_time: item.ListingDetails?.EndTime || null,
+        view_count: parseInt(item.HitCount) || 0,
+        watch_count: parseInt(item.WatchCount) || 0,
+        hit_count: parseInt(item.HitCount) || 0,
+        last_synced_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    });
 
     // 5. Upsert to database
     const { data, error } = await supabase
