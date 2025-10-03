@@ -1072,12 +1072,15 @@ export default function Listings() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Link
-                    to={`/listings/${listing.id}`}
-                    className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
+                  <a
+                    href={listing.listing_url || `https://www.ebay.com/itm/${listing.ebay_item_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 inline-block text-center"
+                    title="Open this listing on eBay in a new tab"
                   >
-                    View
-                  </Link>
+                    View on eBay
+                  </a>
                   <button
                     onClick={() => handleReducePrice(listing.id)}
                     disabled={reducePriceMutation.isLoading}
@@ -1272,12 +1275,15 @@ export default function Listings() {
                         case 'actions':
                           return (
                             <div className="flex space-x-2">
-                              <Link
-                                to={`/listings/${listing.id}`}
+                              <a
+                                href={listing.listing_url || `https://www.ebay.com/itm/${listing.ebay_item_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                                title="Open this listing on eBay in a new tab"
                               >
                                 View
-                              </Link>
+                              </a>
                               <button
                                 onClick={() => handleReducePrice(listing.id)}
                                 disabled={reducePriceMutation.isLoading}

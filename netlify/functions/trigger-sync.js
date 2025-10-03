@@ -176,6 +176,7 @@ exports.handler = async (event, context) => {
         view_count: parseInt(item.HitCount) || 0,
         watch_count: parseInt(item.WatchCount) || 0,
         hit_count: parseInt(item.HitCount) || 0,
+        listing_url: item.ListingDetails?.ViewItemURL || `https://www.ebay.com/itm/${item.ItemID}`,
         last_synced_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
