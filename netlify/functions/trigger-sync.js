@@ -54,25 +54,70 @@ exports.handler = async (event, context) => {
     const ebayClient = new EbayApiClient(user.id);
     await ebayClient.initialize();
 
-    // 3. Fetch listings from eBay
-    const ebayData = await ebayClient.getActiveListings(1, 100);
+    // 3. Fetch ALL listings from eBay with pagination
+    console.log('📥 Fetching listings from eBay with pagination...');
+    const allListings = [];
+    const entriesPerPage = 200; // Maximum allowed by eBay
+    let currentPage = 1;
+    let totalPages = 1;
+    let totalEntries = 0;
+    const startTime = Date.now();
 
-    // Note: The new simplified client returns eBay Trading API response directly
-    // We need to parse it to get listings
-    const listings = ebayData.ActiveList?.ItemArray?.Item || [];
+    do {
+      console.log(`📄 Fetching page ${currentPage}...`);
 
-    console.log(`✅ Fetched ${listings.length} listings from eBay`);
+      const ebayData = await ebayClient.getActiveListings(currentPage, entriesPerPage);
 
-    // Debug: Log first listing's image structure
-    if (listings.length > 0) {
-      console.log('📸 First listing image debug:', {
-        hasPictureDetails: !!listings[0].PictureDetails,
-        pictureDetailsKeys: listings[0].PictureDetails ? Object.keys(listings[0].PictureDetails) : [],
-        fullPictureDetails: listings[0].PictureDetails,
-        hasDirectPictureURL: !!listings[0].PictureURL,
-        hasGalleryURL: !!listings[0].GalleryURL
-      });
-    }
+      // Extract pagination metadata on first page
+      if (currentPage === 1) {
+        const paginationResult = ebayData.ActiveList?.PaginationResult;
+        totalPages = parseInt(paginationResult?.TotalNumberOfPages || 1);
+        totalEntries = parseInt(paginationResult?.TotalNumberOfEntries || 0);
+        console.log(`📊 Total listings: ${totalEntries}, Total pages: ${totalPages}`);
+
+        // Debug: Log first listing's image structure
+        const firstPageItems = ebayData.ActiveList?.ItemArray?.Item || [];
+        const normalizedFirstPage = Array.isArray(firstPageItems) ? firstPageItems : [firstPageItems];
+        if (normalizedFirstPage.length > 0) {
+          console.log('📸 First listing image debug:', {
+            hasPictureDetails: !!normalizedFirstPage[0].PictureDetails,
+            pictureDetailsKeys: normalizedFirstPage[0].PictureDetails ? Object.keys(normalizedFirstPage[0].PictureDetails) : [],
+            fullPictureDetails: normalizedFirstPage[0].PictureDetails
+          });
+        }
+      }
+
+      // Extract and accumulate listings
+      const pageListings = ebayData.ActiveList?.ItemArray?.Item || [];
+      const normalizedListings = Array.isArray(pageListings) ? pageListings : [pageListings];
+      allListings.push(...normalizedListings);
+
+      console.log(`✓ Page ${currentPage}/${totalPages} - ${normalizedListings.length} items (${allListings.length}/${totalEntries} total)`);
+
+      // Safety check: prevent infinite loops
+      if (currentPage >= 125) {
+        console.warn('⚠️ Reached maximum page limit (125 pages / 25,000 listings)');
+        break;
+      }
+
+      // Safety check: function execution time (20 second safety margin for 26s timeout)
+      const executionTime = Date.now() - startTime;
+      if (executionTime > 20000) {
+        console.warn('⚠️ Approaching function timeout, stopping pagination');
+        break;
+      }
+
+      currentPage++;
+
+      // Rate limiting: Small delay between pages
+      if (currentPage <= totalPages) {
+        await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay
+      }
+
+    } while (currentPage <= totalPages);
+
+    const listings = allListings;
+    console.log(`✅ Fetched ${listings.length} listings across ${currentPage - 1} page(s) in ${(Date.now() - startTime) / 1000}s`);
 
     if (listings.length === 0) {
       return {

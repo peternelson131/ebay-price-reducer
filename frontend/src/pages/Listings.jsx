@@ -45,6 +45,21 @@ const getStoredVisibleColumns = () => {
   }
 }
 
+const getStoredItemsPerPage = () => {
+  try {
+    const stored = localStorage.getItem('listings-items-per-page')
+    if (stored) {
+      const value = parseInt(stored, 10)
+      if ([10, 25, 50, 100].includes(value)) {
+        return value
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load items per page from localStorage:', error)
+  }
+  return 25 // Default to 25 items per page
+}
+
 export default function Listings() {
   const navigate = useNavigate()
   const [status, setStatus] = useState('Active')
@@ -55,6 +70,8 @@ export default function Listings() {
   const [draggedColumn, setDraggedColumn] = useState(null)
   const [filters, setFilters] = useState([])
   const [notification, setNotification] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(getStoredItemsPerPage())
   const queryClient = useQueryClient()
 
   const showNotification = (type, message) => {
@@ -79,6 +96,20 @@ export default function Listings() {
       console.warn('Failed to save visible columns to localStorage:', error)
     }
   }, [visibleColumns])
+
+  // Save items per page to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('listings-items-per-page', itemsPerPage.toString())
+    } catch (error) {
+      console.warn('Failed to save items per page to localStorage:', error)
+    }
+  }, [itemsPerPage])
+
+  // Reset to page 1 when filters, search, or status changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filters, status])
 
   const { data: listings, isLoading, error, refetch } = useQuery(
     ['listings', { status }],
@@ -309,7 +340,7 @@ export default function Listings() {
     return (currentPrice * (1 - reduction)).toFixed(2)
   }
 
-  const sortedListings = useMemo(() => {
+  const sortedAndFilteredListings = useMemo(() => {
     let listingsToSort = listings?.listings || []
 
     // Use empty array if no listings
@@ -403,6 +434,77 @@ export default function Listings() {
       return 0
     })
   }, [listings?.listings, sortConfig, searchTerm, filters])
+
+  // Pagination calculations
+  const totalItems = sortedAndFilteredListings.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedListings = sortedAndFilteredListings.slice(startIndex, endIndex)
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = []
+    const maxPagesToShow = 5
+
+    if (totalPages <= maxPagesToShow) {
+      // Show all pages if total is less than max
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      // Always show first page
+      pages.push(1)
+
+      // Calculate range around current page
+      let start = Math.max(2, currentPage - 1)
+      let end = Math.min(totalPages - 1, currentPage + 1)
+
+      // Adjust if at the beginning
+      if (currentPage <= 3) {
+        end = 4
+      }
+
+      // Adjust if at the end
+      if (currentPage >= totalPages - 2) {
+        start = totalPages - 3
+      }
+
+      // Add ellipsis if needed
+      if (start > 2) {
+        pages.push('...')
+      }
+
+      // Add middle pages
+      for (let i = start; i <= end; i++) {
+        pages.push(i)
+      }
+
+      // Add ellipsis if needed
+      if (end < totalPages - 1) {
+        pages.push('...')
+      }
+
+      // Always show last page
+      pages.push(totalPages)
+    }
+
+    return pages
+  }
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+      // Scroll to top of listings
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  const handleItemsPerPageChange = (value) => {
+    const newValue = parseInt(value, 10)
+    setItemsPerPage(newValue)
+    setCurrentPage(1) // Reset to first page when changing items per page
+  }
 
   // Get active strategies from shared data source
   const availableStrategies = getActiveStrategies()
@@ -625,7 +727,7 @@ export default function Listings() {
         </div>
         {searchTerm && (
           <div className="mt-2 text-sm text-gray-600">
-            {sortedListings.length} listing{sortedListings.length !== 1 ? 's' : ''} found
+            {totalItems} listing{totalItems !== 1 ? 's' : ''} found
           </div>
         )}
       </div>
@@ -792,9 +894,89 @@ export default function Listings() {
         </div>
       )}
 
+      {/* Pagination Controls - Top */}
+      {totalItems > 0 && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Items per page selector */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="items-per-page" className="text-sm text-gray-700">
+                Show:
+              </label>
+              <select
+                id="items-per-page"
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(e.target.value)}
+                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span className="text-sm text-gray-700">per page</span>
+            </div>
+
+            {/* Page info */}
+            <div className="text-sm text-gray-700 text-center sm:text-left">
+              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} listings
+            </div>
+
+            {/* Page navigation */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1 justify-center sm:justify-end">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded text-sm ${
+                    currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  Previous
+                </button>
+
+                {getPageNumbers().map((page, index) => (
+                  page === '...' ? (
+                    <span key={`ellipsis-${index}`} className="px-2 text-gray-500">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-3 py-1 rounded text-sm ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                ))}
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 rounded text-sm ${
+                    currentPage === totalPages
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Mobile Card View (visible on small screens) */}
       <div className="lg:hidden space-y-4">
-        {sortedListings.map((listing) => (
+        {paginatedListings.map((listing) => (
           <div key={listing.id} className="bg-white rounded-lg shadow p-4">
             <div className="flex items-start space-x-4">
               <img
@@ -916,7 +1098,7 @@ export default function Listings() {
           </div>
         ))}
 
-        {sortedListings.length === 0 && (
+        {totalItems === 0 && (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <div className="text-gray-500 mb-4">
               {userProfile?.ebay_connection_status === 'connected'
@@ -979,7 +1161,7 @@ export default function Listings() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {sortedListings.map((listing) => (
+              {paginatedListings.map((listing) => (
                 <tr key={listing.id} className="hover:bg-gray-50">
                   {columnOrder.map((column) => {
                     if (!visibleColumns[column]) return null
@@ -1158,7 +1340,109 @@ export default function Listings() {
             )}
           </div>
         )}
+
+        {/* Pagination Controls - Bottom (Desktop) */}
+        {totalItems > 0 && totalPages > 1 && (
+          <div className="mt-4 flex justify-center">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-3 py-1 rounded text-sm ${
+                  currentPage === 1
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                Previous
+              </button>
+
+              {getPageNumbers().map((page, index) => (
+                page === '...' ? (
+                  <span key={`ellipsis-bottom-${index}`} className="px-2 text-gray-500">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={`bottom-${page}`}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-3 py-1 rounded text-sm ${
+                      currentPage === page
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              ))}
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1 rounded text-sm ${
+                  currentPage === totalPages
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Pagination Controls - Bottom (Mobile) */}
+      {totalItems > 0 && totalPages > 1 && (
+        <div className="lg:hidden flex justify-center">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`px-3 py-1 rounded text-sm ${
+                currentPage === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              Previous
+            </button>
+
+            {getPageNumbers().map((page, index) => (
+              page === '...' ? (
+                <span key={`ellipsis-mobile-${index}`} className="px-2 text-gray-500">
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={`mobile-${page}`}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-3 py-1 rounded text-sm ${
+                    currentPage === page
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            ))}
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={`px-3 py-1 rounded text-sm ${
+                currentPage === totalPages
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
