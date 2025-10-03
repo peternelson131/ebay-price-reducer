@@ -136,6 +136,18 @@ export default function Listings() {
     }
   )
 
+  // Fetch active strategies
+  const { data: strategies = [], isLoading: isStrategiesLoading } = useQuery(
+    ['strategies', 'active'],
+    () => getActiveStrategies(),
+    {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+      cacheTime: 30 * 60 * 1000 // Keep cached data for 30 minutes
+    }
+  )
+
   const reducePriceMutation = useMutation(
     ({ listingId, customPrice }) => listingsAPI.recordPriceReduction(listingId, customPrice, 'manual'),
     {
@@ -516,12 +528,9 @@ export default function Listings() {
     setCurrentPage(1) // Reset to first page when changing items per page
   }
 
-  // Get active strategies from shared data source
-  const availableStrategies = getActiveStrategies()
-
   // Filter configuration
   const filterOptions = [
-    { key: 'strategy', label: 'Strategy', type: 'select', options: availableStrategies.map(s => ({ value: s.id, label: s.name })) },
+    { key: 'strategy', label: 'Strategy', type: 'select', options: strategies.map(s => ({ value: s.id, label: s.name })) },
     { key: 'current_price', label: 'Current Price', type: 'number' },
     { key: 'original_price', label: 'Original Price', type: 'number' },
     { key: 'quantity', label: 'Quantity', type: 'number' },
@@ -1081,7 +1090,7 @@ export default function Listings() {
                       className="text-sm border border-gray-300 rounded px-2 py-1 max-w-32"
                     >
                       <option value="">Select Strategy</option>
-                      {availableStrategies.map((strategy) => (
+                      {strategies.map((strategy) => (
                         <option key={strategy.id} value={strategy.id}>
                           {strategy.name}
                         </option>
@@ -1282,7 +1291,7 @@ export default function Listings() {
                               className="text-sm border border-gray-300 rounded px-2 py-1 min-w-40"
                             >
                               <option value="">Select Strategy</option>
-                              {availableStrategies.map((strategy) => (
+                              {strategies.map((strategy) => (
                                 <option key={strategy.id} value={strategy.id}>
                                   {strategy.name}
                                 </option>
