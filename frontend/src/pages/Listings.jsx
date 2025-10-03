@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { listingsAPI, userAPI } from '../lib/supabase'
 import { getEbayAuthUrl, getEbayConnectionStatus } from '../services/api'
-import { getActiveStrategies, getStrategyById, getStrategyDisplayName } from '../data/strategies'
+import { getActiveStrategies, getStrategyById, getStrategyDisplayName, getStrategyDisplayInfo } from '../data/strategies'
 
 // Helper functions for localStorage
 const getStoredColumnOrder = () => {
@@ -374,7 +374,7 @@ export default function Listings() {
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase()
       listingsToSort = listingsToSort.filter(listing => {
-        const strategy = getStrategyById(listing.reduction_strategy)
+        const strategy = getStrategyDisplayInfo(listing, strategies)
         const strategyName = strategy ? strategy.name : ''
 
         return (
@@ -1085,7 +1085,7 @@ export default function Listings() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Strategy:</span>
                     <select
-                      value={listing.reduction_strategy || ''}
+                      value={listing.strategy_id || listing.reduction_strategy || ''}
                       onChange={(e) => handleStrategyUpdate(listing.id, e.target.value)}
                       className="text-sm border border-gray-300 rounded px-2 py-1 max-w-32"
                     >
@@ -1283,10 +1283,10 @@ export default function Listings() {
                             </div>
                           )
                         case 'strategy':
-                          const currentStrategy = getStrategyById(listing.reduction_strategy)
+                          const currentStrategy = getStrategyDisplayInfo(listing, strategies)
                           return (
                             <select
-                              value={listing.reduction_strategy || ''}
+                              value={listing.strategy_id || listing.reduction_strategy || ''}
                               onChange={(e) => handleStrategyUpdate(listing.id, e.target.value)}
                               className="text-sm border border-gray-300 rounded px-2 py-1 min-w-40"
                             >
