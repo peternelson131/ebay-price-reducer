@@ -195,8 +195,8 @@ class EbayService {
               (Array.isArray(item.PictureDetails.PictureURL) ?
                 item.PictureDetails.PictureURL :
                 [item.PictureDetails.PictureURL]) : [],
-            quantity: parseInt(item.Quantity) || 1,
-            quantity_available: parseInt(item.QuantityAvailable) || 1,
+            quantity: parseInt(item.Quantity) >= 0 ? parseInt(item.Quantity) : 0,
+            quantity_available: parseInt(item.QuantityAvailable) >= 0 ? parseInt(item.QuantityAvailable) : 0,
             listing_status: 'Active',
             start_time: item.ListingDetails?.StartTime || new Date().toISOString(),
             end_time: item.ListingDetails?.EndTime || null,
