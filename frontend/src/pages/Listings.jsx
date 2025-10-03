@@ -341,7 +341,7 @@ export default function Listings() {
   }
 
   const sortedAndFilteredListings = useMemo(() => {
-    let listingsToSort = listings?.listings || []
+    let listingsToSort = listings || []
 
     // Use empty array if no listings
     if (!listingsToSort) {
@@ -433,7 +433,7 @@ export default function Listings() {
       }
       return 0
     })
-  }, [listings?.listings, sortConfig, searchTerm, filters])
+  }, [listings, sortConfig, searchTerm, filters])
 
   // Pagination calculations
   const totalItems = sortedAndFilteredListings.length
@@ -1315,7 +1315,7 @@ export default function Listings() {
           </table>
         </div>
 
-        {(!listings?.listings || listings.listings.length === 0) && (
+        {(!listings || listings.length === 0) && (
           <div className="text-center py-12">
             <div className="text-gray-500 mb-4">
               {userProfile?.ebay_connection_status === 'connected'

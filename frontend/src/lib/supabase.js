@@ -201,19 +201,14 @@ export const supabase = isDemoMode ? mockSupabase : realSupabase
 const mockListingsAPI = {
   async getListings(filters = {}) {
     await delay(300)
-    const { page = 1, limit = 20, status = 'Active' } = filters
+    const { status = 'Active' } = filters
 
     let filteredListings = mockListings
     if (status !== 'all') {
       filteredListings = mockListings.filter(listing => listing.listing_status === status)
     }
 
-    return {
-      listings: filteredListings,
-      total: filteredListings.length,
-      totalPages: Math.ceil(filteredListings.length / limit),
-      currentPage: page
-    }
+    return filteredListings
   },
 
   async getListing(id) {
@@ -267,28 +262,22 @@ const realListingsAPI = realSupabaseClient ? {
     const { data: { user } } = await realSupabaseClient.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
-    const { page = 1, limit = 20, status = 'Active' } = filters
+    const { status = 'Active' } = filters
 
     let query = realSupabaseClient
       .from('listings')
-      .select('*', { count: 'exact' })
+      .select('*')
       .eq('user_id', user.id)
 
     if (status !== 'all') {
-      query = query.eq('listing_status', status)  // Changed from 'status' to 'listing_status'
+      query = query.eq('listing_status', status)
     }
 
-    const { data, error, count } = await query
-      .range((page - 1) * limit, page * limit - 1)
+    const { data, error } = await query
 
     if (error) throw error
 
-    return {
-      listings: data || [],
-      total: count || 0,
-      totalPages: Math.ceil((count || 0) / limit),
-      currentPage: page
-    }
+    return data || []
   },
 
   async getListing(id) {
