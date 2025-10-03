@@ -67,10 +67,10 @@ exports.handler = async (event, context) => {
     if (listings.length > 0) {
       console.log('📸 First listing image debug:', {
         hasPictureDetails: !!listings[0].PictureDetails,
-        pictureURL: listings[0].PictureDetails?.PictureURL,
+        pictureDetailsKeys: listings[0].PictureDetails ? Object.keys(listings[0].PictureDetails) : [],
+        fullPictureDetails: listings[0].PictureDetails,
         hasDirectPictureURL: !!listings[0].PictureURL,
-        hasGalleryURL: !!listings[0].GalleryURL,
-        galleryURL: listings[0].GalleryURL
+        hasGalleryURL: !!listings[0].GalleryURL
       });
     }
 
