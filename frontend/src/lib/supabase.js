@@ -274,6 +274,18 @@ const mockListingsAPI = {
     mockListings.splice(listingIndex, 1)
   },
 
+  async endListing(id) {
+    await delay(500)
+    const listing = mockListings.find(l => l.id === id)
+    if (!listing) throw new Error('Listing not found')
+
+    // In mock mode, just update the status
+    listing.listing_status = 'Ended'
+    listing.updated_at = new Date().toISOString()
+
+    return { message: 'Listing ended successfully on eBay (mock)', listing }
+  },
+
   async recordPriceReduction(listingId, newPrice, reason = 'manual') {
     await delay(400)
     const listing = mockListings.find(l => l.id === listingId)
@@ -360,6 +372,33 @@ const realListingsAPI = realSupabaseClient ? {
     if (error) throw error
   },
 
+  async endListing(id) {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    // Get session token for API call
+    const { data: { session } } = await realSupabaseClient.auth.getSession()
+    if (!session) throw new Error('No active session')
+
+    // Call Netlify function to end listing on eBay
+    const response = await fetch('/.netlify/functions/end-listing', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ listingId: id })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to end listing')
+    }
+
+    return data
+  },
+
   async recordPriceReduction(listingId, newPrice, reason = 'manual') {
     const { data: { user } } = await realSupabaseClient.auth.getUser()
     if (!user) throw new Error('User not authenticated')
@@ -384,6 +423,7 @@ const realListingsAPI = realSupabaseClient ? {
   getListing: () => Promise.reject(new Error('Real Supabase not configured')),
   updateListing: () => Promise.reject(new Error('Real Supabase not configured')),
   deleteListing: () => Promise.reject(new Error('Real Supabase not configured')),
+  endListing: () => Promise.reject(new Error('Real Supabase not configured')),
   recordPriceReduction: () => Promise.reject(new Error('Real Supabase not configured'))
 }
 

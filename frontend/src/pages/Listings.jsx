@@ -161,13 +161,13 @@ export default function Listings() {
     }
   )
 
-  const deleteMutation = useMutation(listingsAPI.deleteListing, {
+  const endListingMutation = useMutation(listingsAPI.endListing, {
     onSuccess: () => {
-      showNotification('success', 'Listing removed from monitoring')
+      showNotification('success', 'Listing ended successfully on eBay')
       queryClient.invalidateQueries('listings')
     },
     onError: (error) => {
-      showNotification('error', error.message || 'Failed to delete listing')
+      showNotification('error', error.message || 'Failed to end listing on eBay')
     }
   })
 
@@ -222,8 +222,8 @@ export default function Listings() {
   }
 
   const handleDeleteListing = (listingId) => {
-    if (window.confirm('Are you sure you want to remove this listing from monitoring?')) {
-      deleteMutation.mutate(listingId)
+    if (window.confirm('Are you sure you want to close this listing on eBay? This action cannot be undone.')) {
+      endListingMutation.mutate(listingId)
     }
   }
 
@@ -1123,13 +1123,16 @@ export default function Listings() {
                   >
                     Reduce Price
                   </button>
-                  <button
-                    onClick={() => handleDeleteListing(listing.id)}
-                    disabled={deleteMutation.isLoading}
-                    className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
-                  >
-                    Remove
-                  </button>
+                  {listing.quantity === 0 && (
+                    <button
+                      onClick={() => handleDeleteListing(listing.id)}
+                      disabled={endListingMutation.isLoading}
+                      className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
+                      title="Close this listing on eBay"
+                    >
+                      Close Listing
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1342,13 +1345,16 @@ export default function Listings() {
                               >
                                 Reduce
                               </button>
-                              <button
-                                onClick={() => handleDeleteListing(listing.id)}
-                                disabled={deleteMutation.isLoading}
-                                className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
-                              >
-                                Remove
-                              </button>
+                              {listing.quantity === 0 && (
+                                <button
+                                  onClick={() => handleDeleteListing(listing.id)}
+                                  disabled={endListingMutation.isLoading}
+                                  className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
+                                  title="Close this listing on eBay"
+                                >
+                                  Close Listing
+                                </button>
+                              )}
                             </div>
                           )
                         default:
