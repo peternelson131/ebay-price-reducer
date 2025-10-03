@@ -1,25 +1,60 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { mockStrategies, updateStrategies } from '../data/strategies'
+import { strategiesAPI } from '../lib/supabase'
 
 export default function Strategies() {
+  const queryClient = useQueryClient()
   const [showModal, setShowModal] = useState(false)
   const [editingRule, setEditingRule] = useState(null)
   const [notification, setNotification] = useState(null) // { type: 'success'|'error', message: string }
   const [newRule, setNewRule] = useState({
     name: '',
-    reductionType: 'percentage', // 'percentage' or 'dollar'
-    reductionAmount: 5,
-    frequencyDays: 7
+    reduction_type: 'percentage', // 'percentage' or 'dollar'
+    reduction_amount: 5,
+    frequency_days: 7
   })
 
-  // Using shared strategy data - in real app this would come from API
-  const [rules, setRules] = useState(mockStrategies)
+  // Fetch strategies from database
+  const { data: rules = [], isLoading, error } = useQuery({
+    queryKey: ['strategies'],
+    queryFn: strategiesAPI.getStrategies
+  })
 
-  // Sync local state changes with shared data store
-  useEffect(() => {
-    updateStrategies(rules)
-  }, [rules])
+  // Create strategy mutation
+  const createStrategyMutation = useMutation({
+    mutationFn: strategiesAPI.createStrategy,
+    onSuccess: (newStrategy) => {
+      queryClient.invalidateQueries(['strategies'])
+      showNotification('success', `Rule "${newStrategy.name}" created successfully!`)
+    },
+    onError: (error) => {
+      showNotification('error', error.message || 'Failed to create strategy')
+    }
+  })
+
+  // Update strategy mutation
+  const updateStrategyMutation = useMutation({
+    mutationFn: ({ id, updates }) => strategiesAPI.updateStrategy(id, updates),
+    onSuccess: (updatedStrategy) => {
+      queryClient.invalidateQueries(['strategies'])
+      showNotification('success', `Rule "${updatedStrategy.name}" updated successfully!`)
+    },
+    onError: (error) => {
+      showNotification('error', error.message || 'Failed to update strategy')
+    }
+  })
+
+  // Delete strategy mutation
+  const deleteStrategyMutation = useMutation({
+    mutationFn: strategiesAPI.deleteStrategy,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['strategies'])
+      showNotification('success', 'Rule deleted successfully!')
+    },
+    onError: (error) => {
+      showNotification('error', error.message || 'Failed to delete strategy')
+    }
+  })
 
   const showNotification = (type, message) => {
     setNotification({ type, message })
@@ -35,67 +70,81 @@ export default function Strategies() {
       return
     }
 
-    if (newRule.reductionAmount < 1) {
+    if (newRule.reduction_amount < 1) {
       showNotification('error', 'Reduction amount must be at least 1')
       return
     }
 
-    if (newRule.frequencyDays < 1 || newRule.frequencyDays > 365) {
+    if (newRule.frequency_days < 1 || newRule.frequency_days > 365) {
       showNotification('error', 'Frequency must be between 1 and 365 days')
       return
     }
 
-    const rule = {
-      ...newRule,
-      id: Date.now().toString(),
-      active: true,
-      listingsUsing: 0,
-      createdAt: new Date().toISOString().split('T')[0]
-    }
-    setRules(prev => [...prev, rule])
+    createStrategyMutation.mutate({
+      name: newRule.name,
+      reduction_type: newRule.reduction_type,
+      reduction_amount: newRule.reduction_amount,
+      frequency_days: newRule.frequency_days,
+      active: true
+    })
+
     setNewRule({
       name: '',
-      reductionType: 'percentage',
-      reductionAmount: 5,
-      frequencyDays: 7
+      reduction_type: 'percentage',
+      reduction_amount: 5,
+      frequency_days: 7
     })
     setShowModal(false)
-    showNotification('success', `Rule "${rule.name}" created successfully!`)
   }
 
   const handleUpdateRule = (id, updates) => {
-    const rule = rules.find(r => r.id === id)
-    setRules(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r))
+    updateStrategyMutation.mutate({ id, updates })
     setEditingRule(null)
-    showNotification('success', `Rule "${updates.name || rule.name}" updated successfully!`)
   }
 
   const handleDeleteRule = (id) => {
     const rule = rules.find(r => r.id === id)
-    if (rule.listingsUsing > 0) {
-      showNotification('error', 'Cannot delete rule - it is currently being used by listings')
-      return
-    }
-    if (window.confirm('Are you sure you want to delete this rule?')) {
-      setRules(prev => prev.filter(r => r.id !== id))
-      showNotification('success', `Rule "${rule.name}" deleted successfully!`)
+    if (window.confirm(`Are you sure you want to delete "${rule?.name}"?`)) {
+      deleteStrategyMutation.mutate(id)
     }
   }
 
   const handleToggleActive = (id) => {
-    setRules(prev => prev.map(r =>
-      r.id === id ? { ...r, active: !r.active } : r
-    ))
+    const rule = rules.find(r => r.id === id)
+    if (rule) {
+      updateStrategyMutation.mutate({
+        id,
+        updates: { active: !rule.active }
+      })
+    }
   }
 
   const resetModal = () => {
     setNewRule({
       name: '',
-      reductionType: 'percentage',
-      reductionAmount: 5,
-      frequencyDays: 7
+      reduction_type: 'percentage',
+      reduction_amount: 5,
+      frequency_days: 7
     })
     setShowModal(false)
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-gray-500">Loading strategies...</div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-red-500">Error loading strategies: {error.message}</div>
+      </div>
+    )
   }
 
   return (
@@ -199,9 +248,6 @@ export default function Strategies() {
                         }`}>
                           {rule.active ? 'Active' : 'Inactive'}
                           </span>
-                          <span className="text-sm text-gray-500">
-                            Used by {rule.listingsUsing} listing{rule.listingsUsing !== 1 ? 's' : ''}
-                          </span>
                         </div>
                       </div>
 
@@ -209,16 +255,16 @@ export default function Strategies() {
                         <div className="flex items-center space-x-2">
                           <span className="text-gray-500">Reduction:</span>
                           <div className="font-medium text-blue-600">
-                            {rule.reductionType === 'percentage' ? `${rule.reductionAmount}%` : `$${rule.reductionAmount}`}
+                            {rule.reduction_type === 'percentage' ? `${rule.reduction_amount}%` : `$${rule.reduction_amount}`}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className="text-gray-500">Frequency:</span>
-                          <div className="font-medium">Every {rule.frequencyDays} day{rule.frequencyDays !== 1 ? 's' : ''}</div>
+                          <div className="font-medium">Every {rule.frequency_days} day{rule.frequency_days !== 1 ? 's' : ''}</div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className="text-gray-500">Created:</span>
-                          <div className="font-medium">{rule.createdAt}</div>
+                          <div className="font-medium">{new Date(rule.created_at).toLocaleDateString()}</div>
                         </div>
                       </div>
                     </div>
@@ -286,9 +332,9 @@ export default function Strategies() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setNewRule(prev => ({ ...prev, reductionType: 'percentage' }))}
+                    onClick={() => setNewRule(prev => ({ ...prev, reduction_type: 'percentage' }))}
                     className={`px-3 py-2 rounded-md border text-sm font-medium ${
-                      newRule.reductionType === 'percentage'
+                      newRule.reduction_type === 'percentage'
                         ? 'bg-blue-50 border-blue-500 text-blue-700'
                         : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
@@ -297,9 +343,9 @@ export default function Strategies() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setNewRule(prev => ({ ...prev, reductionType: 'dollar' }))}
+                    onClick={() => setNewRule(prev => ({ ...prev, reduction_type: 'dollar' }))}
                     className={`px-3 py-2 rounded-md border text-sm font-medium ${
-                      newRule.reductionType === 'dollar'
+                      newRule.reduction_type === 'dollar'
                         ? 'bg-blue-50 border-blue-500 text-blue-700'
                         : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
@@ -311,14 +357,14 @@ export default function Strategies() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Reduction Amount ({newRule.reductionType === 'percentage' ? '%' : '$'})
+                  Reduction Amount ({newRule.reduction_type === 'percentage' ? '%' : '$'})
                 </label>
                 <input
                   type="number"
                   min="1"
-                  max={newRule.reductionType === 'percentage' ? "50" : "999"}
-                  value={newRule.reductionAmount}
-                  onChange={(e) => setNewRule(prev => ({ ...prev, reductionAmount: parseInt(e.target.value) || 1 }))}
+                  max={newRule.reduction_type === 'percentage' ? "50" : "999"}
+                  value={newRule.reduction_amount}
+                  onChange={(e) => setNewRule(prev => ({ ...prev, reduction_amount: parseInt(e.target.value) || 1 }))}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -329,8 +375,8 @@ export default function Strategies() {
                   type="number"
                   min="1"
                   max="365"
-                  value={newRule.frequencyDays}
-                  onChange={(e) => setNewRule(prev => ({ ...prev, frequencyDays: parseInt(e.target.value) || 1 }))}
+                  value={newRule.frequency_days}
+                  onChange={(e) => setNewRule(prev => ({ ...prev, frequency_days: parseInt(e.target.value) || 1 }))}
                   placeholder="Enter number of days (e.g., 7)"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -364,9 +410,9 @@ export default function Strategies() {
 function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
   const [editData, setEditData] = useState({
     name: rule.name,
-    reductionType: rule.reductionType,
-    reductionAmount: rule.reductionAmount,
-    frequencyDays: rule.frequencyDays
+    reduction_type: rule.reduction_type,
+    reduction_amount: rule.reduction_amount,
+    frequency_days: rule.frequency_days
   })
 
   const handleSave = () => {
@@ -374,11 +420,11 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
       showNotification('error', 'Please enter a rule name')
       return
     }
-    if (editData.reductionAmount < 1) {
+    if (editData.reduction_amount < 1) {
       showNotification('error', 'Reduction amount must be at least 1')
       return
     }
-    if (editData.frequencyDays < 1 || editData.frequencyDays > 365) {
+    if (editData.frequency_days < 1 || editData.frequency_days > 365) {
       showNotification('error', 'Frequency must be between 1 and 365 days')
       return
     }
@@ -400,8 +446,8 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Reduction Type</label>
           <select
-            value={editData.reductionType}
-            onChange={(e) => setEditData(prev => ({ ...prev, reductionType: e.target.value }))}
+            value={editData.reduction_type}
+            onChange={(e) => setEditData(prev => ({ ...prev, reduction_type: e.target.value }))}
             className="w-full border border-gray-300 rounded-md px-3 py-2"
           >
             <option value="percentage">Percentage (%)</option>
@@ -413,13 +459,13 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Reduction Amount ({editData.reductionType === 'percentage' ? '%' : '$'})
+            Reduction Amount ({editData.reduction_type === 'percentage' ? '%' : '$'})
           </label>
           <input
             type="number"
             min="1"
-            value={editData.reductionAmount}
-            onChange={(e) => setEditData(prev => ({ ...prev, reductionAmount: parseInt(e.target.value) || 1 }))}
+            value={editData.reduction_amount}
+            onChange={(e) => setEditData(prev => ({ ...prev, reduction_amount: parseInt(e.target.value) || 1 }))}
             className="w-full border border-gray-300 rounded-md px-3 py-2"
           />
         </div>
@@ -429,8 +475,8 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
             type="number"
             min="1"
             max="365"
-            value={editData.frequencyDays}
-            onChange={(e) => setEditData(prev => ({ ...prev, frequencyDays: parseInt(e.target.value) || 1 }))}
+            value={editData.frequency_days}
+            onChange={(e) => setEditData(prev => ({ ...prev, frequency_days: parseInt(e.target.value) || 1 }))}
             placeholder="Enter number of days"
             className="w-full border border-gray-300 rounded-md px-3 py-2"
           />

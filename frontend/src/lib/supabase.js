@@ -142,6 +142,42 @@ const mockUser = {
   name: 'Demo User'
 }
 
+const mockStrategies = [
+  {
+    id: '1',
+    user_id: 'demo-user-id',
+    name: 'Conservative Reduction',
+    reduction_type: 'percentage',
+    reduction_amount: 5,
+    frequency_days: 7,
+    active: true,
+    created_at: '2024-01-15T00:00:00Z',
+    updated_at: '2024-01-15T00:00:00Z'
+  },
+  {
+    id: '2',
+    user_id: 'demo-user-id',
+    name: 'Aggressive Reduction',
+    reduction_type: 'percentage',
+    reduction_amount: 10,
+    frequency_days: 3,
+    active: true,
+    created_at: '2024-01-16T00:00:00Z',
+    updated_at: '2024-01-16T00:00:00Z'
+  },
+  {
+    id: '3',
+    user_id: 'demo-user-id',
+    name: 'Fixed Dollar Drop',
+    reduction_type: 'dollar',
+    reduction_amount: 10.00,
+    frequency_days: 5,
+    active: true,
+    created_at: '2024-01-17T00:00:00Z',
+    updated_at: '2024-01-17T00:00:00Z'
+  }
+]
+
 // Simulate network delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -352,6 +388,153 @@ const realListingsAPI = realSupabaseClient ? {
 }
 
 export const listingsAPI = isDemoMode ? mockListingsAPI : realListingsAPI
+
+// Strategies API
+const mockStrategiesAPI = {
+  async getStrategies() {
+    await delay(200)
+    return [...mockStrategies]
+  },
+
+  async getStrategy(id) {
+    await delay(150)
+    const strategy = mockStrategies.find(s => s.id === id)
+    if (!strategy) throw new Error('Strategy not found')
+    return strategy
+  },
+
+  async createStrategy(strategyData) {
+    await delay(300)
+    const newStrategy = {
+      id: String(Date.now()),
+      user_id: mockUser.id,
+      ...strategyData,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    mockStrategies.push(newStrategy)
+    return newStrategy
+  },
+
+  async updateStrategy(id, updates) {
+    await delay(300)
+    const strategyIndex = mockStrategies.findIndex(s => s.id === id)
+    if (strategyIndex === -1) throw new Error('Strategy not found')
+
+    mockStrategies[strategyIndex] = {
+      ...mockStrategies[strategyIndex],
+      ...updates,
+      updated_at: new Date().toISOString()
+    }
+    return mockStrategies[strategyIndex]
+  },
+
+  async deleteStrategy(id) {
+    await delay(200)
+    const strategyIndex = mockStrategies.findIndex(s => s.id === id)
+    if (strategyIndex === -1) throw new Error('Strategy not found')
+
+    // Check if strategy is in use by any listings
+    const listingUsingStrategy = mockListings.find(l => l.strategy_id === id)
+    if (listingUsingStrategy) {
+      throw new Error('Cannot delete strategy that is in use by listings')
+    }
+
+    mockStrategies.splice(strategyIndex, 1)
+  }
+}
+
+const realStrategiesAPI = realSupabaseClient ? {
+  async getStrategies() {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { data, error } = await realSupabaseClient
+      .from('strategies')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  },
+
+  async getStrategy(id) {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { data, error } = await realSupabaseClient
+      .from('strategies')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async createStrategy(strategyData) {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { data, error } = await realSupabaseClient
+      .from('strategies')
+      .insert({
+        user_id: user.id,
+        ...strategyData
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async updateStrategy(id, updates) {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { data, error } = await realSupabaseClient
+      .from('strategies')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async deleteStrategy(id) {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    // The RLS policy will prevent deletion if strategy is in use
+    const { error } = await realSupabaseClient
+      .from('strategies')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+
+    if (error) {
+      // Provide user-friendly error message
+      if (error.code === 'P0001') {
+        throw new Error('Cannot delete strategy that is in use by listings')
+      }
+      throw error
+    }
+  }
+} : {
+  getStrategies: () => Promise.reject(new Error('Real Supabase not configured')),
+  getStrategy: () => Promise.reject(new Error('Real Supabase not configured')),
+  createStrategy: () => Promise.reject(new Error('Real Supabase not configured')),
+  updateStrategy: () => Promise.reject(new Error('Real Supabase not configured')),
+  deleteStrategy: () => Promise.reject(new Error('Real Supabase not configured'))
+}
+
+export const strategiesAPI = isDemoMode ? mockStrategiesAPI : realStrategiesAPI
 
 // Note: priceHistoryAPI removed - price_history table has been dropped from database schema
 
@@ -659,6 +842,7 @@ export const authAPI = isDemoMode ? mockAuthAPI : realAuthAPI
 // Table names (for compatibility)
 export const TABLES = {
   USERS: 'users',
-  LISTINGS: 'listings'
+  LISTINGS: 'listings',
+  STRATEGIES: 'strategies'
   // Note: PRICE_HISTORY, SYNC_ERRORS, MONITOR_JOBS tables have been dropped from database schema
 }
