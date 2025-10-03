@@ -95,10 +95,17 @@ const handler = async (event, context) => {
 
         if (shouldReduce.reduce) {
           // Calculate new price
-          const newPrice = calculateNewPrice(listing, shouldReduce.strategy);
+          let newPrice;
+          try {
+            newPrice = calculateNewPrice(listing, shouldReduce.strategy);
+          } catch (calcError) {
+            console.error(`Failed to calculate price for ${listing.ebay_item_id}:`, calcError.message);
+            continue;
+          }
 
           // Validate new price
-          if (newPrice >= listing.current_price) {
+          const currentPrice = parseFloat(listing.current_price);
+          if (newPrice >= currentPrice) {
             console.log(`Skipping ${listing.ebay_item_id}: New price not lower than current`);
             continue;
           }
@@ -235,14 +242,36 @@ async function checkPriceReductionConditions(listing) {
 
 // Helper function to calculate new price
 function calculateNewPrice(listing, strategy) {
-  const currentPrice = listing.current_price;
-  const reductionAmount = currentPrice * (strategy.reduction_percentage / 100);
+  const currentPrice = parseFloat(listing.current_price);
+  const reductionPercentage = parseFloat(strategy.reduction_percentage);
+  const minimumPrice = parseFloat(strategy.minimum_price || (currentPrice * 0.5));
+
+  // Validate inputs
+  if (isNaN(currentPrice) || currentPrice <= 0) {
+    throw new Error('Invalid current price');
+  }
+
+  if (isNaN(reductionPercentage) || reductionPercentage <= 0 || reductionPercentage > 100) {
+    throw new Error('Invalid reduction percentage');
+  }
+
+  if (isNaN(minimumPrice) || minimumPrice < 0) {
+    throw new Error('Invalid minimum price');
+  }
+
+  const reductionAmount = currentPrice * (reductionPercentage / 100);
   const newPrice = currentPrice - reductionAmount;
 
   // Ensure price doesn't go below minimum
-  const minimumPrice = strategy.minimum_price || (currentPrice * 0.5);
+  const finalPrice = Math.max(newPrice, minimumPrice);
+  const roundedPrice = Math.round(finalPrice * 100) / 100;
 
-  return Math.max(parseFloat(newPrice.toFixed(2)), parseFloat(minimumPrice.toFixed(2)));
+  // Final validation
+  if (isNaN(roundedPrice) || roundedPrice <= 0) {
+    throw new Error('Price calculation resulted in invalid value');
+  }
+
+  return roundedPrice;
 }
 
 // Helper function to send price reduction notification

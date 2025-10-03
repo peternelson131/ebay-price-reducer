@@ -77,36 +77,97 @@ const handler = async (event, context) => {
       }
     }
 
+    // Validate required fields
+    const currentPrice = parseFloat(listing.current_price)
+    const minimumPrice = parseFloat(listing.minimum_price)
+    const reductionPercentage = parseFloat(listing.reduction_percentage)
+
+    if (isNaN(currentPrice) || currentPrice <= 0) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: 'Invalid current price' })
+      }
+    }
+
+    if (isNaN(minimumPrice) || minimumPrice < 0) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: 'Invalid minimum price' })
+      }
+    }
+
+    if (!customPrice && (isNaN(reductionPercentage) || reductionPercentage <= 0 || reductionPercentage > 100)) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: 'Invalid reduction percentage' })
+      }
+    }
+
     // Calculate new price
     let newPrice
     if (customPrice) {
-      newPrice = Math.max(customPrice, listing.minimum_price)
+      const parsedCustomPrice = parseFloat(customPrice)
+      if (isNaN(parsedCustomPrice) || parsedCustomPrice <= 0) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ error: 'Invalid custom price' })
+        }
+      }
+      newPrice = Math.max(parsedCustomPrice, minimumPrice)
     } else {
       // Calculate based on strategy
       switch (listing.reduction_strategy) {
         case 'fixed_percentage':
-          newPrice = listing.current_price * (1 - listing.reduction_percentage / 100)
+          newPrice = currentPrice * (1 - reductionPercentage / 100)
           break
         case 'market_based':
           // For market-based, we'd need to call eBay API for market data
           // For now, fall back to fixed percentage
-          newPrice = listing.current_price * (1 - listing.reduction_percentage / 100)
+          newPrice = currentPrice * (1 - reductionPercentage / 100)
           break
         case 'time_based':
           // More aggressive reduction over time
           const daysListed = Math.ceil((new Date() - new Date(listing.start_time)) / (1000 * 60 * 60 * 24))
           const aggressiveFactor = Math.min(1 + (daysListed / 30) * 0.5, 2)
-          newPrice = listing.current_price * (1 - (listing.reduction_percentage / 100) * aggressiveFactor)
+          newPrice = currentPrice * (1 - (reductionPercentage / 100) * aggressiveFactor)
           break
         default:
-          newPrice = listing.current_price * (1 - listing.reduction_percentage / 100)
+          newPrice = currentPrice * (1 - reductionPercentage / 100)
       }
     }
 
-    newPrice = Math.max(newPrice, listing.minimum_price)
+    newPrice = Math.max(newPrice, minimumPrice)
     newPrice = Math.round(newPrice * 100) / 100 // Round to 2 decimal places
 
-    if (newPrice >= listing.current_price) {
+    // Final validation
+    if (isNaN(newPrice) || newPrice <= 0) {
+      return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: 'Price calculation error - invalid result' })
+      }
+    }
+
+    if (newPrice >= currentPrice) {
       return {
         statusCode: 400,
         headers: {
@@ -178,7 +239,7 @@ const handler = async (event, context) => {
     }
 
     // Log price change (price_history table removed)
-    console.log(`Price change logged for listing ${listingId}: $${listing.current_price} -> $${newPrice} (${customPrice ? 'manual' : `${listing.reduction_strategy}_reduction`})`);
+    console.log(`Price change logged for listing ${listingId}: $${currentPrice} -> $${newPrice} (${customPrice ? 'manual' : `${listing.reduction_strategy}_reduction`})`);
 
     return {
       statusCode: 200,
@@ -188,7 +249,7 @@ const handler = async (event, context) => {
       },
       body: JSON.stringify({
         success: true,
-        oldPrice: listing.current_price,
+        oldPrice: currentPrice,
         newPrice,
         listing: updatedListing
       })
