@@ -919,7 +919,7 @@ export default function Listings() {
 
             {/* Page info */}
             <div className="text-sm text-gray-700 text-center sm:text-left">
-              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} listings
+              Showing {totalItems === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + paginatedListings.length, totalItems)} of {totalItems} listings
             </div>
 
             {/* Page navigation */}
