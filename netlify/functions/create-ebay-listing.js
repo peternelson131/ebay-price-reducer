@@ -324,8 +324,8 @@ exports.handler = async (event, context) => {
     console.error('Create listing error:', {
       message: error.message,
       stack: error.stack,
-      ebayError: error.ebayError || null,
-      responseData: error.response?.data || null,
+      ebayErrorResponse: error.ebayErrorResponse || null,
+      ebayStatusCode: error.ebayStatusCode || null,
       fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
     });
 
@@ -335,8 +335,8 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         error: 'Failed to create eBay listing',
         message: error.message,
-        ebayError: error.ebayError || null,
-        details: error.response?.data || null,
+        ebayErrorResponse: error.ebayErrorResponse || null,
+        ebayStatusCode: error.ebayStatusCode || null,
         fullErrorMessage: error.toString(),
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       })
