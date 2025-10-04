@@ -166,12 +166,21 @@ class EbayInventoryClient {
       // Try to get existing location
       const endpoint = `/location/${merchantLocationKey}`;
       await this.makeApiCall(endpoint, 'GET', null, 'inventory');
+      console.log('✓ Inventory location already exists:', merchantLocationKey);
       return { exists: true, merchantLocationKey };
     } catch (error) {
       // Location doesn't exist, create it
-      const endpoint = `/location/${merchantLocationKey}`;
-      await this.makeApiCall(endpoint, 'POST', locationData, 'inventory');
-      return { exists: false, merchantLocationKey, created: true };
+      if (error.ebayStatusCode === 404) {
+        console.log('Location not found, creating new location...');
+        const endpoint = `/location/${merchantLocationKey}`;
+        console.log('POST payload:', JSON.stringify(locationData, null, 2));
+        const result = await this.makeApiCall(endpoint, 'POST', locationData, 'inventory');
+        console.log('✓ Location created successfully:', result);
+        return { exists: false, merchantLocationKey, created: true };
+      } else {
+        // Re-throw non-404 errors
+        throw error;
+      }
     }
   }
 }
