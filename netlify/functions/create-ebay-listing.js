@@ -209,15 +209,19 @@ exports.handler = async (event, context) => {
                              country: 'US'
                            };
 
-    await ebayClient.ensureInventoryLocation(merchantLocationKey, {
+    const locationPayload = {
       location: {
         address: defaultLocation
       },
       locationTypes: ['WAREHOUSE'],
       name: 'Primary Warehouse Location'
-    });
+    };
 
-    console.log('Inventory location ensured:', merchantLocationKey);
+    console.log('Step 9: Creating inventory location with payload:', JSON.stringify(locationPayload, null, 2));
+
+    await ebayClient.ensureInventoryLocation(merchantLocationKey, locationPayload);
+
+    console.log('✓ Step 9 complete: Inventory location ensured:', merchantLocationKey);
 
     // 10. Generate unique SKU
     const sku = listingData.sku || `SKU-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
