@@ -71,6 +71,21 @@ export default function AutoList() {
 
           const product = data.product
 
+          // Extract price from Keepa stats.current array
+          // Index 1 = Amazon price, Index 4 = Buy Box price (prices in cents)
+          let currentPrice = 0
+          if (product.stats?.current) {
+            // Try Buy Box price first (index 4), then Amazon price (index 1)
+            const buyBoxPrice = product.stats.current[4]
+            const amazonPrice = product.stats.current[1]
+
+            if (buyBoxPrice && buyBoxPrice > 0) {
+              currentPrice = buyBoxPrice / 100 // Convert cents to dollars
+            } else if (amazonPrice && amazonPrice > 0) {
+              currentPrice = amazonPrice / 100 // Convert cents to dollars
+            }
+          }
+
           return {
             id: `asin-${index}`,
             asin: asin,
@@ -79,7 +94,7 @@ export default function AutoList() {
             title: product.title || `Product ${asin}`,
             quantity: 1, // Default quantity
             condition: 'New', // Default condition
-            originalPrice: product.stats?.current || 0,
+            originalPrice: currentPrice,
             suggestedPrice: null,
             category: product.categoryTree?.[0]?.name || 'Unknown',
             brand: product.brand || '',
