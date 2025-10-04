@@ -202,18 +202,19 @@ exports.handler = async (event, context) => {
     const defaultLocation = listingData.location ||
                            userSettings.defaultLocation ||
                            {
-                             address: {
-                               addressLine1: '123 Main St',
-                               city: 'San Francisco',
-                               stateOrProvince: 'CA',
-                               postalCode: '94105',
-                               country: 'US'
-                             }
+                             addressLine1: '123 Main St',
+                             city: 'San Francisco',
+                             stateOrProvince: 'CA',
+                             postalCode: '94105',
+                             country: 'US'
                            };
 
     await ebayClient.ensureInventoryLocation(merchantLocationKey, {
-      location: defaultLocation,
-      locationTypes: ['WAREHOUSE']
+      location: {
+        address: defaultLocation
+      },
+      locationTypes: ['WAREHOUSE'],
+      name: 'Primary Warehouse Location'
     });
 
     console.log('Inventory location ensured:', merchantLocationKey);
