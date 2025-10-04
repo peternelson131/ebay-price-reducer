@@ -160,6 +160,7 @@ class EbayInventoryClient {
 
   /**
    * Get or create inventory location
+   * Checks if location exists, creates if not found
    */
   async ensureInventoryLocation(merchantLocationKey, locationData) {
     try {
