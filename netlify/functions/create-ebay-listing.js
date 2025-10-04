@@ -64,17 +64,19 @@ exports.handler = async (event, context) => {
     }
 
     // 4. Initialize eBay client
+    console.log('Step 4: Initializing eBay client for user:', user.id);
     const ebayClient = new EbayInventoryClient(user.id);
     await ebayClient.initialize();
 
-    console.log('eBay client initialized');
+    console.log('✓ eBay client initialized successfully');
 
     // 5. Get category suggestions from title
     let categoryId = listingData.categoryId;
     let categoryName = '';
 
+    console.log('Step 5: Category detection - provided categoryId:', categoryId);
     if (!categoryId) {
-      console.log('Auto-suggesting category from title:', listingData.title);
+      console.log('Step 5a: Auto-suggesting category from title:', listingData.title);
       const suggestions = await ebayClient.getCategorySuggestions(listingData.title);
 
       if (!suggestions.categorySuggestions || suggestions.categorySuggestions.length === 0) {
@@ -220,7 +222,7 @@ exports.handler = async (event, context) => {
     const sku = listingData.sku || `SKU-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // 11. Create inventory item
-    console.log('Creating inventory item:', sku);
+    console.log('Step 11: Creating inventory item with SKU:', sku);
 
     const condition = listingData.condition ||
                      userSettings.defaultCondition ||
@@ -242,10 +244,10 @@ exports.handler = async (event, context) => {
       }
     });
 
-    console.log('Inventory item created');
+    console.log('✓ Step 11 complete: Inventory item created');
 
     // 12. Create offer
-    console.log('Creating offer');
+    console.log('Step 12: Creating offer for SKU:', sku);
     const offerResponse = await ebayClient.createOffer({
       sku: sku,
       marketplaceId: 'EBAY_US',
@@ -266,10 +268,10 @@ exports.handler = async (event, context) => {
       }
     });
 
-    console.log('Offer created:', offerResponse.offerId);
+    console.log('✓ Step 12 complete: Offer created with ID:', offerResponse.offerId);
 
     // 13. Publish offer
-    console.log('Publishing offer');
+    console.log('Step 13: Publishing offer ID:', offerResponse.offerId);
     const publishResponse = await ebayClient.publishOffer(offerResponse.offerId);
 
     console.log('Listing published:', publishResponse.listingId);
