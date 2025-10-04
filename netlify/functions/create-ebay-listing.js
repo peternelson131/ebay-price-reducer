@@ -228,7 +228,7 @@ exports.handler = async (event, context) => {
                      userSettings.defaultCondition ||
                      'NEW_OTHER'; // Default: New Open Box
 
-    await ebayClient.createOrReplaceInventoryItem(sku, {
+    const inventoryItemPayload = {
       availability: {
         shipToLocationAvailability: {
           quantity: parseInt(listingData.quantity)
@@ -242,13 +242,23 @@ exports.handler = async (event, context) => {
         imageUrls: listingData.images.slice(0, 12), // eBay max 12 images
         aspects: providedAspects
       }
-    });
+    };
 
-    console.log('✓ Step 11 complete: Inventory item created');
+    console.log('Inventory item payload:', JSON.stringify(inventoryItemPayload, null, 2));
+
+    try {
+      await ebayClient.createOrReplaceInventoryItem(sku, inventoryItemPayload);
+      console.log('✓ Step 11 complete: Inventory item created');
+    } catch (error) {
+      console.error('❌ Step 11 FAILED - Create inventory item error:', error.message);
+      console.error('eBay error response:', JSON.stringify(error.ebayErrorResponse, null, 2));
+      throw error;
+    }
 
     // 12. Create offer
     console.log('Step 12: Creating offer for SKU:', sku);
-    const offerResponse = await ebayClient.createOffer({
+
+    const offerPayload = {
       sku: sku,
       marketplaceId: 'EBAY_US',
       format: 'FIXED_PRICE',
@@ -266,9 +276,19 @@ exports.handler = async (event, context) => {
         paymentPolicyId: paymentPolicyId,
         returnPolicyId: returnPolicyId
       }
-    });
+    };
 
-    console.log('✓ Step 12 complete: Offer created with ID:', offerResponse.offerId);
+    console.log('Offer payload:', JSON.stringify(offerPayload, null, 2));
+
+    let offerResponse;
+    try {
+      offerResponse = await ebayClient.createOffer(offerPayload);
+      console.log('✓ Step 12 complete: Offer created with ID:', offerResponse.offerId);
+    } catch (error) {
+      console.error('❌ Step 12 FAILED - Create offer error:', error.message);
+      console.error('eBay error response:', JSON.stringify(error.ebayErrorResponse, null, 2));
+      throw error;
+    }
 
     // 13. Publish offer
     console.log('Step 13: Publishing offer ID:', offerResponse.offerId);
