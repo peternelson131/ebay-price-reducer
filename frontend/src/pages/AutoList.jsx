@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as XLSX from 'xlsx'
 import { useMutation } from '@tanstack/react-query'
-import { listingsAPI } from '../lib/supabase'
+import { listingsAPI, supabase } from '../lib/supabase'
 
 export default function AutoList() {
   const [excelData, setExcelData] = useState([])
@@ -41,11 +41,23 @@ export default function AutoList() {
 
       showNotification('info', `Processing ${asinList.length} ASINs...`)
 
+      // Get auth token for API calls
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        showNotification('error', 'Please log in to use this feature')
+        setLoadingAsins(false)
+        return
+      }
+
       // Fetch product data from Keepa API for each ASIN
       const keepaPromises = asinList.map(async (asin, index) => {
         try {
-          // Call our Netlify function to get Keepa data
-          const response = await fetch(`/.netlify/functions/keepa-api?action=product&asin=${asin}`)
+          // Call our Netlify function to get Keepa data with authentication
+          const response = await fetch(`/.netlify/functions/keepa-api?action=product&asin=${asin}`, {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          })
 
           if (!response.ok) {
             throw new Error(`Failed to fetch data for ASIN ${asin}`)

@@ -400,6 +400,95 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // Handle product lookup via query parameters
+    if (event.httpMethod === 'GET' && event.queryStringParameters) {
+      const { action, asin } = event.queryStringParameters;
+
+      if (action === 'product' && asin) {
+        console.log('Product lookup requested for ASIN:', asin);
+
+        // Get user's Keepa API key
+        const { data: userProfile, error: profileError } = await supabase
+          .from('users')
+          .select('keepa_api_key')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError || !userProfile || !userProfile.keepa_api_key) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              message: 'No Keepa API key configured. Please configure your Keepa API key first.'
+            })
+          };
+        }
+
+        const apiKey = decryptApiKey(userProfile.keepa_api_key);
+        if (!apiKey) {
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              message: 'Failed to decrypt API key'
+            })
+          };
+        }
+
+        // Fetch product data from Keepa
+        try {
+          // Keepa product API: https://api.keepa.com/product?key={key}&domain=1&asin={asin}
+          // domain=1 is for Amazon.com
+          const keepaUrl = `https://api.keepa.com/product?key=${apiKey}&domain=1&asin=${asin}&stats=1`;
+          console.log('Fetching product data from Keepa...');
+
+          const data = await httpsGet(keepaUrl);
+          console.log('Keepa product response:', JSON.stringify(data));
+
+          if (!data.products || data.products.length === 0) {
+            return {
+              statusCode: 404,
+              headers,
+              body: JSON.stringify({
+                success: false,
+                message: `No product found for ASIN ${asin}`
+              })
+            };
+          }
+
+          const product = data.products[0];
+
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+              success: true,
+              product: {
+                asin: product.asin,
+                title: product.title,
+                brand: product.brand,
+                imagesCSV: product.imagesCSV,
+                categoryTree: product.categoryTree,
+                stats: product.stats
+              }
+            })
+          };
+        } catch (error) {
+          console.error('Error fetching product from Keepa:', error);
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              message: `Failed to fetch product data: ${error.message}`
+            })
+          };
+        }
+      }
+    }
+
     // Default response for unhandled routes
     return {
       statusCode: 404,
