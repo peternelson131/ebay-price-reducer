@@ -305,11 +305,11 @@ export default function AutoList() {
     const itemsToProcess = excelData.filter(item => selected.includes(item.id))
 
     // Calculate suggested prices and prepare for eBay
+    // Note: We don't set ebayCategory here - let the backend determine it from title via eBay Taxonomy API
     const ebayListings = itemsToProcess.map(item => ({
       ...item,
       suggestedPrice: calculateEbayPrice(item.originalPrice, item.condition),
       listingTitle: createEbayTitle(item),
-      ebayCategory: mapToEbayCategory(item.category),
       listingDescription: createListingDescription(item)
     }))
 
@@ -410,7 +410,7 @@ export default function AutoList() {
             price: listing.suggestedPrice,
             quantity: listing.quantity,
             sku: listing.sku,
-            categoryId: listing.ebayCategory,
+            // Don't send categoryId - let backend determine from title via eBay Taxonomy API
             condition: listing.condition,
             images: images,
             aspects: aspects
