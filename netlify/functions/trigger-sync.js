@@ -169,11 +169,14 @@ exports.handler = async (event, context) => {
       // Extract quantity
       const quantity = parseInt(item.Quantity) || 0;
 
-      // Determine listing status
-      let listing_status = item.SellingStatus?.ListingStatus || 'Active';
+      // Determine listing status from eBay
+      let ebayStatus = item.SellingStatus?.ListingStatus || 'Active';
 
-      // Auto-mark sold-out listings as 'Ended'
-      if (quantity === 0 && listing_status === 'Active') {
+      // Map eBay status to our status
+      let listing_status = ebayStatus;
+
+      // Auto-mark sold-out listings as 'Ended' regardless of eBay status
+      if (quantity === 0) {
         listing_status = 'Ended';
       }
 
