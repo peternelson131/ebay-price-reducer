@@ -252,7 +252,19 @@ exports.handler = async (event, context) => {
     } catch (error) {
       console.error('❌ Step 11 FAILED - Create inventory item error:', error.message);
       console.error('eBay error response:', JSON.stringify(error.ebayErrorResponse, null, 2));
-      throw error;
+      // Return detailed error for debugging
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Step 11 Failed: Create Inventory Item',
+          step: 11,
+          message: error.message,
+          ebayErrorResponse: error.ebayErrorResponse,
+          payloadSent: inventoryItemPayload,
+          sku: sku
+        })
+      };
     }
 
     // 12. Create offer
@@ -287,7 +299,19 @@ exports.handler = async (event, context) => {
     } catch (error) {
       console.error('❌ Step 12 FAILED - Create offer error:', error.message);
       console.error('eBay error response:', JSON.stringify(error.ebayErrorResponse, null, 2));
-      throw error;
+      // Return detailed error for debugging
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Step 12 Failed: Create Offer',
+          step: 12,
+          message: error.message,
+          ebayErrorResponse: error.ebayErrorResponse,
+          payloadSent: offerPayload,
+          sku: sku
+        })
+      };
     }
 
     // 13. Publish offer
