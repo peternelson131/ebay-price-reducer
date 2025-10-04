@@ -10,8 +10,6 @@ const Analytics = lazy(() => import('./pages/Analytics'))
 const Login = lazy(() => import('./pages/Login'))
 const AutoList = lazy(() => import('./pages/AutoList'))
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
-const CreateListing = lazy(() => import('./pages/CreateListing'))
-const ListingSettings = lazy(() => import('./pages/ListingSettings'))
 
 // Simple components without complex dependencies
 function Dashboard() {
@@ -418,8 +416,6 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/listings" element={<Listings />} />
               <Route path="/auto-list" element={<AutoList />} />
-              <Route path="/create-listing" element={<CreateListing />} />
-              <Route path="/listing-settings" element={<ListingSettings />} />
               <Route path="/strategies" element={<Strategies />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/account" element={<Account />} />
