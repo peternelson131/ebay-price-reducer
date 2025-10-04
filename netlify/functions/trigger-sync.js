@@ -231,6 +231,28 @@ exports.handler = async (event, context) => {
 
     console.log(`✅ Successfully synced ${listingsToUpsert.length} listings to database`);
 
+    // 7. Trigger competitive pricing analysis for newly synced listings
+    try {
+      console.log('🔍 Triggering competitive pricing analysis...');
+
+      // Call analysis in background (don't wait for completion)
+      const apiBaseUrl = process.env.URL || 'http://localhost:8888';
+      fetch(`${apiBaseUrl}/.netlify/functions/analyze-competitive-pricing`, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        }
+      }).catch(err => {
+        console.error('Failed to trigger pricing analysis:', err);
+        // Don't fail the sync if analysis fails
+      });
+
+    } catch (analysisError) {
+      console.error('Error triggering pricing analysis:', analysisError);
+      // Don't fail the sync if analysis fails
+    }
+
     return {
       statusCode: 200,
       headers,
@@ -238,6 +260,7 @@ exports.handler = async (event, context) => {
         success: true,
         message: 'Sync completed successfully',
         count: listingsToUpsert.length,
+        pricingAnalysisTriggered: true,
         listings: listingsToUpsert.map(l => ({
           sku: l.sku,
           title: l.title,
