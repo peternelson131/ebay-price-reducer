@@ -212,13 +212,26 @@ export default function Listings() {
   )
 
   const acceptSuggestedPriceMutation = useMutation(
-    ({ listingId, suggestedPrice }) => listingsAPI.updateListing(listingId, {
-      current_price: suggestedPrice,
-      minimum_price: suggestedPrice * 0.8  // Set min to 80% of suggested
-    }),
+    ({ listingId, suggestedPrice, priceType }) => {
+      // If accepting average price: update current_price and set minimum to 80%
+      // If accepting minimum price: only update minimum_price (don't touch current price)
+      const updates = priceType === 'average'
+        ? {
+            current_price: suggestedPrice,
+            minimum_price: suggestedPrice * 0.8
+          }
+        : {
+            minimum_price: suggestedPrice
+          };
+
+      return listingsAPI.updateListing(listingId, updates);
+    },
     {
-      onSuccess: (data, { suggestedPrice }) => {
-        showNotification('success', `Price updated to $${suggestedPrice}`)
+      onSuccess: (data, { suggestedPrice, priceType }) => {
+        const message = priceType === 'average'
+          ? `Current price updated to $${suggestedPrice.toFixed(2)} (min: $${(suggestedPrice * 0.8).toFixed(2)})`
+          : `Minimum price set to $${suggestedPrice.toFixed(2)}`;
+        showNotification('success', message)
         queryClient.invalidateQueries('listings')
       },
       onError: (error) => {
@@ -304,9 +317,13 @@ export default function Listings() {
     togglePriceReductionMutation.mutate({ listingId, enabled: !currentState })
   }
 
-  const handleAcceptSuggestedPrice = (listingId, suggestedPrice) => {
-    if (window.confirm(`Update listing price to $${suggestedPrice.toFixed(2)}?`)) {
-      acceptSuggestedPriceMutation.mutate({ listingId, suggestedPrice })
+  const handleAcceptSuggestedPrice = (listingId, suggestedPrice, priceType) => {
+    const message = priceType === 'average'
+      ? `Update current listing price to $${suggestedPrice.toFixed(2)}?\n(This will also set minimum price to $${(suggestedPrice * 0.8).toFixed(2)})`
+      : `Set minimum price to $${suggestedPrice.toFixed(2)}?\n(Current listing price will NOT change)`;
+
+    if (window.confirm(message)) {
+      acceptSuggestedPriceMutation.mutate({ listingId, suggestedPrice, priceType })
     }
   }
 
@@ -1123,7 +1140,7 @@ export default function Listings() {
                         <div className="flex items-center justify-between">
                           <span className="text-sm">Avg: <span className="font-medium text-blue-600">${listing.market_average_price.toFixed(2)}</span></span>
                           <button
-                            onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_average_price)}
+                            onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_average_price, 'average')}
                             className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
                           >
                             Accept Avg
@@ -1135,7 +1152,7 @@ export default function Listings() {
                         <div className="flex items-center justify-between">
                           <span className="text-sm">Min: <span className="font-medium text-green-600">${listing.market_lowest_price.toFixed(2)}</span></span>
                           <button
-                            onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_lowest_price)}
+                            onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_lowest_price, 'minimum')}
                             className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
                           >
                             Accept Min
@@ -1379,7 +1396,7 @@ export default function Listings() {
                                         ${listing.market_average_price.toFixed(2)}
                                       </span>
                                       <button
-                                        onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_average_price)}
+                                        onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_average_price, 'average')}
                                         disabled={acceptSuggestedPriceMutation.isLoading}
                                         className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs hover:bg-blue-700 disabled:opacity-50"
                                         title="Set current price to average"
@@ -1397,10 +1414,10 @@ export default function Listings() {
                                         ${listing.market_lowest_price.toFixed(2)}
                                       </span>
                                       <button
-                                        onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_lowest_price)}
+                                        onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_lowest_price, 'minimum')}
                                         disabled={acceptSuggestedPriceMutation.isLoading}
                                         className="bg-green-600 text-white px-2 py-0.5 rounded text-xs hover:bg-green-700 disabled:opacity-50"
-                                        title="Set current price to minimum"
+                                        title="Set minimum price only (doesn't change current listing price)"
                                       >
                                         Accept
                                       </button>
