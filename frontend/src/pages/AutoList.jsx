@@ -390,18 +390,32 @@ export default function AutoList() {
     async (listings) => {
       // This would call the actual eBay API
       const results = await Promise.all(
-        listings.map(listing =>
-          listingsAPI.createListing({
+        listings.map(listing => {
+          // Prepare image URLs
+          const images = listing.imageUrl
+            ? listing.imageUrl.split(',').map(img =>
+                img.startsWith('http') ? img : `https://images-na.ssl-images-amazon.com/images/I/${img.trim()}`
+              )
+            : []
+
+          // Prepare aspects with brand if available
+          const aspects = {}
+          if (listing.brand) {
+            aspects['Brand'] = [listing.brand]
+          }
+
+          return listingsAPI.createListing({
             title: listing.listingTitle,
             description: listing.listingDescription,
             price: listing.suggestedPrice,
             quantity: listing.quantity,
             sku: listing.sku,
-            category: listing.ebayCategory,
+            categoryId: listing.ebayCategory,
             condition: listing.condition,
-            images: listing.imageUrl ? [listing.imageUrl] : []
+            images: images,
+            aspects: aspects
           })
-        )
+        })
       )
       return results
     },
