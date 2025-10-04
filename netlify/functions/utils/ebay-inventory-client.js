@@ -177,8 +177,8 @@ class EbayInventoryClient {
       if (error.ebayStatusCode === 404) {
         console.log('Location not found, creating new location...');
         const endpoint = `/location/${merchantLocationKey}`;
-        console.log('POST payload:', JSON.stringify(locationData, null, 2));
-        const result = await this.makeApiCall(endpoint, 'POST', locationData, 'inventory');
+        console.log('PUT payload:', JSON.stringify(locationData, null, 2));
+        const result = await this.makeApiCall(endpoint, 'PUT', locationData, 'inventory');
         console.log('✓ Location created successfully:', result);
         return { exists: false, merchantLocationKey, created: true };
       } else {
