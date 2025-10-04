@@ -55,7 +55,7 @@ exports.handler = async (event, context) => {
     // Decrypt cert ID
     let certId = null;
     if (userData?.ebay_cert_id_encrypted) {
-      const { decrypt } = require('./ebay-oauth');
+      const { decrypt } = require('./utils/ebay-oauth-helpers');
       certId = decrypt(userData.ebay_cert_id_encrypted);
     }
 
