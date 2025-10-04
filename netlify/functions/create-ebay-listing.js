@@ -369,11 +369,32 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 13. Publish offer
+    // 13. Publish offer (only if not already published)
     console.log('Step 13: Publishing offer ID:', offerResponse.offerId);
-    const publishResponse = await ebayClient.publishOffer(offerResponse.offerId);
+    let publishResponse;
 
-    console.log('Listing published:', publishResponse.listingId);
+    try {
+      publishResponse = await ebayClient.publishOffer(offerResponse.offerId);
+      console.log('Listing published:', publishResponse.listingId);
+    } catch (error) {
+      // If offer is already published, get the listing ID from the offer
+      if (error.ebayStatusCode === 500 && error.message.includes('Product not found')) {
+        console.log('Offer already published, retrieving existing listing ID...');
+        const existingOffers = await ebayClient.getOffersBySku(sku);
+        if (existingOffers.offers && existingOffers.offers.length > 0) {
+          const offer = existingOffers.offers[0];
+          publishResponse = {
+            listingId: offer.listing?.listingId || offer.offerId,
+            warnings: ['Offer was already published']
+          };
+          console.log('Using existing listing ID:', publishResponse.listingId);
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
 
     // 14. Store listing in Supabase
     const { data: listing, error: dbError } = await supabase
