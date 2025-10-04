@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from './contexts/AuthContext'
 
 // Lazy load all page components for code splitting
 const Account = lazy(() => import('./pages/Account'))
@@ -108,22 +109,10 @@ function Dashboard() {
 }
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [user, setUser] = useState(null)
+  const { user, isAuthenticated, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
-
-
-  useEffect(() => {
-    const authState = localStorage.getItem('isAuthenticated')
-    const userData = localStorage.getItem('userData')
-
-    if (authState === 'true' && userData) {
-      setIsAuthenticated(true)
-      setUser(JSON.parse(userData))
-    }
-  }, [])
 
   useEffect(() => {
     if (!isAuthenticated && location.pathname !== '/login') {
@@ -151,19 +140,13 @@ export default function App() {
     }
   }, [mobileMenuOpen])
 
-  const handleLogin = (userData) => {
-    setIsAuthenticated(true)
-    setUser(userData)
-    localStorage.setItem('isAuthenticated', 'true')
-    localStorage.setItem('userData', JSON.stringify(userData))
+  const handleLogin = async () => {
+    // Login is handled by AuthContext
     navigate('/')
   }
 
-  const handleLogout = () => {
-    setIsAuthenticated(false)
-    setUser(null)
-    localStorage.removeItem('isAuthenticated')
-    localStorage.removeItem('userData')
+  const handleLogout = async () => {
+    await signOut()
     navigate('/login')
   }
 
