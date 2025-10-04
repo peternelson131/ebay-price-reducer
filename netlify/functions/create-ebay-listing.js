@@ -220,9 +220,14 @@ exports.handler = async (event, context) => {
 
     console.log('Step 9: Creating inventory location with payload:', JSON.stringify(locationPayload, null, 2));
 
-    await ebayClient.ensureInventoryLocation(merchantLocationKey, locationPayload);
-
-    console.log('✓ Step 9 complete: Inventory location ensured:', merchantLocationKey);
+    try {
+      await ebayClient.ensureInventoryLocation(merchantLocationKey, locationPayload);
+      console.log('✓ Step 9 complete: Inventory location ensured:', merchantLocationKey);
+    } catch (error) {
+      console.error('❌ Step 9 FAILED - Inventory location error:', error.message);
+      console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      throw error;
+    }
 
     // 10. Generate unique SKU
     const sku = listingData.sku || `SKU-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
