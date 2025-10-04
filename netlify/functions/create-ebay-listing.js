@@ -236,9 +236,20 @@ exports.handler = async (event, context) => {
     // 11. Create inventory item
     console.log('Step 11: Creating inventory item with SKU:', sku);
 
-    const condition = listingData.condition ||
-                     userSettings.defaultCondition ||
-                     'NEW_OTHER'; // Default: New Open Box
+    // Normalize condition to uppercase (eBay requires uppercase enum values)
+    let condition = listingData.condition ||
+                    userSettings.defaultCondition ||
+                    'NEW_OTHER'; // Default: New Open Box
+
+    // Map common condition values to eBay enum
+    const conditionMap = {
+      'new': 'NEW',
+      'used': 'USED',
+      'refurbished': 'REFURBISHED',
+      'for parts': 'FOR_PARTS_OR_NOT_WORKING'
+    };
+
+    condition = conditionMap[condition.toLowerCase()] || condition.toUpperCase();
 
     const inventoryItemPayload = {
       availability: {
