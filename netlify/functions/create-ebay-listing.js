@@ -214,7 +214,8 @@ exports.handler = async (event, context) => {
         address: defaultLocation
       },
       locationTypes: ['WAREHOUSE'],
-      name: 'Primary Warehouse Location'
+      name: 'Primary Warehouse Location',
+      phone: '555-555-5555'  // Required by eBay API
     };
 
     console.log('Step 9: Creating inventory location with payload:', JSON.stringify(locationPayload, null, 2));
