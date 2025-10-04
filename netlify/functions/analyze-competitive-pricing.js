@@ -42,18 +42,32 @@ exports.handler = async (event, context) => {
 
     console.log(`Starting competitive pricing analysis for user ${user.id}`);
 
-    // Get user's eBay seller ID
+    // Get user's eBay app credentials and seller ID
     const { data: userData } = await supabase
       .from('users')
-      .select('ebay_user_id')
+      .select('ebay_user_id, ebay_app_id, ebay_cert_id_encrypted')
       .eq('id', user.id)
       .single();
 
     const userEbaySellerId = userData?.ebay_user_id;
+    const appId = userData?.ebay_app_id;
 
-    // Initialize eBay client
-    const ebayClient = new EnhancedEbayClient(user.id);
-    await ebayClient.initialize();
+    // Decrypt cert ID
+    let certId = null;
+    if (userData?.ebay_cert_id_encrypted) {
+      const { decrypt } = require('./ebay-oauth');
+      certId = decrypt(userData.ebay_cert_id_encrypted);
+    }
+
+    if (!appId || !certId) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'eBay app credentials not found. Please save your eBay credentials first.'
+        })
+      };
+    }
 
     // Get listings that need analysis
     const { data: listingsToAnalyze, error: fetchError } = await supabase
@@ -82,9 +96,10 @@ exports.handler = async (event, context) => {
 
     console.log(`Found ${listingsToAnalyze.length} listings to analyze`);
 
-    // Initialize pricing service
+    // Initialize pricing service with app credentials
     const pricingService = new CompetitivePricingService(
-      ebayClient.accessToken,
+      appId,
+      certId,
       userEbaySellerId
     );
 

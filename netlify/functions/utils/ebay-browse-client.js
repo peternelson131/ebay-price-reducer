@@ -6,10 +6,49 @@
  */
 
 class EbayBrowseClient {
-  constructor(accessToken, userEbaySellerId = null) {
-    this.accessToken = accessToken;
+  constructor(appId, certId, userEbaySellerId = null) {
+    this.appId = appId;
+    this.certId = certId;
     this.userEbaySellerId = userEbaySellerId;
     this.baseUrl = 'https://api.ebay.com/buy/browse/v1';
+    this.accessToken = null; // Will be fetched when needed
+  }
+
+  /**
+   * Get Application Access Token for Browse API
+   * Browse API can use app-level auth instead of user OAuth
+   */
+  async getAppAccessToken() {
+    if (this.accessToken) return this.accessToken;
+
+    const tokenUrl = 'https://api.ebay.com/identity/v1/oauth2/token';
+    const credentials = Buffer.from(`${this.appId}:${this.certId}`).toString('base64');
+
+    try {
+      const response = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${credentials}`
+        },
+        body: 'grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Failed to get app access token:', data);
+        return null;
+      }
+
+      this.accessToken = data.access_token;
+      console.log('✓ Got Browse API app access token');
+      return this.accessToken;
+
+    } catch (error) {
+      console.error('Error getting app access token:', error);
+      return null;
+    }
   }
 
   /**
@@ -119,16 +158,22 @@ class EbayBrowseClient {
 
   /**
    * Make authenticated request to Browse API
-   * NOTE: This requires OAuth token with https://api.ebay.com/oauth/api_scope scope
-   * The root scope should include access to Browse API
+   * Uses Application Access Token (app-level, not user-level)
    */
   async _makeRequest(url, params) {
+    // Get app access token first
+    const token = await this.getAppAccessToken();
+    if (!token) {
+      console.error('No access token available for Browse API');
+      return [];
+    }
+
     const fullUrl = `${url}?${params.toString()}`;
 
     try {
       const response = await fetch(fullUrl, {
         headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
           'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US'
         }
@@ -138,7 +183,6 @@ class EbayBrowseClient {
         const errorText = await response.text();
         console.error('Browse API error:', response.status, errorText);
         console.error('Full URL:', fullUrl);
-        console.error('Token preview:', this.accessToken ? this.accessToken.substring(0, 20) + '...' : 'missing');
         return [];
       }
 

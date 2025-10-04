@@ -4,8 +4,8 @@ const { EbayBrowseClient } = require('./ebay-browse-client');
  * Service for analyzing competitive pricing
  */
 class CompetitivePricingService {
-  constructor(accessToken, userEbaySellerId) {
-    this.browseClient = new EbayBrowseClient(accessToken, userEbaySellerId);
+  constructor(appId, certId, userEbaySellerId) {
+    this.browseClient = new EbayBrowseClient(appId, certId, userEbaySellerId);
   }
 
   /**
