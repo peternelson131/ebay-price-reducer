@@ -36,6 +36,7 @@ class EbayInventoryClient {
       headers: {
         'Authorization': `Bearer ${this.accessToken}`,
         'Content-Type': 'application/json',
+        'Content-Language': 'en-US',
         'Accept': 'application/json'
       }
     };
