@@ -319,14 +319,22 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('Create listing error:', error);
+    console.error('Create listing error:', {
+      message: error.message,
+      stack: error.stack,
+      ebayError: error.ebayError || null,
+      responseData: error.response?.data || null
+    });
+
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         error: 'Failed to create eBay listing',
         message: error.message,
-        details: error.response?.data || null
+        ebayError: error.ebayError || null,
+        details: error.response?.data || null,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       })
     };
   }
