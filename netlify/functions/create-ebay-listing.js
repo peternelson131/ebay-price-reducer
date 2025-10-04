@@ -323,7 +323,8 @@ exports.handler = async (event, context) => {
       message: error.message,
       stack: error.stack,
       ebayError: error.ebayError || null,
-      responseData: error.response?.data || null
+      responseData: error.response?.data || null,
+      fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
     });
 
     return {
@@ -334,6 +335,7 @@ exports.handler = async (event, context) => {
         message: error.message,
         ebayError: error.ebayError || null,
         details: error.response?.data || null,
+        fullErrorMessage: error.toString(),
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       })
     };
