@@ -105,8 +105,17 @@ exports.handler = async (event, context) => {
 
     console.log(`Found ${requiredAspects.length} required aspects`);
 
-    // 7. Validate user provided required aspects
+    // 7. Validate and fix user provided required aspects
     const providedAspects = listingData.aspects || {};
+
+    // Fix Brand for LEGO categories (categoryName contains "LEGO")
+    if (categoryName && categoryName.toUpperCase().includes('LEGO')) {
+      if (providedAspects['Brand'] && !providedAspects['Brand'].includes('LEGO')) {
+        console.log(`Fixing Brand from ${providedAspects['Brand']} to LEGO for LEGO category`);
+        providedAspects['Brand'] = ['LEGO'];
+      }
+    }
+
     const missingAspects = [];
 
     for (const aspect of requiredAspects) {
