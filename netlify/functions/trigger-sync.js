@@ -235,21 +235,25 @@ exports.handler = async (event, context) => {
     try {
       console.log('🔍 Triggering competitive pricing analysis...');
 
-      // Call analysis in background (don't wait for completion)
-      const apiBaseUrl = process.env.URL || 'http://localhost:8888';
-      fetch(`${apiBaseUrl}/.netlify/functions/analyze-competitive-pricing`, {
-        method: 'POST',
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json'
-        }
+      // Import the analysis handler directly and invoke it
+      const { handler: analyzeHandler } = require('./analyze-competitive-pricing');
+
+      // Call analysis in background (don't await to avoid blocking)
+      analyzeHandler(
+        {
+          httpMethod: 'POST',
+          headers: event.headers,
+          body: null
+        },
+        context
+      ).then(result => {
+        console.log('✅ Pricing analysis triggered:', result.statusCode);
       }).catch(err => {
-        console.error('Failed to trigger pricing analysis:', err);
-        // Don't fail the sync if analysis fails
+        console.error('❌ Failed to trigger pricing analysis:', err.message);
       });
 
     } catch (analysisError) {
-      console.error('Error triggering pricing analysis:', analysisError);
+      console.error('❌ Error triggering pricing analysis:', analysisError);
       // Don't fail the sync if analysis fails
     }
 
