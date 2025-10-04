@@ -119,6 +119,8 @@ class EbayBrowseClient {
 
   /**
    * Make authenticated request to Browse API
+   * NOTE: This requires OAuth token with https://api.ebay.com/oauth/api_scope scope
+   * The root scope should include access to Browse API
    */
   async _makeRequest(url, params) {
     const fullUrl = `${url}?${params.toString()}`;
@@ -135,6 +137,8 @@ class EbayBrowseClient {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Browse API error:', response.status, errorText);
+        console.error('Full URL:', fullUrl);
+        console.error('Token preview:', this.accessToken ? this.accessToken.substring(0, 20) + '...' : 'missing');
         return [];
       }
 
