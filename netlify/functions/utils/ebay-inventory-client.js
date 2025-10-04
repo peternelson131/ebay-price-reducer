@@ -58,6 +58,9 @@ class EbayInventoryClient {
         const errorMsg = responseData.errors?.[0]?.message ||
                         responseData.error?.message ||
                         'Unknown eBay API error';
+
+        console.error('❌ eBay API Error Response:', JSON.stringify(responseData, null, 2));
+
         const error = new Error(`eBay API Error (${response.status}): ${errorMsg}`);
         // Attach full eBay error response for debugging
         error.ebayErrorResponse = responseData;
