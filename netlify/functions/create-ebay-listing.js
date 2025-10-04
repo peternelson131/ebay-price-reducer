@@ -396,29 +396,34 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // 14. Store listing in Supabase
+    // 14. Store listing in Supabase (upsert to handle duplicates)
+    const listingPayload = {
+      user_id: user.id,
+      ebay_item_id: publishResponse.listingId,
+      sku: sku,
+      title: listingData.title.substring(0, 80),
+      current_price: parseFloat(listingData.price),
+      original_price: parseFloat(listingData.price),
+      minimum_price: listingData.minimumPrice || parseFloat(listingData.price) * 0.5,
+      quantity: parseInt(listingData.quantity),
+      category_id: categoryId,
+      category: categoryName,
+      image_urls: listingData.images,
+      listing_status: 'Active',
+      start_time: new Date().toISOString()
+    };
+
     const { data: listing, error: dbError } = await supabase
       .from('listings')
-      .insert({
-        user_id: user.id,
-        ebay_item_id: publishResponse.listingId,
-        sku: sku,
-        title: listingData.title.substring(0, 80),
-        current_price: parseFloat(listingData.price),
-        original_price: parseFloat(listingData.price),
-        minimum_price: listingData.minimumPrice || parseFloat(listingData.price) * 0.5,
-        quantity: parseInt(listingData.quantity),
-        category_id: categoryId,
-        category: categoryName,
-        image_urls: listingData.images,
-        listing_status: 'Active',
-        start_time: new Date().toISOString()
+      .upsert(listingPayload, {
+        onConflict: 'user_id,ebay_item_id',
+        ignoreDuplicates: false
       })
       .select()
       .single();
 
     if (dbError) {
-      console.error('Database insert error:', dbError);
+      console.error('Database upsert error:', dbError);
       // Listing created on eBay but failed to save locally
       // Log for manual reconciliation
     }
@@ -429,6 +434,7 @@ exports.handler = async (event, context) => {
       headers,
       body: JSON.stringify({
         success: true,
+        wasUpdated: existingOfferId ? true : false,
         listingId: publishResponse.listingId,
         offerId: offerResponse.offerId,
         sku: sku,
@@ -436,7 +442,10 @@ exports.handler = async (event, context) => {
         categoryName: categoryName,
         viewUrl: `https://www.ebay.com/itm/${publishResponse.listingId}`,
         listing: listing,
-        warnings: publishResponse.warnings || []
+        warnings: publishResponse.warnings || [],
+        message: existingOfferId
+          ? `Listing updated successfully! Previously listed as ${publishResponse.listingId}`
+          : 'New listing created successfully!'
       })
     };
 
