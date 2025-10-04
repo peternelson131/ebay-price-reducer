@@ -299,8 +299,8 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 12. Create offer
-    console.log('Step 12: Creating offer for SKU:', sku);
+    // 12. Check for existing offer and create/update accordingly
+    console.log('Step 12: Checking for existing offer for SKU:', sku);
 
     const offerPayload = {
       sku: sku,
@@ -322,26 +322,49 @@ exports.handler = async (event, context) => {
       }
     };
 
+    let offerResponse;
+    let existingOfferId = null;
+
+    // Check if offer already exists for this SKU
+    try {
+      const existingOffers = await ebayClient.getOffersBySku(sku);
+      if (existingOffers.offers && existingOffers.offers.length > 0) {
+        existingOfferId = existingOffers.offers[0].offerId;
+        console.log('Found existing offer:', existingOfferId);
+      }
+    } catch (error) {
+      // If error getting offers, continue to create new
+      console.log('No existing offers found, will create new');
+    }
+
     console.log('Offer payload:', JSON.stringify(offerPayload, null, 2));
 
-    let offerResponse;
     try {
-      offerResponse = await ebayClient.createOffer(offerPayload);
-      console.log('✓ Step 12 complete: Offer created with ID:', offerResponse.offerId);
+      if (existingOfferId) {
+        console.log('Step 12a: Updating existing offer:', existingOfferId);
+        offerResponse = await ebayClient.updateOffer(existingOfferId, offerPayload);
+        offerResponse.offerId = existingOfferId;
+        console.log('✓ Step 12 complete: Offer updated with ID:', existingOfferId);
+      } else {
+        console.log('Step 12b: Creating new offer');
+        offerResponse = await ebayClient.createOffer(offerPayload);
+        console.log('✓ Step 12 complete: Offer created with ID:', offerResponse.offerId);
+      }
     } catch (error) {
-      console.error('❌ Step 12 FAILED - Create offer error:', error.message);
+      console.error('❌ Step 12 FAILED - Create/update offer error:', error.message);
       console.error('eBay error response:', JSON.stringify(error.ebayErrorResponse, null, 2));
       // Return detailed error for debugging
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({
-          error: 'Step 12 Failed: Create Offer',
+          error: 'Step 12 Failed: Create/Update Offer',
           step: 12,
           message: error.message,
           ebayErrorResponse: error.ebayErrorResponse,
           payloadSent: offerPayload,
-          sku: sku
+          sku: sku,
+          existingOfferId: existingOfferId
         })
       };
     }

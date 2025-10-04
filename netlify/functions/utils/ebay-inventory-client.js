@@ -148,6 +148,22 @@ class EbayInventoryClient {
   }
 
   /**
+   * Get offers by SKU
+   */
+  async getOffersBySku(sku) {
+    const endpoint = `/offer?sku=${encodeURIComponent(sku)}`;
+    return await this.makeApiCall(endpoint, 'GET', null, 'inventory');
+  }
+
+  /**
+   * Update existing offer
+   */
+  async updateOffer(offerId, offerData) {
+    const endpoint = `/offer/${offerId}`;
+    return await this.makeApiCall(endpoint, 'PUT', offerData, 'inventory');
+  }
+
+  /**
    * Create offer
    */
   async createOffer(offerData) {
