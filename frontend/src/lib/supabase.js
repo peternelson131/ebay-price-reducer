@@ -302,6 +302,21 @@ const mockListingsAPI = {
     // Note: price_history table has been removed from database schema
 
     return listing
+  },
+
+  async createListing(listingData) {
+    await delay(800)
+    // In mock mode, just create a mock listing
+    const newListing = {
+      id: String(Date.now()),
+      ebay_item_id: `mock-${Date.now()}`,
+      ...listingData,
+      listing_status: 'Active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    mockListings.push(newListing)
+    return newListing
   }
 }
 
@@ -417,6 +432,33 @@ const realListingsAPI = realSupabaseClient ? {
 
     if (error) throw error
     return data
+  },
+
+  async createListing(listingData) {
+    const { data: { user } } = await realSupabaseClient.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    // Get session token for API call
+    const { data: { session } } = await realSupabaseClient.auth.getSession()
+    if (!session) throw new Error('No active session')
+
+    // Call Netlify function to create listing on eBay
+    const response = await fetch('/.netlify/functions/create-ebay-listing', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify(listingData)
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || data.message || 'Failed to create listing')
+    }
+
+    return data
   }
 } : {
   getListings: () => Promise.reject(new Error('Real Supabase not configured')),
@@ -424,7 +466,8 @@ const realListingsAPI = realSupabaseClient ? {
   updateListing: () => Promise.reject(new Error('Real Supabase not configured')),
   deleteListing: () => Promise.reject(new Error('Real Supabase not configured')),
   endListing: () => Promise.reject(new Error('Real Supabase not configured')),
-  recordPriceReduction: () => Promise.reject(new Error('Real Supabase not configured'))
+  recordPriceReduction: () => Promise.reject(new Error('Real Supabase not configured')),
+  createListing: () => Promise.reject(new Error('Real Supabase not configured'))
 }
 
 export const listingsAPI = isDemoMode ? mockListingsAPI : realListingsAPI
