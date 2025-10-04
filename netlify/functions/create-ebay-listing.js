@@ -198,7 +198,8 @@ exports.handler = async (event, context) => {
     console.log('Using policies:', { fulfillmentPolicyId, paymentPolicyId, returnPolicyId });
 
     // 9. Ensure inventory location exists
-    const merchantLocationKey = `location-${user.id}`;
+    // eBay has 36 char limit on merchantLocationKey
+    const merchantLocationKey = `loc-${user.id.substring(0, 32)}`;
     const defaultLocation = listingData.location ||
                            userSettings.defaultLocation ||
                            {
