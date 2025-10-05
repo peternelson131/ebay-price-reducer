@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { userAPI, authAPI } from '../lib/supabase'
 import keepaApi from '../services/keepaApi'
 import EbayConnect from '../components/EbayConnect'
@@ -679,6 +679,24 @@ export default function Account() {
               <div>
                 <h3 className="text-lg font-medium text-gray-900">Platform Integrations</h3>
                 <p className="text-sm text-gray-600">Connect your accounts and configure API access for various platforms.</p>
+              </div>
+
+              {/* Quick Link to Listing Settings */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-900 mb-1">📋 eBay Listing Settings</h4>
+                    <p className="text-sm text-blue-700 mb-3">
+                      Configure default business policies, shipping location, and Keepa API settings for creating eBay listings.
+                    </p>
+                    <Link
+                      to="/listing-settings"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                      Open Listing Settings →
+                    </Link>
+                  </div>
+                </div>
               </div>
 
               {/* eBay Connection Success/Error Message */}

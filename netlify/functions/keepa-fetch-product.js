@@ -140,9 +140,18 @@ exports.handler = async (event, context) => {
  * Transform Keepa product data to eBay-compatible format
  */
 function transformKeepaToEbay(keepaProduct) {
-  // Extract images from CSV and construct URLs
+  // Extract images - prefer new 'images' field over deprecated 'imagesCSV'
   const images = [];
-  if (keepaProduct.imagesCSV) {
+
+  if (keepaProduct.images && Array.isArray(keepaProduct.images)) {
+    // Use new images array (preferred method)
+    keepaProduct.images.forEach(imgObj => {
+      if (imgObj && imgObj.large) {
+        images.push(`https://m.media-amazon.com/images/I/${imgObj.large}`);
+      }
+    });
+  } else if (keepaProduct.imagesCSV) {
+    // Fallback to deprecated imagesCSV
     const imageFilenames = keepaProduct.imagesCSV.split(',');
     imageFilenames.forEach(filename => {
       const trimmed = filename.trim();
@@ -152,7 +161,7 @@ function transformKeepaToEbay(keepaProduct) {
     });
   }
 
-  // Build description from Keepa data
+  // Build description from Keepa data - use Amazon description directly
   const description = buildDescription(keepaProduct);
 
   // Extract item specifics/aspects
@@ -163,7 +172,7 @@ function transformKeepaToEbay(keepaProduct) {
     description: description,
     brand: keepaProduct.brand || '',
     model: keepaProduct.model || '',
-    images: images.slice(0, 12), // eBay max 12 images
+    images: images, // Include all images (eBay accepts up to 12)
     aspects: aspects,
     // These will be set by user:
     // - price
@@ -175,25 +184,26 @@ function transformKeepaToEbay(keepaProduct) {
 
 /**
  * Build HTML description from Keepa product data
+ * Uses Amazon's description directly without modification
  */
 function buildDescription(product) {
-  let html = '';
-
-  // Main description
+  // Use Amazon's description directly if available
   if (product.description) {
-    html += product.description;
+    return product.description;
   }
 
-  // Features as bullet points
+  // Fallback: build description from features if no main description exists
+  let html = '';
+
   if (product.features && product.features.length > 0) {
-    html += '<h3>Features</h3><ul>';
+    html += '<h3>Product Features</h3><ul>';
     product.features.forEach(feature => {
       html += `<li>${escapeHtml(feature)}</li>`;
     });
     html += '</ul>';
   }
 
-  // Specifications
+  // Add specifications as supplementary info
   const hasSpecs = product.itemWeight || product.itemHeight ||
                    product.itemLength || product.itemWidth;
 
@@ -206,7 +216,7 @@ function buildDescription(product) {
     html += '</ul>';
   }
 
-  return html || 'No description available';
+  return html || 'Product information available upon request.';
 }
 
 /**

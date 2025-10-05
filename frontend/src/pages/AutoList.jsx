@@ -358,9 +358,6 @@ export default function AutoList() {
     return `
       <h3>${item.title}</h3>
       <p><strong>Condition:</strong> ${item.condition}</p>
-      <p><strong>SKU:</strong> ${item.sku}</p>
-      ${item.asin ? `<p><strong>ASIN:</strong> ${item.asin}</p>` : ''}
-      <p>This item is from Amazon FBA inventory.</p>
     `
   }
 
