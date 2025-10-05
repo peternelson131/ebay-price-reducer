@@ -30,10 +30,10 @@ exports.handler = async (event, context) => {
 
     // GET - Retrieve settings and available policies
     if (event.httpMethod === 'GET') {
-      // Get user's current settings and Keepa API key
+      // Get user's current settings
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('listing_settings, keepa_api_key')
+        .select('listing_settings, ebay_connection_status')
         .eq('id', user.id)
         .single();
 
@@ -41,50 +41,58 @@ exports.handler = async (event, context) => {
         throw userError;
       }
 
-      // Fetch available eBay policies
-      const ebayClient = new EbayInventoryClient(user.id);
-      await ebayClient.initialize();
+      // Check if eBay is connected
+      const ebayConnected = userData.ebay_connection_status === 'connected';
+      let availablePolicies = {
+        fulfillment: [],
+        payment: [],
+        return: []
+      };
 
-      const [fulfillmentPolicies, paymentPolicies, returnPolicies] = await Promise.all([
-        ebayClient.getFulfillmentPolicies('EBAY_US'),
-        ebayClient.getPaymentPolicies('EBAY_US'),
-        ebayClient.getReturnPolicies('EBAY_US')
-      ]);
+      // Only fetch policies if eBay is connected
+      if (ebayConnected) {
+        try {
+          const ebayClient = new EbayInventoryClient(user.id);
+          await ebayClient.initialize();
+
+          const [fulfillmentPolicies, paymentPolicies, returnPolicies] = await Promise.all([
+            ebayClient.getFulfillmentPolicies('EBAY_US'),
+            ebayClient.getPaymentPolicies('EBAY_US'),
+            ebayClient.getReturnPolicies('EBAY_US')
+          ]);
+
+          availablePolicies = {
+            fulfillment: fulfillmentPolicies.fulfillmentPolicies || [],
+            payment: paymentPolicies.paymentPolicies || [],
+            return: returnPolicies.returnPolicies || []
+          };
+        } catch (ebayError) {
+          console.error('Error fetching eBay policies:', ebayError);
+          // Continue without policies - user can still configure location/condition
+        }
+      }
 
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           currentSettings: userData.listing_settings || {},
-          keepaApiKey: userData.keepa_api_key || '',
-          availablePolicies: {
-            fulfillment: fulfillmentPolicies.fulfillmentPolicies || [],
-            payment: paymentPolicies.paymentPolicies || [],
-            return: returnPolicies.returnPolicies || []
-          }
+          ebayConnected: ebayConnected,
+          availablePolicies: availablePolicies,
+          requiresEbayConnection: !ebayConnected
         })
       };
     }
 
     // PUT - Update settings
     if (event.httpMethod === 'PUT') {
-      const { keepaApiKey, ...listingSettings } = JSON.parse(event.body);
-
-      // Prepare update object
-      const updateData = {
-        listing_settings: listingSettings
-      };
-
-      // Only update Keepa API key if provided
-      if (keepaApiKey !== undefined) {
-        updateData.keepa_api_key = keepaApiKey;
-      }
+      const listingSettings = JSON.parse(event.body);
 
       const { data, error } = await supabase
         .from('users')
-        .update(updateData)
+        .update({ listing_settings: listingSettings })
         .eq('id', user.id)
-        .select('listing_settings, keepa_api_key')
+        .select('listing_settings')
         .single();
 
       if (error) {
@@ -96,8 +104,7 @@ exports.handler = async (event, context) => {
         headers,
         body: JSON.stringify({
           success: true,
-          settings: data.listing_settings,
-          keepaApiKey: data.keepa_api_key
+          settings: data.listing_settings
         })
       };
     }
