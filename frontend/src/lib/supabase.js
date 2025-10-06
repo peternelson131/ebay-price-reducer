@@ -336,6 +336,10 @@ const realListingsAPI = realSupabaseClient ? {
       query = query.eq('listing_status', status)
     }
 
+    // Add default sort order to ensure consistent ordering
+    // This prevents the list from appearing to "filter" or reorder when data updates
+    query = query.order('created_at', { ascending: false })
+
     const { data, error } = await query
 
     if (error) throw error
