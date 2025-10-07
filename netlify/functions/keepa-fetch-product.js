@@ -23,9 +23,12 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    console.log('🔍 keepa-fetch-product called');
+
     // 1. Authenticate user
     const authHeader = event.headers.authorization || event.headers.Authorization;
     if (!authHeader) {
+      console.log('❌ No auth header');
       return {
         statusCode: 401,
         headers,
@@ -37,6 +40,7 @@ exports.handler = async (event, context) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
+      console.log('❌ Auth error:', authError);
       return {
         statusCode: 401,
         headers,
@@ -44,8 +48,11 @@ exports.handler = async (event, context) => {
       };
     }
 
+    console.log(`✅ User authenticated: ${user.id}`);
+
     // 2. Parse and validate ASIN
     const { asin } = JSON.parse(event.body);
+    console.log(`📦 Requested ASIN: ${asin}`);
 
     if (!asin) {
       return {
@@ -91,11 +98,20 @@ exports.handler = async (event, context) => {
     console.log(`Fetching Keepa data for ASIN: ${asin}`);
     const keepaResponse = await fetch(keepaUrl);
 
+    console.log(`Keepa API response status: ${keepaResponse.status}`);
+
     if (!keepaResponse.ok) {
+      const errorText = await keepaResponse.text();
+      console.error(`Keepa API error: ${keepaResponse.status} - ${errorText}`);
       throw new Error(`Keepa API error: ${keepaResponse.status}`);
     }
 
     const keepaData = await keepaResponse.json();
+    console.log(`Keepa response received for ${asin}:`, {
+      hasProducts: !!keepaData.products,
+      productsLength: keepaData.products?.length || 0,
+      productTitle: keepaData.products?.[0]?.title?.substring(0, 50)
+    });
 
     // 4. Validate Keepa response
     if (!keepaData.products || keepaData.products.length === 0) {
