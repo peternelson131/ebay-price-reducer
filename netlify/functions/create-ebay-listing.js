@@ -286,7 +286,9 @@ exports.handler = async (event, context) => {
       const aspectName = aspect.localizedAspectName;
 
       if (!providedAspects[aspectName] || providedAspects[aspectName].length === 0) {
-        // Try to auto-fill common aspects
+        // Try to auto-fill common aspects with smart defaults
+
+        // Generic product aspects
         if (aspectName === 'Type' || aspectName === 'Product Type') {
           providedAspects[aspectName] = ['Does not apply'];
           console.log(`Auto-filled ${aspectName} with "Does not apply"`);
@@ -299,6 +301,22 @@ exports.handler = async (event, context) => {
         } else if (aspectName === 'UPC' || aspectName === 'EAN') {
           providedAspects[aspectName] = ['Does not apply'];
           console.log(`Auto-filled ${aspectName} with "Does not apply"`);
+        }
+
+        // Apparel/Clothing specific defaults
+        else if (aspectName === 'Size Type') {
+          providedAspects[aspectName] = ['Regular'];
+          console.log(`Auto-filled ${aspectName} with "Regular"`);
+        } else if (aspectName === 'Fit') {
+          providedAspects[aspectName] = ['Regular'];
+          console.log(`Auto-filled ${aspectName} with "Regular"`);
+        } else if (aspectName === 'Department') {
+          providedAspects[aspectName] = ['Unisex'];
+          console.log(`Auto-filled ${aspectName} with "Unisex"`);
+        } else if (aspectName === 'Sleeve Length') {
+          // Default to Short Sleeve if not detected
+          providedAspects[aspectName] = ['Short Sleeve'];
+          console.log(`Auto-filled ${aspectName} with "Short Sleeve"`);
         }
       }
     }

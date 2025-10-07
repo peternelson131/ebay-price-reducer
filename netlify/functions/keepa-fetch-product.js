@@ -225,14 +225,106 @@ function buildDescription(product) {
 function buildAspects(product) {
   const aspects = {};
 
+  // EXISTING DIRECT MAPPINGS
   if (product.brand) aspects.Brand = [product.brand];
   if (product.model) aspects.Model = [product.model];
   if (product.color) aspects.Color = [product.color];
   if (product.size) aspects.Size = [product.size];
   if (product.manufacturer) aspects.Manufacturer = [product.manufacturer];
 
-  // eBay often requires MPN (Manufacturer Part Number)
-  if (product.model) aspects.MPN = [product.model];
+  // MPN - prefer partNumber over model
+  if (product.partNumber) {
+    aspects.MPN = [product.partNumber];
+  } else if (product.model) {
+    aspects.MPN = [product.model];
+  }
+
+  // NEW DIRECT MAPPINGS
+  if (product.style) aspects.Style = [product.style];
+  if (product.pattern) aspects.Pattern = [product.pattern];
+
+  // ARRAY SELECTIONS (use first value)
+  if (product.upcList && product.upcList.length > 0) {
+    aspects.UPC = [product.upcList[0]];
+  }
+  if (product.eanList && product.eanList.length > 0) {
+    aspects.EAN = [product.eanList[0]];
+  }
+  if (product.materials && product.materials.length > 0) {
+    aspects.Material = [product.materials[0]];
+  }
+
+  // DEPARTMENT MAPPING from productGroup
+  if (product.productGroup) {
+    const department = mapProductGroupToDepartment(product.productGroup);
+    if (department) aspects.Department = department;
+  }
+
+  // EXTRACT FROM TITLE (sleeve length, fit, size type)
+  if (product.title) {
+    const extractedAspects = extractAspectsFromText(product.title);
+    Object.assign(aspects, extractedAspects);
+  }
+
+  return aspects;
+}
+
+/**
+ * Map Keepa productGroup to eBay Department
+ */
+function mapProductGroupToDepartment(productGroup) {
+  const departmentMap = {
+    'Apparel': 'Unisex',
+    'Men': 'Men',
+    'Women': 'Women',
+    'Baby Products': 'Baby',
+    'Shoes': 'Unisex',
+    'Sports': 'Unisex',
+    'Sporting Goods': 'Unisex'
+  };
+  return departmentMap[productGroup] ? [departmentMap[productGroup]] : null;
+}
+
+/**
+ * Extract aspects from product title using pattern matching
+ */
+function extractAspectsFromText(text) {
+  const aspects = {};
+
+  // Sleeve Length
+  if (/short\s+sleeve/i.test(text)) {
+    aspects['Sleeve Length'] = ['Short Sleeve'];
+  } else if (/long\s+sleeve/i.test(text)) {
+    aspects['Sleeve Length'] = ['Long Sleeve'];
+  } else if (/sleeveless/i.test(text)) {
+    aspects['Sleeve Length'] = ['Sleeveless'];
+  } else if (/3\/4\s+sleeve|three[\s-]quarter/i.test(text)) {
+    aspects['Sleeve Length'] = ['3/4 Sleeve'];
+  }
+
+  // Size Type
+  if (/plus[\s-]size/i.test(text)) {
+    aspects['Size Type'] = ['Plus'];
+  } else if (/petite/i.test(text)) {
+    aspects['Size Type'] = ['Petite'];
+  } else if (/big[\s&]+tall/i.test(text)) {
+    aspects['Size Type'] = ['Big & Tall'];
+  } else if (/regular/i.test(text)) {
+    aspects['Size Type'] = ['Regular'];
+  }
+
+  // Fit
+  if (/slim[\s-]fit/i.test(text)) {
+    aspects.Fit = ['Slim'];
+  } else if (/regular[\s-]fit/i.test(text)) {
+    aspects.Fit = ['Regular'];
+  } else if (/relaxed[\s-]fit/i.test(text)) {
+    aspects.Fit = ['Relaxed'];
+  } else if (/loose[\s-]fit/i.test(text)) {
+    aspects.Fit = ['Loose'];
+  } else if (/athletic[\s-]fit/i.test(text)) {
+    aspects.Fit = ['Athletic'];
+  }
 
   return aspects;
 }
