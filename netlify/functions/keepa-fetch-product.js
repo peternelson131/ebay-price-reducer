@@ -93,7 +93,8 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const keepaUrl = `https://api.keepa.com/product?key=${keepaApiKey}&domain=1&asin=${asin}&stats=1`;
+    // Remove stats parameter - try minimal request first
+    const keepaUrl = `https://api.keepa.com/product?key=${keepaApiKey}&domain=1&asin=${asin}`;
 
     console.log(`Fetching Keepa data for ASIN: ${asin}`);
     const keepaResponse = await fetch(keepaUrl);
