@@ -838,7 +838,16 @@ Enter multiple ASINs, one per line"
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                      Select
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={excelData.length > 0 && selectedItems.size === excelData.length}
+                          onChange={(e) => e.target.checked ? selectAll() : deselectAll()}
+                          className="rounded border-gray-300"
+                          title="Select/Deselect All"
+                        />
+                        <span>Select</span>
+                      </div>
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                       SKU/ASIN
