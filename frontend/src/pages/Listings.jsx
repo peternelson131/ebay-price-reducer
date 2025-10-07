@@ -175,12 +175,38 @@ export default function Listings() {
   const updateMinimumPriceMutation = useMutation(
     ({ listingId, minimumPrice }) => listingsAPI.updateListing(listingId, { minimum_price: minimumPrice }),
     {
+      onMutate: async ({ listingId, minimumPrice }) => {
+        // Cancel outgoing refetches
+        await queryClient.cancelQueries(['listings', { status }])
+
+        // Snapshot previous value
+        const previousListings = queryClient.getQueryData(['listings', { status }])
+
+        // Optimistically update
+        queryClient.setQueryData(['listings', { status }], (old) => {
+          if (!old) return old
+          return old.map(listing =>
+            listing.id === listingId
+              ? { ...listing, minimum_price: minimumPrice }
+              : listing
+          )
+        })
+
+        return { previousListings }
+      },
       onSuccess: () => {
         showNotification('success', 'Minimum price updated')
-        queryClient.invalidateQueries('listings')
       },
-      onError: (error) => {
+      onError: (error, variables, context) => {
+        // Rollback on error
+        if (context?.previousListings) {
+          queryClient.setQueryData(['listings', { status }], context.previousListings)
+        }
         showNotification('error', error.message || 'Failed to update minimum price')
+      },
+      onSettled: () => {
+        // Refetch in background to ensure data consistency
+        queryClient.invalidateQueries(['listings', { status }])
       }
     }
   )
@@ -188,12 +214,32 @@ export default function Listings() {
   const updateStrategyMutation = useMutation(
     ({ listingId, strategy }) => listingsAPI.updateListing(listingId, { reduction_strategy: strategy }),
     {
+      onMutate: async ({ listingId, strategy }) => {
+        await queryClient.cancelQueries(['listings', { status }])
+        const previousListings = queryClient.getQueryData(['listings', { status }])
+
+        queryClient.setQueryData(['listings', { status }], (old) => {
+          if (!old) return old
+          return old.map(listing =>
+            listing.id === listingId
+              ? { ...listing, reduction_strategy: strategy }
+              : listing
+          )
+        })
+
+        return { previousListings }
+      },
       onSuccess: () => {
         showNotification('success', 'Strategy updated')
-        queryClient.invalidateQueries('listings')
       },
-      onError: (error) => {
+      onError: (error, variables, context) => {
+        if (context?.previousListings) {
+          queryClient.setQueryData(['listings', { status }], context.previousListings)
+        }
         showNotification('error', error.message || 'Failed to update strategy')
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries(['listings', { status }])
       }
     }
   )
@@ -201,12 +247,32 @@ export default function Listings() {
   const togglePriceReductionMutation = useMutation(
     ({ listingId, enabled }) => listingsAPI.updateListing(listingId, { price_reduction_enabled: enabled }),
     {
+      onMutate: async ({ listingId, enabled }) => {
+        await queryClient.cancelQueries(['listings', { status }])
+        const previousListings = queryClient.getQueryData(['listings', { status }])
+
+        queryClient.setQueryData(['listings', { status }], (old) => {
+          if (!old) return old
+          return old.map(listing =>
+            listing.id === listingId
+              ? { ...listing, price_reduction_enabled: enabled }
+              : listing
+          )
+        })
+
+        return { previousListings }
+      },
       onSuccess: (data, { enabled }) => {
         showNotification('success', `Price reduction ${enabled ? 'enabled' : 'disabled'}`)
-        queryClient.invalidateQueries('listings')
       },
-      onError: (error) => {
+      onError: (error, variables, context) => {
+        if (context?.previousListings) {
+          queryClient.setQueryData(['listings', { status }], context.previousListings)
+        }
         showNotification('error', error.message || 'Failed to update price reduction status')
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries(['listings', { status }])
       }
     }
   )
@@ -227,15 +293,44 @@ export default function Listings() {
       return listingsAPI.updateListing(listingId, updates);
     },
     {
+      onMutate: async ({ listingId, suggestedPrice, priceType }) => {
+        await queryClient.cancelQueries(['listings', { status }])
+        const previousListings = queryClient.getQueryData(['listings', { status }])
+
+        const updates = priceType === 'average'
+          ? {
+              current_price: suggestedPrice,
+              minimum_price: suggestedPrice * 0.8
+            }
+          : {
+              minimum_price: suggestedPrice
+            };
+
+        queryClient.setQueryData(['listings', { status }], (old) => {
+          if (!old) return old
+          return old.map(listing =>
+            listing.id === listingId
+              ? { ...listing, ...updates }
+              : listing
+          )
+        })
+
+        return { previousListings }
+      },
       onSuccess: (data, { suggestedPrice, priceType }) => {
         const message = priceType === 'average'
           ? `Current price updated to $${suggestedPrice.toFixed(2)} (min: $${(suggestedPrice * 0.8).toFixed(2)})`
           : `Minimum price set to $${suggestedPrice.toFixed(2)}`;
         showNotification('success', message)
-        queryClient.invalidateQueries('listings')
       },
-      onError: (error) => {
+      onError: (error, variables, context) => {
+        if (context?.previousListings) {
+          queryClient.setQueryData(['listings', { status }], context.previousListings)
+        }
         showNotification('error', error.message || 'Failed to update price')
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries(['listings', { status }])
       }
     }
   )
@@ -535,7 +630,7 @@ export default function Listings() {
       }
       return 0
     })
-  }, [listings, sortConfig, searchTerm, filters])
+  }, [listings, sortConfig, searchTerm, filters, strategies])
 
   // Pagination calculations
   const totalItems = sortedAndFilteredListings.length
