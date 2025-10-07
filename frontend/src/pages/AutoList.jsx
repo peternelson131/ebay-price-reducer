@@ -425,6 +425,14 @@ export default function AutoList() {
             aspects['Brand'] = [listing.brand]
           }
 
+          // Debug logging
+          console.log('📦 Creating listing with aspects:', {
+            sku: listing.sku,
+            hasEbayDraft: !!listing.ebayDraft,
+            aspectsKeys: Object.keys(aspects),
+            aspects: aspects
+          })
+
           const result = await listingsAPI.createListing({
             title: listing.listingTitle,
             description: listing.listingDescription,
