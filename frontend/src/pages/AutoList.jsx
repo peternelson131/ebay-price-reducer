@@ -54,11 +54,14 @@ export default function AutoList() {
       // Fetch product data from Keepa API for each ASIN
       const keepaPromises = asinList.map(async (asin, index) => {
         try {
-          // Call our Netlify function to get Keepa data with authentication
-          const response = await fetch(`/.netlify/functions/keepa-api?action=product&asin=${asin}`, {
+          // Call keepa-fetch-product endpoint for enhanced field mapping
+          const response = await fetch(`/.netlify/functions/keepa-fetch-product`, {
+            method: 'POST',
             headers: {
-              'Authorization': `Bearer ${session.access_token}`
-            }
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ asin })
           })
 
           if (!response.ok) {
@@ -71,7 +74,8 @@ export default function AutoList() {
             throw new Error(data.message || `No data found for ASIN ${asin}`)
           }
 
-          const product = data.product
+          const product = data.keepaData
+          const ebayDraft = data.ebayDraft // This has all enhanced aspects!
 
           // Extract price from Keepa stats.current array
           // Index 1 = Amazon price, Index 4 = Buy Box price (prices in cents)
@@ -100,7 +104,8 @@ export default function AutoList() {
             suggestedPrice: null,
             category: product.categoryTree?.[0]?.name || 'Unknown',
             brand: product.brand || '',
-            imageUrl: product.imagesCSV?.split(',')[0] || ''
+            imageUrl: product.imagesCSV?.split(',')[0] || '',
+            ebayDraft: ebayDraft // Include the enhanced eBay draft with all aspects
           }
         } catch (error) {
           console.error(`Error processing ASIN ${asin}:`, error)
@@ -414,9 +419,9 @@ export default function AutoList() {
               )
             : []
 
-          // Prepare aspects with brand if available
-          const aspects = {}
-          if (listing.brand) {
+          // Use enhanced aspects from ebayDraft if available, otherwise fallback to brand only
+          const aspects = listing.ebayDraft?.aspects || {}
+          if (!aspects.Brand && listing.brand) {
             aspects['Brand'] = [listing.brand]
           }
 
@@ -428,7 +433,7 @@ export default function AutoList() {
             sku: listing.sku,
             condition: listing.condition,
             images: images,
-            aspects: aspects
+            aspects: aspects // Now includes all enhanced aspects from Keepa!
           })
 
           results.push({
