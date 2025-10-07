@@ -326,6 +326,12 @@ function extractAspectsFromText(text) {
     aspects.Fit = ['Athletic'];
   }
 
+  // Color extraction from text (common colors)
+  const colorMatch = text.match(/\b(black|white|blue|red|green|yellow|orange|purple|pink|brown|gray|grey|beige|navy|light\s+\w+|dark\s+\w+)\b/i);
+  if (colorMatch) {
+    aspects.Color = [colorMatch[0]];
+  }
+
   return aspects;
 }
 
