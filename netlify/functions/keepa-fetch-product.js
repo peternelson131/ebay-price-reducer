@@ -93,7 +93,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const keepaUrl = `https://api.keepa.com/product?key=${keepaApiKey}&domain=1&asin=${asin}&stats=30`;
+    const keepaUrl = `https://api.keepa.com/product?key=${keepaApiKey}&domain=1&asin=${asin}&stats=1`;
 
     console.log(`Fetching Keepa data for ASIN: ${asin}`);
     const keepaResponse = await fetch(keepaUrl);
@@ -103,7 +103,22 @@ exports.handler = async (event, context) => {
     if (!keepaResponse.ok) {
       const errorText = await keepaResponse.text();
       console.error(`Keepa API error: ${keepaResponse.status} - ${errorText}`);
-      throw new Error(`Keepa API error: ${keepaResponse.status}`);
+      console.error(`Keepa URL (masked key): https://api.keepa.com/product?key=***&domain=1&asin=${asin}&stats=30`);
+
+      // Return more detailed error
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Keepa API request failed',
+          keepaStatus: keepaResponse.status,
+          keepaError: errorText,
+          asin: asin,
+          suggestion: keepaResponse.status === 400
+            ? 'Check if your Keepa API key is valid and has sufficient tokens'
+            : 'Keepa API is unavailable'
+        })
+      };
     }
 
     const keepaData = await keepaResponse.json();
