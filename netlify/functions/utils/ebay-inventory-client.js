@@ -16,9 +16,11 @@ class EbayInventoryClient {
   }
 
   /**
-   * Make API call to eBay REST endpoints
+   * Make API call to eBay REST endpoints with retry logic
    */
-  async makeApiCall(endpoint, method = 'GET', data = null, apiFamily = 'inventory') {
+  async makeApiCall(endpoint, method = 'GET', data = null, apiFamily = 'inventory', attempt = 0) {
+    const MAX_RETRIES = 3;
+
     if (!this.accessToken) {
       throw new Error('Client not initialized. Call initialize() first.');
     }
@@ -48,6 +50,14 @@ class EbayInventoryClient {
     try {
       const response = await fetch(url, options);
 
+      // Retry on rate limit or server error
+      if ((response.status === 429 || response.status >= 500) && attempt < MAX_RETRIES) {
+        const backoffTime = Math.min(1000 * Math.pow(2, attempt), 10000); // Max 10 seconds
+        console.log(`⏳ Retrying after ${backoffTime}ms (attempt ${attempt + 1}/${MAX_RETRIES}) - Status: ${response.status}`);
+        await new Promise(resolve => setTimeout(resolve, backoffTime));
+        return this.makeApiCall(endpoint, method, data, apiFamily, attempt + 1);
+      }
+
       // Handle 204 No Content (successful PUT requests)
       if (response.status === 204) {
         return { success: true };
@@ -72,6 +82,14 @@ class EbayInventoryClient {
       return responseData;
 
     } catch (error) {
+      // Network error - retry
+      if (attempt < MAX_RETRIES && (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED')) {
+        const backoffTime = Math.min(1000 * Math.pow(2, attempt), 10000);
+        console.log(`⏳ Network error, retrying after ${backoffTime}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, backoffTime));
+        return this.makeApiCall(endpoint, method, data, apiFamily, attempt + 1);
+      }
+
       console.error(`eBay API call failed (${method} ${endpoint}):`, error);
       throw error;
     }

@@ -1,11 +1,85 @@
 const { getCorsHeaders } = require('./utils/cors');
 const { createClient } = require('@supabase/supabase-js');
 const { EbayInventoryClient } = require('./utils/ebay-inventory-client');
+const crypto = require('crypto');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+/**
+ * Comprehensive validation for listing data
+ */
+function validateListingData(data) {
+  const errors = [];
+
+  // Title
+  if (!data.title || typeof data.title !== 'string' || data.title.trim().length === 0) {
+    errors.push('Title must be a non-empty string');
+  } else if (data.title.length > 80) {
+    errors.push('Title must be 80 characters or less');
+  }
+
+  // Description
+  if (!data.description || typeof data.description !== 'string' || data.description.trim().length === 0) {
+    errors.push('Description must be a non-empty string');
+  }
+
+  // Price
+  const price = parseFloat(data.price);
+  if (isNaN(price) || price < 0 || price > 999999) {
+    errors.push('Price must be a number between 0 and 999999');
+  }
+
+  // Quantity
+  const quantity = parseInt(data.quantity, 10);
+  if (isNaN(quantity) || quantity < 0 || quantity > 10000) {
+    errors.push('Quantity must be a number between 0 and 10000');
+  }
+
+  // Images
+  if (!Array.isArray(data.images) || data.images.length === 0) {
+    errors.push('Images must be a non-empty array');
+  } else if (data.images.length > 12) {
+    errors.push('Maximum 12 images allowed (eBay limit)');
+  } else {
+    const invalidUrls = data.images.filter(url =>
+      typeof url !== 'string' || !url.match(/^https?:\/\/.+/)
+    );
+    if (invalidUrls.length > 0) {
+      errors.push('All image URLs must be valid HTTP(S) URLs');
+    }
+  }
+
+  // Condition (if provided)
+  if (data.condition && typeof data.condition !== 'string') {
+    errors.push('Condition must be a string');
+  }
+
+  // Minimum Price (if provided)
+  if (data.minimumPrice !== undefined) {
+    const minPrice = parseFloat(data.minimumPrice);
+    if (isNaN(minPrice) || minPrice < 0) {
+      errors.push('Minimum price must be a non-negative number');
+    } else if (!isNaN(price) && minPrice > price) {
+      errors.push('Minimum price cannot be higher than current price');
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Generate deterministic SKU for idempotency
+ */
+function generateDeterministicSku(userId, listingData) {
+  const hash = crypto.createHash('md5')
+    .update(`${userId}-${listingData.title}-${listingData.price}`)
+    .digest('hex')
+    .substring(0, 16);
+  return `SKU-${userId.substring(0, 8)}-${hash}`;
+}
 
 exports.handler = async (event, context) => {
   const headers = getCorsHeaders(event);
@@ -33,6 +107,15 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Validate Bearer token format
+    if (!authHeader.startsWith('Bearer ')) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Authorization header must use Bearer scheme' })
+      };
+    }
+
     const token = authHeader.substring(7);
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
@@ -44,61 +127,141 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 2. Parse request body
-    const listingData = JSON.parse(event.body);
+    // 2. Parse request body with error handling
+    let listingData;
+    try {
+      listingData = JSON.parse(event.body);
+    } catch (parseError) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid JSON in request body' })
+      };
+    }
 
     console.log('Creating eBay listing for user:', user.id, 'Data:', listingData);
 
-    // 3. Validate required fields
-    const requiredFields = ['title', 'description', 'price', 'quantity', 'images'];
-    for (const field of requiredFields) {
-      if (!listingData[field]) {
+    // 3. Comprehensive validation
+    const validationErrors = validateListingData(listingData);
+    if (validationErrors.length > 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Validation failed',
+          errors: validationErrors
+        })
+      };
+    }
+
+    // Parse and validate data once
+    const validatedData = {
+      title: listingData.title.substring(0, 80).trim(),
+      description: listingData.description.trim(),
+      price: parseFloat(listingData.price),
+      quantity: parseInt(listingData.quantity, 10),
+      images: listingData.images.slice(0, 12),
+      minimumPrice: listingData.minimumPrice
+        ? parseFloat(listingData.minimumPrice)
+        : parseFloat(listingData.price) * 0.5
+    }
+
+    // 4. Initialize eBay client with TokenError handling
+    console.log('Step 4: Initializing eBay client for user:', user.id);
+    const ebayClient = new EbayInventoryClient(user.id);
+
+    try {
+      await ebayClient.initialize();
+      console.log('✓ eBay client initialized successfully');
+    } catch (error) {
+      if (error.name === 'TokenError') {
         return {
-          statusCode: 400,
+          statusCode: 403,
           headers,
           body: JSON.stringify({
-            error: `Missing required field: ${field}`
+            error: error.message,
+            code: error.code,
+            action: error.action,
+            requiresUserAction: true
           })
         };
       }
+      throw error; // Re-throw for outer catch
     }
 
-    // 4. Initialize eBay client
-    console.log('Step 4: Initializing eBay client for user:', user.id);
-    const ebayClient = new EbayInventoryClient(user.id);
-    await ebayClient.initialize();
-
-    console.log('✓ eBay client initialized successfully');
-
-    // 5. Get category suggestions from title
+    // 5. Get category suggestions from title with validation
     let categoryId = listingData.categoryId;
     let categoryName = '';
 
     console.log('Step 5: Category detection - provided categoryId:', categoryId);
     if (!categoryId) {
-      console.log('Step 5a: Auto-suggesting category from title:', listingData.title);
-      const suggestions = await ebayClient.getCategorySuggestions(listingData.title);
+      console.log('Step 5a: Auto-suggesting category from title:', validatedData.title);
+      try {
+        const suggestions = await ebayClient.getCategorySuggestions(validatedData.title);
 
-      if (!suggestions.categorySuggestions || suggestions.categorySuggestions.length === 0) {
+        if (!suggestions?.categorySuggestions?.length) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({
+              error: 'Could not determine eBay category',
+              suggestion: 'Try a more descriptive title or manually select a category'
+            })
+          };
+        }
+
+        const bestMatch = suggestions.categorySuggestions[0];
+        if (!bestMatch?.category?.categoryId) {
+          throw new Error('Invalid category suggestion response format');
+        }
+
+        categoryId = bestMatch.category.categoryId;
+        categoryName = bestMatch.category.categoryName;
+
+        console.log(`Suggested category: ${categoryName} (${categoryId})`);
+      } catch (error) {
+        console.error('Category suggestion failed:', error);
         return {
           statusCode: 400,
           headers,
           body: JSON.stringify({
-            error: 'Could not determine eBay category. Please try a more descriptive title.'
+            error: 'Failed to determine category',
+            details: error.message,
+            solution: 'Please provide a categoryId in your request'
           })
         };
       }
-
-      const bestMatch = suggestions.categorySuggestions[0];
-      categoryId = bestMatch.category.categoryId;
-      categoryName = bestMatch.category.categoryName;
-
-      console.log(`Suggested category: ${categoryName} (${categoryId})`);
     }
 
-    // 6. Get required item aspects for category
+    // 6. Get required item aspects for category with validation
     console.log('Fetching item aspects for category:', categoryId);
-    const aspectsData = await ebayClient.getItemAspectsForCategory(categoryId);
+    let aspectsData;
+    try {
+      aspectsData = await ebayClient.getItemAspectsForCategory(categoryId);
+    } catch (error) {
+      console.error('Failed to fetch item aspects:', error);
+      return {
+        statusCode: 502,
+        headers,
+        body: JSON.stringify({
+          error: 'Failed to fetch category requirements from eBay',
+          categoryId: categoryId,
+          details: error.message
+        })
+      };
+    }
+
+    if (!aspectsData?.aspects) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Invalid aspects response from eBay',
+          categoryId: categoryId
+        })
+      };
+    }
+
     const requiredAspects = aspectsData.aspects.filter(a =>
       a.aspectConstraint?.aspectRequired === true
     );
@@ -174,22 +337,54 @@ exports.handler = async (event, context) => {
 
     console.log('✓ All required aspects satisfied:', Object.keys(providedAspects));
 
-    // 7.5. Get user's default settings
-    const { data: userData } = await supabase
+    // 7.5. Get user's default settings with error handling
+    const { data: userData, error: settingsError } = await supabase
       .from('users')
       .select('listing_settings')
       .eq('id', user.id)
       .single();
 
+    if (settingsError) {
+      console.error('Failed to load user settings:', settingsError);
+      // Non-fatal: continue with defaults but log warning
+    }
+
     const userSettings = userData?.listing_settings || {};
 
-    // 8. Get user's business policies
+    // 8. Get user's business policies with Promise.allSettled
     console.log('Fetching business policies');
-    const [fulfillmentPolicies, paymentPolicies, returnPolicies] = await Promise.all([
+    const [fulfillmentResult, paymentResult, returnResult] = await Promise.allSettled([
       ebayClient.getFulfillmentPolicies('EBAY_US'),
       ebayClient.getPaymentPolicies('EBAY_US'),
       ebayClient.getReturnPolicies('EBAY_US')
     ]);
+
+    const policyErrors = [];
+    if (fulfillmentResult.status === 'rejected') {
+      policyErrors.push({ policy: 'fulfillment', error: fulfillmentResult.reason.message });
+    }
+    if (paymentResult.status === 'rejected') {
+      policyErrors.push({ policy: 'payment', error: paymentResult.reason.message });
+    }
+    if (returnResult.status === 'rejected') {
+      policyErrors.push({ policy: 'return', error: returnResult.reason.message });
+    }
+
+    if (policyErrors.length > 0) {
+      return {
+        statusCode: 502,
+        headers,
+        body: JSON.stringify({
+          error: 'Failed to fetch business policies from eBay',
+          failedPolicies: policyErrors,
+          suggestion: 'Check your eBay API connection'
+        })
+      };
+    }
+
+    const fulfillmentPolicies = fulfillmentResult.value;
+    const paymentPolicies = paymentResult.value;
+    const returnPolicies = returnResult.value;
 
     // Check if user has policies
     if (!fulfillmentPolicies.fulfillmentPolicies?.length) {
@@ -271,8 +466,10 @@ exports.handler = async (event, context) => {
       throw error;
     }
 
-    // 10. Generate unique SKU
-    const sku = listingData.sku || `SKU-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // 10. Generate deterministic SKU for idempotency
+    const sku = listingData.sku ||
+                listingData.idempotencyKey ||
+                generateDeterministicSku(user.id, listingData);
 
     // 11. Create inventory item
     console.log('Step 11: Creating inventory item with SKU:', sku);
@@ -433,14 +630,14 @@ exports.handler = async (event, context) => {
       user_id: user.id,
       ebay_item_id: publishResponse.listingId,
       sku: sku,
-      title: listingData.title.substring(0, 80),
-      current_price: parseFloat(listingData.price),
-      original_price: parseFloat(listingData.price),
-      minimum_price: listingData.minimumPrice || parseFloat(listingData.price) * 0.5,
-      quantity: parseInt(listingData.quantity),
+      title: validatedData.title,
+      current_price: validatedData.price,
+      original_price: validatedData.price,
+      minimum_price: validatedData.minimumPrice,
+      quantity: validatedData.quantity,
       category_id: categoryId,
       category: categoryName,
-      image_urls: listingData.images,
+      image_urls: validatedData.images,
       listing_status: 'Active',
       start_time: new Date().toISOString()
     };
@@ -454,10 +651,30 @@ exports.handler = async (event, context) => {
       .select()
       .single();
 
+    // CRITICAL: Handle database save failure properly
     if (dbError) {
-      console.error('Database upsert error:', dbError);
-      // Listing created on eBay but failed to save locally
-      // Log for manual reconciliation
+      console.error('🔴 CRITICAL: Listing published but DB save failed:', {
+        listingId: publishResponse.listingId,
+        sku: sku,
+        userId: user.id,
+        error: dbError
+      });
+
+      return {
+        statusCode: 207, // Multi-Status
+        headers,
+        body: JSON.stringify({
+          partialSuccess: true,
+          ebayListingLive: true,
+          databaseSaveFailed: true,
+          listingId: publishResponse.listingId,
+          sku: sku,
+          viewUrl: `https://www.ebay.com/itm/${publishResponse.listingId}`,
+          action: 'CONTACT_SUPPORT_FOR_SYNC',
+          message: 'Listing is live on eBay but failed to save to your account. Please contact support with this listing ID to sync it.',
+          error: dbError.message
+        })
+      };
     }
 
     // 15. Return success response
@@ -490,15 +707,40 @@ exports.handler = async (event, context) => {
       fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
     });
 
+    // Classify errors for better error handling
+    if (error.name === 'TokenError') {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({
+          error: error.message,
+          code: error.code,
+          action: error.action,
+          requiresUserAction: true
+        })
+      };
+    }
+
+    if (error.ebayStatusCode) {
+      return {
+        statusCode: 502,
+        headers,
+        body: JSON.stringify({
+          error: 'eBay API error',
+          message: error.message,
+          ebayStatusCode: error.ebayStatusCode,
+          ebayError: error.ebayErrorResponse
+        })
+      };
+    }
+
+    // Generic server error
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         error: 'Failed to create eBay listing',
         message: error.message,
-        ebayErrorResponse: error.ebayErrorResponse || null,
-        ebayStatusCode: error.ebayStatusCode || null,
-        fullErrorMessage: error.toString(),
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       })
     };
