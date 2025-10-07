@@ -16,6 +16,8 @@ export default function AutoList() {
   const [loadingAsins, setLoadingAsins] = useState(false)
   const [sheetsUrl, setSheetsUrl] = useState('')
   const [loadingSheets, setLoadingSheets] = useState(false)
+  const [editablePrices, setEditablePrices] = useState({}) // Track edited prices by item ID
+  const [creationResults, setCreationResults] = useState(null) // Track success/failure for each listing
 
   const showNotification = (type, message) => {
     setNotification({ type, message })
@@ -93,7 +95,7 @@ export default function AutoList() {
             fnsku: '',
             title: product.title || `Product ${asin}`,
             quantity: 1, // Default quantity
-            condition: 'New', // Default condition
+            condition: 'NEW_OTHER', // Default: New Open Box
             originalPrice: currentPrice,
             suggestedPrice: null,
             category: product.categoryTree?.[0]?.name || 'Unknown',
@@ -110,7 +112,7 @@ export default function AutoList() {
             fnsku: '',
             title: `Product ${asin} (Data unavailable)`,
             quantity: 1,
-            condition: 'New',
+            condition: 'NEW_OTHER', // Default: New Open Box
             originalPrice: 0,
             suggestedPrice: null,
             category: 'Unknown',
@@ -212,7 +214,7 @@ export default function AutoList() {
           fnsku: rowData['fnsku'] || '',
           title: rowData['product name'] || rowData['title'] || rowData['product'] || '',
           quantity: parseInt(rowData['quantity'] || rowData['qty'] || 1),
-          condition: rowData['condition'] || 'New',
+          condition: rowData['condition'] || 'NEW_OTHER', // Default: New Open Box
           originalPrice: parseFloat(rowData['price'] || rowData['your price'] || 0),
           suggestedPrice: null,
           category: rowData['category'] || rowData['product category'] || '',
@@ -262,7 +264,7 @@ export default function AutoList() {
           fnsku: row['FNSKU'] || row['fnsku'] || '',
           title: row['Product Name'] || row['Title'] || row['Product'] || '',
           quantity: parseInt(row['Quantity'] || row['quantity'] || row['Qty'] || 1),
-          condition: row['Condition'] || row['condition'] || 'New',
+          condition: row['Condition'] || row['condition'] || 'NEW_OTHER', // Default: New Open Box
           originalPrice: parseFloat(row['Price'] || row['Your Price'] || 0),
           suggestedPrice: null,
           category: row['Category'] || row['Product Category'] || '',
@@ -334,10 +336,22 @@ export default function AutoList() {
   // Create optimized eBay title (max 80 chars)
   const createEbayTitle = (item) => {
     let title = `${item.brand ? item.brand + ' ' : ''}${item.title}`
-    if (item.condition !== 'New') {
+    // Don't add condition suffix for NEW_OTHER as it's the default
+    if (item.condition && item.condition !== 'NEW_OTHER' && item.condition !== 'New') {
       title += ` - ${item.condition}`
     }
-    return title.substring(0, 80)
+
+    // Trim to 80 chars without cutting words
+    if (title.length > 80) {
+      title = title.substring(0, 80)
+      // Find the last space before the 80-char limit
+      const lastSpace = title.lastIndexOf(' ')
+      if (lastSpace > 60) { // Only trim at word boundary if we don't lose too much
+        title = title.substring(0, lastSpace)
+      }
+    }
+
+    return title
   }
 
   // Map Amazon categories to eBay categories
@@ -382,12 +396,17 @@ export default function AutoList() {
     setSelectedItems(new Set())
   }
 
-  // Create eBay listings
+  // Create eBay listings with detailed tracking
   const createListingsMutation = useMutation(
     async (listings) => {
-      // This would call the actual eBay API
-      const results = await Promise.all(
-        listings.map(listing => {
+      const results = []
+
+      // Process listings sequentially to track individual success/failure
+      for (const listing of listings) {
+        try {
+          // Use edited price if available, otherwise use suggested price
+          const price = editablePrices[listing.id] || listing.suggestedPrice
+
           // Prepare image URLs
           const images = listing.imageUrl
             ? listing.imageUrl.split(',').map(img =>
@@ -401,35 +420,63 @@ export default function AutoList() {
             aspects['Brand'] = [listing.brand]
           }
 
-          return listingsAPI.createListing({
+          const result = await listingsAPI.createListing({
             title: listing.listingTitle,
             description: listing.listingDescription,
-            price: listing.suggestedPrice,
+            price: price,
             quantity: listing.quantity,
             sku: listing.sku,
-            // Don't send categoryId - let backend determine from title via eBay Taxonomy API
             condition: listing.condition,
             images: images,
             aspects: aspects
           })
-        })
-      )
+
+          results.push({
+            id: listing.id,
+            sku: listing.sku,
+            title: listing.listingTitle,
+            success: true,
+            result: result
+          })
+        } catch (error) {
+          results.push({
+            id: listing.id,
+            sku: listing.sku,
+            title: listing.listingTitle,
+            success: false,
+            error: error.message || 'Unknown error'
+          })
+        }
+      }
+
       return results
     },
     {
-      onSuccess: () => {
-        showNotification('success', 'Successfully created eBay listings!')
-        // Reset state
-        setExcelData([])
-        setProcessedData([])
-        setSelectedItems(new Set())
-        setStep(1)
+      onSuccess: (results) => {
+        const successful = results.filter(r => r.success).length
+        const failed = results.filter(r => !r.success).length
+
+        setCreationResults(results)
+
+        if (failed === 0) {
+          showNotification('success', `Successfully created all ${successful} eBay listings!`)
+        } else {
+          showNotification('warning', `Created ${successful} listings, ${failed} failed. See details below.`)
+        }
       },
       onError: (error) => {
         showNotification('error', `Failed to create listings: ${error.message}`)
       }
     }
   )
+
+  // Update price for a specific item
+  const handlePriceChange = (itemId, newPrice) => {
+    setEditablePrices(prev => ({
+      ...prev,
+      [itemId]: parseFloat(newPrice)
+    }))
+  }
 
   return (
     <div className="space-y-6">
@@ -880,42 +927,118 @@ Enter multiple ASINs, one per line"
               Review eBay Listings ({processedData.length} items)
             </h2>
 
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {processedData.map((item) => (
-                <div key={item.id} className="border rounded-lg p-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{item.listingTitle}</h3>
-                      <p className="text-sm text-gray-500 mt-1">SKU: {item.sku}</p>
-                      <p className="text-sm text-gray-500">Category: {item.ebayCategory}</p>
-                    </div>
-                    <div className="sm:text-right">
-                      <p className="text-2xl font-bold text-green-600">${item.suggestedPrice}</p>
-                      <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
-                      <p className="text-sm text-gray-500">Condition: {item.condition}</p>
+            {!creationResults && (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {processedData.map((item) => (
+                  <div key={item.id} className="border rounded-lg p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="font-medium text-gray-900">{item.listingTitle}</h3>
+                        <p className="text-sm text-gray-500 mt-1">SKU: {item.sku}</p>
+                        <p className="text-sm text-gray-500">Category: {item.ebayCategory}</p>
+                      </div>
+                      <div className="sm:text-right">
+                        <div className="flex items-center justify-end gap-2 mb-2">
+                          <label className="text-sm text-gray-600">Price:</label>
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              defaultValue={item.suggestedPrice}
+                              onChange={(e) => handlePriceChange(item.id, e.target.value)}
+                              className="w-28 pl-6 pr-2 py-1 border border-gray-300 rounded text-right font-bold text-green-600"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+                        <p className="text-sm text-gray-500">Condition: New Open Box</p>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+
+            {/* Creation Results */}
+            {creationResults && (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h3 className="font-medium text-blue-900 mb-2">Creation Summary</h3>
+                  <p className="text-sm text-blue-700">
+                    ✅ Successful: {creationResults.filter(r => r.success).length} listings<br/>
+                    ❌ Failed: {creationResults.filter(r => !r.success).length} listings
+                  </p>
                 </div>
-              ))}
-            </div>
+
+                {creationResults.map((result) => (
+                  <div key={result.id} className={`border rounded-lg p-4 ${
+                    result.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                  }`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          {result.success ? (
+                            <span className="text-green-600 font-bold">✓</span>
+                          ) : (
+                            <span className="text-red-600 font-bold">✗</span>
+                          )}
+                          <h3 className={`font-medium ${result.success ? 'text-green-900' : 'text-red-900'}`}>
+                            {result.title}
+                          </h3>
+                        </div>
+                        <p className={`text-sm mt-1 ${result.success ? 'text-green-700' : 'text-red-700'}`}>
+                          SKU: {result.sku}
+                        </p>
+                        {!result.success && (
+                          <p className="text-sm text-red-700 mt-2 bg-red-100 p-2 rounded">
+                            Error: {result.error}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="mt-6 flex flex-col sm:flex-row sm:justify-between gap-3">
-              <button
-                onClick={() => setStep(3)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 w-full sm:w-auto"
-              >
-                Back
-              </button>
-              <button
-                onClick={() => createListingsMutation.mutate(processedData)}
-                disabled={createListingsMutation.isLoading}
-                className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 w-full sm:w-auto"
-              >
-                {createListingsMutation.isLoading
-                  ? 'Creating Listings...'
-                  : `Create ${processedData.length} eBay Listings`
-                }
-              </button>
+              {!creationResults ? (
+                <>
+                  <button
+                    onClick={() => setStep(3)}
+                    disabled={createListingsMutation.isLoading}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 w-full sm:w-auto"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => createListingsMutation.mutate(processedData)}
+                    disabled={createListingsMutation.isLoading}
+                    className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 w-full sm:w-auto"
+                  >
+                    {createListingsMutation.isLoading
+                      ? 'Creating Listings...'
+                      : `Create ${processedData.length} eBay Listings`
+                    }
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    setCreationResults(null)
+                    setEditablePrices({})
+                    setExcelData([])
+                    setProcessedData([])
+                    setSelectedItems(new Set())
+                    setStep(1)
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto"
+                >
+                  Start Over
+                </button>
+              )}
             </div>
           </div>
         </div>
