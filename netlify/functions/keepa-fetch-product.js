@@ -140,13 +140,20 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('Keepa fetch error:', error);
+    console.error('❌ Keepa fetch error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    });
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         error: 'Failed to fetch product data',
-        message: error.message
+        message: error.message,
+        details: error.stack
       })
     };
   }
