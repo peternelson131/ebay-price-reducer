@@ -103,10 +103,12 @@ exports.handler = async (event, context) => {
       a.aspectConstraint?.aspectRequired === true
     );
 
-    console.log(`Found ${requiredAspects.length} required aspects`);
+    console.log(`Found ${requiredAspects.length} required aspects:`, requiredAspects.map(a => a.localizedAspectName));
 
     // 7. Validate and fix user provided required aspects
     const providedAspects = listingData.aspects || {};
+
+    console.log('Provided aspects:', Object.keys(providedAspects));
 
     // Fix Brand for LEGO categories (categoryName contains "LEGO")
     if (categoryName && categoryName.toUpperCase().includes('LEGO')) {
@@ -116,6 +118,29 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // Auto-fill common required aspects with defaults if missing
+    for (const aspect of requiredAspects) {
+      const aspectName = aspect.localizedAspectName;
+
+      if (!providedAspects[aspectName] || providedAspects[aspectName].length === 0) {
+        // Try to auto-fill common aspects
+        if (aspectName === 'Type' || aspectName === 'Product Type') {
+          providedAspects[aspectName] = ['Does not apply'];
+          console.log(`Auto-filled ${aspectName} with "Does not apply"`);
+        } else if (aspectName === 'Model' && !providedAspects[aspectName]) {
+          providedAspects[aspectName] = ['Unbranded'];
+          console.log(`Auto-filled Model with "Unbranded"`);
+        } else if (aspectName === 'MPN' || aspectName === 'Manufacturer Part Number') {
+          providedAspects[aspectName] = ['Does not apply'];
+          console.log(`Auto-filled ${aspectName} with "Does not apply"`);
+        } else if (aspectName === 'UPC' || aspectName === 'EAN') {
+          providedAspects[aspectName] = ['Does not apply'];
+          console.log(`Auto-filled ${aspectName} with "Does not apply"`);
+        }
+      }
+    }
+
+    // Check for still-missing required aspects
     const missingAspects = [];
 
     for (const aspect of requiredAspects) {
@@ -129,6 +154,7 @@ exports.handler = async (event, context) => {
     }
 
     if (missingAspects.length > 0) {
+      console.error('❌ Missing required aspects:', missingAspects.map(a => a.name));
       return {
         statusCode: 400,
         headers,
@@ -137,10 +163,16 @@ exports.handler = async (event, context) => {
           missingAspects: missingAspects.map(a => a.name),
           categoryId,
           categoryName,
-          allRequiredAspects: requiredAspects
+          allRequiredAspects: requiredAspects.map(a => ({
+            name: a.localizedAspectName,
+            required: true,
+            values: a.aspectValues?.map(v => v.localizedValue) || []
+          }))
         })
       };
     }
+
+    console.log('✓ All required aspects satisfied:', Object.keys(providedAspects));
 
     // 7.5. Get user's default settings
     const { data: userData } = await supabase
