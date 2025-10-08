@@ -81,6 +81,80 @@ function generateDeterministicSku(userId, listingData) {
   return `SKU-${userId.substring(0, 8)}-${hash}`;
 }
 
+/**
+ * Validate and auto-fill aspects using eBay's allowed values
+ * @param {Array} requiredAspects - Aspects from eBay API
+ * @param {Object} providedAspects - User-provided aspect values
+ * @returns {Object} - { aspects: validatedAspects, warnings: [] }
+ */
+function validateAndAutoFillAspects(requiredAspects, providedAspects = {}) {
+  const validatedAspects = { ...providedAspects };
+  const warnings = [];
+
+  for (const aspect of requiredAspects) {
+    const aspectName = aspect.localizedAspectName;
+    const allowedValues = aspect.aspectValues?.map(v => v.localizedValue) || [];
+    const constraint = aspect.aspectConstraint || {};
+
+    // Case 1: Aspect not provided by user
+    if (!validatedAspects[aspectName] || validatedAspects[aspectName].length === 0) {
+
+      // Try to find a sensible default from allowed values
+      let defaultValue = null;
+
+      // Priority 1: "Does not apply" or "Does Not Apply"
+      defaultValue = allowedValues.find(v =>
+        v.toLowerCase() === 'does not apply'
+      );
+
+      // Priority 2: "Unbranded" for Brand/Model
+      if (!defaultValue && ['Brand', 'Model'].includes(aspectName)) {
+        defaultValue = allowedValues.find(v =>
+          v.toLowerCase() === 'unbranded'
+        );
+      }
+
+      // Priority 3: "Regular" for size/fit aspects
+      if (!defaultValue && ['Size Type', 'Fit'].includes(aspectName)) {
+        defaultValue = allowedValues.find(v =>
+          v.toLowerCase() === 'regular'
+        );
+      }
+
+      // Fallback: Use first allowed value
+      if (!defaultValue && allowedValues.length > 0) {
+        defaultValue = allowedValues[0];
+        warnings.push(`Auto-filled ${aspectName} with first allowed value: "${defaultValue}"`);
+      }
+
+      if (defaultValue) {
+        validatedAspects[aspectName] = [defaultValue];
+        console.log(`✓ Auto-filled ${aspectName} with "${defaultValue}"`);
+      } else {
+        // No allowed values provided by eBay (rare)
+        console.warn(`⚠️ No auto-fill available for ${aspectName} - eBay provided no allowed values`);
+      }
+    }
+
+    // Case 2: Aspect provided by user - validate against allowed values
+    else if (allowedValues.length > 0) {
+      const userValues = validatedAspects[aspectName];
+      const invalidValues = userValues.filter(v => !allowedValues.includes(v));
+
+      if (invalidValues.length > 0) {
+        console.warn(`⚠️ Invalid values for ${aspectName}:`, invalidValues);
+        console.warn(`   Allowed values:`, allowedValues.slice(0, 10)); // Show first 10
+
+        // Use first allowed value as fallback
+        validatedAspects[aspectName] = [allowedValues[0]];
+        warnings.push(`Replaced invalid ${aspectName} values with "${allowedValues[0]}"`);
+      }
+    }
+  }
+
+  return { aspects: validatedAspects, warnings };
+}
+
 exports.handler = async (event, context) => {
   const headers = getCorsHeaders(event);
 
@@ -233,11 +307,26 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // 6. Get required item aspects for category with validation
+    // 6. Get required item aspects for category (WITH CACHING)
     console.log('Fetching item aspects for category:', categoryId);
     let aspectsData;
+    let cacheInfo;
+
     try {
-      aspectsData = await ebayClient.getItemAspectsForCategory(categoryId);
+      const result = await ebayClient.getCachedCategoryAspects(categoryId);
+      aspectsData = { aspects: result.aspects };
+      cacheInfo = {
+        fromCache: result.fromCache,
+        lastFetched: result.lastFetched
+      };
+
+      console.log(`✓ Aspects loaded (${result.fromCache ? 'from cache' : 'fresh from eBay'})`);
+
+      // Update category name in cache if we have it and fetched from API
+      if (categoryName && !result.fromCache) {
+        await ebayClient.updateCachedCategoryName(categoryId, categoryName);
+      }
+
     } catch (error) {
       console.error('Failed to fetch item aspects:', error);
       return {
@@ -268,71 +357,30 @@ exports.handler = async (event, context) => {
 
     console.log(`Found ${requiredAspects.length} required aspects:`, requiredAspects.map(a => a.localizedAspectName));
 
-    // 7. Validate and fix user provided required aspects
+    // 7. Validate and auto-fill aspects using eBay's allowed values (DYNAMIC - no hardcoding)
     const providedAspects = listingData.aspects || {};
 
     console.log('Provided aspects:', Object.keys(providedAspects));
 
-    // Fix Brand for LEGO categories (categoryName contains "LEGO")
-    if (categoryName && categoryName.toUpperCase().includes('LEGO')) {
-      if (providedAspects['Brand'] && !providedAspects['Brand'].includes('LEGO')) {
-        console.log(`Fixing Brand from ${providedAspects['Brand']} to LEGO for LEGO category`);
-        providedAspects['Brand'] = ['LEGO'];
-      }
+    // Use dynamic validation against eBay's aspectValues
+    const { aspects: validatedAspects, warnings } = validateAndAutoFillAspects(
+      requiredAspects,
+      providedAspects
+    );
+
+    if (warnings.length > 0) {
+      console.log('⚠️ Aspect validation warnings:', warnings);
     }
 
-    // Auto-fill common required aspects with defaults if missing
-    for (const aspect of requiredAspects) {
-      const aspectName = aspect.localizedAspectName;
-
-      if (!providedAspects[aspectName] || providedAspects[aspectName].length === 0) {
-        // Try to auto-fill common aspects with smart defaults
-
-        // Generic product aspects
-        if (aspectName === 'Type' || aspectName === 'Product Type') {
-          providedAspects[aspectName] = ['Does not apply'];
-          console.log(`Auto-filled ${aspectName} with "Does not apply"`);
-        } else if (aspectName === 'Model' && !providedAspects[aspectName]) {
-          providedAspects[aspectName] = ['Unbranded'];
-          console.log(`Auto-filled Model with "Unbranded"`);
-        } else if (aspectName === 'MPN' || aspectName === 'Manufacturer Part Number') {
-          providedAspects[aspectName] = ['Does not apply'];
-          console.log(`Auto-filled ${aspectName} with "Does not apply"`);
-        } else if (aspectName === 'UPC' || aspectName === 'EAN') {
-          providedAspects[aspectName] = ['Does not apply'];
-          console.log(`Auto-filled ${aspectName} with "Does not apply"`);
-        }
-
-        // Apparel/Clothing specific defaults
-        else if (aspectName === 'Size Type') {
-          providedAspects[aspectName] = ['Regular'];
-          console.log(`Auto-filled ${aspectName} with "Regular"`);
-        } else if (aspectName === 'Fit') {
-          providedAspects[aspectName] = ['Regular'];
-          console.log(`Auto-filled ${aspectName} with "Regular"`);
-        } else if (aspectName === 'Department') {
-          providedAspects[aspectName] = ['Unisex'];
-          console.log(`Auto-filled ${aspectName} with "Unisex"`);
-        } else if (aspectName === 'Sleeve Length') {
-          // Default to Short Sleeve if not detected
-          providedAspects[aspectName] = ['Short Sleeve'];
-          console.log(`Auto-filled ${aspectName} with "Short Sleeve"`);
-        }
-      }
-    }
-
-    // Check for still-missing required aspects
-    const missingAspects = [];
-
-    for (const aspect of requiredAspects) {
-      const aspectName = aspect.localizedAspectName;
-      if (!providedAspects[aspectName] || providedAspects[aspectName].length === 0) {
-        missingAspects.push({
-          name: aspectName,
-          constraint: aspect.aspectConstraint
-        });
-      }
-    }
+    // Check for still-missing required aspects (edge case: no allowed values provided by eBay)
+    const missingAspects = requiredAspects
+      .filter(a => !validatedAspects[a.localizedAspectName] ||
+                   validatedAspects[a.localizedAspectName].length === 0)
+      .map(a => ({
+        name: a.localizedAspectName,
+        constraint: a.aspectConstraint,
+        allowedValues: a.aspectValues?.map(v => v.localizedValue).slice(0, 20) || []
+      }));
 
     if (missingAspects.length > 0) {
       console.error('❌ Missing required aspects:', missingAspects.map(a => a.name));
@@ -341,19 +389,15 @@ exports.handler = async (event, context) => {
         headers,
         body: JSON.stringify({
           error: 'Missing required product aspects',
-          missingAspects: missingAspects.map(a => a.name),
+          missingAspects: missingAspects,
           categoryId,
           categoryName,
-          allRequiredAspects: requiredAspects.map(a => ({
-            name: a.localizedAspectName,
-            required: true,
-            values: a.aspectValues?.map(v => v.localizedValue) || []
-          }))
+          suggestion: 'Please provide values for the required aspects'
         })
       };
     }
 
-    console.log('✓ All required aspects satisfied:', Object.keys(providedAspects));
+    console.log('✓ All required aspects satisfied:', Object.keys(validatedAspects));
 
     // 7.5. Get user's default settings with error handling
     const { data: userData, error: settingsError } = await supabase
@@ -495,17 +539,24 @@ exports.handler = async (event, context) => {
     // Normalize condition to uppercase (eBay requires uppercase enum values)
     let condition = listingData.condition ||
                     userSettings.defaultCondition ||
-                    'NEW_OTHER'; // Default: New Open Box
+                    'NEW'; // Default: Brand New (safer for all categories)
 
     // Map common condition values to eBay enum
     const conditionMap = {
       'new': 'NEW',
+      'new_other': 'NEW_OTHER',
       'used': 'USED',
       'refurbished': 'REFURBISHED',
       'for parts': 'FOR_PARTS_OR_NOT_WORKING'
     };
 
     condition = conditionMap[condition.toLowerCase()] || condition.toUpperCase();
+
+    // Some categories don't accept NEW_OTHER, fall back to NEW
+    // (Pet Supplies, Educational Toys, etc.)
+    if (condition === 'NEW_OTHER') {
+      console.log(`⚠️ Using NEW_OTHER condition for category ${categoryId}`);
+    }
 
     const inventoryItemPayload = {
       availability: {
@@ -519,7 +570,7 @@ exports.handler = async (event, context) => {
         title: listingData.title.substring(0, 80), // eBay 80 char limit
         description: listingData.description,
         imageUrls: listingData.images.slice(0, 12), // eBay max 12 images
-        aspects: providedAspects
+        aspects: validatedAspects  // ✅ Using validated aspects (no hardcoded values)
       }
     };
 

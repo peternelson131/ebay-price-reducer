@@ -129,6 +129,87 @@ class EbayInventoryClient {
     return category;
   }
 
+  /**
+   * Get category aspects with database caching
+   * @param {string} categoryId - eBay category ID
+   * @param {boolean} forceRefresh - Force refresh from eBay API (skip cache)
+   * @returns {Object} - { aspects: [], fromCache: boolean, lastFetched: timestamp }
+   */
+  async getCachedCategoryAspects(categoryId, forceRefresh = false) {
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    if (!forceRefresh) {
+      // Check cache first
+      const { data: cached, error } = await supabase
+        .from('ebay_category_aspects')
+        .select('*')
+        .eq('category_id', categoryId)
+        .gt('expires_at', new Date().toISOString())  // Not expired
+        .single();
+
+      if (!error && cached) {
+        console.log(`✓ Using cached aspects for category ${categoryId} (expires: ${cached.expires_at})`);
+        return {
+          aspects: cached.aspects.aspects || cached.aspects,  // Handle nested structure
+          fromCache: true,
+          lastFetched: cached.last_fetched_at
+        };
+      }
+    }
+
+    // Cache miss or force refresh - fetch from eBay API
+    console.log(`⟳ Fetching fresh aspects from eBay API for category ${categoryId}`);
+    const aspectsData = await this.getItemAspectsForCategory(categoryId);
+
+    // Cache in database
+    const requiredAspectNames = aspectsData.aspects
+      ?.filter(a => a.aspectConstraint?.aspectRequired === true)
+      .map(a => a.localizedAspectName) || [];
+
+    await supabase
+      .from('ebay_category_aspects')
+      .upsert({
+        category_id: categoryId,
+        category_name: '',  // Will be updated by caller if available
+        aspects: aspectsData,
+        required_aspects: requiredAspectNames,
+        last_fetched_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()  // 7 days
+      }, {
+        onConflict: 'category_id'
+      });
+
+    console.log(`✓ Cached aspects for category ${categoryId} (expires in 7 days)`);
+
+    return {
+      aspects: aspectsData.aspects,
+      fromCache: false,
+      lastFetched: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Update cached category name
+   * @param {string} categoryId - eBay category ID
+   * @param {string} categoryName - Category name
+   */
+  async updateCachedCategoryName(categoryId, categoryName) {
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    await supabase
+      .from('ebay_category_aspects')
+      .update({ category_name: categoryName })
+      .eq('category_id', categoryId);
+  }
+
   // ============ ACCOUNT API (Business Policies) ============
 
   /**
