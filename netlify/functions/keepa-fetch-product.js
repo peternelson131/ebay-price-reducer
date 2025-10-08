@@ -97,7 +97,12 @@ exports.handler = async (event, context) => {
     const keepaUrl = `https://api.keepa.com/product?key=${keepaApiKey}&domain=1&asin=${asin}`;
 
     console.log(`Fetching Keepa data for ASIN: ${asin}`);
-    const keepaResponse = await fetch(keepaUrl);
+    const keepaResponse = await fetch(keepaUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'eBay-Price-Reducer/1.0'
+      }
+    });
 
     console.log(`Keepa API response status: ${keepaResponse.status}`);
 
