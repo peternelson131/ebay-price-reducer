@@ -99,7 +99,7 @@ export default function AutoList() {
             fnsku: '',
             title: product.title || `Product ${asin}`,
             quantity: 1, // Default quantity
-            condition: 'NEW_OTHER', // Default: New Open Box
+            condition: 'NEW', // Default: Brand New
             originalPrice: currentPrice,
             suggestedPrice: null,
             category: product.categoryTree?.[0]?.name || 'Unknown',
@@ -117,7 +117,7 @@ export default function AutoList() {
             fnsku: '',
             title: `Product ${asin} (Data unavailable)`,
             quantity: 1,
-            condition: 'NEW_OTHER', // Default: New Open Box
+            condition: 'NEW', // Default: Brand New
             originalPrice: 0,
             suggestedPrice: null,
             category: 'Unknown',
@@ -219,7 +219,7 @@ export default function AutoList() {
           fnsku: rowData['fnsku'] || '',
           title: rowData['product name'] || rowData['title'] || rowData['product'] || '',
           quantity: parseInt(rowData['quantity'] || rowData['qty'] || 1),
-          condition: rowData['condition'] || 'NEW_OTHER', // Default: New Open Box
+          condition: rowData['condition'] || 'NEW', // Default: Brand New
           originalPrice: parseFloat(rowData['price'] || rowData['your price'] || 0),
           suggestedPrice: null,
           category: rowData['category'] || rowData['product category'] || '',
@@ -269,7 +269,7 @@ export default function AutoList() {
           fnsku: row['FNSKU'] || row['fnsku'] || '',
           title: row['Product Name'] || row['Title'] || row['Product'] || '',
           quantity: parseInt(row['Quantity'] || row['quantity'] || row['Qty'] || 1),
-          condition: row['Condition'] || row['condition'] || 'NEW_OTHER', // Default: New Open Box
+          condition: row['Condition'] || row['condition'] || 'NEW', // Default: Brand New
           originalPrice: parseFloat(row['Price'] || row['Your Price'] || 0),
           suggestedPrice: null,
           category: row['Category'] || row['Product Category'] || '',
