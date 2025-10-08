@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const crypto = require('crypto');
 const { getCorsHeaders } = require('./utils/cors');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -6,6 +7,24 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
+
+function decryptApiKey(encryptedKey) {
+  if (!ENCRYPTION_KEY || !encryptedKey) return null;
+  try {
+    const parts = encryptedKey.split(':');
+    const iv = Buffer.from(parts.shift(), 'hex');
+    const encrypted = Buffer.from(parts.join(':'), 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
+    let decrypted = decipher.update(encrypted);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
+  } catch (error) {
+    console.error('Decryption error:', error);
+    return null;
+  }
+}
 
 exports.handler = async (event, context) => {
   const headers = getCorsHeaders(event);
@@ -82,8 +101,8 @@ exports.handler = async (event, context) => {
       throw new Error('Failed to retrieve user data');
     }
 
-    const keepaApiKey = userData?.keepa_api_key;
-    if (!keepaApiKey) {
+    const encryptedKey = userData?.keepa_api_key;
+    if (!encryptedKey) {
       return {
         statusCode: 400,
         headers,
@@ -93,10 +112,24 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Decrypt the API key
+    const keepaApiKey = decryptApiKey(encryptedKey);
+    if (!keepaApiKey) {
+      console.error('Failed to decrypt Keepa API key');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Failed to decrypt Keepa API key. Please re-save your API key in settings.'
+        })
+      };
+    }
+
     // Remove stats parameter - try minimal request first
     const keepaUrl = `https://api.keepa.com/product?key=${keepaApiKey}&domain=1&asin=${asin}`;
 
     console.log(`Fetching Keepa data for ASIN: ${asin}`);
+    console.log(`Keepa URL (masked): https://api.keepa.com/product?key=${keepaApiKey.substring(0, 8)}...&domain=1&asin=${asin}`);
     const keepaResponse = await fetch(keepaUrl, {
       headers: {
         'Accept': 'application/json',
