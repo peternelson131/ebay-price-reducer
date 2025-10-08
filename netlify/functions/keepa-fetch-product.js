@@ -244,13 +244,21 @@ function transformKeepaToEbay(keepaProduct) {
   // Extract item specifics/aspects
   const aspects = buildAspects(keepaProduct);
 
+  // Trim all aspect values to eBay's 65 character limit
+  const trimmedAspects = {};
+  for (const [key, values] of Object.entries(aspects)) {
+    if (Array.isArray(values)) {
+      trimmedAspects[key] = values.map(v => v.substring(0, 65));
+    }
+  }
+
   return {
     title: keepaProduct.title ? keepaProduct.title.substring(0, 80) : '', // eBay 80 char limit
     description: description,
     brand: keepaProduct.brand || '',
     model: keepaProduct.model || '',
     images: images, // Include all images (eBay accepts up to 12)
-    aspects: aspects,
+    aspects: trimmedAspects,
     // These will be set by user:
     // - price
     // - quantity
