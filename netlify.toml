@@ -24,6 +24,4 @@
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://api.ebay.com https://api.sandbox.ebay.com; img-src 'self' data: https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';"
 
 # Scheduled function to refresh popular category aspects daily
-[[functions]]
-  name = "scheduled-aspect-refresh"
-  schedule = "0 2 * * *"  # Daily at 2 AM UTC
+# Configured in Netlify UI: scheduled-aspect-refresh runs daily at 2 AM UTC
