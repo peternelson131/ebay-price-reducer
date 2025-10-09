@@ -50,7 +50,7 @@ exports.handler = async (event, context) => {
         return: []
       };
 
-      // Only fetch policies if eBay is connected
+      // Optionally fetch policies if eBay is connected (for reference only)
       if (ebayConnected) {
         try {
           const ebayClient = new EbayInventoryClient(user.id);
@@ -69,7 +69,7 @@ exports.handler = async (event, context) => {
           };
         } catch (ebayError) {
           console.error('Error fetching eBay policies:', ebayError);
-          // Continue without policies - user can still configure location/condition
+          // Continue without policies - user can manually enter policy IDs
         }
       }
 
@@ -81,7 +81,7 @@ exports.handler = async (event, context) => {
           settingsUpdatedAt: userData.settings_updated_at || null,
           ebayConnected: ebayConnected,
           availablePolicies: availablePolicies,
-          requiresEbayConnection: !ebayConnected
+          requiresEbayConnection: false // Changed to false - eBay connection not required for manual entry
         })
       };
     }
@@ -138,12 +138,8 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'PUT') {
       const listingSettings = JSON.parse(event.body);
 
-      // Initialize eBay client for policy validation
-      const ebayClient = new EbayInventoryClient(user.id);
-      await ebayClient.initialize();
-
-      // Validate settings
-      const validator = new SettingsValidator(ebayClient);
+      // Basic validation without requiring eBay connection
+      const validator = new SettingsValidator(null); // Pass null - we'll skip eBay API validation
       const validationResult = await validator.validateAllSettings(listingSettings);
 
       if (!validationResult.valid) {
@@ -158,9 +154,13 @@ exports.handler = async (event, context) => {
         };
       }
 
+      // Save settings to database - no eBay validation required
       const { data, error } = await supabase
         .from('users')
-        .update({ listing_settings: listingSettings })
+        .update({
+          listing_settings: listingSettings,
+          settings_updated_at: new Date().toISOString()
+        })
         .eq('id', user.id)
         .select('listing_settings, settings_updated_at')
         .single();
@@ -175,7 +175,8 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({
           success: true,
           settings: data.listing_settings,
-          settingsUpdatedAt: data.settings_updated_at
+          settingsUpdatedAt: data.settings_updated_at,
+          message: 'Settings saved successfully'
         })
       };
     }

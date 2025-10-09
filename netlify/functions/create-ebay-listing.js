@@ -425,85 +425,34 @@ exports.handler = async (event, context) => {
 
     const userSettings = userData?.listing_settings || {};
 
-    // 8. Get user's business policies with Promise.allSettled
-    console.log('Fetching business policies');
-    const [fulfillmentResult, paymentResult, returnResult] = await Promise.allSettled([
-      ebayClient.getFulfillmentPolicies('EBAY_US'),
-      ebayClient.getPaymentPolicies('EBAY_US'),
-      ebayClient.getReturnPolicies('EBAY_US')
-    ]);
+    // 8. Determine business policy IDs to use
+    // Priority: request data > user settings > error if none provided
+    console.log('Determining business policies to use');
 
-    const policyErrors = [];
-    if (fulfillmentResult.status === 'rejected') {
-      policyErrors.push({ policy: 'fulfillment', error: fulfillmentResult.reason.message });
-    }
-    if (paymentResult.status === 'rejected') {
-      policyErrors.push({ policy: 'payment', error: paymentResult.reason.message });
-    }
-    if (returnResult.status === 'rejected') {
-      policyErrors.push({ policy: 'return', error: returnResult.reason.message });
-    }
-
-    if (policyErrors.length > 0) {
-      return {
-        statusCode: 502,
-        headers,
-        body: JSON.stringify({
-          error: 'Failed to fetch business policies from eBay',
-          failedPolicies: policyErrors,
-          suggestion: 'Check your eBay API connection'
-        })
-      };
-    }
-
-    const fulfillmentPolicies = fulfillmentResult.value;
-    const paymentPolicies = paymentResult.value;
-    const returnPolicies = returnResult.value;
-
-    // Check if user has policies
-    if (!fulfillmentPolicies.fulfillmentPolicies?.length) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'No shipping policies found. Please create business policies in your eBay account.',
-          setupUrl: 'https://www.ebay.com/sh/mkt/businesspolicies'
-        })
-      };
-    }
-
-    if (!paymentPolicies.paymentPolicies?.length) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'No payment policies found. Please create business policies in your eBay account.',
-          setupUrl: 'https://www.ebay.com/sh/mkt/businesspolicies'
-        })
-      };
-    }
-
-    if (!returnPolicies.returnPolicies?.length) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'No return policies found. Please create business policies in your eBay account.',
-          setupUrl: 'https://www.ebay.com/sh/mkt/businesspolicies'
-        })
-      };
-    }
-
-    // Use user's default policies or first available
     const fulfillmentPolicyId = listingData.fulfillmentPolicyId ||
-                                 userSettings.defaultFulfillmentPolicyId ||
-                                 fulfillmentPolicies.fulfillmentPolicies[0].fulfillmentPolicyId;
+                                 userSettings.defaultFulfillmentPolicyId;
     const paymentPolicyId = listingData.paymentPolicyId ||
-                           userSettings.defaultPaymentPolicyId ||
-                           paymentPolicies.paymentPolicies[0].paymentPolicyId;
+                           userSettings.defaultPaymentPolicyId;
     const returnPolicyId = listingData.returnPolicyId ||
-                          userSettings.defaultReturnPolicyId ||
-                          returnPolicies.returnPolicies[0].returnPolicyId;
+                          userSettings.defaultReturnPolicyId;
+
+    // Validate that we have all required policies
+    const missingPolicies = [];
+    if (!fulfillmentPolicyId) missingPolicies.push('fulfillment/shipping');
+    if (!paymentPolicyId) missingPolicies.push('payment');
+    if (!returnPolicyId) missingPolicies.push('return');
+
+    if (missingPolicies.length > 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: `Missing required business policy IDs: ${missingPolicies.join(', ')}`,
+          solution: 'Please configure your default business policies in Listing Settings or provide them in the request',
+          settingsUrl: '/listing-settings'
+        })
+      };
+    }
 
     console.log('Using policies:', { fulfillmentPolicyId, paymentPolicyId, returnPolicyId });
 

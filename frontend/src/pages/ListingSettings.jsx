@@ -135,6 +135,25 @@ export default function ListingSettings() {
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Listing Creation Settings</h1>
 
+      {/* Info Message */}
+      {!ebayConnected && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <svg className="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <div className="ml-3">
+              <p className="text-sm text-blue-800">
+                You can configure your listing settings manually. Connect your eBay account to see available policies for reference.
+              </p>
+              <a href="/account?tab=integrations" className="text-sm text-blue-600 underline mt-2 inline-block">
+                Go to Account → Integrations to connect eBay
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Error Message */}
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -144,11 +163,6 @@ export default function ListingSettings() {
             </svg>
             <div className="ml-3">
               <p className="text-sm text-red-800">{error}</p>
-              {!ebayConnected && (
-                <a href="/account?tab=integrations" className="text-sm text-red-600 underline mt-2 inline-block">
-                  Go to Account → Integrations to connect eBay
-                </a>
-              )}
             </div>
           </div>
         </div>
@@ -170,7 +184,6 @@ export default function ListingSettings() {
             setValidationErrors({ ...validationErrors, defaultPaymentPolicyId: undefined });
           }}
           placeholder="e.g., 123456789012"
-          disabled={!ebayConnected}
         />
         {validationErrors.defaultPaymentPolicyId && (
           <p className="text-sm text-red-600 mt-1">
@@ -210,7 +223,6 @@ export default function ListingSettings() {
             setValidationErrors({ ...validationErrors, defaultFulfillmentPolicyId: undefined });
           }}
           placeholder="e.g., 123456789012"
-          disabled={!ebayConnected}
         />
         {validationErrors.defaultFulfillmentPolicyId && (
           <p className="text-sm text-red-600 mt-1">
@@ -250,7 +262,6 @@ export default function ListingSettings() {
             setValidationErrors({ ...validationErrors, defaultReturnPolicyId: undefined });
           }}
           placeholder="e.g., 123456789012"
-          disabled={!ebayConnected}
         />
         {validationErrors.defaultReturnPolicyId && (
           <p className="text-sm text-red-600 mt-1">
@@ -430,19 +441,21 @@ export default function ListingSettings() {
 
       {/* Action Buttons */}
       <div className="flex gap-3">
-        {/* Validation Check Button */}
-        <button
-          onClick={handleValidate}
-          disabled={loading || !ebayConnected}
-          className="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700 disabled:bg-gray-400"
-        >
-          {loading ? 'Checking...' : 'Validate Settings'}
-        </button>
+        {/* Validation Check Button - only show if eBay connected */}
+        {ebayConnected && (
+          <button
+            onClick={handleValidate}
+            disabled={loading}
+            className="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700 disabled:bg-gray-400"
+          >
+            {loading ? 'Checking...' : 'Validate Settings'}
+          </button>
+        )}
 
-        {/* Save Button */}
+        {/* Save Button - always enabled */}
         <button
           onClick={handleSave}
-          disabled={saving || !ebayConnected}
+          disabled={saving}
           className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
         >
           {saving ? 'Saving...' : 'Save Settings'}
