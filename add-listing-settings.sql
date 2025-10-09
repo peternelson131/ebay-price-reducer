@@ -13,6 +13,7 @@ COMMENT ON COLUMN users.listing_settings IS 'User preferences for eBay listing c
 --   "defaultPaymentPolicyId": "6786454000",
 --   "defaultReturnPolicyId": "6786458000",
 --   "defaultCondition": "NEW_OTHER",
+--   "skuPrefix": "PETE-",
 --   "defaultLocation": {
 --     "address": {
 --       "addressLine1": "123 Main St",

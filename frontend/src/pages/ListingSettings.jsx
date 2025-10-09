@@ -20,6 +20,7 @@ export default function ListingSettings() {
     postalCode: '',
     country: 'US'
   });
+  const [skuPrefix, setSkuPrefix] = useState('');
   const [ebayConnected, setEbayConnected] = useState(false);
 
   useEffect(() => {
@@ -38,6 +39,10 @@ export default function ListingSettings() {
 
       if (response.data.currentSettings?.defaultLocation?.address) {
         setLocation(response.data.currentSettings.defaultLocation.address);
+      }
+
+      if (response.data.currentSettings?.skuPrefix) {
+        setSkuPrefix(response.data.currentSettings.skuPrefix);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -65,6 +70,7 @@ export default function ListingSettings() {
         defaultPaymentPolicyId: settings.defaultPaymentPolicyId,
         defaultReturnPolicyId: settings.defaultReturnPolicyId,
         defaultCondition: settings.defaultCondition || 'NEW_OTHER',
+        skuPrefix: skuPrefix || '',
         defaultLocation: {
           address: location
         }
@@ -214,6 +220,28 @@ export default function ListingSettings() {
           <option value="USED_VERY_GOOD">Used - Very Good</option>
           <option value="USED_GOOD">Used - Good</option>
         </select>
+      </div>
+
+      {/* SKU Prefix Configuration */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-2">
+          SKU Prefix (Optional)
+        </label>
+        <input
+          type="text"
+          value={skuPrefix}
+          onChange={(e) => setSkuPrefix(e.target.value.toUpperCase())}
+          placeholder="PETE-"
+          maxLength={20}
+          className="w-full max-w-xs border rounded px-3 py-2"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          This prefix will appear at the beginning of all auto-generated SKUs.
+          Example: "PETE-a7b3c4d5-3f2a1b4c"
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          Leave blank to use default "SKU-" prefix.
+        </p>
       </div>
 
       {/* Shipping Location */}

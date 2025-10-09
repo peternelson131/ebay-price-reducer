@@ -340,7 +340,13 @@ export default function AutoList() {
 
   // Create optimized eBay title (max 80 chars)
   const createEbayTitle = (item) => {
-    let title = `${item.brand ? item.brand + ' ' : ''}${item.title}`
+    let title = item.title
+
+    // Only prepend brand if not already in title (case-insensitive check)
+    if (item.brand && !title.toLowerCase().startsWith(item.brand.toLowerCase())) {
+      title = `${item.brand} ${title}`
+    }
+
     // Don't add condition suffix for NEW_OTHER as it's the default
     if (item.condition && item.condition !== 'NEW_OTHER' && item.condition !== 'New') {
       title += ` - ${item.condition}`
@@ -837,8 +843,17 @@ Enter multiple ASINs, one per line"
                     <div>
                       <span className="text-gray-500">Original:</span> ${item.originalPrice}
                     </div>
-                    <div className="font-semibold text-green-600">
-                      <span className="text-gray-500">eBay:</span> ${calculateEbayPrice(item.originalPrice, item.condition)}
+                    <div className="font-semibold">
+                      <span className="text-gray-500">eBay:</span>{' '}
+                      {item.originalPrice > 0 ? (
+                        <span className="text-green-600">
+                          ${calculateEbayPrice(item.originalPrice, item.condition)}
+                        </span>
+                      ) : (
+                        <span className="text-amber-600">
+                          ⚠️ No price
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -879,6 +894,13 @@ Enter multiple ASINs, one per line"
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                       Suggested eBay Price
+                      <button
+                        type="button"
+                        className="ml-1 text-gray-400 hover:text-gray-600"
+                        title="Suggested price = Amazon price × condition multiplier (New: 1.2x, Like New: 1.1x, Used: 0.95x)"
+                      >
+                        ℹ️
+                      </button>
                     </th>
                   </tr>
                 </thead>
@@ -913,8 +935,16 @@ Enter multiple ASINs, one per line"
                         </span>
                       </td>
                       <td className="px-4 py-2 text-sm">${item.originalPrice}</td>
-                      <td className="px-4 py-2 text-sm font-semibold text-green-600">
-                        ${calculateEbayPrice(item.originalPrice, item.condition)}
+                      <td className="px-4 py-2 text-sm font-semibold">
+                        {item.originalPrice > 0 ? (
+                          <span className="text-green-600">
+                            ${calculateEbayPrice(item.originalPrice, item.condition)}
+                          </span>
+                        ) : (
+                          <span className="text-amber-600">
+                            ⚠️ No price data
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

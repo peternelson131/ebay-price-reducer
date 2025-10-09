@@ -73,12 +73,16 @@ function validateListingData(data) {
 /**
  * Generate deterministic SKU for idempotency
  */
-function generateDeterministicSku(userId, listingData) {
+function generateDeterministicSku(userId, listingData, userSettings = {}) {
   const hash = crypto.createHash('md5')
     .update(`${userId}-${listingData.title}-${listingData.price}`)
     .digest('hex')
     .substring(0, 16);
-  return `SKU-${userId.substring(0, 8)}-${hash}`;
+
+  // Use custom prefix if configured, otherwise use default
+  const prefix = userSettings.skuPrefix || 'SKU-';
+
+  return `${prefix}${userId.substring(0, 8)}-${hash}`;
 }
 
 /**
@@ -531,7 +535,7 @@ exports.handler = async (event, context) => {
     // 10. Generate deterministic SKU for idempotency
     const sku = listingData.sku ||
                 listingData.idempotencyKey ||
-                generateDeterministicSku(user.id, listingData);
+                generateDeterministicSku(user.id, listingData, userSettings);
 
     // 11. Create inventory item
     console.log('Step 11: Creating inventory item with SKU:', sku);
