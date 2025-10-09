@@ -34,7 +34,7 @@ exports.handler = async (event, context) => {
       // Get user's current settings
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('listing_settings, ebay_connection_status')
+        .select('listing_settings, ebay_connection_status, settings_updated_at')
         .eq('id', user.id)
         .single();
 
@@ -78,6 +78,7 @@ exports.handler = async (event, context) => {
         headers,
         body: JSON.stringify({
           currentSettings: userData.listing_settings || {},
+          settingsUpdatedAt: userData.settings_updated_at || null,
           ebayConnected: ebayConnected,
           availablePolicies: availablePolicies,
           requiresEbayConnection: false // Changed to false - eBay connection not required for manual entry
@@ -154,13 +155,14 @@ exports.handler = async (event, context) => {
       }
 
       // Save settings to database - no eBay validation required
+      // Note: settings_updated_at will be automatically updated by the trigger
       const { data, error } = await supabase
         .from('users')
         .update({
           listing_settings: listingSettings
         })
         .eq('id', user.id)
-        .select('listing_settings')
+        .select('listing_settings, settings_updated_at')
         .single();
 
       if (error) {
@@ -173,6 +175,7 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({
           success: true,
           settings: data.listing_settings,
+          settingsUpdatedAt: data.settings_updated_at,
           message: 'Settings saved successfully'
         })
       };
