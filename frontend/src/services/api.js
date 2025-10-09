@@ -2,6 +2,7 @@
 // Connects frontend to Netlify Functions backend
 
 import { logger } from '../utils/logger';
+import { supabase } from '../lib/supabase';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/.netlify/functions';
 
@@ -10,16 +11,26 @@ class ApiService {
     this.baseURL = API_BASE_URL;
   }
 
+  // Get authentication token from Supabase
+  async getAuthToken() {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  }
+
   // Helper method for making requests with retry logic
   async request(endpoint, options = {}, retries = 3) {
     const url = `${this.baseURL}${endpoint}`;
     let lastError;
+
+    // Get auth token
+    const token = await this.getAuthToken();
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const config = {
           headers: {
             'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
             ...options.headers,
           },
           ...options,
@@ -65,6 +76,37 @@ class ApiService {
 
     logger.error(`API Error for ${endpoint} after ${retries} retries:`, lastError);
     throw lastError;
+  }
+
+  // Generic HTTP methods
+  async get(endpoint, options = {}) {
+    return this.request(endpoint, {
+      method: 'GET',
+      ...options
+    });
+  }
+
+  async post(endpoint, data = null, options = {}) {
+    return this.request(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+      ...options
+    });
+  }
+
+  async put(endpoint, data = null, options = {}) {
+    return this.request(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+      ...options
+    });
+  }
+
+  async delete(endpoint, options = {}) {
+    return this.request(endpoint, {
+      method: 'DELETE',
+      ...options
+    });
   }
 
   // Authentication & User Management
@@ -180,6 +222,10 @@ const apiService = new ApiService();
 
 // Export individual methods for easier importing
 export const {
+  get,
+  post,
+  put,
+  delete: deleteMethod,
   testEbayConnection,
   getEbayListings,
   syncListings,
