@@ -157,9 +157,10 @@ export default function ListingSettings() {
       {/* Payment Policy */}
       <div className="mb-6">
         <label className="block text-sm font-medium mb-2">
-          Default Payment Policy
+          Default Payment Policy ID
         </label>
-        <select
+        <input
+          type="text"
           className={`w-full border rounded px-3 py-2 ${
             validationErrors.defaultPaymentPolicyId ? 'border-red-500' : ''
           }`}
@@ -168,35 +169,38 @@ export default function ListingSettings() {
             setSettings({ ...settings, defaultPaymentPolicyId: e.target.value });
             setValidationErrors({ ...validationErrors, defaultPaymentPolicyId: undefined });
           }}
-          disabled={!ebayConnected || availablePolicies.payment.length === 0}
-        >
-          <option value="">
-            {availablePolicies.payment.length === 0 ? 'No payment policies found' : 'Select payment policy...'}
-          </option>
-          {availablePolicies.payment.map(policy => (
-            <option key={policy.paymentPolicyId} value={policy.paymentPolicyId}>
-              {policy.name}
-            </option>
-          ))}
-        </select>
+          placeholder="e.g., 123456789012"
+          disabled={!ebayConnected}
+        />
         {validationErrors.defaultPaymentPolicyId && (
           <p className="text-sm text-red-600 mt-1">
             {validationErrors.defaultPaymentPolicyId}
           </p>
         )}
-        {availablePolicies.payment.length === 0 && ebayConnected && (
-          <p className="text-sm text-amber-600 mt-1">
-            Please create payment policies in your eBay account first.
-          </p>
+        <p className="text-xs text-gray-500 mt-1">
+          Find your policy IDs in eBay Seller Hub → Business Policies → Payment Policies
+        </p>
+        {availablePolicies.payment.length > 0 && (
+          <details className="mt-2">
+            <summary className="text-xs text-blue-600 cursor-pointer">Available policies</summary>
+            <ul className="text-xs text-gray-600 mt-1 ml-4 list-disc">
+              {availablePolicies.payment.map(policy => (
+                <li key={policy.paymentPolicyId}>
+                  {policy.name}: <code className="bg-gray-100 px-1 rounded">{policy.paymentPolicyId}</code>
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </div>
 
       {/* Shipping/Fulfillment Policy */}
       <div className="mb-6">
         <label className="block text-sm font-medium mb-2">
-          Default Shipping Policy
+          Default Shipping Policy ID
         </label>
-        <select
+        <input
+          type="text"
           className={`w-full border rounded px-3 py-2 ${
             validationErrors.defaultFulfillmentPolicyId ? 'border-red-500' : ''
           }`}
@@ -205,35 +209,38 @@ export default function ListingSettings() {
             setSettings({ ...settings, defaultFulfillmentPolicyId: e.target.value });
             setValidationErrors({ ...validationErrors, defaultFulfillmentPolicyId: undefined });
           }}
-          disabled={!ebayConnected || availablePolicies.fulfillment.length === 0}
-        >
-          <option value="">
-            {availablePolicies.fulfillment.length === 0 ? 'No shipping policies found' : 'Select shipping policy...'}
-          </option>
-          {availablePolicies.fulfillment.map(policy => (
-            <option key={policy.fulfillmentPolicyId} value={policy.fulfillmentPolicyId}>
-              {policy.name}
-            </option>
-          ))}
-        </select>
+          placeholder="e.g., 123456789012"
+          disabled={!ebayConnected}
+        />
         {validationErrors.defaultFulfillmentPolicyId && (
           <p className="text-sm text-red-600 mt-1">
             {validationErrors.defaultFulfillmentPolicyId}
           </p>
         )}
-        {availablePolicies.fulfillment.length === 0 && ebayConnected && (
-          <p className="text-sm text-amber-600 mt-1">
-            Please create shipping policies in your eBay account first.
-          </p>
+        <p className="text-xs text-gray-500 mt-1">
+          Find your policy IDs in eBay Seller Hub → Business Policies → Shipping Policies
+        </p>
+        {availablePolicies.fulfillment.length > 0 && (
+          <details className="mt-2">
+            <summary className="text-xs text-blue-600 cursor-pointer">Available policies</summary>
+            <ul className="text-xs text-gray-600 mt-1 ml-4 list-disc">
+              {availablePolicies.fulfillment.map(policy => (
+                <li key={policy.fulfillmentPolicyId}>
+                  {policy.name}: <code className="bg-gray-100 px-1 rounded">{policy.fulfillmentPolicyId}</code>
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </div>
 
       {/* Return Policy */}
       <div className="mb-6">
         <label className="block text-sm font-medium mb-2">
-          Default Return Policy
+          Default Return Policy ID
         </label>
-        <select
+        <input
+          type="text"
           className={`w-full border rounded px-3 py-2 ${
             validationErrors.defaultReturnPolicyId ? 'border-red-500' : ''
           }`}
@@ -242,26 +249,28 @@ export default function ListingSettings() {
             setSettings({ ...settings, defaultReturnPolicyId: e.target.value });
             setValidationErrors({ ...validationErrors, defaultReturnPolicyId: undefined });
           }}
-          disabled={!ebayConnected || availablePolicies.return.length === 0}
-        >
-          <option value="">
-            {availablePolicies.return.length === 0 ? 'No return policies found' : 'Select return policy...'}
-          </option>
-          {availablePolicies.return.map(policy => (
-            <option key={policy.returnPolicyId} value={policy.returnPolicyId}>
-              {policy.name}
-            </option>
-          ))}
-        </select>
+          placeholder="e.g., 123456789012"
+          disabled={!ebayConnected}
+        />
         {validationErrors.defaultReturnPolicyId && (
           <p className="text-sm text-red-600 mt-1">
             {validationErrors.defaultReturnPolicyId}
           </p>
         )}
-        {availablePolicies.return.length === 0 && ebayConnected && (
-          <p className="text-sm text-amber-600 mt-1">
-            Please create return policies in your eBay account first.
-          </p>
+        <p className="text-xs text-gray-500 mt-1">
+          Find your policy IDs in eBay Seller Hub → Business Policies → Return Policies
+        </p>
+        {availablePolicies.return.length > 0 && (
+          <details className="mt-2">
+            <summary className="text-xs text-blue-600 cursor-pointer">Available policies</summary>
+            <ul className="text-xs text-gray-600 mt-1 ml-4 list-disc">
+              {availablePolicies.return.map(policy => (
+                <li key={policy.returnPolicyId}>
+                  {policy.name}: <code className="bg-gray-100 px-1 rounded">{policy.returnPolicyId}</code>
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </div>
 

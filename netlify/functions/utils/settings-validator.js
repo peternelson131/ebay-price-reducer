@@ -220,7 +220,8 @@ class SettingsValidator {
       results.errors.defaultCondition = conditionResult.error;
     }
 
-    // Validate policy IDs (async)
+    // Validate policy IDs (async) - treat as warnings, not errors
+    // This allows users to manually enter policy IDs without blocking save
     if (this.ebayClient) {
       const [fulfillmentResult, paymentResult, returnResult] = await Promise.all([
         this.validateFulfillmentPolicyId(settings.defaultFulfillmentPolicyId),
@@ -229,18 +230,15 @@ class SettingsValidator {
       ]);
 
       if (!fulfillmentResult.valid) {
-        results.valid = false;
-        results.errors.defaultFulfillmentPolicyId = fulfillmentResult.error;
+        results.warnings.defaultFulfillmentPolicyId = fulfillmentResult.error;
       }
 
       if (!paymentResult.valid) {
-        results.valid = false;
-        results.errors.defaultPaymentPolicyId = paymentResult.error;
+        results.warnings.defaultPaymentPolicyId = paymentResult.error;
       }
 
       if (!returnResult.valid) {
-        results.valid = false;
-        results.errors.defaultReturnPolicyId = returnResult.error;
+        results.warnings.defaultReturnPolicyId = returnResult.error;
       }
     }
 
