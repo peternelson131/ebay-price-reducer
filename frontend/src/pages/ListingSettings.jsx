@@ -22,6 +22,7 @@ export default function ListingSettings() {
   });
   const [skuPrefix, setSkuPrefix] = useState('');
   const [ebayConnected, setEbayConnected] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
     fetchSettings();
@@ -64,6 +65,7 @@ export default function ListingSettings() {
     try {
       setSaving(true);
       setError(null);
+      setValidationErrors({});
 
       const newSettings = {
         defaultFulfillmentPolicyId: settings.defaultFulfillmentPolicyId,
@@ -80,9 +82,39 @@ export default function ListingSettings() {
       alert('Settings saved successfully!');
     } catch (error) {
       console.error('Error saving settings:', error);
-      setError('Failed to save settings. Please try again.');
+
+      if (error.response?.data?.validationErrors) {
+        setValidationErrors(error.response.data.validationErrors);
+        setError('Please fix the validation errors below.');
+      } else {
+        setError('Failed to save settings. Please try again.');
+      }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleValidate = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await api.get('/listing-settings/validate');
+
+      if (response.data.valid) {
+        alert('All settings are valid!');
+      } else {
+        const errorMessages = Object.entries(response.data.errors)
+          .map(([field, message]) => `- ${field}: ${message}`)
+          .join('\n');
+
+        setError(`Validation failed:\n${errorMessages}`);
+      }
+    } catch (error) {
+      console.error('Error validating settings:', error);
+      setError('Failed to validate settings. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -128,9 +160,14 @@ export default function ListingSettings() {
           Default Payment Policy
         </label>
         <select
-          className="w-full border rounded px-3 py-2"
+          className={`w-full border rounded px-3 py-2 ${
+            validationErrors.defaultPaymentPolicyId ? 'border-red-500' : ''
+          }`}
           value={settings.defaultPaymentPolicyId || ''}
-          onChange={(e) => setSettings({ ...settings, defaultPaymentPolicyId: e.target.value })}
+          onChange={(e) => {
+            setSettings({ ...settings, defaultPaymentPolicyId: e.target.value });
+            setValidationErrors({ ...validationErrors, defaultPaymentPolicyId: undefined });
+          }}
           disabled={!ebayConnected || availablePolicies.payment.length === 0}
         >
           <option value="">
@@ -142,6 +179,11 @@ export default function ListingSettings() {
             </option>
           ))}
         </select>
+        {validationErrors.defaultPaymentPolicyId && (
+          <p className="text-sm text-red-600 mt-1">
+            {validationErrors.defaultPaymentPolicyId}
+          </p>
+        )}
         {availablePolicies.payment.length === 0 && ebayConnected && (
           <p className="text-sm text-amber-600 mt-1">
             Please create payment policies in your eBay account first.
@@ -155,9 +197,14 @@ export default function ListingSettings() {
           Default Shipping Policy
         </label>
         <select
-          className="w-full border rounded px-3 py-2"
+          className={`w-full border rounded px-3 py-2 ${
+            validationErrors.defaultFulfillmentPolicyId ? 'border-red-500' : ''
+          }`}
           value={settings.defaultFulfillmentPolicyId || ''}
-          onChange={(e) => setSettings({ ...settings, defaultFulfillmentPolicyId: e.target.value })}
+          onChange={(e) => {
+            setSettings({ ...settings, defaultFulfillmentPolicyId: e.target.value });
+            setValidationErrors({ ...validationErrors, defaultFulfillmentPolicyId: undefined });
+          }}
           disabled={!ebayConnected || availablePolicies.fulfillment.length === 0}
         >
           <option value="">
@@ -169,6 +216,11 @@ export default function ListingSettings() {
             </option>
           ))}
         </select>
+        {validationErrors.defaultFulfillmentPolicyId && (
+          <p className="text-sm text-red-600 mt-1">
+            {validationErrors.defaultFulfillmentPolicyId}
+          </p>
+        )}
         {availablePolicies.fulfillment.length === 0 && ebayConnected && (
           <p className="text-sm text-amber-600 mt-1">
             Please create shipping policies in your eBay account first.
@@ -182,9 +234,14 @@ export default function ListingSettings() {
           Default Return Policy
         </label>
         <select
-          className="w-full border rounded px-3 py-2"
+          className={`w-full border rounded px-3 py-2 ${
+            validationErrors.defaultReturnPolicyId ? 'border-red-500' : ''
+          }`}
           value={settings.defaultReturnPolicyId || ''}
-          onChange={(e) => setSettings({ ...settings, defaultReturnPolicyId: e.target.value })}
+          onChange={(e) => {
+            setSettings({ ...settings, defaultReturnPolicyId: e.target.value });
+            setValidationErrors({ ...validationErrors, defaultReturnPolicyId: undefined });
+          }}
           disabled={!ebayConnected || availablePolicies.return.length === 0}
         >
           <option value="">
@@ -196,6 +253,11 @@ export default function ListingSettings() {
             </option>
           ))}
         </select>
+        {validationErrors.defaultReturnPolicyId && (
+          <p className="text-sm text-red-600 mt-1">
+            {validationErrors.defaultReturnPolicyId}
+          </p>
+        )}
         {availablePolicies.return.length === 0 && ebayConnected && (
           <p className="text-sm text-amber-600 mt-1">
             Please create return policies in your eBay account first.
@@ -209,9 +271,14 @@ export default function ListingSettings() {
           Default Condition
         </label>
         <select
-          className="w-full border rounded px-3 py-2"
+          className={`w-full border rounded px-3 py-2 ${
+            validationErrors.defaultCondition ? 'border-red-500' : ''
+          }`}
           value={settings.defaultCondition || 'NEW_OTHER'}
-          onChange={(e) => setSettings({ ...settings, defaultCondition: e.target.value })}
+          onChange={(e) => {
+            setSettings({ ...settings, defaultCondition: e.target.value });
+            setValidationErrors({ ...validationErrors, defaultCondition: undefined });
+          }}
         >
           <option value="NEW_OTHER">New Open Box</option>
           <option value="NEW">New</option>
@@ -220,6 +287,11 @@ export default function ListingSettings() {
           <option value="USED_VERY_GOOD">Used - Very Good</option>
           <option value="USED_GOOD">Used - Good</option>
         </select>
+        {validationErrors.defaultCondition && (
+          <p className="text-sm text-red-600 mt-1">
+            {validationErrors.defaultCondition}
+          </p>
+        )}
       </div>
 
       {/* SKU Prefix Configuration */}
@@ -230,11 +302,21 @@ export default function ListingSettings() {
         <input
           type="text"
           value={skuPrefix}
-          onChange={(e) => setSkuPrefix(e.target.value.toUpperCase())}
+          onChange={(e) => {
+            setSkuPrefix(e.target.value.toUpperCase());
+            setValidationErrors({ ...validationErrors, skuPrefix: undefined });
+          }}
           placeholder="PETE-"
           maxLength={20}
-          className="w-full max-w-xs border rounded px-3 py-2"
+          className={`w-full max-w-xs border rounded px-3 py-2 ${
+            validationErrors.skuPrefix ? 'border-red-500' : ''
+          }`}
         />
+        {validationErrors.skuPrefix && (
+          <p className="text-sm text-red-600 mt-1">
+            {validationErrors.skuPrefix}
+          </p>
+        )}
         <p className="text-xs text-gray-500 mt-1">
           This prefix will appear at the beginning of all auto-generated SKUs.
           Example: "PETE-a7b3c4d5-3f2a1b4c"
@@ -252,9 +334,14 @@ export default function ListingSettings() {
           <label className="block text-sm font-medium mb-1">Address Line 1</label>
           <input
             type="text"
-            className="w-full border rounded px-3 py-2"
+            className={`w-full border rounded px-3 py-2 ${
+              validationErrors.defaultLocation ? 'border-red-500' : ''
+            }`}
             value={location.addressLine1}
-            onChange={(e) => setLocation({ ...location, addressLine1: e.target.value })}
+            onChange={(e) => {
+              setLocation({ ...location, addressLine1: e.target.value });
+              setValidationErrors({ ...validationErrors, defaultLocation: undefined });
+            }}
             placeholder="123 Main St"
           />
         </div>
@@ -264,9 +351,14 @@ export default function ListingSettings() {
             <label className="block text-sm font-medium mb-1">City</label>
             <input
               type="text"
-              className="w-full border rounded px-3 py-2"
+              className={`w-full border rounded px-3 py-2 ${
+                validationErrors.defaultLocation ? 'border-red-500' : ''
+              }`}
               value={location.city}
-              onChange={(e) => setLocation({ ...location, city: e.target.value })}
+              onChange={(e) => {
+                setLocation({ ...location, city: e.target.value });
+                setValidationErrors({ ...validationErrors, defaultLocation: undefined });
+              }}
               placeholder="San Francisco"
             />
           </div>
@@ -274,9 +366,14 @@ export default function ListingSettings() {
             <label className="block text-sm font-medium mb-1">State</label>
             <input
               type="text"
-              className="w-full border rounded px-3 py-2"
+              className={`w-full border rounded px-3 py-2 ${
+                validationErrors.defaultLocation ? 'border-red-500' : ''
+              }`}
               value={location.stateOrProvince}
-              onChange={(e) => setLocation({ ...location, stateOrProvince: e.target.value })}
+              onChange={(e) => {
+                setLocation({ ...location, stateOrProvince: e.target.value });
+                setValidationErrors({ ...validationErrors, defaultLocation: undefined });
+              }}
               placeholder="CA"
             />
           </div>
@@ -287,9 +384,14 @@ export default function ListingSettings() {
             <label className="block text-sm font-medium mb-1">Postal Code</label>
             <input
               type="text"
-              className="w-full border rounded px-3 py-2"
+              className={`w-full border rounded px-3 py-2 ${
+                validationErrors.defaultLocation ? 'border-red-500' : ''
+              }`}
               value={location.postalCode}
-              onChange={(e) => setLocation({ ...location, postalCode: e.target.value })}
+              onChange={(e) => {
+                setLocation({ ...location, postalCode: e.target.value });
+                setValidationErrors({ ...validationErrors, defaultLocation: undefined });
+              }}
               placeholder="94105"
             />
           </div>
@@ -297,24 +399,46 @@ export default function ListingSettings() {
             <label className="block text-sm font-medium mb-1">Country</label>
             <input
               type="text"
-              className="w-full border rounded px-3 py-2"
+              className={`w-full border rounded px-3 py-2 ${
+                validationErrors.defaultLocation ? 'border-red-500' : ''
+              }`}
               value={location.country}
-              onChange={(e) => setLocation({ ...location, country: e.target.value })}
+              onChange={(e) => {
+                setLocation({ ...location, country: e.target.value });
+                setValidationErrors({ ...validationErrors, defaultLocation: undefined });
+              }}
               placeholder="US"
               maxLength="2"
             />
           </div>
         </div>
+        {validationErrors.defaultLocation && (
+          <p className="text-sm text-red-600 mt-2">
+            {validationErrors.defaultLocation}
+          </p>
+        )}
       </div>
 
-      {/* Save Button */}
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
-      >
-        {saving ? 'Saving...' : 'Save Settings'}
-      </button>
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        {/* Validation Check Button */}
+        <button
+          onClick={handleValidate}
+          disabled={loading || !ebayConnected}
+          className="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700 disabled:bg-gray-400"
+        >
+          {loading ? 'Checking...' : 'Validate Settings'}
+        </button>
+
+        {/* Save Button */}
+        <button
+          onClick={handleSave}
+          disabled={saving || !ebayConnected}
+          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+        >
+          {saving ? 'Saving...' : 'Save Settings'}
+        </button>
+      </div>
     </div>
   );
 }

@@ -355,6 +355,14 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Track category usage for aspect cache refresh prioritization
+    try {
+      await supabase.rpc('increment_category_usage', { cat_id: categoryId });
+    } catch (trackingError) {
+      // Non-fatal: log but continue
+      console.warn('Failed to track category usage:', trackingError.message);
+    }
+
     const requiredAspects = aspectsData.aspects.filter(a =>
       a.aspectConstraint?.aspectRequired === true
     );

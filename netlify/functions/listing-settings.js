@@ -1,6 +1,7 @@
 const { getCorsHeaders } = require('./utils/cors');
 const { createClient } = require('@supabase/supabase-js');
 const { EbayInventoryClient } = require('./utils/ebay-inventory-client');
+const { SettingsValidator } = require('./utils/settings-validator');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -33,7 +34,7 @@ exports.handler = async (event, context) => {
       // Get user's current settings
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('listing_settings, ebay_connection_status')
+        .select('listing_settings, ebay_connection_status, settings_updated_at')
         .eq('id', user.id)
         .single();
 
@@ -77,9 +78,58 @@ exports.handler = async (event, context) => {
         headers,
         body: JSON.stringify({
           currentSettings: userData.listing_settings || {},
+          settingsUpdatedAt: userData.settings_updated_at || null,
           ebayConnected: ebayConnected,
           availablePolicies: availablePolicies,
           requiresEbayConnection: !ebayConnected
+        })
+      };
+    }
+
+    // GET /listing-settings/validate - Validate current settings
+    if (event.httpMethod === 'GET' && event.path?.endsWith('/validate')) {
+      // Get user's current settings
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('listing_settings, ebay_connection_status')
+        .eq('id', user.id)
+        .single();
+
+      if (userError) {
+        throw userError;
+      }
+
+      // Check if eBay is connected
+      const ebayConnected = userData.ebay_connection_status === 'connected';
+      if (!ebayConnected) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: 'eBay account not connected',
+            requiresEbayConnection: true
+          })
+        };
+      }
+
+      // Initialize eBay client
+      const ebayClient = new EbayInventoryClient(user.id);
+      await ebayClient.initialize();
+
+      // Validate current settings
+      const validator = new SettingsValidator(ebayClient);
+      const validationResult = await validator.validateAllSettings(
+        userData.listing_settings || {}
+      );
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          valid: validationResult.valid,
+          errors: validationResult.errors,
+          warnings: validationResult.warnings,
+          settings: userData.listing_settings
         })
       };
     }
@@ -88,11 +138,31 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'PUT') {
       const listingSettings = JSON.parse(event.body);
 
+      // Initialize eBay client for policy validation
+      const ebayClient = new EbayInventoryClient(user.id);
+      await ebayClient.initialize();
+
+      // Validate settings
+      const validator = new SettingsValidator(ebayClient);
+      const validationResult = await validator.validateAllSettings(listingSettings);
+
+      if (!validationResult.valid) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: 'Invalid settings',
+            validationErrors: validationResult.errors,
+            validationWarnings: validationResult.warnings
+          })
+        };
+      }
+
       const { data, error } = await supabase
         .from('users')
         .update({ listing_settings: listingSettings })
         .eq('id', user.id)
-        .select('listing_settings')
+        .select('listing_settings, settings_updated_at')
         .single();
 
       if (error) {
@@ -104,7 +174,8 @@ exports.handler = async (event, context) => {
         headers,
         body: JSON.stringify({
           success: true,
-          settings: data.listing_settings
+          settings: data.listing_settings,
+          settingsUpdatedAt: data.settings_updated_at
         })
       };
     }
