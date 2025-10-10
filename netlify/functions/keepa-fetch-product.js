@@ -238,8 +238,9 @@ function transformKeepaToEbay(keepaProduct) {
     // Use new images array (preferred method) - get ALL size variants
     keepaProduct.images.forEach(imgObj => {
       if (imgObj) {
-        // Prioritize highest quality available: hiRes > large > medium > small
-        const imageVariant = imgObj.hiRes || imgObj.large || imgObj.medium || imgObj.small;
+        // Keepa API returns: l (large), m (medium)
+        // Prioritize large over medium for best quality
+        const imageVariant = imgObj.l || imgObj.m;
         if (imageVariant) {
           images.push(`https://m.media-amazon.com/images/I/${imageVariant}`);
         }
