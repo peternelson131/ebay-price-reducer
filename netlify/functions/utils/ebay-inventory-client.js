@@ -285,9 +285,16 @@ class EbayInventoryClient {
     try {
       // Try to get existing location
       const endpoint = `/location/${merchantLocationKey}`;
-      await this.makeApiCall(endpoint, 'GET', null, 'inventory');
+      const existingLocation = await this.makeApiCall(endpoint, 'GET', null, 'inventory');
       console.log('✓ Inventory location already exists:', merchantLocationKey);
-      return { exists: true, merchantLocationKey };
+
+      // UPDATE the existing location with new data (in case address changed)
+      console.log('Updating existing location with new address...');
+      console.log('PUT payload:', JSON.stringify(locationData, null, 2));
+      await this.makeApiCall(endpoint, 'POST', locationData, 'inventory');
+      console.log('✓ Location updated successfully');
+
+      return { exists: true, merchantLocationKey, updated: true };
     } catch (error) {
       // Location doesn't exist, create it
       if (error.ebayStatusCode === 404) {
