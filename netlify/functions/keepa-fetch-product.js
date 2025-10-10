@@ -125,11 +125,12 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Remove stats parameter - try minimal request first
-    const keepaUrl = `https://api.keepa.com/product?key=${keepaApiKey}&domain=1&asin=${asin}`;
+    // Add stats=0 to get full product data including description
+    // stats=0 gives us access to description, features, and other detailed product info
+    const keepaUrl = `https://api.keepa.com/product?key=${keepaApiKey}&domain=1&asin=${asin}&stats=0`;
 
     console.log(`Fetching Keepa data for ASIN: ${asin}`);
-    console.log(`Keepa URL (masked): https://api.keepa.com/product?key=${keepaApiKey.substring(0, 8)}...&domain=1&asin=${asin}`);
+    console.log(`Keepa URL (masked): https://api.keepa.com/product?key=${keepaApiKey.substring(0, 8)}...&domain=1&asin=${asin}&stats=0`);
     const keepaResponse = await fetch(keepaUrl, {
       headers: {
         'Accept': 'application/json',
@@ -142,7 +143,7 @@ exports.handler = async (event, context) => {
     if (!keepaResponse.ok) {
       const errorText = await keepaResponse.text();
       console.error(`Keepa API error: ${keepaResponse.status} - ${errorText}`);
-      console.error(`Keepa URL (masked key): https://api.keepa.com/product?key=***&domain=1&asin=${asin}&stats=30`);
+      console.error(`Keepa URL (masked key): https://api.keepa.com/product?key=***&domain=1&asin=${asin}&stats=0`);
 
       // Return more detailed error
       return {
@@ -217,14 +218,19 @@ exports.handler = async (event, context) => {
  * Transform Keepa product data to eBay-compatible format
  */
 function transformKeepaToEbay(keepaProduct) {
-  // Extract images - prefer new 'images' field over deprecated 'imagesCSV'
+  // Extract ALL available images - prefer new 'images' field over deprecated 'imagesCSV'
+  // Get all size variants, prioritizing higher quality (hiRes > large > medium > small)
   const images = [];
 
   if (keepaProduct.images && Array.isArray(keepaProduct.images)) {
-    // Use new images array (preferred method)
+    // Use new images array (preferred method) - get ALL size variants
     keepaProduct.images.forEach(imgObj => {
-      if (imgObj && imgObj.large) {
-        images.push(`https://m.media-amazon.com/images/I/${imgObj.large}`);
+      if (imgObj) {
+        // Prioritize highest quality available: hiRes > large > medium > small
+        const imageVariant = imgObj.hiRes || imgObj.large || imgObj.medium || imgObj.small;
+        if (imageVariant) {
+          images.push(`https://m.media-amazon.com/images/I/${imageVariant}`);
+        }
       }
     });
   } else if (keepaProduct.imagesCSV) {

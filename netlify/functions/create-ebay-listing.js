@@ -82,7 +82,10 @@ function generateDeterministicSku(userId, listingData, userSettings = {}) {
   // Use custom prefix if configured, otherwise use default
   const prefix = userSettings.skuPrefix || 'SKU-';
 
-  return `${prefix}${userId.substring(0, 8)}-${hash}`;
+  // Include ASIN in SKU if provided
+  const asinPart = listingData.asin ? `-${listingData.asin}` : '';
+
+  return `${prefix}${userId.substring(0, 8)}${asinPart}-${hash}`;
 }
 
 /**
@@ -501,7 +504,9 @@ exports.handler = async (event, context) => {
     }
 
     // 10. Generate deterministic SKU for idempotency
+    // Priority: request SKU > user settings default SKU > idempotency key > generated SKU
     const sku = listingData.sku ||
+                userSettings.defaultSku ||
                 listingData.idempotencyKey ||
                 generateDeterministicSku(user.id, listingData, userSettings);
 
