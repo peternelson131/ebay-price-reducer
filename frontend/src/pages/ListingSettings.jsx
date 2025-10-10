@@ -34,28 +34,21 @@ export default function ListingSettings() {
       setError(null);
       const response = await api.get('/listing-settings');
 
-      setSettings(response.data.currentSettings || {});
-      setAvailablePolicies(response.data.availablePolicies || {});
-      setEbayConnected(response.data.ebayConnected || false);
+      setSettings(response.currentSettings || {});
+      setAvailablePolicies(response.availablePolicies || {});
+      setEbayConnected(response.ebayConnected || false);
 
-      if (response.data.currentSettings?.defaultLocation?.address) {
-        setLocation(response.data.currentSettings.defaultLocation.address);
+      if (response.currentSettings?.defaultLocation?.address) {
+        setLocation(response.currentSettings.defaultLocation.address);
       }
 
-      if (response.data.currentSettings?.skuPrefix) {
-        setSkuPrefix(response.data.currentSettings.skuPrefix);
+      if (response.currentSettings?.skuPrefix) {
+        setSkuPrefix(response.currentSettings.skuPrefix);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
       // Don't show alert on initial load - just set error state
-      if (error.response?.status === 401) {
-        setError('Please connect your eBay account first.');
-      } else if (error.response?.data?.requiresEbayConnection) {
-        setError('Please connect your eBay account to configure listing settings.');
-        setEbayConnected(false);
-      } else {
-        setError('Unable to load settings. Please try again.');
-      }
+      setError('Unable to load settings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -83,8 +76,8 @@ export default function ListingSettings() {
     } catch (error) {
       console.error('Error saving settings:', error);
 
-      if (error.response?.data?.validationErrors) {
-        setValidationErrors(error.response.data.validationErrors);
+      if (error.validationErrors) {
+        setValidationErrors(error.validationErrors);
         setError('Please fix the validation errors below.');
       } else {
         setError('Failed to save settings. Please try again.');
@@ -101,10 +94,10 @@ export default function ListingSettings() {
 
       const response = await api.get('/listing-settings/validate');
 
-      if (response.data.valid) {
+      if (response.valid) {
         alert('All settings are valid!');
       } else {
-        const errorMessages = Object.entries(response.data.errors)
+        const errorMessages = Object.entries(response.errors)
           .map(([field, message]) => `- ${field}: ${message}`)
           .join('\n');
 
