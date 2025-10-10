@@ -179,6 +179,18 @@ exports.handler = async (event, context) => {
 
     const product = keepaData.products[0];
 
+    // DEBUG: Log raw Keepa product structure
+    console.log('🔍 RAW KEEPA PRODUCT STRUCTURE:', {
+      hasImages: !!product.images,
+      imagesType: Array.isArray(product.images) ? 'array' : typeof product.images,
+      imagesLength: product.images?.length || 0,
+      firstImageStructure: product.images?.[0] ? Object.keys(product.images[0]) : [],
+      firstImageSample: product.images?.[0],
+      hasImagesCSV: !!product.imagesCSV,
+      imagesCSVLength: product.imagesCSV?.length || 0,
+      imagesCSVSample: product.imagesCSV?.substring(0, 200)
+    });
+
     // 5. Transform to eBay-compatible format
     const ebayDraft = transformKeepaToEbay(product);
 
@@ -244,6 +256,16 @@ function transformKeepaToEbay(keepaProduct) {
     });
   }
 
+  // DEBUG: Log image extraction results
+  console.log('🔍 IMAGE EXTRACTION RESULTS:', {
+    extractedCount: images.length,
+    extractedImages: images,
+    usedImagesArray: !!keepaProduct.images,
+    usedImagesCSV: !!keepaProduct.imagesCSV && !keepaProduct.images,
+    imagesArrayLength: keepaProduct.images?.length || 0,
+    imagesCsvCount: keepaProduct.imagesCSV?.split(',').length || 0
+  });
+
   // Build description from Keepa data - use Amazon description directly
   const description = buildDescription(keepaProduct);
 
@@ -257,6 +279,12 @@ function transformKeepaToEbay(keepaProduct) {
       trimmedAspects[key] = values.map(v => v.substring(0, 65));
     }
   }
+
+  // DEBUG: Log final ebayDraft being returned
+  console.log('🔍 EBAY DRAFT IMAGES FINAL:', {
+    imageCount: images.length,
+    images: images
+  });
 
   return {
     title: keepaProduct.title ? keepaProduct.title.substring(0, 80) : '', // eBay 80 char limit

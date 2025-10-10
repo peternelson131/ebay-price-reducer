@@ -77,6 +77,20 @@ export default function AutoList() {
           const product = data.keepaData
           const ebayDraft = data.ebayDraft // This has all enhanced aspects!
 
+          // DEBUG: Log what we received from Keepa
+          console.log('🔍 KEEPA FETCH RESPONSE:', {
+            asin: asin,
+            hasEbayDraft: !!ebayDraft,
+            ebayDraftKeys: ebayDraft ? Object.keys(ebayDraft) : [],
+            hasImages: !!ebayDraft?.images,
+            imagesCount: ebayDraft?.images?.length || 0,
+            images: ebayDraft?.images || [],
+            firstImage: ebayDraft?.images?.[0],
+            descriptionLength: ebayDraft?.description?.length || 0,
+            hasKeepaDataImages: !!product.images,
+            keepaImagesCount: product.images?.length || 0
+          })
+
           // Extract price from Keepa stats.current array
           // Index 1 = Amazon price, Index 4 = Buy Box price (prices in cents)
           let currentPrice = 0
@@ -442,6 +456,7 @@ export default function AutoList() {
             sku: listing.sku,
             hasEbayDraft: !!listing.ebayDraft,
             imageCount: images.length,
+            images: images, // Show actual image URLs
             descriptionLength: description?.length || 0,
             aspectsKeys: Object.keys(aspects)
           })
