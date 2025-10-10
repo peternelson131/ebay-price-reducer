@@ -291,7 +291,7 @@ class EbayInventoryClient {
       // UPDATE the existing location with new data (in case address changed)
       console.log('Updating existing location with new address...');
       console.log('PUT payload:', JSON.stringify(locationData, null, 2));
-      await this.makeApiCall(endpoint, 'POST', locationData, 'inventory');
+      await this.makeApiCall(endpoint, 'PUT', locationData, 'inventory');
       console.log('✓ Location updated successfully');
 
       return { exists: true, merchantLocationKey, updated: true };
