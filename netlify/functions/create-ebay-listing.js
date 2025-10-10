@@ -74,18 +74,21 @@ function validateListingData(data) {
  * Generate deterministic SKU for idempotency
  */
 function generateDeterministicSku(userId, listingData, userSettings = {}) {
+  // Use custom prefix if configured, otherwise use default
+  const prefix = userSettings.skuPrefix || 'SKU-';
+
+  // Simple format: PREFIX-ASIN (e.g., "AIP-B095Y23DRL")
+  if (listingData.asin) {
+    return `${prefix}${listingData.asin}`;
+  }
+
+  // Fallback: if no ASIN, use hash for uniqueness
   const hash = crypto.createHash('md5')
     .update(`${userId}-${listingData.title}-${listingData.price}`)
     .digest('hex')
     .substring(0, 16);
 
-  // Use custom prefix if configured, otherwise use default
-  const prefix = userSettings.skuPrefix || 'SKU-';
-
-  // Include ASIN in SKU if provided
-  const asinPart = listingData.asin ? `-${listingData.asin}` : '';
-
-  return `${prefix}${userId.substring(0, 8)}${asinPart}-${hash}`;
+  return `${prefix}${hash}`;
 }
 
 /**
