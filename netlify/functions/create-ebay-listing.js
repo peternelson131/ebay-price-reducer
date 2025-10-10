@@ -459,19 +459,22 @@ exports.handler = async (event, context) => {
     // 9. Ensure inventory location exists
     // eBay has 36 char limit on merchantLocationKey
     const merchantLocationKey = `loc-${user.id.substring(0, 32)}`;
-    const defaultLocation = listingData.location ||
-                           userSettings.defaultLocation ||
-                           {
-                             addressLine1: '123 Main St',
-                             city: 'San Francisco',
-                             stateOrProvince: 'CA',
-                             postalCode: '94105',
-                             country: 'US'
-                           };
+
+    // Extract address from defaultLocation structure
+    // userSettings.defaultLocation = { address: { addressLine1, city, ... } }
+    const defaultAddress = listingData.location ||
+                          userSettings.defaultLocation?.address ||
+                          {
+                            addressLine1: '123 Main St',
+                            city: 'San Francisco',
+                            stateOrProvince: 'CA',
+                            postalCode: '94105',
+                            country: 'US'
+                          };
 
     const locationPayload = {
       location: {
-        address: defaultLocation
+        address: defaultAddress
       },
       locationTypes: ['WAREHOUSE'],
       name: 'Primary Warehouse Location',
