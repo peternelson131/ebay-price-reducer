@@ -424,6 +424,7 @@ exports.handler = async (event, context) => {
     }
 
     const userSettings = userData?.listing_settings || {};
+    console.log('📋 User Settings Retrieved:', JSON.stringify(userSettings, null, 2));
 
     // 8. Determine business policy IDs to use
     // Priority: request data > user settings > error if none provided
@@ -462,6 +463,11 @@ exports.handler = async (event, context) => {
 
     // Extract address from defaultLocation structure
     // userSettings.defaultLocation = { address: { addressLine1, city, ... } }
+    console.log('🏠 Address Resolution:');
+    console.log('  - listingData.location:', listingData.location);
+    console.log('  - userSettings.defaultLocation:', JSON.stringify(userSettings.defaultLocation, null, 2));
+    console.log('  - userSettings.defaultLocation?.address:', JSON.stringify(userSettings.defaultLocation?.address, null, 2));
+
     const defaultAddress = listingData.location ||
                           userSettings.defaultLocation?.address ||
                           {
@@ -471,6 +477,8 @@ exports.handler = async (event, context) => {
                             postalCode: '94105',
                             country: 'US'
                           };
+
+    console.log('  - Final defaultAddress used:', JSON.stringify(defaultAddress, null, 2));
 
     const locationPayload = {
       location: {

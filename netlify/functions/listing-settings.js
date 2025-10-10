@@ -138,6 +138,9 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'PUT') {
       const listingSettings = JSON.parse(event.body);
 
+      console.log('💾 Saving Listing Settings for user:', user.id);
+      console.log('📦 Settings being saved:', JSON.stringify(listingSettings, null, 2));
+
       // Basic validation without requiring eBay connection
       const validator = new SettingsValidator(null); // Pass null - we'll skip eBay API validation
       const validationResult = await validator.validateAllSettings(listingSettings);
