@@ -104,8 +104,8 @@ export default function AutoList() {
             suggestedPrice: null,
             category: product.categoryTree?.[0]?.name || 'Unknown',
             brand: product.brand || '',
-            imageUrl: product.imagesCSV?.split(',')[0] || '',
-            ebayDraft: ebayDraft // Include the enhanced eBay draft with all aspects
+            imageUrl: product.imagesCSV?.split(',')[0] || '', // For display only
+            ebayDraft: ebayDraft // Include the enhanced eBay draft with all aspects, description, and ALL images
           }
         } catch (error) {
           console.error(`Error processing ASIN ${asin}:`, error)
@@ -418,12 +418,17 @@ export default function AutoList() {
           // Use edited price if available, otherwise use suggested price
           const price = editablePrices[listing.id] || listing.suggestedPrice
 
-          // Prepare image URLs
-          const images = listing.imageUrl
-            ? listing.imageUrl.split(',').map(img =>
-                img.startsWith('http') ? img : `https://images-na.ssl-images-amazon.com/images/I/${img.trim()}`
-              )
-            : []
+          // Use ALL images from ebayDraft if available, otherwise fallback to imageUrl
+          const images = listing.ebayDraft?.images && listing.ebayDraft.images.length > 0
+            ? listing.ebayDraft.images
+            : (listing.imageUrl
+                ? listing.imageUrl.split(',').map(img =>
+                    img.startsWith('http') ? img : `https://images-na.ssl-images-amazon.com/images/I/${img.trim()}`
+                  )
+                : [])
+
+          // Use full Keepa description from ebayDraft if available, otherwise use minimal description
+          const description = listing.ebayDraft?.description || listing.listingDescription
 
           // Use enhanced aspects from ebayDraft if available, otherwise fallback to brand only
           const aspects = listing.ebayDraft?.aspects || {}
@@ -432,22 +437,25 @@ export default function AutoList() {
           }
 
           // Debug logging
-          console.log('📦 Creating listing with aspects:', {
+          console.log('📦 Creating listing with data:', {
+            asin: listing.asin,
             sku: listing.sku,
             hasEbayDraft: !!listing.ebayDraft,
-            aspectsKeys: Object.keys(aspects),
-            aspects: aspects
+            imageCount: images.length,
+            descriptionLength: description?.length || 0,
+            aspectsKeys: Object.keys(aspects)
           })
 
           const result = await listingsAPI.createListing({
+            asin: listing.asin, // ✅ Pass ASIN for SKU generation
             title: listing.listingTitle,
-            description: listing.listingDescription,
+            description: description, // ✅ Use full Keepa description
             price: price,
             quantity: listing.quantity,
             sku: listing.sku,
             condition: listing.condition,
-            images: images,
-            aspects: aspects // Now includes all enhanced aspects from Keepa!
+            images: images, // ✅ Use ALL images from Keepa
+            aspects: aspects // Includes all enhanced aspects from Keepa
           })
 
           results.push({
