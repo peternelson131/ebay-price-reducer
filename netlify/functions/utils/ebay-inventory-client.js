@@ -278,8 +278,28 @@ class EbayInventoryClient {
   }
 
   /**
+   * Delete inventory location
+   * WARNING: Can only delete if no active inventory items are associated
+   */
+  async deleteInventoryLocation(merchantLocationKey) {
+    try {
+      const endpoint = `/location/${merchantLocationKey}`;
+      await this.makeApiCall(endpoint, 'DELETE', null, 'inventory');
+      console.log('✓ Inventory location deleted:', merchantLocationKey);
+      return { deleted: true, merchantLocationKey };
+    } catch (error) {
+      if (error.ebayStatusCode === 404) {
+        console.log('Location not found (already deleted?):', merchantLocationKey);
+        return { deleted: false, notFound: true, merchantLocationKey };
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Get or create inventory location
    * Checks if location exists, creates if not found
+   * NOTE: eBay does not allow updating inventory locations once created
    */
   async ensureInventoryLocation(merchantLocationKey, locationData) {
     try {
@@ -287,14 +307,11 @@ class EbayInventoryClient {
       const endpoint = `/location/${merchantLocationKey}`;
       const existingLocation = await this.makeApiCall(endpoint, 'GET', null, 'inventory');
       console.log('✓ Inventory location already exists:', merchantLocationKey);
+      console.log('ℹ️  Note: eBay does not allow updating existing inventory locations');
+      console.log('ℹ️  Using existing location. To change address, delete location in eBay Seller Hub first.');
+      console.log('   Current location:', JSON.stringify(existingLocation, null, 2));
 
-      // UPDATE the existing location with new data (in case address changed)
-      console.log('Updating existing location with new address...');
-      console.log('PUT payload:', JSON.stringify(locationData, null, 2));
-      await this.makeApiCall(endpoint, 'PUT', locationData, 'inventory');
-      console.log('✓ Location updated successfully');
-
-      return { exists: true, merchantLocationKey, updated: true };
+      return { exists: true, merchantLocationKey, existingLocation };
     } catch (error) {
       // Location doesn't exist, create it
       if (error.ebayStatusCode === 404) {
