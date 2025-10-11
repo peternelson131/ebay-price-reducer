@@ -353,27 +353,31 @@ export default function Listings() {
   }
 
   const handleBulkCloseSoldOut = async () => {
-    // Get all sold-out listings (quantity = 0) from the current filtered view
-    const soldOutListings = sortedAndFilteredListings.filter(listing => listing.quantity === 0)
+    // In "Ended" view: close all ended listings
+    // In other views: close only sold-out listings (quantity = 0)
+    const listingsToClose = status === 'Ended'
+      ? sortedAndFilteredListings
+      : sortedAndFilteredListings.filter(listing => listing.quantity === 0)
 
-    if (soldOutListings.length === 0) {
-      showNotification('info', 'No sold-out listings to close')
+    if (listingsToClose.length === 0) {
+      showNotification('info', 'No listings to close')
       return
     }
 
-    const confirmMessage = `Close ${soldOutListings.length} sold-out listing(s) on eBay? This action cannot be undone.`
+    const listingType = status === 'Ended' ? 'ended' : 'sold-out'
+    const confirmMessage = `Close ${listingsToClose.length} ${listingType} listing(s)? This action cannot be undone.`
     if (!window.confirm(confirmMessage)) {
       return
     }
 
-    setNotification({ type: 'info', message: `Closing ${soldOutListings.length} listings...` })
+    setNotification({ type: 'info', message: `Closing ${listingsToClose.length} listings...` })
 
     let successCount = 0
     let alreadyClosedCount = 0
     let failCount = 0
     const errors = []
 
-    for (const listing of soldOutListings) {
+    for (const listing of listingsToClose) {
       try {
         const response = await listingsAPI.endListing(listing.id)
 
@@ -972,16 +976,26 @@ export default function Listings() {
             </button>
           ))}
 
-          {/* Bulk Close Sold-Out Button - Show when sold-out listings exist */}
-          {sortedAndFilteredListings?.filter(l => l.quantity === 0).length > 0 && (
-            <button
-              onClick={handleBulkCloseSoldOut}
-              className="bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 flex items-center gap-1 flex-shrink-0"
-              title="Close all sold-out listings on eBay"
-            >
-              <span>Close All Sold-Out ({sortedAndFilteredListings.filter(l => l.quantity === 0).length})</span>
-            </button>
-          )}
+          {/* Bulk Close Button - Show when closeable listings exist */}
+          {(() => {
+            const closeableListings = status === 'Ended'
+              ? sortedAndFilteredListings // All ended listings
+              : sortedAndFilteredListings.filter(l => l.quantity === 0); // Only sold-out in other views
+
+            const buttonText = status === 'Ended'
+              ? `Close All Ended (${closeableListings.length})`
+              : `Close All Sold-Out (${closeableListings.length})`;
+
+            return closeableListings.length > 0 && (
+              <button
+                onClick={handleBulkCloseSoldOut}
+                className="bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 flex items-center gap-1 flex-shrink-0"
+                title={status === 'Ended' ? 'Close all ended listings' : 'Close all sold-out listings on eBay'}
+              >
+                <span>{buttonText}</span>
+              </button>
+            );
+          })()}
         </div>
 
         {/* Filter and Column Controls */}
@@ -1376,7 +1390,7 @@ export default function Listings() {
                   >
                     Reduce Price
                   </button>
-                  {listing.quantity === 0 && (
+                  {(listing.quantity === 0 || listing.listing_status === 'Ended') && (
                     <button
                       onClick={() => handleDeleteListing(listing.id)}
                       disabled={endListingMutation.isLoading}
@@ -1668,7 +1682,7 @@ export default function Listings() {
                               >
                                 Reduce
                               </button>
-                              {listing.quantity === 0 && (
+                              {(listing.quantity === 0 || listing.listing_status === 'Ended') && (
                                 <button
                                   onClick={() => handleDeleteListing(listing.id)}
                                   disabled={endListingMutation.isLoading}
