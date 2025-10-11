@@ -369,26 +369,53 @@ export default function Listings() {
     setNotification({ type: 'info', message: `Closing ${soldOutListings.length} listings...` })
 
     let successCount = 0
+    let alreadyClosedCount = 0
     let failCount = 0
+    const errors = []
 
     for (const listing of soldOutListings) {
       try {
-        await listingsAPI.endListing(listing.id)
-        successCount++
+        const response = await listingsAPI.endListing(listing.id)
+
+        // Check if it was already closed
+        if (response?.message?.toLowerCase().includes('already')) {
+          alreadyClosedCount++
+        } else {
+          successCount++
+        }
       } catch (error) {
         console.error(`Failed to close listing ${listing.id}:`, error)
         failCount++
+
+        // Store error details for reporting
+        const errorMsg = error.message || 'Unknown error'
+        errors.push({
+          sku: listing.sku || listing.ebay_item_id,
+          error: errorMsg
+        })
       }
     }
 
     // Refetch listings to update UI
     queryClient.invalidateQueries('listings')
 
-    // Show final notification
+    // Show final notification with detailed results
+    const totalProcessed = successCount + alreadyClosedCount
     if (failCount === 0) {
-      showNotification('success', `Successfully closed ${successCount} listing(s)`)
+      if (alreadyClosedCount > 0) {
+        showNotification('success',
+          `Successfully processed ${totalProcessed} listing(s) (${successCount} closed, ${alreadyClosedCount} already closed on eBay)`
+        )
+      } else {
+        showNotification('success', `Successfully closed ${successCount} listing(s)`)
+      }
     } else {
-      showNotification('warning', `Closed ${successCount} listing(s), ${failCount} failed`)
+      const failedSkus = errors.slice(0, 3).map(e => e.sku).join(', ')
+      const moreText = errors.length > 3 ? ` and ${errors.length - 3} more` : ''
+      showNotification('warning',
+        `Closed ${totalProcessed} listing(s), ${failCount} failed. Failed: ${failedSkus}${moreText}. Check console for details.`
+      )
+      console.error('Failed listings:', errors)
     }
   }
 

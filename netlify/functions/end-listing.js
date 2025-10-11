@@ -130,10 +130,24 @@ exports.handler = async (event, context) => {
 
     } catch (ebayError) {
       console.error('eBay API error when ending listing:', ebayError);
+      const errorMsg = ebayError.message || '';
 
-      // Check if listing is already ended
-      if (ebayError.message && ebayError.message.includes('already ended')) {
-        // Update database anyway
+      // Check if listing is already ended or no longer exists
+      // eBay error codes/messages for already-ended listings:
+      // - "The auction has already been closed"
+      // - "Item status is invalid"
+      // - "already ended"
+      // - "The item is closed"
+      const isAlreadyClosed =
+        errorMsg.toLowerCase().includes('already') ||
+        errorMsg.toLowerCase().includes('closed') ||
+        errorMsg.toLowerCase().includes('ended') ||
+        errorMsg.toLowerCase().includes('invalid') ||
+        errorMsg.toLowerCase().includes('not exist') ||
+        errorMsg.toLowerCase().includes('not found');
+
+      if (isAlreadyClosed) {
+        // Update database anyway - treat as success
         await supabase
           .from('listings')
           .update({
@@ -143,11 +157,13 @@ exports.handler = async (event, context) => {
           .eq('id', listingId)
           .eq('user_id', user.id);
 
+        console.log(`✅ Listing ${listing.ebay_item_id} was already ended on eBay, updated database`);
+
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
-            message: 'Listing was already ended on eBay',
+            message: 'Listing was already ended on eBay (marked as ended in database)',
             listing: {
               id: listing.id,
               title: listing.title,
@@ -157,11 +173,14 @@ exports.handler = async (event, context) => {
         };
       }
 
+      // Different error - return as failure
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({
-          error: 'Failed to end listing on eBay: ' + ebayError.message
+          error: 'Failed to end listing on eBay',
+          message: ebayError.message,
+          ebay_item_id: listing.ebay_item_id
         })
       };
     }
