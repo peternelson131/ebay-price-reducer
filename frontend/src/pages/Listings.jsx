@@ -958,7 +958,7 @@ export default function Listings() {
       <div className="space-y-4 lg:space-y-0 lg:flex lg:justify-between lg:items-center">
         {/* Status Filter */}
         <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
-          {['Active', 'Ended', 'all'].map((statusOption) => (
+          {['Active', 'all'].map((statusOption) => (
             <button
               key={statusOption}
               onClick={() => setStatus(statusOption)}
@@ -972,8 +972,8 @@ export default function Listings() {
             </button>
           ))}
 
-          {/* Bulk Close Sold-Out Button - Only show in Ended view */}
-          {status === 'Ended' && sortedAndFilteredListings?.filter(l => l.quantity === 0).length > 0 && (
+          {/* Bulk Close Sold-Out Button - Show when sold-out listings exist */}
+          {sortedAndFilteredListings?.filter(l => l.quantity === 0).length > 0 && (
             <button
               onClick={handleBulkCloseSoldOut}
               className="bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 flex items-center gap-1 flex-shrink-0"

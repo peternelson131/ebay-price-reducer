@@ -332,7 +332,13 @@ const realListingsAPI = realSupabaseClient ? {
       .select('*')
       .eq('user_id', user.id)
 
-    if (status !== 'all') {
+    // ALWAYS exclude 'Ended' listings from all views (they've been closed)
+    // Users want ended listings to disappear completely
+    query = query.neq('listing_status', 'Ended')
+
+    if (status !== 'all' && status !== 'Active') {
+      // If requesting a specific status other than 'Active' or 'all', filter by it
+      // (though typically only 'Active' and 'all' are used)
       query = query.eq('listing_status', status)
     }
 
