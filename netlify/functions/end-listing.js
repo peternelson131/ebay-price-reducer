@@ -66,7 +66,7 @@ exports.handler = async (event, context) => {
     // Get listing from database
     const { data: listing, error: fetchError } = await supabase
       .from('listings')
-      .select('id, ebay_item_id, title, quantity')
+      .select('id, ebay_item_id, title, quantity, listing_status')
       .eq('id', listingId)
       .eq('user_id', user.id)
       .single();
@@ -79,13 +79,15 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Verify quantity is 0 (only end listings with quantity=0)
-    if (listing.quantity !== 0) {
+    // Allow closing if:
+    // 1. Quantity is 0 (sold out), OR
+    // 2. Listing status is 'Ended' (already ended on eBay)
+    if (listing.quantity !== 0 && listing.listing_status !== 'Ended') {
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({
-          error: 'Can only end listings with quantity = 0. Current quantity: ' + listing.quantity
+          error: 'Can only close sold-out (quantity=0) or already-ended listings. Current quantity: ' + listing.quantity + ', status: ' + listing.listing_status
         })
       };
     }
