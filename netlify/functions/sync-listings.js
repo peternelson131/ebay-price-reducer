@@ -72,6 +72,14 @@ const handler = async (event, context) => {
     let errorCount = 0;
     const errors = [];
 
+    // Get existing listings to preserve manual 'Ended' status and track deletions
+    const { data: existingListings } = await supabase
+      .from('listings')
+      .select('ebay_item_id, listing_status')
+      .eq('user_id', user.id);
+
+    const ebayItemIds = []; // Track eBay item IDs from sync
+
     if (ebayResponse.ActiveList?.ItemArray?.Item) {
       const items = Array.isArray(ebayResponse.ActiveList.ItemArray.Item)
         ? ebayResponse.ActiveList.ItemArray.Item
@@ -79,10 +87,26 @@ const handler = async (event, context) => {
 
       for (const item of items) {
         try {
+          // Track this item ID
+          ebayItemIds.push(item.ItemID);
+
           // Parse price data
           const priceData = item.SellingStatus?.CurrentPrice;
           const currentPrice = priceData?._ || priceData || 0;
           const currency = priceData?.currencyID || 'USD';
+          const quantity = parseInt(item.Quantity) || 0;
+
+          // Determine listing status
+          let listing_status = 'Active';
+          if (quantity === 0) {
+            listing_status = 'Ended'; // Auto-mark sold-out as Ended
+          }
+
+          // Preserve manual 'Ended' status if it was manually set
+          const existingStatus = existingListings?.find(l => l.ebay_item_id === item.ItemID)?.listing_status;
+          if (existingStatus === 'Ended') {
+            listing_status = 'Ended';
+          }
 
           // Upsert listing to database
           const { error: upsertError } = await supabase
@@ -93,7 +117,8 @@ const handler = async (event, context) => {
               title: item.Title,
               current_price: parseFloat(currentPrice),
               currency: currency,
-              quantity: parseInt(item.Quantity) || 0,
+              quantity: quantity,
+              listing_status: listing_status,
               listing_type: item.ListingType,
               category_id: item.PrimaryCategory?.CategoryID,
               category_name: item.PrimaryCategory?.CategoryName,
@@ -115,6 +140,40 @@ const handler = async (event, context) => {
         } catch (itemError) {
           errors.push(`Item ${item.ItemID}: ${itemError.message}`);
           errorCount++;
+        }
+      }
+    }
+
+    // Mark listings as 'Ended' if they were in our DB but NOT returned by eBay
+    if (ebayItemIds.length > 0 && existingListings && existingListings.length > 0) {
+      const missingListings = existingListings.filter(
+        existing => existing.ebay_item_id && !ebayItemIds.includes(existing.ebay_item_id)
+      );
+
+      if (missingListings.length > 0) {
+        console.log(`📦 Found ${missingListings.length} listings deleted from eBay, marking as Ended...`);
+
+        const activeToEnd = missingListings.filter(l => l.listing_status === 'Active');
+
+        if (activeToEnd.length > 0) {
+          const itemIdsToEnd = activeToEnd.map(l => l.ebay_item_id);
+
+          const { error: updateError } = await supabase
+            .from('listings')
+            .update({
+              listing_status: 'Ended',
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', user.id)
+            .in('ebay_item_id', itemIdsToEnd);
+
+          if (updateError) {
+            console.error(`⚠️ Failed to mark deleted listings as Ended:`, updateError);
+            errors.push(`Failed to mark deleted listings: ${updateError.message}`);
+            errorCount++;
+          } else {
+            console.log(`✅ Marked ${activeToEnd.length} deleted listings as Ended`);
+          }
         }
       }
     }

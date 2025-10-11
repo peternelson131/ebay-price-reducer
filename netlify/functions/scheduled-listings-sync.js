@@ -192,6 +192,45 @@ async function syncUserListings(user) {
     throw error;
   }
 
+  // Mark listings as 'Ended' if they were in our DB but NOT returned by eBay
+  // (This handles listings deleted on eBay)
+  const ebayItemIds = ebayData.listings
+    .map(l => l.ebay_item_id)
+    .filter(id => id); // Filter out null/undefined IDs
+
+  if (ebayItemIds.length > 0 && existingListings && existingListings.length > 0) {
+    // Find listings in DB that weren't in eBay response
+    const missingListings = existingListings.filter(
+      existing => existing.ebay_item_id && !ebayItemIds.includes(existing.ebay_item_id)
+    );
+
+    if (missingListings.length > 0) {
+      console.log(`📦 Found ${missingListings.length} listings deleted from eBay, marking as Ended...`);
+
+      // Only mark as Ended if they were previously Active
+      const activeToEnd = missingListings.filter(l => l.listing_status === 'Active');
+
+      if (activeToEnd.length > 0) {
+        const itemIdsToEnd = activeToEnd.map(l => l.ebay_item_id);
+
+        const { error: updateError } = await supabase
+          .from('listings')
+          .update({
+            listing_status: 'Ended',
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id)
+          .in('ebay_item_id', itemIdsToEnd);
+
+        if (updateError) {
+          console.error(`⚠️ Failed to mark deleted listings as Ended:`, updateError);
+        } else {
+          console.log(`✅ Marked ${activeToEnd.length} deleted listings as Ended`);
+        }
+      }
+    }
+  }
+
   console.log(`✅ Successfully synced ${listingsToUpsert.length} listings for user ${user.email}`);
 
   return { count: listingsToUpsert.length };
