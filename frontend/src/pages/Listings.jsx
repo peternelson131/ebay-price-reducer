@@ -958,7 +958,7 @@ export default function Listings() {
       <div className="space-y-4 lg:space-y-0 lg:flex lg:justify-between lg:items-center">
         {/* Status Filter */}
         <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
-          {['Active', 'all'].map((statusOption) => (
+          {['Active', 'Ended', 'all'].map((statusOption) => (
             <button
               key={statusOption}
               onClick={() => setStatus(statusOption)}

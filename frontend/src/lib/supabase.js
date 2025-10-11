@@ -332,18 +332,20 @@ const realListingsAPI = realSupabaseClient ? {
       .select('*')
       .eq('user_id', user.id)
 
-    // ALWAYS exclude 'Ended' listings from all views (they've been closed)
-    // Users want ended listings to disappear completely
-    query = query.neq('listing_status', 'Ended')
+    // ALWAYS exclude hidden listings from all views
+    // Hidden listings are those manually closed by the user
+    query = query.eq('hidden', false)
 
     if (status !== 'all' && status !== 'Active') {
-      // If requesting a specific status other than 'Active' or 'all', filter by it
-      // (though typically only 'Active' and 'all' are used)
+      // Filter by specific status (e.g., 'Ended')
       query = query.eq('listing_status', status)
+    } else if (status === 'Active') {
+      // Only show active listings
+      query = query.eq('listing_status', 'Active')
     }
+    // If status === 'all', show both Active and Ended (but not hidden)
 
     // Add default sort order to ensure consistent ordering
-    // This prevents the list from appearing to "filter" or reorder when data updates
     query = query.order('created_at', { ascending: false })
 
     const { data, error } = await query

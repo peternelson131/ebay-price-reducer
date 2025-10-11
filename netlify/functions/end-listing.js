@@ -100,11 +100,12 @@ exports.handler = async (event, context) => {
 
       console.log(`Successfully ended listing ${listing.ebay_item_id} on eBay:`, endResponse);
 
-      // Update database to mark listing as Ended
+      // Update database to mark listing as Ended AND hidden (manually closed)
       const { error: updateError } = await supabase
         .from('listings')
         .update({
           listing_status: 'Ended',
+          hidden: true,
           updated_at: new Date().toISOString()
         })
         .eq('id', listingId)
@@ -147,11 +148,12 @@ exports.handler = async (event, context) => {
         errorMsg.toLowerCase().includes('not found');
 
       if (isAlreadyClosed) {
-        // Update database anyway - treat as success
+        // Update database anyway - treat as success, mark as hidden (manually closed)
         await supabase
           .from('listings')
           .update({
             listing_status: 'Ended',
+            hidden: true,
             updated_at: new Date().toISOString()
           })
           .eq('id', listingId)
