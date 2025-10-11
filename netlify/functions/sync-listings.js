@@ -162,6 +162,7 @@ const handler = async (event, context) => {
             .from('listings')
             .update({
               listing_status: 'Ended',
+              quantity: 0,
               updated_at: new Date().toISOString()
             })
             .eq('user_id', user.id)

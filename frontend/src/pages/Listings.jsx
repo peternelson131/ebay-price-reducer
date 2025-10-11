@@ -1244,7 +1244,7 @@ export default function Listings() {
                   </div>
                   <div>
                     <span className="text-gray-500">Quantity:</span>
-                    <div className="font-medium">{listing.quantity ?? 1}</div>
+                    <div className="font-medium">{listing.quantity ?? 0}</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Views:</span>
@@ -1499,7 +1499,7 @@ export default function Listings() {
                           )
                         case 'quantity':
                           return (
-                            <div className="text-sm text-gray-900">{listing.quantity ?? 1}</div>
+                            <div className="text-sm text-gray-900">{listing.quantity ?? 0}</div>
                           )
                         case 'currentPrice':
                           return (
