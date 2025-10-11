@@ -629,51 +629,10 @@ export default function Login({ onLogin }) {
             </div>
           )}
 
-          {/* Demo Mode Notice */}
-          {currentView === 'login' && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-blue-800">Demo Mode Active</h3>
-                  <div className="mt-2 text-sm text-blue-700">
-                    <p>You're running in demo mode. Use demo credentials or try the forgot password flow.</p>
-                  </div>
-                  <div className="mt-4">
-                    <button
-                      onClick={handleDemoLogin}
-                      className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                      Continue with Demo Login
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {currentView === 'login' && renderLoginForm()}
           {currentView === 'signup' && renderSignupForm()}
           {currentView === 'forgot' && renderForgotForm()}
           {currentView === 'reset' && renderResetForm()}
-
-          {currentView === 'login' && (
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Demo Credentials</span>
-                </div>
-              </div>
-              <div className="mt-4 bg-gray-50 rounded-md p-3">
-                <p className="text-xs text-gray-600 text-center">
-                  <strong>Username:</strong> demo<br />
-                  <strong>Password:</strong> password
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Features List */}
           <div className="mt-8 pt-6 border-t border-gray-200">
