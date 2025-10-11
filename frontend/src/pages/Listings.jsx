@@ -787,7 +787,7 @@ export default function Listings() {
       viewCount: { label: 'Views', sortable: true, sortKey: 'view_count', width: 'w-20 lg:w-24' },
       watchCount: { label: 'Watchers', sortable: true, sortKey: 'watch_count', width: 'w-20 lg:w-24' },
       listingAge: { label: 'Listing Age', sortable: true, sortKey: 'created_at', width: 'w-20 lg:w-24' },
-      actions: { label: 'Actions', sortable: false, width: 'w-32 lg:w-36' }
+      actions: { label: 'Actions', sortable: false, width: 'w-40 lg:w-44' }
     }
     return configs[column] || { label: column, sortable: false }
   }
@@ -1397,7 +1397,7 @@ export default function Listings() {
                       className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
                       title="Close this listing on eBay"
                     >
-                      Close Listing
+                      Close
                     </button>
                   )}
                 </div>
@@ -1658,7 +1658,7 @@ export default function Listings() {
                           )
                         case 'actions':
                           return (
-                            <div className="flex space-x-2">
+                            <div className="flex space-x-1">
                               <a
                                 href={listing.listing_url || `https://www.ebay.com/itm/${listing.ebay_item_id}`}
                                 target="_blank"
@@ -1689,7 +1689,7 @@ export default function Listings() {
                                   className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
                                   title="Close this listing on eBay"
                                 >
-                                  Close Listing
+                                  Close
                                 </button>
                               )}
                             </div>
