@@ -568,18 +568,19 @@ export default function Listings() {
     return (currentPrice * (1 - reduction)).toFixed(2)
   }
 
-  const sortedAndFilteredListings = useMemo(() => {
-    let listingsToSort = listings || []
+  // First, filter listings without sorting
+  const filteredListings = useMemo(() => {
+    let filtered = listings || []
 
     // Use empty array if no listings
-    if (!listingsToSort) {
-      listingsToSort = []
+    if (!filtered) {
+      filtered = []
     }
 
     // Apply search filter
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase()
-      listingsToSort = listingsToSort.filter(listing => {
+      filtered = filtered.filter(listing => {
         const strategy = getStrategyDisplayInfo(listing, strategies)
         const strategyName = strategy ? strategy.name : ''
 
@@ -598,7 +599,7 @@ export default function Listings() {
 
     // Apply filters
     if (filters.length > 0) {
-      listingsToSort = listingsToSort.filter(listing => {
+      filtered = filtered.filter(listing => {
         return filters.every(filter => {
           if (!filter.field || !filter.value) return true
 
@@ -641,10 +642,16 @@ export default function Listings() {
       })
     }
 
-    // Apply sorting
-    if (!sortConfig.key) return listingsToSort
+    return filtered
+  }, [listings, searchTerm, filters, strategies])
 
-    return [...listingsToSort].sort((a, b) => {
+  // Then, apply sorting ONLY when sortConfig changes (user clicks column header)
+  const sortedAndFilteredListings = useMemo(() => {
+    // If no sort is active, return filtered listings as-is (preserve original order)
+    if (!sortConfig.key) return filteredListings
+
+    // Apply sorting only when user explicitly sorts via column header click
+    return [...filteredListings].sort((a, b) => {
       let aValue = a[sortConfig.key]
       let bValue = b[sortConfig.key]
 
@@ -661,7 +668,7 @@ export default function Listings() {
       }
       return 0
     })
-  }, [listings, sortConfig, searchTerm, filters, strategies])
+  }, [filteredListings, sortConfig])
 
   // Pagination calculations
   const totalItems = sortedAndFilteredListings.length
