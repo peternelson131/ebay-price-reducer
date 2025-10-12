@@ -202,13 +202,31 @@ exports.handler = async (event, context) => {
     } else {
       // Update existing user record
       console.log('Updating existing user record');
+
+      // Check if App ID is changing (which would cause token mismatch)
+      const existingAppId = existingUsers[0]?.ebay_app_id;
+      const credentialsChanged = existingAppId && existingAppId !== app_id;
+
+      if (credentialsChanged) {
+        console.log('⚠️ App ID changed - clearing OAuth tokens to prevent mismatch');
+        console.log(`Old App ID: ${existingAppId.substring(0, 20)}...`);
+        console.log(`New App ID: ${app_id.substring(0, 20)}...`);
+      }
+
       await supabaseRequest(
         `users?id=eq.${authUser.id}`,
         'PATCH',
         {
           ebay_app_id: app_id,
           ebay_cert_id_encrypted: encryptedCertId,
-          ebay_dev_id: dev_id || null
+          ebay_dev_id: dev_id || null,
+          // If credentials changed, clear OAuth tokens to force re-authorization
+          ...(credentialsChanged && {
+            ebay_refresh_token: null,
+            ebay_connection_status: 'disconnected',
+            ebay_connected_at: null,
+            ebay_user_id: null
+          })
         },
         {},
         true // Use service key for protected table
@@ -217,12 +235,20 @@ exports.handler = async (event, context) => {
 
     console.log('Credentials saved successfully');
 
+    // Check if we need to warn about reconnection
+    const needsReconnect = existingUsers && existingUsers.length > 0 &&
+                           existingUsers[0]?.ebay_app_id &&
+                           existingUsers[0].ebay_app_id !== app_id;
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        message: 'eBay credentials saved successfully'
+        message: needsReconnect
+          ? 'eBay credentials updated. Your eBay connection has been disconnected - please reconnect to continue using price reduction features.'
+          : 'eBay credentials saved successfully',
+        needsReconnect: needsReconnect
       })
     };
   } catch (error) {
