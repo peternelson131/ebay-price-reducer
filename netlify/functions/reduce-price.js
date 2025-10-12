@@ -1,7 +1,13 @@
 const { Handler } = require('@netlify/functions')
 const { getCorsHeaders } = require('./utils/cors')
-const { supabase } = require('./utils/supabase')
-const EbayService = require('./utils/ebay')
+const { createClient } = require('@supabase/supabase-js')
+const { UserEbayClient } = require('./utils/user-ebay-client')
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
 
 const handler = async (event, context) => {
   const headers = getCorsHeaders(event);
@@ -179,39 +185,32 @@ const handler = async (event, context) => {
       }
     }
 
-    // Get user's eBay token
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('ebay_user_token')
-      .eq('id', user.id)
-      .single()
+    // Initialize user-specific eBay client
+    const userEbayClient = new UserEbayClient(user.id)
+    await userEbayClient.initialize()
 
-    if (!userProfile?.ebay_user_token) {
+    // Check if user has valid eBay connection
+    if (!userEbayClient.accessToken) {
       return {
         statusCode: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ error: 'eBay credentials not configured' })
+        headers,
+        body: JSON.stringify({
+          error: 'eBay account not connected',
+          message: 'Please connect your eBay account first',
+          redirectTo: '/ebay-setup'
+        })
       }
     }
 
     // Update price on eBay
-    const ebayService = new EbayService()
     try {
-      await ebayService.updateItemPrice(
-        listing.ebay_item_id,
-        newPrice,
-        listing.currency,
-        userProfile.ebay_user_token
-      )
+      await userEbayClient.updateItemPrice(listing.ebay_item_id, newPrice)
     } catch (ebayError) {
       // Log the error but continue with database update for demo purposes
       console.error('eBay API error:', ebayError)
 
       // In production, you might want to fail here
-      // For demo, we'll continue and just log the error to console (sync_errors table removed)
+      // For demo, we'll continue and just log the error to console
       console.error('eBay price update error:', {
         listing_id: listing.id,
         error_message: `Failed to update price on eBay: ${ebayError.message}`,
