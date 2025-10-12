@@ -430,20 +430,27 @@ const realListingsAPI = realSupabaseClient ? {
     const { data: { user } } = await realSupabaseClient.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
-    const { data, error } = await realSupabaseClient
-      .from('listings')
-      .update({
-        current_price: newPrice,
-        last_price_reduction: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', listingId)
-      .eq('user_id', user.id)
-      .select()
-      .single()
+    // Get session token for API call
+    const { data: { session } } = await realSupabaseClient.auth.getSession()
+    if (!session) throw new Error('No active session')
 
-    if (error) throw error
-    return data
+    // Call Netlify function to reduce price (which also updates eBay)
+    const response = await fetch(`/.netlify/functions/reduce-price/${listingId}/reduce`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ customPrice: newPrice })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to reduce price')
+    }
+
+    return data.listing
   },
 
   async createListing(listingData) {
