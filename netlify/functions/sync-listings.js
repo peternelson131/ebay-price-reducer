@@ -72,10 +72,10 @@ const handler = async (event, context) => {
     let errorCount = 0;
     const errors = [];
 
-    // Get existing listings to preserve manual 'Ended' status and track deletions
+    // Get existing listings to preserve manual 'Ended' status, minimum_price, and track deletions
     const { data: existingListings } = await supabase
       .from('listings')
-      .select('ebay_item_id, listing_status')
+      .select('ebay_item_id, listing_status, minimum_price')
       .eq('user_id', user.id);
 
     const ebayItemIds = []; // Track eBay item IDs from sync
@@ -92,9 +92,21 @@ const handler = async (event, context) => {
 
           // Parse price data
           const priceData = item.SellingStatus?.CurrentPrice;
-          const currentPrice = priceData?._ || priceData || 0;
+          const currentPriceRaw = priceData?._ || priceData;
+          const currentPrice = parseFloat(currentPriceRaw);
           const currency = priceData?.currencyID || 'USD';
           const quantity = parseInt(item.Quantity) || 0;
+
+          // Validate price - skip if invalid
+          if (!currentPriceRaw || isNaN(currentPrice) || currentPrice <= 0) {
+            errors.push(`Item ${item.ItemID}: Invalid price (${currentPriceRaw})`);
+            errorCount++;
+            continue;
+          }
+
+          // Get start price for original_price
+          const startPriceRaw = item.StartPrice?._ || item.StartPrice || item.BuyItNowPrice?._ || item.BuyItNowPrice;
+          const originalPrice = parseFloat(startPriceRaw) || currentPrice;
 
           // Determine listing status
           let listing_status = 'Active';
@@ -108,6 +120,12 @@ const handler = async (event, context) => {
             listing_status = 'Ended';
           }
 
+          // Get existing listing to preserve minimum_price if it exists
+          const existingListing = existingListings?.find(l => l.ebay_item_id === item.ItemID);
+
+          // Calculate minimum price (default to 70% of current price if not set)
+          const minimumPrice = existingListing?.minimum_price || (currentPrice * 0.7);
+
           // Upsert listing to database
           const { error: upsertError } = await supabase
             .from('listings')
@@ -115,7 +133,9 @@ const handler = async (event, context) => {
               user_id: user.id,
               ebay_item_id: item.ItemID,
               title: item.Title,
-              current_price: parseFloat(currentPrice),
+              current_price: currentPrice,
+              original_price: originalPrice,
+              minimum_price: minimumPrice,
               currency: currency,
               quantity: quantity,
               listing_status: listing_status,

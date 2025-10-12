@@ -131,17 +131,19 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 4. Get existing listings to preserve manual 'Ended' status
+    // 4. Get existing listings to preserve manual 'Ended' status and minimum_price
     const { data: existingListings } = await supabase
       .from('listings')
-      .select('ebay_item_id, listing_status')
+      .select('ebay_item_id, listing_status, minimum_price')
       .eq('user_id', user.id);
 
-    // Create a map of existing statuses
+    // Create maps of existing statuses and minimum prices
     const existingStatusMap = new Map();
+    const existingMinPriceMap = new Map();
     if (existingListings) {
       existingListings.forEach(listing => {
         existingStatusMap.set(listing.ebay_item_id, listing.listing_status);
+        existingMinPriceMap.set(listing.ebay_item_id, listing.minimum_price);
       });
     }
 
@@ -186,15 +188,25 @@ exports.handler = async (event, context) => {
         listing_status = 'Ended';
       }
 
+      // Parse prices
+      const currentPriceRaw = item.SellingStatus?.CurrentPrice?._ || item.SellingStatus?.CurrentPrice;
+      const current_price = parseFloat(currentPriceRaw) || 0;
+      const originalPriceRaw = item.StartPrice?._ || item.StartPrice || currentPriceRaw;
+      const original_price = parseFloat(originalPriceRaw) || current_price;
+
+      // Preserve existing minimum_price or default to 70% of current price
+      const existingMinPrice = existingMinPriceMap.get(item.ItemID);
+      const minimum_price = existingMinPrice || (current_price * 0.7);
+
       return {
         user_id: user.id,
         ebay_item_id: item.ItemID,
         sku: item.SKU || null,
         title: item.Title,
         description: item.Description || null,
-        // xml2js stores text content in _ when attributes are present
-        current_price: parseFloat(item.SellingStatus?.CurrentPrice?._ || item.SellingStatus?.CurrentPrice || 0),
-        original_price: parseFloat(item.StartPrice?._ || item.StartPrice || item.SellingStatus?.CurrentPrice?._ || item.SellingStatus?.CurrentPrice || 0),
+        current_price: current_price,
+        original_price: original_price,
+        minimum_price: minimum_price,
         currency: item.SellingStatus?.CurrentPrice?.currencyID || 'USD',
         quantity: quantity,
         quantity_available: parseInt(item.QuantityAvailable || item.Quantity) || 0,

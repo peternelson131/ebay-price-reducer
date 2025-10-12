@@ -131,17 +131,19 @@ async function syncUserListings(user) {
     return { count: 0 };
   }
 
-  // Get existing listings to preserve manual 'Ended' status
+  // Get existing listings to preserve manual 'Ended' status and minimum_price
   const { data: existingListings } = await supabase
     .from('listings')
-    .select('ebay_item_id, listing_status')
+    .select('ebay_item_id, listing_status, minimum_price')
     .eq('user_id', user.id);
 
-  // Create a map of existing statuses
+  // Create maps of existing statuses and minimum prices
   const existingStatusMap = new Map();
+  const existingMinPriceMap = new Map();
   if (existingListings) {
     existingListings.forEach(listing => {
       existingStatusMap.set(listing.ebay_item_id, listing.listing_status);
+      existingMinPriceMap.set(listing.ebay_item_id, listing.minimum_price);
     });
   }
 
@@ -152,6 +154,10 @@ async function syncUserListings(user) {
     const existingStatus = existingStatusMap.get(listing.ebay_item_id);
     const listing_status = existingStatus === 'Ended' ? 'Ended' : listing.listing_status;
 
+    // Preserve existing minimum_price or default to 70% of current price
+    const existingMinPrice = existingMinPriceMap.get(listing.ebay_item_id);
+    const minimum_price = existingMinPrice || (listing.current_price * 0.7);
+
     return {
       user_id: user.id,
       ebay_item_id: listing.ebay_item_id,
@@ -160,6 +166,7 @@ async function syncUserListings(user) {
       description: listing.description,
       current_price: listing.current_price,
       original_price: listing.original_price || listing.current_price,
+      minimum_price: minimum_price,
       currency: listing.currency,
       quantity: listing.quantity,
       quantity_available: listing.quantity,
