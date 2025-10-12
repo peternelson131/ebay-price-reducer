@@ -189,6 +189,25 @@ const handler = async (event, context) => {
     const userEbayClient = new UserEbayClient(user.id)
     await userEbayClient.initialize()
 
+    // Verify connection status in database to catch stale tokens
+    const { data: connectionStatus } = await supabase
+      .from('users')
+      .select('ebay_connection_status')
+      .eq('id', user.id)
+      .single()
+
+    if (connectionStatus?.ebay_connection_status !== 'connected') {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'eBay account not connected',
+          message: 'Your eBay connection has been disconnected. Please reconnect your eBay account in Settings.',
+          redirectTo: '/ebay-setup'
+        })
+      }
+    }
+
     // Check if user has valid eBay connection
     if (!userEbayClient.accessToken) {
       return {
