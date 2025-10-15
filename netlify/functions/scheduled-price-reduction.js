@@ -184,23 +184,34 @@ async function processUserPriceReductions(user) {
     return { listingsChecked: 0, pricesReduced: 0 };
   }
 
-  // Get listings eligible for price reduction
-  const { data: listings, error: fetchError } = await supabase
+  // Get listings that might need price reduction
+  const { data: allListings, error: fetchError } = await supabase
     .from('listings')
     .select('*')
     .eq('user_id', user.id)
     .eq('price_reduction_enabled', true)
     .eq('listing_status', 'Active')
-    .lte('next_price_reduction', new Date().toISOString())
-    .gt('current_price', supabase.raw('minimum_price'));
+    .lte('next_price_reduction', new Date().toISOString());
 
   if (fetchError) {
     throw new Error(`Failed to fetch listings: ${fetchError.message}`);
   }
 
-  if (!listings || listings.length === 0) {
+  if (!allListings || allListings.length === 0) {
     console.log(`No eligible listings for user ${user.email}`);
     return { listingsChecked: 0, pricesReduced: 0 };
+  }
+
+  // Filter to only listings where current_price > minimum_price
+  const listings = allListings.filter(listing => {
+    const currentPrice = parseFloat(listing.current_price);
+    const minimumPrice = parseFloat(listing.minimum_price);
+    return currentPrice > minimumPrice;
+  });
+
+  if (listings.length === 0) {
+    console.log(`No listings above minimum price for user ${user.email}`);
+    return { listingsChecked: allListings.length, pricesReduced: 0 };
   }
 
   console.log(`Found ${listings.length} eligible listings for user ${user.email}`);
