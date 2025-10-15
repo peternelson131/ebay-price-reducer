@@ -1,7 +1,7 @@
 const { Handler } = require('@netlify/functions');
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders } = require('./utils/cors');
-const { UserEbayClient } = require('./utils/user-ebay-client');
+const { EbayApiClient } = require('./utils/ebay-api-client');
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -47,26 +47,29 @@ const handler = async (event, context) => {
       };
     }
 
-    // Initialize user-specific eBay client
-    const userEbayClient = new UserEbayClient(user.id);
-    await userEbayClient.initialize();
+    // Initialize eBay client
+    const ebayClient = new EbayApiClient(user.id);
 
-    // Check if user has valid eBay connection
-    if (!userEbayClient.accessToken) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          error: 'eBay account not connected',
-          message: 'Please connect your eBay account first',
-          redirectTo: '/ebay-setup'
-        })
-      };
+    try {
+      await ebayClient.initialize();
+    } catch (initError) {
+      if (initError.code === 'NOT_CONNECTED') {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'eBay account not connected',
+            message: 'Please connect your eBay account first',
+            redirectTo: '/ebay-setup'
+          })
+        };
+      }
+      throw initError;
     }
 
     // Fetch listings from eBay using user's credentials
-    const ebayResponse = await userEbayClient.getActiveListings(1, 200);
+    const ebayResponse = await ebayClient.getActiveListings(1, 200);
 
     let syncedCount = 0;
     let errorCount = 0;
