@@ -10,10 +10,52 @@ const supabase = createClient(
 
 /**
  * Scheduled function that runs price reductions for eligible listings
- * Runs daily at 1 AM CST (7 AM UTC) to check for listings needing price reduction
+ * Runs daily at 1 AM Central Time (year-round, accounting for DST)
+ *
+ * Note: This runs at both 6 AM and 7 AM UTC to cover both CST and CDT,
+ * but only executes if it's actually 1 AM Central Time.
  */
 const handler = async (event) => {
-  console.log('🕐 Starting scheduled price reduction at', new Date().toISOString());
+  const now = new Date();
+  console.log('🕐 Scheduled price reduction triggered at', now.toISOString());
+
+  // Check if it's 1 AM Central Time
+  const centralTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+  const centralHour = centralTime.getHours();
+
+  if (centralHour !== 1) {
+    console.log(`⏭️ Skipping execution - Current Central Time hour is ${centralHour}, not 1 AM`);
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        message: 'Skipped - not 1 AM Central Time',
+        currentCentralHour: centralHour,
+        timestamp: now.toISOString()
+      })
+    };
+  }
+
+  // Check if we already ran today (prevent double execution)
+  const dateKey = centralTime.toISOString().split('T')[0]; // YYYY-MM-DD
+  const { data: lastRun, error: checkError } = await supabase
+    .from('system_state')
+    .select('value, updated_at')
+    .eq('key', 'last_price_reduction_date')
+    .single();
+
+  if (!checkError && lastRun && lastRun.value === dateKey) {
+    console.log('⏭️ Already ran today - skipping to prevent duplicate execution');
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        message: 'Already executed today',
+        lastRun: lastRun.updated_at,
+        timestamp: now.toISOString()
+      })
+    };
+  }
+
+  console.log('✅ Executing price reduction at 1 AM Central Time');
 
   try {
     // Get all users with eBay connections and price reduction enabled listings
@@ -92,6 +134,17 @@ const handler = async (event) => {
       totalPricesReduced: results.totalPricesReduced,
       errors: results.errors.length
     });
+
+    // Mark today as completed to prevent duplicate execution
+    await supabase
+      .from('system_state')
+      .upsert({
+        key: 'last_price_reduction_date',
+        value: dateKey,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'key'
+      });
 
     return {
       statusCode: 200,
@@ -223,6 +276,9 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Schedule to run daily at 1 AM CST (7 AM UTC)
-// Cron expression: '0 7 * * *' = At 7:00 AM UTC (1:00 AM CST) every day
-exports.handler = schedule('0 7 * * *', handler);
+// Schedule to run at both 6 AM and 7 AM UTC to cover DST changes
+// Cron expression: '0 6,7 * * *' = At 6:00 AM and 7:00 AM UTC every day
+// - 6 AM UTC = 1 AM CDT (summer, UTC-5)
+// - 7 AM UTC = 1 AM CST (winter, UTC-6)
+// The function checks Central Time and only executes at 1 AM, preventing duplicates
+exports.handler = schedule('0 6,7 * * *', handler);
