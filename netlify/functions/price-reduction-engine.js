@@ -1,6 +1,6 @@
 const { Handler } = require('@netlify/functions');
 const { createClient } = require('@supabase/supabase-js');
-const { UserEbayClient } = require('./utils/user-ebay-client');
+const { EbayApiClient } = require('./utils/ebay-api-client');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -50,22 +50,25 @@ const handler = async (event, context) => {
       };
     }
 
-    // Initialize user-specific eBay client
-    const userEbayClient = new UserEbayClient(user.id);
-    await userEbayClient.initialize();
+    // Initialize eBay client
+    const ebayClient = new EbayApiClient(user.id);
 
-    // Check if user has valid eBay connection
-    if (!userEbayClient.accessToken) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          error: 'eBay account not connected',
-          message: 'Please connect your eBay account first',
-          redirectTo: '/ebay-setup'
-        })
-      };
+    try {
+      await ebayClient.initialize();
+    } catch (initError) {
+      if (initError.code === 'NOT_CONNECTED') {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'eBay account not connected',
+            message: 'Please connect your eBay account first',
+            redirectTo: '/ebay-setup'
+          })
+        };
+      }
+      throw initError;
     }
 
     // Get listings for this specific user that need price reduction
@@ -111,7 +114,7 @@ const handler = async (event, context) => {
           }
 
           // Update price on eBay
-          const ebayResponse = await userEbayClient.updateItemPrice(
+          const ebayResponse = await ebayClient.updateItemPrice(
             listing.ebay_item_id,
             newPrice
           );

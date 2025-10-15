@@ -1,5 +1,5 @@
 const { Handler } = require('@netlify/functions');
-const UserEbayClient = require('./utils/user-ebay-client');
+const { EbayApiClient } = require('./utils/ebay-api-client');
 const { createClient } = require('@supabase/supabase-js');
 
 const handler = async (event, context) => {
@@ -96,48 +96,32 @@ const handler = async (event, context) => {
       };
     }
 
-    // Initialize user-specific eBay client
-    const userEbayClient = new UserEbayClient(user.id);
-    await userEbayClient.initialize();
+    // Initialize eBay client
+    const ebayClient = new EbayApiClient(user.id);
 
-    // Check if user has valid eBay connection
-    if (!userEbayClient.isConnected()) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          error: 'eBay account not connected',
-          message: 'Please connect your eBay account first',
-          redirectTo: '/ebay-setup'
-        })
-      };
+    try {
+      await ebayClient.initialize();
+    } catch (initError) {
+      if (initError.code === 'NOT_CONNECTED') {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'eBay account not connected',
+            message: 'Please connect your eBay account first',
+            redirectTo: '/ebay-setup'
+          })
+        };
+      }
+      throw initError;
     }
 
     // Format price properly (2 decimal places)
     const formattedPrice = parseFloat(newPrice).toFixed(2);
 
     // Update item price using ReviseItem API
-    const response = await userEbayClient.makeApiCall(
-      '/ws/api.dll',
-      'POST',
-      {
-        'X-EBAY-API-COMPATIBILITY-LEVEL': '967',
-        'X-EBAY-API-CALL-NAME': 'ReviseItem',
-        'X-EBAY-API-SITEID': '0',
-        'X-EBAY-API-DEV-NAME': process.env.EBAY_DEV_ID,
-        'X-EBAY-API-APP-NAME': process.env.EBAY_APP_ID,
-        'X-EBAY-API-CERT-NAME': process.env.EBAY_CERT_ID,
-        'RequesterCredentials': {
-          'eBayAuthToken': userEbayClient.accessToken
-        },
-        'Item': {
-          'ItemID': itemId,
-          'StartPrice': formattedPrice
-        }
-      },
-      'trading'
-    );
+    const response = await ebayClient.updateItemPrice(itemId, formattedPrice);
 
     // Check for eBay API errors in response
     if (response && response.Ack && response.Ack !== 'Success') {
