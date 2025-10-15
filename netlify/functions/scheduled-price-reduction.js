@@ -10,7 +10,7 @@ const supabase = createClient(
 
 /**
  * Scheduled function that runs price reductions for eligible listings
- * Runs daily at 3 AM UTC to check for listings needing price reduction
+ * Runs daily at 1 AM CST (7 AM UTC) to check for listings needing price reduction
  */
 const handler = async (event) => {
   console.log('🕐 Starting scheduled price reduction at', new Date().toISOString());
@@ -223,6 +223,6 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Schedule to run daily at 3 AM UTC
-// Cron expression: '0 3 * * *' = At 3:00 AM every day
-exports.handler = schedule('0 3 * * *', handler);
+// Schedule to run daily at 1 AM CST (7 AM UTC)
+// Cron expression: '0 7 * * *' = At 7:00 AM UTC (1:00 AM CST) every day
+exports.handler = schedule('0 7 * * *', handler);
