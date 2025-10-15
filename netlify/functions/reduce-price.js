@@ -1,7 +1,7 @@
 const { Handler } = require('@netlify/functions')
 const { getCorsHeaders } = require('./utils/cors')
 const { createClient } = require('@supabase/supabase-js')
-const { UserEbayClient } = require('./utils/user-ebay-client')
+const { EbayApiClient } = require('./utils/ebay-api-client')
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -185,39 +185,38 @@ const handler = async (event, context) => {
       }
     }
 
-    // Initialize user-specific eBay client (matching sync-listings.js pattern)
+    // Initialize eBay client (matching trigger-sync.js pattern)
     console.log('🔍 REDUCE-PRICE: Initializing eBay client for user:', user.id)
-    const userEbayClient = new UserEbayClient(user.id)
+    const ebayClient = new EbayApiClient(user.id)
 
     try {
-      await userEbayClient.initialize()
+      await ebayClient.initialize()
       console.log('✅ REDUCE-PRICE: Client initialized successfully')
-      console.log('✅ REDUCE-PRICE: Access token exists:', !!userEbayClient.accessToken)
     } catch (initError) {
       console.error('❌ REDUCE-PRICE: Initialization failed:', initError.message)
       console.error('❌ REDUCE-PRICE: Full error:', initError)
-      throw initError
-    }
 
-    // Check if user has valid eBay connection
-    if (!userEbayClient.accessToken) {
-      console.error('❌ REDUCE-PRICE: No access token after initialization')
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'eBay account not connected',
-          message: 'Please connect your eBay account first',
-          redirectTo: '/ebay-setup'
-        })
+      // Handle specific error cases
+      if (initError.code === 'NOT_CONNECTED') {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: 'eBay account not connected',
+            message: 'Please connect your eBay account first',
+            redirectTo: '/ebay-setup'
+          })
+        }
       }
+
+      throw initError
     }
 
     console.log('✅ REDUCE-PRICE: Ready to update price for item:', listing.ebay_item_id)
 
     // Update price on eBay
     try {
-      await userEbayClient.updateItemPrice(listing.ebay_item_id, newPrice)
+      await ebayClient.updateItemPrice(listing.ebay_item_id, newPrice)
     } catch (ebayError) {
       // Log the error but continue with database update for demo purposes
       console.error('eBay API error:', ebayError)
