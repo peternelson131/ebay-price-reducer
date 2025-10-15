@@ -151,6 +151,12 @@ class ApiService {
     });
   }
 
+  async manualPriceReduction(currentUserOnly = true) {
+    return this.request(`/manual-price-reduction?currentUserOnly=${currentUserOnly}`, {
+      method: 'POST'
+    });
+  }
+
   async getPriceChanges(days = 30, limit = 50) {
     return this.request(`/get-price-changes?days=${days}&limit=${limit}`, {
       method: 'GET'
