@@ -163,6 +163,13 @@ class ApiService {
     });
   }
 
+  async getPriceReductionLogs(days = 10, limit = 100, type = null) {
+    const typeParam = type ? `&type=${type}` : '';
+    return this.request(`/get-price-reduction-logs?days=${days}&limit=${limit}${typeParam}`, {
+      method: 'GET'
+    });
+  }
+
   // Market Analysis
   async analyzeMarket(itemId = null, keywords = null, categoryId = null) {
     return this.request('/market-analysis', {

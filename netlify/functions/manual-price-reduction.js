@@ -122,7 +122,7 @@ const handler = async (event, context) => {
     // Process each user's listings
     for (const userToProcess of users) {
       try {
-        const userResult = await processUserPriceReductions(userToProcess);
+        const userResult = await processUserPriceReductions(userToProcess, user.id);
         results.usersProcessed++;
         results.totalListingsChecked += userResult.listingsChecked;
         results.totalPricesReduced += userResult.pricesReduced;
@@ -191,7 +191,7 @@ const handler = async (event, context) => {
 /**
  * Process price reductions for a single user
  */
-async function processUserPriceReductions(user) {
+async function processUserPriceReductions(user, triggeredBy = null) {
   console.log(`🔍 Checking price reductions for user ${user.email}...`);
 
   // Initialize eBay client
@@ -282,6 +282,27 @@ async function processUserPriceReductions(user) {
             updated_at: new Date().toISOString()
           })
           .eq('id', listing.id);
+
+        // Log the successful price reduction
+        const reductionAmountCalc = currentPrice - newPrice;
+        const reductionPercentageCalc = ((reductionAmountCalc / currentPrice) * 100).toFixed(2);
+
+        await supabase
+          .from('price_reduction_log')
+          .insert({
+            user_id: user.id,
+            listing_id: listing.id,
+            ebay_item_id: listing.ebay_item_id,
+            sku: listing.sku,
+            title: listing.title,
+            original_price: currentPrice,
+            reduced_price: newPrice,
+            reduction_amount: reductionAmountCalc,
+            reduction_percentage: reductionPercentageCalc,
+            reduction_type: 'manual',
+            reduction_strategy: listing.reduction_strategy || 'fixed_percentage',
+            triggered_by: triggeredBy
+          });
 
         pricesReduced++;
 

@@ -136,6 +136,19 @@ const handler = async (event) => {
       errors: results.errors.length
     });
 
+    // Clean up old price reduction logs (older than 10 days)
+    try {
+      const { data: cleanupResult, error: cleanupError } = await supabase
+        .rpc('cleanup_old_price_reduction_logs');
+
+      if (!cleanupError && cleanupResult !== null) {
+        console.log(`🧹 Cleaned up ${cleanupResult} old price reduction log entries`);
+      }
+    } catch (cleanupErr) {
+      console.warn('⚠️ Failed to clean up old logs:', cleanupErr.message);
+      // Don't fail the entire job if cleanup fails
+    }
+
     // Mark today as completed to prevent duplicate execution
     await supabase
       .from('system_state')
@@ -262,6 +275,27 @@ async function processUserPriceReductions(user) {
             updated_at: new Date().toISOString()
           })
           .eq('id', listing.id);
+
+        // Log the successful price reduction
+        const reductionAmountCalc = currentPrice - newPrice;
+        const reductionPercentageCalc = ((reductionAmountCalc / currentPrice) * 100).toFixed(2);
+
+        await supabase
+          .from('price_reduction_log')
+          .insert({
+            user_id: user.id,
+            listing_id: listing.id,
+            ebay_item_id: listing.ebay_item_id,
+            sku: listing.sku,
+            title: listing.title,
+            original_price: currentPrice,
+            reduced_price: newPrice,
+            reduction_amount: reductionAmountCalc,
+            reduction_percentage: reductionPercentageCalc,
+            reduction_type: 'scheduled',
+            reduction_strategy: listing.reduction_strategy || 'fixed_percentage',
+            triggered_by: null // Scheduled runs have no user trigger
+          });
 
         pricesReduced++;
 
