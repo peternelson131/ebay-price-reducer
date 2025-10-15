@@ -158,32 +158,8 @@ class EnhancedEbayClient {
           userId: this.userId
         });
 
-        // Detect credential mismatch and auto-clear stale tokens
-        const isMismatch = ebayError.includes('issued to another client') ||
-                           ebayError.includes('invalid_client') ||
-                           data.error === 'invalid_grant';
-
-        if (isMismatch) {
-          console.error('🔄 TOKEN MISMATCH DETECTED - Auto-clearing stale tokens');
-          try {
-            await supabase
-              .from('users')
-              .update({
-                ebay_refresh_token: null,
-                ebay_connection_status: 'disconnected',
-                ebay_connected_at: null
-              })
-              .eq('id', this.userId);
-            console.log('✓ Stale tokens cleared successfully');
-          } catch (clearError) {
-            console.error('Failed to clear stale tokens:', clearError);
-          }
-
-          throw new Error(
-            'Your eBay credentials have changed or expired. Please reconnect your eBay account in Settings.'
-          );
-        }
-
+        // Return descriptive error without auto-disconnecting
+        // Let users manually reconnect if needed
         throw new Error(`eBay API error (${response.status}): ${ebayError}`);
       }
 
