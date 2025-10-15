@@ -92,6 +92,8 @@ class UserEbayClient {
 
       const refreshToken = tokenData[0].refresh_token;
       console.log('✓ Refresh token retrieved');
+      console.log('→ Refresh token (first 10 chars):', refreshToken ? refreshToken.substring(0, 10) + '...' : 'NULL');
+      console.log('→ Refresh token (last 10 chars):', refreshToken ? '...' + refreshToken.substring(refreshToken.length - 10) : 'NULL');
 
       // 2. Get app credentials via NEW RPC function
       const { data: appCreds, error: appError } = await supabase.rpc(
@@ -146,7 +148,8 @@ class UserEbayClient {
 
       // 3. Exchange refresh token for access token
       console.log('→ Calling eBay OAuth API...');
-      console.log('→ Using App ID:', clientId ? `${clientId.substring(0, 10)}...` : 'MISSING');
+      console.log('→ Using App ID (full):', clientId);
+      console.log('→ Using Cert ID (first 10):', clientSecret ? clientSecret.substring(0, 10) + '...' : 'MISSING');
       console.log('→ Cert ID length:', clientSecret ? clientSecret.length : 'MISSING');
       const credentialsBase64 = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
