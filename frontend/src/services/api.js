@@ -151,6 +151,12 @@ class ApiService {
     });
   }
 
+  async getPriceChanges(days = 30, limit = 50) {
+    return this.request(`/get-price-changes?days=${days}&limit=${limit}`, {
+      method: 'GET'
+    });
+  }
+
   // Market Analysis
   async analyzeMarket(itemId = null, keywords = null, categoryId = null) {
     return this.request('/market-analysis', {
