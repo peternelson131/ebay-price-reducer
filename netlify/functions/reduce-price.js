@@ -186,11 +186,22 @@ const handler = async (event, context) => {
     }
 
     // Initialize user-specific eBay client (matching sync-listings.js pattern)
+    console.log('🔍 REDUCE-PRICE: Initializing eBay client for user:', user.id)
     const userEbayClient = new UserEbayClient(user.id)
-    await userEbayClient.initialize()
+
+    try {
+      await userEbayClient.initialize()
+      console.log('✅ REDUCE-PRICE: Client initialized successfully')
+      console.log('✅ REDUCE-PRICE: Access token exists:', !!userEbayClient.accessToken)
+    } catch (initError) {
+      console.error('❌ REDUCE-PRICE: Initialization failed:', initError.message)
+      console.error('❌ REDUCE-PRICE: Full error:', initError)
+      throw initError
+    }
 
     // Check if user has valid eBay connection
     if (!userEbayClient.accessToken) {
+      console.error('❌ REDUCE-PRICE: No access token after initialization')
       return {
         statusCode: 400,
         headers,
@@ -201,6 +212,8 @@ const handler = async (event, context) => {
         })
       }
     }
+
+    console.log('✅ REDUCE-PRICE: Ready to update price for item:', listing.ebay_item_id)
 
     // Update price on eBay
     try {

@@ -24,30 +24,47 @@ class UserEbayClient {
    */
   async initialize() {
     try {
+      console.log('🔍 UserEbayClient.initialize() - User ID:', this.userId);
+
       const { data, error } = await supabase.rpc('get_user_ebay_credentials', {
         user_uuid: this.userId
       });
 
+      console.log('🔍 RPC Response - Error:', error);
+      console.log('🔍 RPC Response - Data:', data ? `${data.length} rows` : 'null');
+
       if (error) {
+        console.error('❌ RPC Error:', error);
         throw new Error(`Failed to get eBay credentials: ${error.message}`);
       }
 
-      if (!data || data.length === 0 || !data[0].refresh_token) {
+      if (!data || data.length === 0) {
+        console.error('❌ No credentials found for user:', this.userId);
         throw new Error('User has not connected their eBay account');
       }
 
       const credentials = data[0];
+      console.log('🔍 Credentials check - Has refresh_token:', !!credentials.refresh_token);
+      console.log('🔍 Credentials check - Has ebay_user_id:', !!credentials.ebay_user_id);
+
+      if (!credentials.refresh_token) {
+        console.error('❌ Refresh token is null or empty');
+        throw new Error('User has not connected their eBay account');
+      }
+
       this.ebayUserId = credentials.ebay_user_id;
 
       // Always get fresh access token by exchanging refresh token
+      console.log('🔍 Calling refreshToken()...');
       const refreshResult = await this.refreshToken();
       if (!refreshResult) {
         throw new Error('Failed to obtain eBay access token');
       }
 
+      console.log('✅ UserEbayClient.initialize() completed successfully');
       return true;
     } catch (error) {
-      console.error('Error initializing eBay client:', error);
+      console.error('❌ Error initializing eBay client:', error);
       throw error;
     }
   }
