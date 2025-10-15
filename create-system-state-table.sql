@@ -33,15 +33,11 @@ USING (true)
 WITH CHECK (true);
 
 -- Add helpful comment
-COMMENT ON TABLE system_state IS
-  'Stores system-wide state information for scheduled jobs and background tasks. ' ||
-  'Used by automated functions to track execution state and prevent duplicates.';
+COMMENT ON TABLE system_state IS 'Stores system-wide state information for scheduled jobs and background tasks. Used by automated functions to track execution state and prevent duplicates.';
 
-COMMENT ON COLUMN system_state.key IS
-  'Unique identifier for the state entry (e.g., "last_price_reduction_date")';
+COMMENT ON COLUMN system_state.key IS 'Unique identifier for the state entry (e.g., last_price_reduction_date)';
 
-COMMENT ON COLUMN system_state.value IS
-  'State value, format depends on key (e.g., date string, JSON, etc.)';
+COMMENT ON COLUMN system_state.value IS 'State value, format depends on key (e.g., date string, JSON, etc.)';
 
 -- Insert initial value for price reduction tracking (optional)
 INSERT INTO system_state (key, value, updated_at)
