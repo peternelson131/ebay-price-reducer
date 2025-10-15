@@ -185,46 +185,9 @@ const handler = async (event, context) => {
       }
     }
 
-    // Verify connection status in database before attempting initialization
-    const { data: connectionStatus } = await supabase
-      .from('users')
-      .select('ebay_connection_status, ebay_refresh_token')
-      .eq('id', user.id)
-      .single()
-
-    if (!connectionStatus ||
-        connectionStatus.ebay_connection_status !== 'connected' ||
-        !connectionStatus.ebay_refresh_token) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'eBay account not connected',
-          message: 'Your eBay connection has been disconnected. Please reconnect your eBay account in Settings.',
-          redirectTo: '/ebay-setup'
-        })
-      }
-    }
-
-    // Initialize user-specific eBay client
+    // Initialize user-specific eBay client (matching sync-listings.js pattern)
     const userEbayClient = new UserEbayClient(user.id)
-
-    try {
-      await userEbayClient.initialize()
-    } catch (initError) {
-      console.error('Failed to initialize eBay client:', initError)
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'eBay account not connected',
-          message: initError.message.includes('credentials have changed')
-            ? 'Your eBay credentials have changed. Please reconnect your eBay account in Settings.'
-            : 'Failed to connect to eBay. Please reconnect your eBay account in Settings.',
-          redirectTo: '/ebay-setup'
-        })
-      }
-    }
+    await userEbayClient.initialize()
 
     // Check if user has valid eBay connection
     if (!userEbayClient.accessToken) {
