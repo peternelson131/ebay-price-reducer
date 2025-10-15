@@ -10,26 +10,27 @@ const supabase = createClient(
 
 /**
  * Scheduled function that runs price reductions for eligible listings
- * Runs daily at 1 AM Central Time (year-round, accounting for DST)
+ * Runs daily at 1:10 AM Central Time (year-round, accounting for DST)
  *
- * Note: This runs at both 6 AM and 7 AM UTC to cover both CST and CDT,
- * but only executes if it's actually 1 AM Central Time.
+ * Note: This runs at both 6:10 AM and 7:10 AM UTC to cover both CST and CDT,
+ * but only executes if it's actually 1:10 AM Central Time.
  */
 const handler = async (event) => {
   const now = new Date();
   console.log('🕐 Scheduled price reduction triggered at', now.toISOString());
 
-  // Check if it's 1 AM Central Time
+  // Check if it's 1:10 AM Central Time
   const centralTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
   const centralHour = centralTime.getHours();
+  const centralMinute = centralTime.getMinutes();
 
-  if (centralHour !== 1) {
-    console.log(`⏭️ Skipping execution - Current Central Time hour is ${centralHour}, not 1 AM`);
+  if (centralHour !== 1 || centralMinute !== 10) {
+    console.log(`⏭️ Skipping execution - Current Central Time is ${centralHour}:${centralMinute.toString().padStart(2, '0')}, not 1:10 AM`);
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: 'Skipped - not 1 AM Central Time',
-        currentCentralHour: centralHour,
+        message: 'Skipped - not 1:10 AM Central Time',
+        currentCentralTime: `${centralHour}:${centralMinute.toString().padStart(2, '0')}`,
         timestamp: now.toISOString()
       })
     };
@@ -55,7 +56,7 @@ const handler = async (event) => {
     };
   }
 
-  console.log('✅ Executing price reduction at 1 AM Central Time');
+  console.log('✅ Executing price reduction at 1:10 AM Central Time');
 
   try {
     // Get all users with eBay connections and price reduction enabled listings
@@ -276,9 +277,9 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Schedule to run at both 6 AM and 7 AM UTC to cover DST changes
-// Cron expression: '0 6,7 * * *' = At 6:00 AM and 7:00 AM UTC every day
-// - 6 AM UTC = 1 AM CDT (summer, UTC-5)
-// - 7 AM UTC = 1 AM CST (winter, UTC-6)
-// The function checks Central Time and only executes at 1 AM, preventing duplicates
-exports.handler = schedule('0 6,7 * * *', handler);
+// Schedule to run at both 6:10 AM and 7:10 AM UTC to cover DST changes
+// Cron expression: '10 6,7 * * *' = At 6:10 AM and 7:10 AM UTC every day
+// - 6:10 AM UTC = 1:10 AM CDT (summer, UTC-5)
+// - 7:10 AM UTC = 1:10 AM CST (winter, UTC-6)
+// The function checks Central Time and only executes at 1:10 AM, preventing duplicates
+exports.handler = schedule('10 6,7 * * *', handler);
