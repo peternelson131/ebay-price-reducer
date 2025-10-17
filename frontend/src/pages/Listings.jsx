@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { listingsAPI, userAPI } from '../lib/supabase'
-import { getEbayAuthUrl, getEbayConnectionStatus } from '../services/api'
+import apiService, { getEbayAuthUrl, getEbayConnectionStatus } from '../services/api'
 import { getActiveStrategies, getStrategyById, getStrategyDisplayName, getStrategyDisplayInfo } from '../data/strategies'
 
 // Helper functions for localStorage
@@ -245,7 +245,7 @@ export default function Listings() {
   )
 
   const togglePriceReductionMutation = useMutation(
-    ({ listingId, enabled }) => listingsAPI.updateListing(listingId, { price_reduction_enabled: enabled }),
+    ({ itemId, userId, enabled, listingId }) => apiService.togglePriceReduction(itemId, userId, enabled),
     {
       onMutate: async ({ listingId, enabled }) => {
         await queryClient.cancelQueries(['listings', { status }])
@@ -434,13 +434,24 @@ export default function Listings() {
     updateStrategyMutation.mutate({ listingId, strategy })
   }
 
-  const handleTogglePriceReduction = (listingId, currentState, minimumPrice) => {
+  const handleTogglePriceReduction = (listing) => {
     // Prevent enabling price reduction if minimum price is not set
-    if (!currentState && (!minimumPrice || minimumPrice <= 0)) {
+    if (!listing.price_reduction_enabled && (!listing.minimum_price || listing.minimum_price <= 0)) {
       showNotification('error', 'Please set a minimum price before enabling price reduction')
       return
     }
-    togglePriceReductionMutation.mutate({ listingId, enabled: !currentState })
+
+    if (!userProfile?.id) {
+      showNotification('error', 'User not authenticated')
+      return
+    }
+
+    togglePriceReductionMutation.mutate({
+      itemId: listing.ebay_item_id,
+      userId: userProfile.id,
+      enabled: !listing.price_reduction_enabled,
+      listingId: listing.id // Keep for optimistic updates
+    })
   }
 
   const handleAcceptSuggestedPrice = (listingId, suggestedPrice, priceType) => {
@@ -1336,7 +1347,7 @@ export default function Listings() {
                         <input
                           type="checkbox"
                           checked={listing.price_reduction_enabled}
-                          onChange={() => handleTogglePriceReduction(listing.id, listing.price_reduction_enabled, listing.minimum_price)}
+                          onChange={() => handleTogglePriceReduction(listing)}
                           disabled={togglePriceReductionMutation.isLoading}
                           className="sr-only"
                         />
@@ -1612,7 +1623,7 @@ export default function Listings() {
                                 <input
                                   type="checkbox"
                                   checked={listing.price_reduction_enabled}
-                                  onChange={() => handleTogglePriceReduction(listing.id, listing.price_reduction_enabled, listing.minimum_price)}
+                                  onChange={() => handleTogglePriceReduction(listing)}
                                   disabled={togglePriceReductionMutation.isLoading}
                                   className="sr-only"
                                 />
