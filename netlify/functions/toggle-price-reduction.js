@@ -97,7 +97,7 @@ const handler = async (event, context) => {
     }
 
     // Update the price reduction setting
-    // When enabling: set next_price_reduction to NOW (eligible immediately)
+    // When enabling: calculate next_price_reduction based on reduction_interval
     // When disabling: clear next_price_reduction
     const updateData = {
       price_reduction_enabled: enabled,
@@ -105,9 +105,12 @@ const handler = async (event, context) => {
     };
 
     if (enabled) {
-      // Enable: Set next_price_reduction to NOW so it's eligible for the next scheduled run
-      updateData.next_price_reduction = new Date().toISOString();
-      console.log(`Enabling price reduction for ${listing.title} - next reduction: NOW`);
+      // Enable: Calculate next reduction date based on reduction_interval (default 7 days)
+      const nextReduction = new Date();
+      const interval = listing.reduction_interval || 7;
+      nextReduction.setDate(nextReduction.getDate() + interval);
+      updateData.next_price_reduction = nextReduction.toISOString();
+      console.log(`Enabling price reduction for ${listing.title} - next reduction: ${nextReduction.toISOString()} (${interval} days from now)`);
     } else {
       // Disable: Clear next_price_reduction
       updateData.next_price_reduction = null;
