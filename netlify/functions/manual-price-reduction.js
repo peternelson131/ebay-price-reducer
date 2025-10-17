@@ -205,13 +205,16 @@ async function processUserPriceReductions(user, triggeredBy = null) {
   }
 
   // Get listings that might need price reduction
+  // Include listings where next_price_reduction is NULL (never reduced before)
+  // OR where next_price_reduction date has passed
+  const now = new Date().toISOString();
   const { data: allListings, error: fetchError } = await supabase
     .from('listings')
     .select('*')
     .eq('user_id', user.id)
     .eq('price_reduction_enabled', true)
     .eq('listing_status', 'Active')
-    .lte('next_price_reduction', new Date().toISOString());
+    .or(`next_price_reduction.lte.${now},next_price_reduction.is.null`);
 
   if (fetchError) {
     throw new Error(`Failed to fetch listings: ${fetchError.message}`);
