@@ -97,12 +97,26 @@ const handler = async (event, context) => {
     }
 
     // Update the price reduction setting
+    // When enabling: set next_price_reduction to NOW (eligible immediately)
+    // When disabling: clear next_price_reduction
+    const updateData = {
+      price_reduction_enabled: enabled,
+      updated_at: new Date().toISOString()
+    };
+
+    if (enabled) {
+      // Enable: Set next_price_reduction to NOW so it's eligible for the next scheduled run
+      updateData.next_price_reduction = new Date().toISOString();
+      console.log(`Enabling price reduction for ${listing.title} - next reduction: NOW`);
+    } else {
+      // Disable: Clear next_price_reduction
+      updateData.next_price_reduction = null;
+      console.log(`Disabling price reduction for ${listing.title}`);
+    }
+
     const { data: updatedListing, error: updateError } = await supabase
       .from('listings')
-      .update({
-        price_reduction_enabled: enabled,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('ebay_item_id', itemId)
       .eq('user_id', userId)
       .select()
