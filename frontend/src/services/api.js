@@ -137,6 +137,13 @@ class ApiService {
     });
   }
 
+  async updateListingStrategy(listingId, strategyId, userId) {
+    return this.request('/update-listing-strategy', {
+      method: 'POST',
+      body: JSON.stringify({ listingId, strategyId, userId })
+    });
+  }
+
   async updateItemPrice(itemId, newPrice) {
     return this.request('/update-item-price', {
       method: 'POST',

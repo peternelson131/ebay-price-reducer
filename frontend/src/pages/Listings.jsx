@@ -212,9 +212,9 @@ export default function Listings() {
   )
 
   const updateStrategyMutation = useMutation(
-    ({ listingId, strategy }) => listingsAPI.updateListing(listingId, { reduction_strategy: strategy }),
+    ({ listingId, strategyId, userId }) => apiService.updateListingStrategy(listingId, strategyId, userId),
     {
-      onMutate: async ({ listingId, strategy }) => {
+      onMutate: async ({ listingId, strategyId }) => {
         await queryClient.cancelQueries(['listings', { status }])
         const previousListings = queryClient.getQueryData(['listings', { status }])
 
@@ -222,15 +222,15 @@ export default function Listings() {
           if (!old) return old
           return old.map(listing =>
             listing.id === listingId
-              ? { ...listing, reduction_strategy: strategy }
+              ? { ...listing, strategy_id: strategyId, reduction_strategy: strategyId }
               : listing
           )
         })
 
         return { previousListings }
       },
-      onSuccess: () => {
-        showNotification('success', 'Strategy updated')
+      onSuccess: (data) => {
+        showNotification('success', `Strategy updated to ${data.strategy.name}`)
       },
       onError: (error, variables, context) => {
         if (context?.previousListings) {
@@ -430,8 +430,17 @@ export default function Listings() {
     }
   }
 
-  const handleStrategyUpdate = (listingId, strategy) => {
-    updateStrategyMutation.mutate({ listingId, strategy })
+  const handleStrategyUpdate = (listingId, strategyId) => {
+    if (!userProfile?.id) {
+      showNotification('error', 'User not authenticated')
+      return
+    }
+
+    updateStrategyMutation.mutate({
+      listingId,
+      strategyId,
+      userId: userProfile.id
+    })
   }
 
   const handleTogglePriceReduction = (listing) => {
