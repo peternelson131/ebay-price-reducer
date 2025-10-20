@@ -1050,91 +1050,106 @@ Enter multiple ASINs, one per line"
             </h2>
 
             {!creationResults && (
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {processedData.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-4 bg-gray-50">
-                    <div className="space-y-3">
-                      {/* Title - Editable */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Title (max 80 characters)
-                        </label>
-                        <input
-                          type="text"
-                          maxLength="80"
-                          defaultValue={item.listingTitle}
-                          onChange={(e) => handleTitleChange(item.id, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Enter listing title"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          {editableTitles[item.id]?.length || item.listingTitle.length}/80 characters
-                        </p>
-                      </div>
+              <div className="space-y-3 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                {processedData.map((item) => {
+                  // Get primary image from Keepa
+                  const primaryImage = item.ebayDraft?.images?.[0] ||
+                                      item.imageUrl?.split(',')[0] ||
+                                      (item.imageUrl ? `https://images-na.ssl-images-amazon.com/images/I/${item.imageUrl.trim()}` : null);
 
-                      {/* SKU - Read-only */}
-                      <div>
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">SKU:</span> {item.sku}
-                        </p>
-                      </div>
-
-                      {/* Grid for Quantity, Condition, and Price */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {/* Quantity - Editable */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Quantity
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="10000"
-                            defaultValue={item.quantity}
-                            onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-
-                        {/* Condition - Editable Dropdown */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Condition
-                          </label>
-                          <select
-                            defaultValue="NEW_OTHER"
-                            onChange={(e) => handleConditionChange(item.id, e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                          >
-                            {ebayConditions.map((condition) => (
-                              <option key={condition.value} value={condition.value}>
-                                {condition.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Price - Editable */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Price
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              defaultValue={item.suggestedPrice}
-                              onChange={(e) => handlePriceChange(item.id, e.target.value)}
-                              className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  return (
+                    <div key={item.id} className="border rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <div className="flex gap-3">
+                        {/* Product Image */}
+                        <div className="flex-shrink-0">
+                          {primaryImage ? (
+                            <img
+                              src={primaryImage}
+                              alt={item.title}
+                              className="w-20 h-20 object-cover rounded border border-gray-200"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                              }}
                             />
+                          ) : (
+                            <div className="w-20 h-20 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
+                              <span className="text-gray-400 text-xs">No image</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Listing Details - Compact Layout */}
+                        <div className="flex-1 min-w-0">
+                          {/* Row 1: Title */}
+                          <div className="mb-2">
+                            <input
+                              type="text"
+                              maxLength="80"
+                              defaultValue={item.listingTitle}
+                              onChange={(e) => handleTitleChange(item.id, e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Enter listing title"
+                            />
+                            <div className="flex justify-between items-center mt-0.5">
+                              <span className="text-xs text-gray-500">SKU: {item.sku}</span>
+                              <span className="text-xs text-gray-400">
+                                {editableTitles[item.id]?.length || item.listingTitle.length}/80
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Row 2: Editable Fields - All in one line */}
+                          <div className="grid grid-cols-4 gap-2">
+                            {/* Quantity */}
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-0.5">Qty</label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="10000"
+                                defaultValue={item.quantity}
+                                onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+
+                            {/* Condition */}
+                            <div className="col-span-2">
+                              <label className="block text-xs text-gray-600 mb-0.5">Condition</label>
+                              <select
+                                defaultValue="NEW_OTHER"
+                                onChange={(e) => handleConditionChange(item.id, e.target.value)}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              >
+                                {ebayConditions.map((condition) => (
+                                  <option key={condition.value} value={condition.value}>
+                                    {condition.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Price */}
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-0.5">Price</label>
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  defaultValue={item.suggestedPrice}
+                                  onChange={(e) => handlePriceChange(item.id, e.target.value)}
+                                  className="w-full pl-6 pr-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
