@@ -17,7 +17,25 @@ export default function AutoList() {
   const [sheetsUrl, setSheetsUrl] = useState('')
   const [loadingSheets, setLoadingSheets] = useState(false)
   const [editablePrices, setEditablePrices] = useState({}) // Track edited prices by item ID
+  const [editableTitles, setEditableTitles] = useState({}) // Track edited titles by item ID
+  const [editableQuantities, setEditableQuantities] = useState({}) // Track edited quantities by item ID
+  const [editableConditions, setEditableConditions] = useState({}) // Track edited conditions by item ID
   const [creationResults, setCreationResults] = useState(null) // Track success/failure for each listing
+
+  // eBay acceptable condition values
+  const ebayConditions = [
+    { value: 'NEW', label: 'Brand New' },
+    { value: 'NEW_OTHER', label: 'New - Open Box' },
+    { value: 'NEW_WITH_DEFECTS', label: 'New with Defects' },
+    { value: 'MANUFACTURER_REFURBISHED', label: 'Manufacturer Refurbished' },
+    { value: 'CERTIFIED_REFURBISHED', label: 'Certified Refurbished' },
+    { value: 'SELLER_REFURBISHED', label: 'Seller Refurbished' },
+    { value: 'USED_EXCELLENT', label: 'Used - Excellent' },
+    { value: 'USED_VERY_GOOD', label: 'Used - Very Good' },
+    { value: 'USED_GOOD', label: 'Used - Good' },
+    { value: 'USED_ACCEPTABLE', label: 'Used - Acceptable' },
+    { value: 'FOR_PARTS_OR_NOT_WORKING', label: 'For Parts or Not Working' }
+  ]
 
   const showNotification = (type, message) => {
     setNotification({ type, message })
@@ -356,10 +374,8 @@ export default function AutoList() {
   const createEbayTitle = (item) => {
     let title = item.title
 
-    // Only prepend brand if not already in title (case-insensitive check)
-    if (item.brand && !title.toLowerCase().startsWith(item.brand.toLowerCase())) {
-      title = `${item.brand} ${title}`
-    }
+    // ❌ REMOVED: Do not prepend brand name to title
+    // Brand is already in the title from Keepa or will be in aspects
 
     // Don't add condition suffix for NEW_OTHER as it's the default
     if (item.condition && item.condition !== 'NEW_OTHER' && item.condition !== 'New') {
@@ -429,8 +445,11 @@ export default function AutoList() {
       // Process listings sequentially to track individual success/failure
       for (const listing of listings) {
         try {
-          // Use edited price if available, otherwise use suggested price
+          // Use edited values if available, otherwise use defaults
           const price = editablePrices[listing.id] || listing.suggestedPrice
+          const title = editableTitles[listing.id] || listing.listingTitle
+          const quantity = editableQuantities[listing.id] || listing.quantity
+          const condition = editableConditions[listing.id] || 'NEW_OTHER' // Default to New - Open Box
 
           // Use ALL images from ebayDraft if available, otherwise fallback to imageUrl
           const images = listing.ebayDraft?.images && listing.ebayDraft.images.length > 0
@@ -454,21 +473,25 @@ export default function AutoList() {
           console.log('📦 Creating listing with data:', {
             asin: listing.asin,
             sku: listing.sku,
+            title: title,
+            quantity: quantity,
+            condition: condition,
+            price: price,
             hasEbayDraft: !!listing.ebayDraft,
             imageCount: images.length,
-            images: images, // Show actual image URLs
+            images: images,
             descriptionLength: description?.length || 0,
             aspectsKeys: Object.keys(aspects)
           })
 
           const result = await listingsAPI.createListing({
             asin: listing.asin, // ✅ Pass ASIN for SKU generation
-            title: listing.listingTitle,
+            title: title, // ✅ Use edited title
             description: description, // ✅ Use full Keepa description
-            price: price,
-            quantity: listing.quantity,
+            price: price, // ✅ Use edited price
+            quantity: quantity, // ✅ Use edited quantity
             // sku: Let backend generate with user's prefix settings
-            condition: listing.condition,
+            condition: condition, // ✅ Use edited condition
             images: images, // ✅ Use ALL images from Keepa
             aspects: aspects // Includes all enhanced aspects from Keepa
           })
@@ -517,6 +540,30 @@ export default function AutoList() {
     setEditablePrices(prev => ({
       ...prev,
       [itemId]: parseFloat(newPrice)
+    }))
+  }
+
+  // Update title for a specific item
+  const handleTitleChange = (itemId, newTitle) => {
+    setEditableTitles(prev => ({
+      ...prev,
+      [itemId]: newTitle
+    }))
+  }
+
+  // Update quantity for a specific item
+  const handleQuantityChange = (itemId, newQuantity) => {
+    setEditableQuantities(prev => ({
+      ...prev,
+      [itemId]: parseInt(newQuantity, 10)
+    }))
+  }
+
+  // Update condition for a specific item
+  const handleConditionChange = (itemId, newCondition) => {
+    setEditableConditions(prev => ({
+      ...prev,
+      [itemId]: newCondition
     }))
   }
 
@@ -1005,30 +1052,85 @@ Enter multiple ASINs, one per line"
             {!creationResults && (
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {processedData.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div key={item.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="space-y-3">
+                      {/* Title - Editable */}
                       <div>
-                        <h3 className="font-medium text-gray-900">{item.listingTitle}</h3>
-                        <p className="text-sm text-gray-500 mt-1">SKU: {item.sku}</p>
-                        <p className="text-sm text-gray-500">Category: {item.ebayCategory}</p>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Title (max 80 characters)
+                        </label>
+                        <input
+                          type="text"
+                          maxLength="80"
+                          defaultValue={item.listingTitle}
+                          onChange={(e) => handleTitleChange(item.id, e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Enter listing title"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {editableTitles[item.id]?.length || item.listingTitle.length}/80 characters
+                        </p>
                       </div>
-                      <div className="sm:text-right">
-                        <div className="flex items-center justify-end gap-2 mb-2">
-                          <label className="text-sm text-gray-600">Price:</label>
+
+                      {/* SKU - Read-only */}
+                      <div>
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">SKU:</span> {item.sku}
+                        </p>
+                      </div>
+
+                      {/* Grid for Quantity, Condition, and Price */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {/* Quantity - Editable */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="10000"
+                            defaultValue={item.quantity}
+                            onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
+
+                        {/* Condition - Editable Dropdown */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Condition
+                          </label>
+                          <select
+                            defaultValue="NEW_OTHER"
+                            onChange={(e) => handleConditionChange(item.id, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            {ebayConditions.map((condition) => (
+                              <option key={condition.value} value={condition.value}>
+                                {condition.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Price - Editable */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Price
+                          </label>
                           <div className="relative">
-                            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                             <input
                               type="number"
                               step="0.01"
                               min="0"
                               defaultValue={item.suggestedPrice}
                               onChange={(e) => handlePriceChange(item.id, e.target.value)}
-                              className="w-28 pl-6 pr-2 py-1 border border-gray-300 rounded text-right font-bold text-green-600"
+                              className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                             />
                           </div>
                         </div>
-                        <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
-                        <p className="text-sm text-gray-500">Condition: New Open Box</p>
                       </div>
                     </div>
                   </div>
@@ -1104,6 +1206,9 @@ Enter multiple ASINs, one per line"
                   onClick={() => {
                     setCreationResults(null)
                     setEditablePrices({})
+                    setEditableTitles({})
+                    setEditableQuantities({})
+                    setEditableConditions({})
                     setExcelData([])
                     setProcessedData([])
                     setSelectedItems(new Set())
