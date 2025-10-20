@@ -876,150 +876,95 @@ Enter multiple ASINs, one per line"
               </div>
             </div>
 
-            {/* Mobile Card View */}
-            <div className="sm:hidden space-y-3">
-              {excelData.map((item) => (
-                <div key={item.id} className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.has(item.id)}
-                        onChange={() => toggleSelection(item.id)}
-                        className="rounded border-gray-300 mr-3"
-                      />
-                      <div>
-                        <div className="font-medium text-sm">{item.title}</div>
-                        <div className="text-xs text-gray-500">SKU: {item.sku}</div>
-                        {item.asin && (
-                          <div className="text-xs text-gray-500">ASIN: {item.asin}</div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-500">Qty:</span> {item.quantity}
-                    </div>
-                    <div>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        item.condition === 'New'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {item.condition}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Original:</span> ${item.originalPrice}
-                    </div>
-                    <div className="font-semibold">
-                      <span className="text-gray-500">eBay:</span>{' '}
-                      {item.originalPrice > 0 ? (
-                        <span className="text-green-600">
-                          ${calculateEbayPrice(item.originalPrice, item.condition)}
-                        </span>
-                      ) : (
-                        <span className="text-amber-600">
-                          ⚠️ No price
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* Compact Card View with Images (All Devices) */}
+            <div className="space-y-3 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 350px)' }}>
+              {excelData.map((item) => {
+                // Get primary image from Keepa
+                const primaryImage = item.ebayDraft?.images?.[0] ||
+                                    item.imageUrl?.split(',')[0] ||
+                                    (item.imageUrl ? `https://images-na.ssl-images-amazon.com/images/I/${item.imageUrl.trim()}` : null);
 
-            {/* Desktop Table View */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={excelData.length > 0 && selectedItems.size === excelData.length}
-                          onChange={(e) => e.target.checked ? selectAll() : deselectAll()}
-                          className="rounded border-gray-300"
-                          title="Select/Deselect All"
-                        />
-                        <span>Select</span>
-                      </div>
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                      SKU/ASIN
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                      Product
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                      Qty
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                      Condition
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                      Original Price
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                      Suggested eBay Price
-                      <button
-                        type="button"
-                        className="ml-1 text-gray-400 hover:text-gray-600"
-                        title="Suggested price = Amazon price × condition multiplier (New: 1.2x, Like New: 1.1x, Used: 0.95x)"
-                      >
-                        ℹ️
-                      </button>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {excelData.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2">
+                return (
+                  <div key={item.id} className="border rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="flex gap-3">
+                      {/* Checkbox */}
+                      <div className="flex-shrink-0 flex items-start pt-1">
                         <input
                           type="checkbox"
                           checked={selectedItems.has(item.id)}
                           onChange={() => toggleSelection(item.id)}
-                          className="rounded border-gray-300"
+                          className="rounded border-gray-300 w-4 h-4"
                         />
-                      </td>
-                      <td className="px-4 py-2 text-sm">
-                        <div>{item.sku}</div>
-                        {item.asin && (
-                          <div className="text-xs text-gray-500">{item.asin}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-2 text-sm max-w-xs truncate">
-                        {item.title}
-                      </td>
-                      <td className="px-4 py-2 text-sm">{item.quantity}</td>
-                      <td className="px-4 py-2 text-sm">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          item.condition === 'New'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {item.condition}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-sm">${item.originalPrice}</td>
-                      <td className="px-4 py-2 text-sm font-semibold">
-                        {item.originalPrice > 0 ? (
-                          <span className="text-green-600">
-                            ${calculateEbayPrice(item.originalPrice, item.condition)}
-                          </span>
+                      </div>
+
+                      {/* Product Image */}
+                      <div className="flex-shrink-0">
+                        {primaryImage ? (
+                          <img
+                            src={primaryImage}
+                            alt={item.title}
+                            className="w-20 h-20 object-cover rounded border border-gray-200"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
                         ) : (
-                          <span className="text-amber-600">
-                            ⚠️ No price data
-                          </span>
+                          <div className="w-20 h-20 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
+                            <span className="text-gray-400 text-xs">No image</span>
+                          </div>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0">
+                        {/* Title and SKU */}
+                        <div className="mb-2">
+                          <h3 className="font-medium text-sm text-gray-900 truncate" title={item.title}>
+                            {item.title}
+                          </h3>
+                          <div className="flex gap-3 text-xs text-gray-500 mt-0.5">
+                            <span>SKU: {item.sku}</span>
+                            {item.asin && <span>ASIN: {item.asin}</span>}
+                          </div>
+                        </div>
+
+                        {/* Product Info Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                          <div>
+                            <span className="text-xs text-gray-500">Qty:</span>{' '}
+                            <span className="font-medium">{item.quantity}</span>
+                          </div>
+                          <div>
+                            <span className={`px-2 py-0.5 text-xs rounded-full ${
+                              item.condition === 'New' || item.condition === 'NEW'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {item.condition}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-xs text-gray-500">Original:</span>{' '}
+                            <span className="font-medium">${item.originalPrice}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs text-gray-500">eBay:</span>{' '}
+                            {item.originalPrice > 0 ? (
+                              <span className="text-green-600 font-semibold">
+                                ${calculateEbayPrice(item.originalPrice, item.condition)}
+                              </span>
+                            ) : (
+                              <span className="text-amber-600 text-xs">
+                                ⚠️ No price
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="mt-6 flex flex-col sm:flex-row sm:justify-between gap-3">
