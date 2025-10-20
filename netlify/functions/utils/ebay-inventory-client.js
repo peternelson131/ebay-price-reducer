@@ -175,6 +175,8 @@ class EbayInventoryClient {
 
     try {
       const conditionsData = await this.getItemConditionsForCategory(categoryId);
+      console.log(`📋 Raw conditions API response:`, JSON.stringify(conditionsData, null, 2));
+
       // conditionsData.categoryTreeNodeConditionPolicies is an array with one element per category
       const categoryPolicy = conditionsData.categoryTreeNodeConditionPolicies?.[0];
 
@@ -184,11 +186,14 @@ class EbayInventoryClient {
           conditionDescription: policy.conditionDescription
         })) || [];
         conditionRequired = categoryPolicy.conditionRequired || false;
-        console.log(`✓ Found ${allowedConditions.length} allowed conditions for category ${categoryId}`);
+        console.log(`✓ Found ${allowedConditions.length} allowed conditions for category ${categoryId}:`, allowedConditions);
+      } else {
+        console.log(`⚠️  No categoryPolicy found in response for category ${categoryId}`);
       }
     } catch (error) {
       // Some categories may not have condition policies - log but don't fail
       console.log(`⚠️  Could not fetch conditions for category ${categoryId}:`, error.message);
+      console.log(`⚠️  Error details:`, error);
     }
 
     // Cache in database

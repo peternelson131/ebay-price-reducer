@@ -538,6 +538,15 @@ exports.handler = async (event, context) => {
     condition = conditionMap[condition.toLowerCase()] || condition.toUpperCase();
 
     // Validate condition against category-specific allowed conditions
+    console.log(`🔍 CONDITION VALIDATION DEBUG:`, {
+      condition: condition,
+      categoryId: categoryId,
+      categoryName: categoryName,
+      allowedConditionsCount: allowedConditions.length,
+      allowedConditions: allowedConditions,
+      conditionRequired: conditionRequired
+    });
+
     if (allowedConditions.length > 0) {
       console.log(`🔍 Validating condition "${condition}" against ${allowedConditions.length} allowed conditions`);
 
@@ -557,6 +566,9 @@ exports.handler = async (event, context) => {
       };
 
       const conditionId = conditionIdMap[condition];
+      const allowedIds = allowedConditions.map(c => c.conditionId);
+      console.log(`🔍 Checking if condition ID "${conditionId}" is in allowed IDs:`, allowedIds);
+
       const isAllowed = allowedConditions.some(c => c.conditionId === conditionId);
 
       if (!isAllowed) {
@@ -583,7 +595,7 @@ exports.handler = async (event, context) => {
     } else if (conditionRequired) {
       console.warn(`⚠️ Category requires condition but no allowed conditions found in cache`);
     } else {
-      console.log(`ℹ️ No condition restrictions for category ${categoryId}`);
+      console.log(`ℹ️ No condition restrictions for category ${categoryId} - skipping validation`);
     }
 
     // Extract product identifiers (UPC, EAN, ISBN) from aspects
