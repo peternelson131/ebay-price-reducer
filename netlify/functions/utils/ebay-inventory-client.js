@@ -28,7 +28,8 @@ class EbayInventoryClient {
     const baseUrls = {
       inventory: 'https://api.ebay.com/sell/inventory/v1',
       account: 'https://api.ebay.com/sell/account/v1',
-      taxonomy: 'https://api.ebay.com/commerce/taxonomy/v1'
+      taxonomy: 'https://api.ebay.com/commerce/taxonomy/v1',
+      metadata: 'https://api.ebay.com/sell/metadata/v1'
     };
 
     const url = `${baseUrls[apiFamily]}${endpoint}`;
@@ -155,6 +156,8 @@ class EbayInventoryClient {
         console.log(`✓ Using cached aspects for category ${categoryId} (expires: ${cached.expires_at})`);
         return {
           aspects: cached.aspects.aspects || cached.aspects,  // Handle nested structure
+          allowedConditions: cached.allowed_conditions || [],
+          conditionRequired: cached.condition_required || false,
           fromCache: true,
           lastFetched: cached.last_fetched_at
         };
@@ -164,6 +167,29 @@ class EbayInventoryClient {
     // Cache miss or force refresh - fetch from eBay API
     console.log(`⟳ Fetching fresh aspects from eBay API for category ${categoryId}`);
     const aspectsData = await this.getItemAspectsForCategory(categoryId);
+
+    // Fetch allowed conditions for this category from Metadata API
+    console.log(`⟳ Fetching item conditions from eBay Metadata API for category ${categoryId}`);
+    let allowedConditions = [];
+    let conditionRequired = false;
+
+    try {
+      const conditionsData = await this.getItemConditionsForCategory(categoryId);
+      // conditionsData.categoryTreeNodeConditionPolicies is an array with one element per category
+      const categoryPolicy = conditionsData.categoryTreeNodeConditionPolicies?.[0];
+
+      if (categoryPolicy) {
+        allowedConditions = categoryPolicy.conditionPolicies?.map(policy => ({
+          conditionId: policy.conditionId,
+          conditionDescription: policy.conditionDescription
+        })) || [];
+        conditionRequired = categoryPolicy.conditionRequired || false;
+        console.log(`✓ Found ${allowedConditions.length} allowed conditions for category ${categoryId}`);
+      }
+    } catch (error) {
+      // Some categories may not have condition policies - log but don't fail
+      console.log(`⚠️  Could not fetch conditions for category ${categoryId}:`, error.message);
+    }
 
     // Cache in database
     const requiredAspectNames = aspectsData.aspects
@@ -177,16 +203,20 @@ class EbayInventoryClient {
         category_name: '',  // Will be updated by caller if available
         aspects: aspectsData,
         required_aspects: requiredAspectNames,
+        allowed_conditions: allowedConditions,
+        condition_required: conditionRequired,
         last_fetched_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()  // 7 days
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()  // 1 day
       }, {
         onConflict: 'category_id'
       });
 
-    console.log(`✓ Cached aspects for category ${categoryId} (expires in 7 days)`);
+    console.log(`✓ Cached aspects and conditions for category ${categoryId} (expires in 1 day)`);
 
     return {
       aspects: aspectsData.aspects,
+      allowedConditions: allowedConditions,
+      conditionRequired: conditionRequired,
       fromCache: false,
       lastFetched: new Date().toISOString()
     };
@@ -234,6 +264,19 @@ class EbayInventoryClient {
   async getReturnPolicies(marketplaceId = 'EBAY_US') {
     const endpoint = `/return_policy?marketplace_id=${marketplaceId}`;
     return await this.makeApiCall(endpoint, 'GET', null, 'account');
+  }
+
+  // ============ METADATA API ============
+
+  /**
+   * Get allowed item conditions for a specific category
+   * @param {string} categoryId - eBay category ID
+   * @param {string} marketplaceId - eBay marketplace (default: EBAY_US)
+   * @returns {Object} - { conditionPolicies: [...] }
+   */
+  async getItemConditionsForCategory(categoryId, marketplaceId = 'EBAY_US') {
+    const endpoint = `/marketplace/${marketplaceId}/get_item_condition_policies?category_ids=${categoryId}`;
+    return await this.makeApiCall(endpoint, 'GET', null, 'metadata');
   }
 
   // ============ INVENTORY API ============

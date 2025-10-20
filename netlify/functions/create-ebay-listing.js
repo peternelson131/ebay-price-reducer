@@ -321,16 +321,21 @@ exports.handler = async (event, context) => {
     console.log('Fetching item aspects for category:', categoryId);
     let aspectsData;
     let cacheInfo;
+    let allowedConditions = [];
+    let conditionRequired = false;
 
     try {
       const result = await ebayClient.getCachedCategoryAspects(categoryId);
       aspectsData = { aspects: result.aspects };
+      allowedConditions = result.allowedConditions || [];
+      conditionRequired = result.conditionRequired || false;
       cacheInfo = {
         fromCache: result.fromCache,
         lastFetched: result.lastFetched
       };
 
       console.log(`✓ Aspects loaded (${result.fromCache ? 'from cache' : 'fresh from eBay'})`);
+      console.log(`✓ Category allows ${allowedConditions.length} conditions, required: ${conditionRequired}`);
 
       // Update category name in cache if we have it and fetched from API
       if (categoryName && !result.fromCache) {
@@ -532,10 +537,53 @@ exports.handler = async (event, context) => {
 
     condition = conditionMap[condition.toLowerCase()] || condition.toUpperCase();
 
-    // Some categories don't accept NEW_OTHER, fall back to NEW
-    // (Pet Supplies, Educational Toys, etc.)
-    if (condition === 'NEW_OTHER') {
-      console.log(`⚠️ Using NEW_OTHER condition for category ${categoryId}`);
+    // Validate condition against category-specific allowed conditions
+    if (allowedConditions.length > 0) {
+      console.log(`🔍 Validating condition "${condition}" against ${allowedConditions.length} allowed conditions`);
+
+      // Map condition enum to condition ID
+      const conditionIdMap = {
+        'NEW': '1000',
+        'NEW_OTHER': '1500',
+        'NEW_WITH_DEFECTS': '1750',
+        'MANUFACTURER_REFURBISHED': '2000',
+        'CERTIFIED_REFURBISHED': '2010',
+        'SELLER_REFURBISHED': '2500',
+        'USED_EXCELLENT': '3000',
+        'USED_VERY_GOOD': '4000',
+        'USED_GOOD': '5000',
+        'USED_ACCEPTABLE': '6000',
+        'FOR_PARTS_OR_NOT_WORKING': '7000'
+      };
+
+      const conditionId = conditionIdMap[condition];
+      const isAllowed = allowedConditions.some(c => c.conditionId === conditionId);
+
+      if (!isAllowed) {
+        console.error(`❌ Condition "${condition}" (ID: ${conditionId}) not allowed for category ${categoryId}`);
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: 'Invalid condition for category',
+            providedCondition: condition,
+            providedConditionId: conditionId,
+            categoryId: categoryId,
+            categoryName: categoryName,
+            allowedConditions: allowedConditions.map(c => ({
+              id: c.conditionId,
+              name: c.conditionDescription
+            })),
+            suggestion: `Please use one of the allowed conditions: ${allowedConditions.map(c => c.conditionDescription).join(', ')}`
+          })
+        };
+      }
+
+      console.log(`✓ Condition "${condition}" (ID: ${conditionId}) is valid for this category`);
+    } else if (conditionRequired) {
+      console.warn(`⚠️ Category requires condition but no allowed conditions found in cache`);
+    } else {
+      console.log(`ℹ️ No condition restrictions for category ${categoryId}`);
     }
 
     // Extract product identifiers (UPC, EAN, ISBN) from aspects
