@@ -370,6 +370,9 @@ function buildAspects(product) {
   if (product.eanList && product.eanList.length > 0) {
     aspects.EAN = [product.eanList[0]];
   }
+  if (product.isbn && product.isbn.length > 0) {
+    aspects.ISBN = [product.isbn[0]];
+  }
   if (product.materials && product.materials.length > 0) {
     aspects.Material = [product.materials[0]];
   }

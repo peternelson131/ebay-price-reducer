@@ -538,6 +538,28 @@ exports.handler = async (event, context) => {
       console.log(`⚠️ Using NEW_OTHER condition for category ${categoryId}`);
     }
 
+    // Extract product identifiers (UPC, EAN, ISBN) from aspects
+    // eBay requires these at the product level, not just in aspects
+    const productIdentifiers = {};
+
+    // Extract UPC if available (Keepa provides this in aspects.UPC)
+    if (validatedAspects.UPC && validatedAspects.UPC.length > 0) {
+      productIdentifiers.upc = validatedAspects.UPC;
+      console.log('✓ UPC found and will be included:', validatedAspects.UPC[0]);
+    }
+
+    // Extract EAN if available
+    if (validatedAspects.EAN && validatedAspects.EAN.length > 0) {
+      productIdentifiers.ean = validatedAspects.EAN;
+      console.log('✓ EAN found and will be included:', validatedAspects.EAN[0]);
+    }
+
+    // Extract ISBN if available (for books)
+    if (validatedAspects.ISBN && validatedAspects.ISBN.length > 0) {
+      productIdentifiers.isbn = validatedAspects.ISBN;
+      console.log('✓ ISBN found and will be included:', validatedAspects.ISBN[0]);
+    }
+
     const inventoryItemPayload = {
       availability: {
         shipToLocationAvailability: {
@@ -550,7 +572,9 @@ exports.handler = async (event, context) => {
         title: listingData.title.substring(0, 80), // eBay 80 char limit
         description: listingData.description,
         imageUrls: listingData.images.slice(0, 12), // eBay max 12 images
-        aspects: validatedAspects  // ✅ Using validated aspects (no hardcoded values)
+        aspects: validatedAspects,  // ✅ Using validated aspects (no hardcoded values)
+        // Add product identifiers at product level (required by eBay)
+        ...productIdentifiers
       }
     };
 
