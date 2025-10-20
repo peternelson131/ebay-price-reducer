@@ -337,13 +337,15 @@ exports.handler = async (event, context) => {
       console.log('- Refresh token expires:', refreshTokenExpiry.toISOString());
 
       // Update user record with all required fields
-      // Note: Access tokens are ephemeral (2-hour lifetime) and obtained on-demand
-      // We only store the refresh token (18-month lifetime)
+      // Store access token (2-hour lifetime) AND refresh token (18-month lifetime)
       await supabaseRequest(
         `users?id=eq.${userId}`,
         'PATCH',
         {
           ebay_refresh_token: encryptedToken,
+          ebay_access_token: tokenData.access_token,
+          ebay_access_token_expires_at: accessTokenExpiry.toISOString(),
+          ebay_refresh_token_expires_at: refreshTokenExpiry.toISOString(),
           ebay_connection_status: 'connected',
           ebay_connected_at: now.toISOString(),
           ebay_user_id: ebayUserId

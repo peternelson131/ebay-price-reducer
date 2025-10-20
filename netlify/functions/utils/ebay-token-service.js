@@ -48,27 +48,64 @@ class EbayTokenService {
    * @returns {Promise<string>} Valid access token
    */
   async getAccessToken() {
-    // 1. Check cache for valid access token
-    const cached = this.cache.get(this.userId);
-    if (cached && cached.expiresAt > Date.now() + 60000) { // 1 min buffer
-      console.log('✓ Using cached access token', { userId: this.userId });
-      return cached.accessToken;
+    // 1. Check DATABASE for valid access token
+    const { data, error } = await supabase
+      .from('users')
+      .select('ebay_access_token, ebay_access_token_expires_at')
+      .eq('id', this.userId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching token from database:', error);
+      // Continue to refresh if database read fails
     }
 
-    // 2. Get credentials from database
+    // 2. If token exists and not expired, return it
+    if (data?.ebay_access_token && data?.ebay_access_token_expires_at) {
+      const expiresAt = new Date(data.ebay_access_token_expires_at);
+      const now = new Date();
+      const bufferMinutes = 5; // Refresh 5 minutes before expiry
+
+      if (expiresAt > new Date(now.getTime() + bufferMinutes * 60 * 1000)) {
+        console.log('✅ Using cached access token from database', {
+          userId: this.userId,
+          expiresIn: Math.floor((expiresAt - now) / 60000) + ' minutes'
+        });
+        return data.ebay_access_token;
+      } else {
+        console.log('⏰ Access token expired or expiring soon, refreshing...', {
+          expiresAt: expiresAt.toISOString(),
+          now: now.toISOString()
+        });
+      }
+    }
+
+    // 3. Token expired or missing - refresh from eBay
+    console.log('🔄 Refreshing access token from eBay', { userId: this.userId });
     const credentials = await this.getCredentials();
-
-    // 3. Validate credentials
     this.validateCredentials(credentials);
-
-    // 4. Exchange refresh token for access token
     const tokenData = await this.exchangeRefreshToken(credentials);
 
-    // 5. Cache access token
-    this.cache.set(this.userId, {
-      accessToken: tokenData.access_token,
-      expiresAt: Date.now() + (tokenData.expires_in * 1000)
-    });
+    // 4. Store new token AND expiration in database
+    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        ebay_access_token: tokenData.access_token,
+        ebay_access_token_expires_at: expiresAt.toISOString()
+      })
+      .eq('id', this.userId);
+
+    if (updateError) {
+      console.error('⚠️ Failed to cache access token in database:', updateError);
+      // Non-fatal: continue with token even if caching fails
+    } else {
+      console.log('✅ Refreshed and cached new access token', {
+        userId: this.userId,
+        expiresAt: expiresAt.toISOString(),
+        expiresIn: tokenData.expires_in + ' seconds'
+      });
+    }
 
     return tokenData.access_token;
   }

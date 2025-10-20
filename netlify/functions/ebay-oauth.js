@@ -743,15 +743,15 @@ exports.handler = async (event, context) => {
           expires_in: tokenData.expires_in
         });
 
-        // Update the access token expiry time in database
-        // Note: We don't store the access token itself, only the expiry time
+        // Update the access token and expiry time in database
         const accessTokenExpiry = new Date(Date.now() + tokenData.expires_in * 1000);
 
         await supabaseRequest(
           `users?id=eq.${authUser.id}`,
           'PATCH',
           {
-            ebay_token_expires_at: accessTokenExpiry.toISOString(),
+            ebay_access_token: tokenData.access_token,
+            ebay_access_token_expires_at: accessTokenExpiry.toISOString(),
             ebay_connection_status: 'connected'
           },
           {},

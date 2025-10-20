@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { decrypt } = require('./ebay-oauth-helpers');
+const { EbayTokenService } = require('./ebay-token-service');
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -54,12 +55,11 @@ class UserEbayClient {
 
       this.ebayUserId = credentials.ebay_user_id;
 
-      // Always get fresh access token by exchanging refresh token
-      console.log('🔍 Calling refreshToken()...');
-      const refreshResult = await this.refreshToken();
-      if (!refreshResult) {
-        throw new Error('Failed to obtain eBay access token');
-      }
+      // Get access token (will use cached if valid, otherwise refresh)
+      console.log('🔍 Getting access token via EbayTokenService...');
+      const tokenService = new EbayTokenService(this.userId);
+      this.accessToken = await tokenService.getAccessToken();
+      console.log('✅ Access token obtained');
 
       console.log('✅ UserEbayClient.initialize() completed successfully');
       return true;
