@@ -16,7 +16,7 @@ const getStoredColumnOrder = () => {
     console.warn('Failed to load column order from localStorage:', error)
   }
   return [
-    'image', 'title', 'quantity', 'currentPrice', 'suggestedPricing', 'minimumPrice',
+    'image', 'title', 'quantity', 'currentPrice', 'minimumPrice',
     'priceReductionEnabled', 'strategy', 'listingAge', 'actions'
   ]
 }
@@ -35,7 +35,6 @@ const getStoredVisibleColumns = () => {
     title: true,
     quantity: true,
     currentPrice: true,
-    suggestedPricing: true,
     minimumPrice: true,
     priceReductionEnabled: true,
     strategy: true,
@@ -265,63 +264,8 @@ export default function Listings() {
     }
   )
 
-  const acceptSuggestedPriceMutation = useMutation(
-    ({ listingId, suggestedPrice, priceType }) => {
-      // If accepting average price: update current_price and set minimum to 80%
-      // If accepting minimum price: only update minimum_price (don't touch current price)
-      const updates = priceType === 'average'
-        ? {
-            current_price: suggestedPrice,
-            minimum_price: suggestedPrice * 0.8
-          }
-        : {
-            minimum_price: suggestedPrice
-          };
-
-      return listingsAPI.updateListing(listingId, updates);
-    },
-    {
-      onMutate: async ({ listingId, suggestedPrice, priceType }) => {
-        await queryClient.cancelQueries(['listings', { status }])
-        const previousListings = queryClient.getQueryData(['listings', { status }])
-
-        const updates = priceType === 'average'
-          ? {
-              current_price: suggestedPrice,
-              minimum_price: suggestedPrice * 0.8
-            }
-          : {
-              minimum_price: suggestedPrice
-            };
-
-        queryClient.setQueryData(['listings', { status }], (old) => {
-          if (!old) return old
-          return old.map(listing =>
-            listing.id === listingId
-              ? { ...listing, ...updates }
-              : listing
-          )
-        })
-
-        return { previousListings }
-      },
-      onSuccess: (data, { suggestedPrice, priceType }) => {
-        const message = priceType === 'average'
-          ? `Current price updated to $${suggestedPrice.toFixed(2)} (min: $${(suggestedPrice * 0.8).toFixed(2)})`
-          : `Minimum price set to $${suggestedPrice.toFixed(2)}`;
-        showNotification('success', message)
-      },
-      onError: (error, variables, context) => {
-        if (context?.previousListings) {
-          queryClient.setQueryData(['listings', { status }], context.previousListings)
-        }
-        showNotification('error', error.message || 'Failed to update price')
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries(['listings', { status }])
-      }
-    }
-  )
+  // Removed: Suggested pricing feature
+  // const acceptSuggestedPriceMutation = useMutation(...)
 
   // Removed: Manual price reduction feature
   // const handleReducePrice = (listingId, minimumPrice) => { ... }
@@ -443,15 +387,8 @@ export default function Listings() {
     })
   }
 
-  const handleAcceptSuggestedPrice = (listingId, suggestedPrice, priceType) => {
-    const message = priceType === 'average'
-      ? `Update current listing price to $${suggestedPrice.toFixed(2)}?\n(This will also set minimum price to $${(suggestedPrice * 0.8).toFixed(2)})`
-      : `Set minimum price to $${suggestedPrice.toFixed(2)}?\n(Current listing price will NOT change)`;
-
-    if (window.confirm(message)) {
-      acceptSuggestedPriceMutation.mutate({ listingId, suggestedPrice, priceType })
-    }
-  }
+  // Removed: Suggested pricing feature
+  // const handleAcceptSuggestedPrice = (listingId, suggestedPrice, priceType) => { ... }
 
   const handleConnectEbay = () => {
     // Navigate to Account page with integrations tab active
@@ -787,7 +724,6 @@ export default function Listings() {
       title: { label: 'Title', sortable: true, sortKey: 'title', width: 'w-1/3 lg:w-2/5' },
       quantity: { label: 'Quantity', sortable: true, sortKey: 'quantity', width: 'w-16 lg:w-20' },
       currentPrice: { label: 'Current Price', sortable: true, sortKey: 'current_price', width: 'w-24 lg:w-28' },
-      suggestedPricing: { label: 'Suggested Pricing', sortable: false, width: 'w-56 lg:w-64' },
       minimumPrice: { label: 'Minimum Price', sortable: false, width: 'w-24 lg:w-28' },
       priceReductionEnabled: { label: 'Price Reduction', sortable: true, sortKey: 'price_reduction_enabled', width: 'w-32 lg:w-36' },
       strategy: { label: 'Strategy', sortable: false, width: 'w-40 lg:w-48' },
@@ -1265,44 +1201,6 @@ export default function Listings() {
                   </div>
                 </div>
 
-                {/* Suggested Pricing Section (Mobile) */}
-                {listing.last_market_analysis && listing.market_competitor_count > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <span className="text-sm text-gray-500 block mb-2">Suggested Pricing:</span>
-
-                    {listing.market_competitor_count < 5 && (
-                      <div className="text-xs text-orange-600 mb-2">
-                        ⚠️ Only {listing.market_competitor_count} competitor{listing.market_competitor_count !== 1 ? 's' : ''} found
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      {listing.market_average_price && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Avg: <span className="font-medium text-blue-600">${listing.market_average_price.toFixed(2)}</span></span>
-                          <button
-                            onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_average_price, 'average')}
-                            className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
-                          >
-                            Accept Avg
-                          </button>
-                        </div>
-                      )}
-
-                      {listing.market_lowest_price && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Min: <span className="font-medium text-green-600">${listing.market_lowest_price.toFixed(2)}</span></span>
-                          <button
-                            onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_lowest_price, 'minimum')}
-                            className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
-                          >
-                            Accept Min
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between">
@@ -1497,76 +1395,6 @@ export default function Listings() {
                         case 'currentPrice':
                           return (
                             <div className="text-sm font-bold text-green-600">${listing.current_price}</div>
-                          )
-                        case 'suggestedPricing':
-                          const hasAnalysis = listing.last_market_analysis !== null
-                          const hasCompetitors = listing.market_competitor_count > 0
-                          const lowDataWarning = hasCompetitors && listing.market_competitor_count < 5
-
-                          return (
-                            <div className="text-xs">
-                              {!hasAnalysis ? (
-                                <span className="text-gray-400 italic">Analyzing...</span>
-                              ) : !hasCompetitors ? (
-                                <span className="text-gray-400 italic">No competitors found</span>
-                              ) : (
-                                <div className="space-y-1">
-                                  {lowDataWarning && (
-                                    <div className="text-orange-600 font-medium mb-1">
-                                      ⚠️ Only {listing.market_competitor_count} found
-                                    </div>
-                                  )}
-
-                                  {/* Average Price */}
-                                  {listing.market_average_price && (
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span className="text-gray-600">Avg:</span>
-                                      <span className="font-medium text-blue-600">
-                                        ${listing.market_average_price.toFixed(2)}
-                                      </span>
-                                      <button
-                                        onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_average_price, 'average')}
-                                        disabled={acceptSuggestedPriceMutation.isLoading}
-                                        className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs hover:bg-blue-700 disabled:opacity-50"
-                                        title="Set current price to average"
-                                      >
-                                        Accept
-                                      </button>
-                                    </div>
-                                  )}
-
-                                  {/* Minimum Price */}
-                                  {listing.market_lowest_price && (
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span className="text-gray-600">Min:</span>
-                                      <span className="font-medium text-green-600">
-                                        ${listing.market_lowest_price.toFixed(2)}
-                                      </span>
-                                      <button
-                                        onClick={() => handleAcceptSuggestedPrice(listing.id, listing.market_lowest_price, 'minimum')}
-                                        disabled={acceptSuggestedPriceMutation.isLoading}
-                                        className="bg-green-600 text-white px-2 py-0.5 rounded text-xs hover:bg-green-700 disabled:opacity-50"
-                                        title="Set minimum price only (doesn't change current listing price)"
-                                      >
-                                        Accept
-                                      </button>
-                                    </div>
-                                  )}
-
-                                  {/* Metadata */}
-                                  <div className="text-gray-400 mt-1">
-                                    {listing.market_competitor_count} comp{listing.market_competitor_count !== 1 ? 's' : ''}
-                                    {listing.price_match_tier && (
-                                      <span className="ml-1">
-                                        ({listing.price_match_tier === 'gtin' ? 'UPC' :
-                                          listing.price_match_tier === 'title_category' ? 'Cat' :
-                                          listing.price_match_tier === 'title_only' ? 'Title' : '?'})
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
                           )
                         case 'minimumPrice':
                           return (
