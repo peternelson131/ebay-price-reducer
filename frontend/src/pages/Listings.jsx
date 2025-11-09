@@ -17,7 +17,7 @@ const getStoredColumnOrder = () => {
   }
   return [
     'image', 'title', 'quantity', 'currentPrice', 'suggestedPricing', 'minimumPrice',
-    'priceReductionEnabled', 'strategy', 'viewCount', 'watchCount', 'listingAge', 'actions'
+    'priceReductionEnabled', 'strategy', 'listingAge', 'actions'
   ]
 }
 
@@ -39,8 +39,6 @@ const getStoredVisibleColumns = () => {
     minimumPrice: true,
     priceReductionEnabled: true,
     strategy: true,
-    viewCount: true,
-    watchCount: true,
     listingAge: true,
     actions: true
   }
@@ -149,18 +147,8 @@ export default function Listings() {
     }
   )
 
-  const reducePriceMutation = useMutation(
-    ({ listingId, customPrice }) => listingsAPI.recordPriceReduction(listingId, customPrice, 'manual'),
-    {
-      onSuccess: (data, { listingId }) => {
-        showNotification('success', `Price reduced to $${data.current_price}`)
-        queryClient.invalidateQueries('listings')
-      },
-      onError: (error) => {
-        showNotification('error', error.message || 'Failed to reduce price')
-      }
-    }
-  )
+  // Removed: Manual price reduction feature
+  // const reducePriceMutation = useMutation(...)
 
   const endListingMutation = useMutation(listingsAPI.endListing, {
     onSuccess: () => {
@@ -335,16 +323,8 @@ export default function Listings() {
     }
   )
 
-  const handleReducePrice = (listingId, minimumPrice) => {
-    // Check if minimum price is set
-    if (!minimumPrice || minimumPrice <= 0) {
-      showNotification('error', 'Please set a minimum price before reducing prices')
-      return
-    }
-    if (window.confirm('Are you sure you want to reduce the price now?')) {
-      reducePriceMutation.mutate({ listingId, customPrice: null })
-    }
-  }
+  // Removed: Manual price reduction feature
+  // const handleReducePrice = (listingId, minimumPrice) => { ... }
 
   const handleDeleteListing = (listingId) => {
     if (window.confirm('Are you sure you want to close this listing on eBay? This action cannot be undone.')) {
@@ -811,8 +791,6 @@ export default function Listings() {
       minimumPrice: { label: 'Minimum Price', sortable: false, width: 'w-24 lg:w-28' },
       priceReductionEnabled: { label: 'Price Reduction', sortable: true, sortKey: 'price_reduction_enabled', width: 'w-32 lg:w-36' },
       strategy: { label: 'Strategy', sortable: false, width: 'w-40 lg:w-48' },
-      viewCount: { label: 'Views', sortable: true, sortKey: 'view_count', width: 'w-20 lg:w-24' },
-      watchCount: { label: 'Watchers', sortable: true, sortKey: 'watch_count', width: 'w-20 lg:w-24' },
       listingAge: { label: 'Listing Age', sortable: true, sortKey: 'created_at', width: 'w-20 lg:w-24' },
       actions: { label: 'Actions', sortable: false, width: 'w-40 lg:w-44' }
     }
@@ -989,7 +967,7 @@ export default function Listings() {
       <div className="space-y-4 lg:space-y-0 lg:flex lg:justify-between lg:items-center">
         {/* Status Filter */}
         <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
-          {['Active', 'Ended', 'all'].map((statusOption) => (
+          {['Active'].map((statusOption) => (
             <button
               key={statusOption}
               onClick={() => setStatus(statusOption)}
@@ -1403,20 +1381,6 @@ export default function Listings() {
                   >
                     View on eBay
                   </a>
-                  <button
-                    onClick={() => handleReducePrice(listing.id, listing.minimum_price)}
-                    disabled={reducePriceMutation.isLoading || !listing.minimum_price || listing.minimum_price <= 0}
-                    className={`px-3 py-1 rounded text-xs ${
-                      !listing.minimum_price || listing.minimum_price <= 0
-                        ? 'bg-gray-400 text-white cursor-not-allowed opacity-50'
-                        : 'bg-orange-600 text-white hover:bg-orange-700'
-                    } disabled:opacity-50`}
-                    title={!listing.minimum_price || listing.minimum_price <= 0
-                      ? 'Set a minimum price before reducing prices'
-                      : 'Reduce price now'}
-                  >
-                    Reduce Price
-                  </button>
                   {(listing.quantity === 0 || listing.listing_status === 'Ended') && (
                     <button
                       onClick={() => handleDeleteListing(listing.id)}
@@ -1667,18 +1631,6 @@ export default function Listings() {
                               ))}
                             </select>
                           )
-                        case 'viewCount':
-                          return (
-                            <div className="text-sm text-gray-900 text-center">
-                              {listing.view_count || 0}
-                            </div>
-                          )
-                        case 'watchCount':
-                          return (
-                            <div className="text-sm text-gray-900 text-center">
-                              {listing.watch_count || 0}
-                            </div>
-                          )
                         case 'listingAge':
                           return (
                             <div className="text-sm text-gray-900">
@@ -1697,20 +1649,6 @@ export default function Listings() {
                               >
                                 View
                               </a>
-                              <button
-                                onClick={() => handleReducePrice(listing.id, listing.minimum_price)}
-                                disabled={reducePriceMutation.isLoading || !listing.minimum_price || listing.minimum_price <= 0}
-                                className={`px-2 py-1 rounded text-xs ${
-                                  !listing.minimum_price || listing.minimum_price <= 0
-                                    ? 'bg-gray-400 text-white cursor-not-allowed opacity-50'
-                                    : 'bg-orange-600 text-white hover:bg-orange-700'
-                                } disabled:opacity-50`}
-                                title={!listing.minimum_price || listing.minimum_price <= 0
-                                  ? 'Set a minimum price before reducing prices'
-                                  : 'Reduce price now'}
-                              >
-                                Reduce
-                              </button>
                               {(listing.quantity === 0 || listing.listing_status === 'Ended') && (
                                 <button
                                   onClick={() => handleDeleteListing(listing.id)}
