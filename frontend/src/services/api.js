@@ -109,60 +109,10 @@ class ApiService {
     });
   }
 
-  // Authentication & User Management
-  async testEbayConnection() {
-    return this.request('/test-ebay-connection', {
-      method: 'GET'
-    });
-  }
-
-  // Listings Management
-  async getEbayListings(page = 1, limit = 100) {
-    return this.request(`/get-ebay-listings?page=${page}&limit=${limit}`, {
-      method: 'GET'
-    });
-  }
-
-  async syncListings(userId) {
-    return this.request('/sync-listings', {
-      method: 'POST',
-      body: JSON.stringify({ userId })
-    });
-  }
-
-  async togglePriceReduction(itemId, userId, enabled) {
-    return this.request('/toggle-price-reduction', {
-      method: 'POST',
-      body: JSON.stringify({ itemId, userId, enabled })
-    });
-  }
-
-  async updateListingStrategy(listingId, strategyId, userId) {
-    return this.request('/update-listing-strategy', {
-      method: 'POST',
-      body: JSON.stringify({ listingId, strategyId, userId })
-    });
-  }
-
-  async updateItemPrice(itemId, newPrice) {
-    return this.request('/update-item-price', {
-      method: 'POST',
-      body: JSON.stringify({ itemId, newPrice })
-    });
-  }
-
-  // Price Reduction Engine
-  async runPriceReduction() {
-    return this.request('/price-reduction-engine', {
-      method: 'POST'
-    });
-  }
-
-  async manualPriceReduction(currentUserOnly = true) {
-    return this.request(`/manual-price-reduction?currentUserOnly=${currentUserOnly}`, {
-      method: 'POST'
-    });
-  }
+  // Removed unused methods that called deleted backend functions:
+  // - testEbayConnection, getEbayListings, syncListings
+  // - togglePriceReduction, updateListingStrategy, updateItemPrice
+  // - runPriceReduction, manualPriceReduction
 
   async getPriceChanges(days = 30, limit = 50) {
     return this.request(`/get-price-changes?days=${days}&limit=${limit}`, {
@@ -177,13 +127,7 @@ class ApiService {
     });
   }
 
-  // Market Analysis
-  async analyzeMarket(itemId = null, keywords = null, categoryId = null) {
-    return this.request('/market-analysis', {
-      method: 'POST',
-      body: JSON.stringify({ itemId, keywords, categoryId })
-    });
-  }
+  // Removed: analyzeMarket method (backend function deleted)
 
   // Notifications
   async sendNotification(userId, type, title, message, data = {}) {
@@ -193,54 +137,9 @@ class ApiService {
     });
   }
 
-  // Scheduled Jobs (for admin/testing)
-  async runScheduledJob(jobType = 'all') {
-    return this.request(`/scheduled-jobs?job=${jobType}`, {
-      method: 'POST'
-    });
-  }
-
-  // Import existing listings (from the existing function)
-  async importListings(userId, listings) {
-    return this.request('/import-listings', {
-      method: 'POST',
-      body: JSON.stringify({ userId, listings })
-    });
-  }
-
-  // Reduce specific price (from existing function)
-  async reducePrice(itemId, userId, strategy = 'default') {
-    return this.request('/reduce-price', {
-      method: 'POST',
-      body: JSON.stringify({ itemId, userId, strategy })
-    });
-  }
-
-  // Monitor scheduled price reductions
-  async monitorScheduledReductions() {
-    return this.request('/scheduled-price-monitor', {
-      method: 'GET'
-    });
-  }
-
-  // eBay OAuth Management
-  async getEbayAuthUrl() {
-    return this.request('/ebay-oauth?action=auth-url', {
-      method: 'GET'
-    });
-  }
-
-  async getEbayConnectionStatus() {
-    return this.request('/ebay-oauth?action=status', {
-      method: 'GET'
-    });
-  }
-
-  async disconnectEbayAccount() {
-    return this.request('/ebay-oauth', {
-      method: 'DELETE'
-    });
-  }
+  // Removed unused methods that called deleted backend functions:
+  // - runScheduledJob, importListings, reducePrice, monitorScheduledReductions
+  // - getEbayAuthUrl, getEbayConnectionStatus, disconnectEbayAccount
 }
 
 // Create and export a singleton instance
@@ -252,21 +151,9 @@ export const {
   post,
   put,
   delete: deleteMethod,
-  testEbayConnection,
-  getEbayListings,
-  syncListings,
-  togglePriceReduction,
-  updateItemPrice,
-  runPriceReduction,
-  analyzeMarket,
-  sendNotification,
-  runScheduledJob,
-  importListings,
-  reducePrice,
-  monitorScheduledReductions,
-  getEbayAuthUrl,
-  getEbayConnectionStatus,
-  disconnectEbayAccount
+  getPriceChanges,
+  getPriceReductionLogs,
+  sendNotification
 } = apiService;
 
 // Export the full service as default

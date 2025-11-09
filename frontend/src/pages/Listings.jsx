@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { listingsAPI, userAPI } from '../lib/supabase'
-import apiService, { getEbayAuthUrl, getEbayConnectionStatus } from '../services/api'
+import apiService from '../services/api'
 import { getActiveStrategies, getStrategyById, getStrategyDisplayName, getStrategyDisplayInfo } from '../data/strategies'
 
 // Helper functions for localStorage
@@ -264,11 +264,6 @@ export default function Listings() {
     }
   )
 
-  // Removed: Suggested pricing feature
-  // const acceptSuggestedPriceMutation = useMutation(...)
-
-  // Removed: Manual price reduction feature
-  // const handleReducePrice = (listingId, minimumPrice) => { ... }
 
   const handleDeleteListing = (listingId) => {
     if (window.confirm('Are you sure you want to close this listing on eBay? This action cannot be undone.')) {
@@ -387,8 +382,6 @@ export default function Listings() {
     })
   }
 
-  // Removed: Suggested pricing feature
-  // const handleAcceptSuggestedPrice = (listingId, suggestedPrice, priceType) => { ... }
 
   const handleConnectEbay = () => {
     // Navigate to Account page with integrations tab active
