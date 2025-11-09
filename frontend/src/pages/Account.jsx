@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams, Link } from 'react-router-dom'
 import { userAPI, authAPI } from '../lib/supabase'
 import keepaApi from '../services/keepaApi'
-import EbayConnect from '../components/EbayConnect'
 
 export default function Account() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -20,7 +19,6 @@ export default function Account() {
   const [keepaConnectionStatus, setKeepaConnectionStatus] = useState(null)
   const [connectionStatusLoading, setConnectionStatusLoading] = useState(false)
   const [expandedSections, setExpandedSections] = useState({
-    ebay: false,
     keepa: false,
     other: false
   })
@@ -29,7 +27,6 @@ export default function Account() {
     newPassword: '',
     confirmPassword: ''
   })
-  const [ebayConnectionMessage, setEbayConnectionMessage] = useState(null)
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading } = useQuery(
@@ -64,61 +61,10 @@ export default function Account() {
   // Handle tab query parameter
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['profile', 'preferences', 'security', 'billing', 'integrations'].includes(tab)) {
+    if (tab && ['profile', 'preferences', 'security', 'integrations'].includes(tab)) {
       setActiveTab(tab)
-      // If navigating to integrations tab, expand the eBay section by default
-      if (tab === 'integrations') {
-        setExpandedSections(prev => ({ ...prev, ebay: true }))
-      }
     }
   }, [searchParams])
-
-  // Handle eBay OAuth callback
-  useEffect(() => {
-    const ebayConnected = searchParams.get('ebay_connected')
-    const ebayUser = searchParams.get('ebay_user')
-    const error = searchParams.get('error')
-
-    if (ebayConnected === 'true') {
-      setEbayConnectionMessage({
-        type: 'success',
-        text: `Successfully connected to eBay${ebayUser ? ` as ${ebayUser}` : ''}! Your account is now linked and ready to manage listings.`
-      })
-      setActiveTab('integrations')
-      setExpandedSections(prev => ({ ...prev, ebay: true }))
-
-      // Refresh profile to get updated eBay connection status
-      queryClient.invalidateQueries(['profile'])
-
-      // Clear the URL parameters after showing the message
-      setTimeout(() => {
-        setSearchParams({})
-      }, 100)
-
-      // Auto-hide success message after 10 seconds
-      setTimeout(() => {
-        setEbayConnectionMessage(null)
-      }, 10000)
-    } else if (error) {
-      const errorDetails = searchParams.get('details')
-      setEbayConnectionMessage({
-        type: 'error',
-        text: `Failed to connect to eBay: ${errorDetails || error}. Please try again.`
-      })
-      setActiveTab('integrations')
-      setExpandedSections(prev => ({ ...prev, ebay: true }))
-
-      // Clear the URL parameters
-      setTimeout(() => {
-        setSearchParams({})
-      }, 100)
-
-      // Auto-hide error message after 10 seconds
-      setTimeout(() => {
-        setEbayConnectionMessage(null)
-      }, 10000)
-    }
-  }, [searchParams, queryClient, setSearchParams])
 
   // Test Keepa connection on profile load if API key exists
   useEffect(() => {
@@ -329,7 +275,6 @@ export default function Account() {
     { id: 'profile', name: 'Profile', icon: '👤' },
     { id: 'preferences', name: 'Preferences', icon: '⚙️' },
     { id: 'security', name: 'Security', icon: '🔒' },
-    { id: 'billing', name: 'Billing', icon: '💳' },
     { id: 'integrations', name: 'Integrations', icon: '🔗' }
   ]
 
@@ -609,71 +554,6 @@ export default function Account() {
             </div>
           )}
 
-          {activeTab === 'billing' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">Billing & Subscription</h3>
-                <p className="text-sm text-gray-600">Manage your subscription and billing information.</p>
-              </div>
-
-              <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                <div className="flex">
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-green-800">
-                      {profile?.subscription_plan ? profile.subscription_plan.charAt(0).toUpperCase() + profile.subscription_plan.slice(1) : 'Free'} Plan
-                    </h3>
-                    <div className="mt-2 text-sm text-green-700">
-                      <p>You're currently on the {profile?.subscription_plan || 'free'} plan with up to {profile?.listing_limit || 10} listings.</p>
-                      {profile?.subscription_active === false && (
-                        <p className="text-red-600 mt-1">⚠️ Subscription inactive</p>
-                      )}
-                      {profile?.subscription_expires_at && (
-                        <p className="mt-1">Expires: {new Date(profile.subscription_expires_at).toLocaleDateString()}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900">Starter</h4>
-                  <div className="text-2xl font-bold text-gray-900 mt-2">$9/mo</div>
-                  <ul className="text-sm text-gray-600 mt-4 space-y-2">
-                    <li>• Up to 50 listings</li>
-                    <li>• Basic strategies</li>
-                    <li>• Email support</li>
-                  </ul>
-                </div>
-
-                <div className="border border-blue-500 rounded-lg p-4 relative">
-                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-blue-500 text-white px-2 py-1 text-xs rounded">Popular</span>
-                  </div>
-                  <h4 className="font-medium text-gray-900">Professional</h4>
-                  <div className="text-2xl font-bold text-gray-900 mt-2">$29/mo</div>
-                  <ul className="text-sm text-gray-600 mt-4 space-y-2">
-                    <li>• Up to 500 listings</li>
-                    <li>• Advanced strategies</li>
-                    <li>• Market analysis</li>
-                    <li>• Priority support</li>
-                  </ul>
-                </div>
-
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900">Enterprise</h4>
-                  <div className="text-2xl font-bold text-gray-900 mt-2">$99/mo</div>
-                  <ul className="text-sm text-gray-600 mt-4 space-y-2">
-                    <li>• Unlimited listings</li>
-                    <li>• Custom strategies</li>
-                    <li>• API access</li>
-                    <li>• Dedicated support</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-
           {activeTab === 'integrations' && (
             <div className="space-y-6">
               <div>
@@ -697,65 +577,6 @@ export default function Account() {
                     </Link>
                   </div>
                 </div>
-              </div>
-
-              {/* eBay Connection Success/Error Message */}
-              {ebayConnectionMessage && (
-                <div className={`p-4 rounded-lg ${
-                  ebayConnectionMessage.type === 'success'
-                    ? 'bg-green-50 border border-green-200 text-green-800'
-                    : 'bg-red-50 border border-red-200 text-red-800'
-                }`}>
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      {ebayConnectionMessage.type === 'success' ? (
-                        <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm font-medium">{ebayConnectionMessage.text}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* eBay Integration - Collapsible */}
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => toggleSection('ebay')}
-                  className="w-full px-6 py-4 bg-blue-50 hover:bg-blue-100 transition-colors flex items-center justify-between"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-sm">
-                      eB
-                    </div>
-                    <div className="text-left">
-                      <h4 className="font-medium text-gray-900">eBay Developer Integration</h4>
-                      <p className="text-sm text-gray-600">Connect to eBay for automatic price updates</p>
-                    </div>
-                  </div>
-                  <svg
-                    className={`w-5 h-5 text-gray-500 transform transition-transform ${expandedSections.ebay ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {expandedSections.ebay && (
-                  <div className="p-6 border-t border-gray-200">
-                    <EbayConnect />
-                  </div>
-                )}
               </div>
 
               {/* Keepa Integration - Collapsible */}
