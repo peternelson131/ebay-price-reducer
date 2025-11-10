@@ -232,7 +232,7 @@ export default function Listings() {
   )
 
   const togglePriceReductionMutation = useMutation(
-    ({ itemId, userId, enabled, listingId }) => apiService.togglePriceReduction(itemId, userId, enabled),
+    ({ listingId, enabled }) => listingsAPI.updateListing(listingId, { enable_auto_reduction: enabled }),
     {
       onMutate: async ({ listingId, enabled }) => {
         await queryClient.cancelQueries(['listings', { status }])
@@ -375,10 +375,8 @@ export default function Listings() {
     }
 
     togglePriceReductionMutation.mutate({
-      itemId: listing.ebay_item_id,
-      userId: userProfile.id,
-      enabled: !listing.enable_auto_reduction,
-      listingId: listing.id // Keep for optimistic updates
+      listingId: listing.id,
+      enabled: !listing.enable_auto_reduction
     })
   }
 
