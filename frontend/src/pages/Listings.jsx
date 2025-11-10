@@ -242,7 +242,7 @@ export default function Listings() {
           if (!old) return old
           return old.map(listing =>
             listing.id === listingId
-              ? { ...listing, price_reduction_enabled: enabled }
+              ? { ...listing, enable_auto_reduction: enabled }
               : listing
           )
         })
@@ -276,7 +276,7 @@ export default function Listings() {
     // In other views: close only sold-out listings (quantity = 0)
     const listingsToClose = status === 'Ended'
       ? sortedAndFilteredListings
-      : sortedAndFilteredListings.filter(listing => listing.quantity === 0)
+      : sortedAndFilteredListings.filter(listing => listing.quantity_available === 0)
 
     if (listingsToClose.length === 0) {
       showNotification('info', 'No listings to close')
@@ -313,7 +313,7 @@ export default function Listings() {
         // Store error details for reporting
         const errorMsg = error.message || 'Unknown error'
         errors.push({
-          sku: listing.sku || listing.ebay_item_id,
+          sku: listing.ebay_sku || listing.ebay_item_id,
           error: errorMsg
         })
       }
@@ -364,7 +364,7 @@ export default function Listings() {
 
   const handleTogglePriceReduction = (listing) => {
     // Prevent enabling price reduction if minimum price is not set
-    if (!listing.price_reduction_enabled && (!listing.minimum_price || listing.minimum_price <= 0)) {
+    if (!listing.enable_auto_reduction && (!listing.minimum_price || listing.minimum_price <= 0)) {
       showNotification('error', 'Please set a minimum price before enabling price reduction')
       return
     }
@@ -377,7 +377,7 @@ export default function Listings() {
     togglePriceReductionMutation.mutate({
       itemId: listing.ebay_item_id,
       userId: userProfile.id,
-      enabled: !listing.price_reduction_enabled,
+      enabled: !listing.enable_auto_reduction,
       listingId: listing.id // Keep for optimistic updates
     })
   }
@@ -459,10 +459,10 @@ export default function Listings() {
 
         return (
           listing.title?.toLowerCase().includes(searchLower) ||
-          listing.sku?.toLowerCase().includes(searchLower) ||
+          listing.ebay_sku?.toLowerCase().includes(searchLower) ||
           listing.current_price?.toString().includes(searchLower) ||
           listing.original_price?.toString().includes(searchLower) ||
-          listing.quantity?.toString().includes(searchLower) ||
+          listing.quantity_available?.toString().includes(searchLower) ||
           listing.minimum_price?.toString().includes(searchLower) ||
           strategyName.toLowerCase().includes(searchLower) ||
           listing.id?.toLowerCase().includes(searchLower)
@@ -483,8 +483,8 @@ export default function Listings() {
             const created = new Date(listing.created_at || new Date())
             const now = new Date()
             listingValue = Math.ceil((now - created) / (1000 * 60 * 60 * 24))
-          } else if (filter.field === 'price_reduction_enabled') {
-            listingValue = listing.price_reduction_enabled?.toString()
+          } else if (filter.field === 'enable_auto_reduction') {
+            listingValue = listing.enable_auto_reduction?.toString()
           } else {
             listingValue = listing[filter.field]
           }
@@ -623,7 +623,7 @@ export default function Listings() {
     { key: 'minimum_price', label: 'Minimum Price', type: 'number' },
     { key: 'listing_age', label: 'Listing Age (days)', type: 'number' },
     { key: 'sku', label: 'SKU', type: 'text' },
-    { key: 'price_reduction_enabled', label: 'Monitoring Status', type: 'select', options: [
+    { key: 'enable_auto_reduction', label: 'Monitoring Status', type: 'select', options: [
       { value: 'true', label: 'Active' },
       { value: 'false', label: 'Paused' }
     ]}
@@ -661,7 +661,7 @@ export default function Listings() {
       quantity: { label: 'Quantity', sortable: true, sortKey: 'quantity', width: 'w-16 lg:w-20' },
       currentPrice: { label: 'Current Price', sortable: true, sortKey: 'current_price', width: 'w-24 lg:w-28' },
       minimumPrice: { label: 'Minimum Price', sortable: false, width: 'w-24 lg:w-28' },
-      priceReductionEnabled: { label: 'Price Reduction', sortable: true, sortKey: 'price_reduction_enabled', width: 'w-32 lg:w-36' },
+      priceReductionEnabled: { label: 'Price Reduction', sortable: true, sortKey: 'enable_auto_reduction', width: 'w-32 lg:w-36' },
       strategy: { label: 'Strategy', sortable: false, width: 'w-40 lg:w-48' },
       listingAge: { label: 'Listing Age', sortable: true, sortKey: 'created_at', width: 'w-20 lg:w-24' },
       actions: { label: 'Actions', sortable: false, width: 'w-40 lg:w-44' }
@@ -819,7 +819,7 @@ export default function Listings() {
           {(() => {
             const closeableListings = status === 'Ended'
               ? sortedAndFilteredListings // All ended listings
-              : sortedAndFilteredListings.filter(l => l.quantity === 0); // Only sold-out in other views
+              : sortedAndFilteredListings.filter(l => l.quantity_available === 0); // Only sold-out in other views
 
             const buttonText = status === 'Ended'
               ? `Close All Ended (${closeableListings.length})`
@@ -1066,14 +1066,14 @@ export default function Listings() {
           <div key={listing.id} className="bg-white rounded-lg shadow p-4">
             <div className="flex items-start space-x-4">
               <img
-                src={listing.image_urls?.[0] || '/placeholder-image.jpg'}
+                src={listing.image_url || '/placeholder-image.jpg'}
                 alt={listing.title}
                 className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-gray-900 truncate">{listing.title}</h3>
-                {listing.sku && (
-                  <p className="text-xs text-gray-500 mt-1">SKU: {listing.sku}</p>
+                {listing.ebay_sku && (
+                  <p className="text-xs text-gray-500 mt-1">SKU: {listing.ebay_sku}</p>
                 )}
 
                 <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -1083,7 +1083,7 @@ export default function Listings() {
                   </div>
                   <div>
                     <span className="text-gray-500">Quantity:</span>
-                    <div className="font-medium">{listing.listing_status === 'Ended' ? 0 : (listing.quantity ?? 0)}</div>
+                    <div className="font-medium">{listing.listing_status === 'Ended' ? 0 : (listing.quantity_available ?? 0)}</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Views:</span>
@@ -1119,33 +1119,33 @@ export default function Listings() {
                     <div className="flex items-center">
                       <label
                         className={`relative inline-flex items-center ${
-                          (!listing.minimum_price || listing.minimum_price <= 0) && !listing.price_reduction_enabled
+                          (!listing.minimum_price || listing.minimum_price <= 0) && !listing.enable_auto_reduction
                             ? 'cursor-not-allowed'
                             : 'cursor-pointer'
                         }`}
-                        title={(!listing.minimum_price || listing.minimum_price <= 0) && !listing.price_reduction_enabled
+                        title={(!listing.minimum_price || listing.minimum_price <= 0) && !listing.enable_auto_reduction
                           ? 'Set a minimum price before enabling price reduction'
                           : ''}
                       >
                         <input
                           type="checkbox"
-                          checked={listing.price_reduction_enabled}
+                          checked={listing.enable_auto_reduction}
                           onChange={() => handleTogglePriceReduction(listing)}
                           disabled={togglePriceReductionMutation.isLoading}
                           className="sr-only"
                         />
                         <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
-                          listing.price_reduction_enabled ? 'bg-blue-600' : 'bg-gray-200'
+                          listing.enable_auto_reduction ? 'bg-blue-600' : 'bg-gray-200'
                         }`}>
                           <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out ${
-                            listing.price_reduction_enabled ? 'translate-x-5' : 'translate-x-0'
+                            listing.enable_auto_reduction ? 'translate-x-5' : 'translate-x-0'
                           }`}></div>
                         </div>
                       </label>
                       <span className={`ml-2 text-xs ${
-                        listing.price_reduction_enabled ? 'text-green-600 font-medium' : 'text-gray-500'
+                        listing.enable_auto_reduction ? 'text-green-600 font-medium' : 'text-gray-500'
                       }`}>
-                        {listing.price_reduction_enabled ? 'Active' : 'Paused'}
+                        {listing.enable_auto_reduction ? 'Active' : 'Paused'}
                       </span>
                     </div>
                   </div>
@@ -1169,7 +1169,7 @@ export default function Listings() {
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <a
-                    href={listing.listing_url || `https://www.ebay.com/itm/${listing.ebay_item_id}`}
+                    href={listing.ebay_url || `https://www.ebay.com/itm/${listing.ebay_item_id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 inline-block text-center"
@@ -1177,7 +1177,7 @@ export default function Listings() {
                   >
                     View on eBay
                   </a>
-                  {(listing.quantity === 0 || listing.listing_status === 'Ended') && (
+                  {(listing.quantity_available === 0 || listing.listing_status === 'Ended') && (
                     <button
                       onClick={() => handleDeleteListing(listing.id)}
                       disabled={endListingMutation.isLoading}
@@ -1248,7 +1248,7 @@ export default function Listings() {
                         case 'image':
                           return (
                             <img
-                              src={listing.image_urls?.[0] || '/placeholder-image.jpg'}
+                              src={listing.image_url || '/placeholder-image.jpg'}
                               alt={listing.title}
                               className="w-16 h-16 rounded-lg object-cover"
                             />
@@ -1259,9 +1259,9 @@ export default function Listings() {
                               <div className="text-sm font-medium text-gray-900 truncate">
                                 {listing.title}
                               </div>
-                              {listing.sku && (
+                              {listing.ebay_sku && (
                                 <div className="text-xs text-gray-500 mt-1">
-                                  SKU: {listing.sku}
+                                  SKU: {listing.ebay_sku}
                                 </div>
                               )}
                             </div>
@@ -1269,7 +1269,7 @@ export default function Listings() {
                         case 'quantity':
                           return (
                             <div className="text-sm text-gray-900">
-                              {listing.listing_status === 'Ended' ? 0 : (listing.quantity ?? 0)}
+                              {listing.listing_status === 'Ended' ? 0 : (listing.quantity_available ?? 0)}
                             </div>
                           )
                         case 'currentPrice':
@@ -1293,33 +1293,33 @@ export default function Listings() {
                             <div className="flex items-center">
                               <label
                                 className={`relative inline-flex items-center ${
-                                  (!listing.minimum_price || listing.minimum_price <= 0) && !listing.price_reduction_enabled
+                                  (!listing.minimum_price || listing.minimum_price <= 0) && !listing.enable_auto_reduction
                                     ? 'cursor-not-allowed'
                                     : 'cursor-pointer'
                                 }`}
-                                title={(!listing.minimum_price || listing.minimum_price <= 0) && !listing.price_reduction_enabled
+                                title={(!listing.minimum_price || listing.minimum_price <= 0) && !listing.enable_auto_reduction
                                   ? 'Set a minimum price before enabling price reduction'
                                   : ''}
                               >
                                 <input
                                   type="checkbox"
-                                  checked={listing.price_reduction_enabled}
+                                  checked={listing.enable_auto_reduction}
                                   onChange={() => handleTogglePriceReduction(listing)}
                                   disabled={togglePriceReductionMutation.isLoading}
                                   className="sr-only"
                                 />
                                 <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
-                                  listing.price_reduction_enabled ? 'bg-blue-600' : 'bg-gray-200'
+                                  listing.enable_auto_reduction ? 'bg-blue-600' : 'bg-gray-200'
                                 }`}>
                                   <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out ${
-                                    listing.price_reduction_enabled ? 'translate-x-5' : 'translate-x-0'
+                                    listing.enable_auto_reduction ? 'translate-x-5' : 'translate-x-0'
                                   }`}></div>
                                 </div>
                               </label>
                               <span className={`ml-2 text-xs ${
-                                listing.price_reduction_enabled ? 'text-green-600 font-medium' : 'text-gray-500'
+                                listing.enable_auto_reduction ? 'text-green-600 font-medium' : 'text-gray-500'
                               }`}>
-                                {listing.price_reduction_enabled ? 'Active' : 'Paused'}
+                                {listing.enable_auto_reduction ? 'Active' : 'Paused'}
                               </span>
                             </div>
                           )
@@ -1349,7 +1349,7 @@ export default function Listings() {
                           return (
                             <div className="flex space-x-1">
                               <a
-                                href={listing.listing_url || `https://www.ebay.com/itm/${listing.ebay_item_id}`}
+                                href={listing.ebay_url || `https://www.ebay.com/itm/${listing.ebay_item_id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
@@ -1357,7 +1357,7 @@ export default function Listings() {
                               >
                                 View
                               </a>
-                              {(listing.quantity === 0 || listing.listing_status === 'Ended') && (
+                              {(listing.quantity_available === 0 || listing.listing_status === 'Ended') && (
                                 <button
                                   onClick={() => handleDeleteListing(listing.id)}
                                   disabled={endListingMutation.isLoading}
