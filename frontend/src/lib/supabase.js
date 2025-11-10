@@ -332,18 +332,14 @@ const realListingsAPI = realSupabaseClient ? {
       .select('*')
       .eq('user_id', user.id)
 
-    // ALWAYS exclude hidden listings from all views
-    // Hidden listings are those manually closed by the user
-    query = query.eq('hidden', false)
-
     if (status !== 'all' && status !== 'Active') {
-      // Filter by specific status (e.g., 'Ended')
+      // Filter by specific status (e.g., 'Inactive')
       query = query.eq('listing_status', status)
     } else if (status === 'Active') {
       // Only show active listings
       query = query.eq('listing_status', 'Active')
     }
-    // If status === 'all', show both Active and Ended (but not hidden)
+    // If status === 'all', show all listings regardless of status
 
     // Add default sort order to ensure consistent ordering
     query = query.order('created_at', { ascending: false })
@@ -651,10 +647,6 @@ const localStorageUserAPI = {
 
     const user = JSON.parse(userData)
 
-    // Get eBay connection status from localStorage
-    const ebayConnectionData = localStorage.getItem('ebayConnection')
-    const ebayConnection = ebayConnectionData ? JSON.parse(ebayConnectionData) : {}
-
     return {
       id: user.id || 'local-user-1',
       email: user.email || 'user@example.com',
@@ -662,14 +654,9 @@ const localStorageUserAPI = {
       default_reduction_strategy: 'fixed_percentage',
       default_reduction_percentage: 5,
       default_reduction_interval: 7,
-      ebay_refresh_token: ebayConnection.refresh_token || null,
-      ebay_connection_status: ebayConnection.status || 'disconnected',
-      ebay_connected_at: ebayConnection.connected_at || null,
-      ebay_user_id: ebayConnection.user_id || null,
-      ebay_refresh_token_expires_at: ebayConnection.refresh_token_expires_at || null,
       subscription_plan: 'free',
       listing_limit: 10,
-      keepa_api_key: null
+      n8n_webhook_url: null
     }
   },
 
@@ -682,22 +669,6 @@ const localStorageUserAPI = {
     const user = JSON.parse(userData)
     const updatedUser = { ...user, ...updates }
     localStorage.setItem('userData', JSON.stringify(updatedUser))
-
-    // If updating eBay connection data, store separately
-    if (updates.ebay_connection_status !== undefined ||
-        updates.ebay_refresh_token !== undefined ||
-        updates.ebay_connected_at !== undefined ||
-        updates.ebay_user_id !== undefined ||
-        updates.ebay_refresh_token_expires_at !== undefined) {
-      const ebayConnection = {
-        status: updates.ebay_connection_status,
-        refresh_token: updates.ebay_refresh_token,
-        connected_at: updates.ebay_connected_at,
-        user_id: updates.ebay_user_id,
-        refresh_token_expires_at: updates.ebay_refresh_token_expires_at
-      }
-      localStorage.setItem('ebayConnection', JSON.stringify(ebayConnection))
-    }
 
     return updatedUser
   },
@@ -722,12 +693,9 @@ const mockUserAPI = {
       default_reduction_strategy: 'fixed_percentage',
       default_reduction_percentage: 5,
       default_reduction_interval: 7,
-      ebay_refresh_token: null,
-      ebay_connection_status: 'disconnected',
-      ebay_connected_at: null,
       subscription_plan: 'free',
       listing_limit: 10,
-      keepa_api_key: null // Add keepa_api_key field for mock
+      n8n_webhook_url: null
     }
   },
 
@@ -754,12 +722,10 @@ const realUserAPI = realSupabaseClient ? {
       .from('users')
       .select(`
         id, email, name, created_at, updated_at,
-        ebay_refresh_token, ebay_user_id, ebay_connection_status, ebay_connected_at, ebay_refresh_token_expires_at,
         default_reduction_strategy, default_reduction_percentage, default_reduction_interval,
         email_notifications, price_reduction_alerts,
         subscription_plan, subscription_active, subscription_expires_at, listing_limit,
-        is_active, last_login, login_count,
-        keepa_api_key
+        is_active, last_login, login_count, n8n_webhook_url
       `)
       .eq('id', user.id)
       .single()
@@ -780,13 +746,6 @@ const realUserAPI = realSupabaseClient ? {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
 
-      // eBay credentials
-      ebay_refresh_token: null,
-      ebay_user_id: null,
-      ebay_connection_status: 'disconnected',
-      ebay_connected_at: null,
-      ebay_refresh_token_expires_at: null,
-
       // User preferences with schema defaults
       default_reduction_strategy: 'fixed_percentage',
       default_reduction_percentage: 5,
@@ -805,8 +764,8 @@ const realUserAPI = realSupabaseClient ? {
       last_login: null,
       login_count: 0,
 
-      // Keepa integration
-      keepa_api_key: null
+      // N8N integration
+      n8n_webhook_url: null
     }
 
     const { data: insertedData, error: insertError } = await realSupabaseClient
