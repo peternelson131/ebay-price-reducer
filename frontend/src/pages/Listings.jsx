@@ -383,63 +383,6 @@ export default function Listings() {
   }
 
 
-  const handleConnectEbay = () => {
-    // Navigate to Account page with integrations tab active
-    navigate('/account?tab=integrations')
-  }
-
-  const handleSyncFromEbay = async () => {
-    try {
-      setNotification({ type: 'info', message: 'Syncing listings from eBay...' })
-
-      const { supabase } = await import('../lib/supabase')
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session?.access_token) {
-        throw new Error('Not authenticated')
-      }
-
-      const response = await fetch('/.netlify/functions/trigger-sync', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      // Handle non-JSON responses (like HTML error pages)
-      if (!response.ok) {
-        let errorMessage = 'Sync failed'
-        try {
-          const result = await response.json()
-          errorMessage = result.message || result.error || errorMessage
-        } catch (jsonError) {
-          // Response wasn't JSON (probably HTML error page)
-          const text = await response.text()
-          console.error('Non-JSON error response:', text.substring(0, 500))
-          errorMessage = `Server error (${response.status}). Please try again or check your eBay connection.`
-        }
-        throw new Error(errorMessage)
-      }
-
-      const result = await response.json()
-
-      setNotification({
-        type: 'success',
-        message: `Successfully synced ${result.count} listings from eBay!`
-      })
-
-      // Refresh the listings
-      refetch()
-    } catch (error) {
-      console.error('Sync error:', error)
-      setNotification({
-        type: 'error',
-        message: error.message || 'Failed to sync listings'
-      })
-    }
-  }
-
   const handleSort = (key) => {
     let direction = 'asc'
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -815,48 +758,10 @@ export default function Listings() {
         </div>
       )}
 
-      {/* eBay Connection Banner */}
-      {userProfile && userProfile.ebay_connection_status !== 'connected' && (
-        <div className="rounded-md p-4 bg-yellow-50 border border-yellow-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="text-yellow-800">
-                <svg className="w-5 h-5 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <strong>Connect Your eBay Account</strong>
-                <div className="mt-1 text-sm">
-                  You need to connect your eBay account to import and manage your listings automatically.
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={handleConnectEbay}
-              className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            >
-              Connect eBay Account
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Your eBay Listings</h1>
-          <p className="text-gray-600">Manage and monitor your eBay listing prices</p>
-        </div>
-        <button
-          onClick={handleSyncFromEbay}
-          disabled={isLoading}
-          className={`px-4 py-2 rounded text-white ${
-            isLoading
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700'
-          }`}
-        >
-          {isLoading ? 'Loading...' : 'Import from eBay'}
-        </button>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Your eBay Listings</h1>
+        <p className="text-gray-600">Manage and monitor your eBay listing prices</p>
       </div>
 
       {/* Search Box */}
@@ -1290,27 +1195,9 @@ export default function Listings() {
 
         {totalItems === 0 && (
           <div className="text-center py-12 bg-white rounded-lg shadow">
-            <div className="text-gray-500 mb-4">
-              {userProfile?.ebay_connection_status === 'connected'
-                ? 'No listings found. Click "Import from eBay" to sync your listings.'
-                : 'Connect your eBay account to import listings.'
-              }
+            <div className="text-gray-500">
+              No listings found.
             </div>
-            {userProfile?.ebay_connection_status === 'connected' ? (
-              <button
-                onClick={handleSyncFromEbay}
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-              >
-                Import from eBay
-              </button>
-            ) : (
-              <button
-                onClick={handleConnectEbay}
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-              >
-                Connect eBay Account
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -1505,27 +1392,9 @@ export default function Listings() {
 
         {(!listings || listings.length === 0) && (
           <div className="text-center py-12">
-            <div className="text-gray-500 mb-4">
-              {userProfile?.ebay_connection_status === 'connected'
-                ? 'No listings found. Click "Import from eBay" to sync your listings.'
-                : 'Connect your eBay account to import listings.'
-              }
+            <div className="text-gray-500">
+              No listings found.
             </div>
-            {userProfile?.ebay_connection_status === 'connected' ? (
-              <button
-                onClick={handleSyncFromEbay}
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-              >
-                Import from eBay
-              </button>
-            ) : (
-              <button
-                onClick={handleConnectEbay}
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-              >
-                Connect eBay Account
-              </button>
-            )}
           </div>
         )}
 
