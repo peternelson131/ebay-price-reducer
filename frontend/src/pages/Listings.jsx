@@ -654,15 +654,15 @@ export default function Listings() {
   // Column configuration
   const getColumnConfig = (column) => {
     const configs = {
-      image: { label: 'Image', sortable: false, width: 'w-20 lg:w-24' },
-      title: { label: 'Title', sortable: true, sortKey: 'title', width: 'w-1/3 lg:w-2/5' },
-      quantity: { label: 'Quantity', sortable: true, sortKey: 'quantity', width: 'w-16 lg:w-20' },
-      currentPrice: { label: 'Current Price', sortable: true, sortKey: 'current_price', width: 'w-24 lg:w-28' },
-      minimumPrice: { label: 'Minimum Price', sortable: false, width: 'w-24 lg:w-28' },
-      priceReductionEnabled: { label: 'Price Reduction', sortable: true, sortKey: 'enable_auto_reduction', width: 'w-32 lg:w-36' },
-      strategy: { label: 'Strategy', sortable: false, width: 'w-40 lg:w-48' },
-      listingAge: { label: 'Listing Age', sortable: true, sortKey: 'created_at', width: 'w-20 lg:w-24' },
-      actions: { label: 'Actions', sortable: false, width: 'w-40 lg:w-44' }
+      image: { label: 'Image', sortable: false, width: 'min-w-[80px] w-20' },
+      title: { label: 'Title', sortable: true, sortKey: 'title', width: 'min-w-[200px]' },
+      quantity: { label: 'Qty', sortable: true, sortKey: 'quantity', width: 'min-w-[60px] w-16' },
+      currentPrice: { label: 'Current Price', sortable: true, sortKey: 'current_price', width: 'min-w-[100px] w-28' },
+      minimumPrice: { label: 'Min Price', sortable: false, width: 'min-w-[90px] w-24' },
+      priceReductionEnabled: { label: 'Price Reduction', sortable: true, sortKey: 'enable_auto_reduction', width: 'min-w-[120px] w-32' },
+      strategy: { label: 'Strategy', sortable: false, width: 'min-w-[140px] w-40' },
+      listingAge: { label: 'Age', sortable: true, sortKey: 'created_at', width: 'min-w-[70px] w-20' },
+      actions: { label: 'Actions', sortable: false, width: 'min-w-[120px] w-32' }
     }
     return configs[column] || { label: column, sortable: false }
   }
@@ -1203,7 +1203,7 @@ export default function Listings() {
       {/* Desktop Table View (visible on large screens) */}
       <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed divide-y divide-gray-200">
+          <table className="w-full table-auto divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 {columnOrder.map((column) => {
@@ -1218,16 +1218,16 @@ export default function Listings() {
                       onDragOver={handleDragOver}
                       onDrop={(e) => handleDrop(e, column)}
                       onDragEnd={handleDragEnd}
-                      className={`px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                      className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase ${
                         config.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
                       } ${draggedColumn === column ? 'opacity-50' : ''} ${config.width || ''} select-none`}
                       onClick={config.sortable ? () => handleSort(config.sortKey) : undefined}
                     >
-                      <div className="flex items-center space-x-1">
-                        <span>⋮⋮</span>
-                        <span>{config.label}</span>
+                      <div className="flex items-center space-x-1 min-w-0">
+                        <span className="flex-shrink-0">⋮⋮</span>
+                        <span className="break-words leading-tight">{config.label}</span>
                         {config.sortable && sortConfig.key === config.sortKey && (
-                          <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                          <span className="flex-shrink-0">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                         )}
                       </div>
                     </th>
@@ -1376,7 +1376,7 @@ export default function Listings() {
                     return (
                       <td
                         key={column}
-                        className={`px-4 py-3 ${column === 'actions' ? 'whitespace-nowrap text-sm font-medium' : 'whitespace-nowrap'} ${config.width || ''}`}
+                        className={`px-2 py-3 ${column === 'actions' ? 'whitespace-nowrap text-sm font-medium' : 'whitespace-nowrap'} ${config.width || ''}`}
                       >
                         {renderCell()}
                       </td>
