@@ -199,7 +199,9 @@ export default function Listings() {
   )
 
   const updateStrategyMutation = useMutation(
-    ({ listingId, strategyId, userId }) => apiService.updateListingStrategy(listingId, strategyId, userId),
+    ({ listingId, strategyId }) => listingsAPI.updateListing(listingId, {
+      strategy_id: strategyId || null
+    }),
     {
       onMutate: async ({ listingId, strategyId }) => {
         await queryClient.cancelQueries(['listings', { status }])
@@ -209,7 +211,7 @@ export default function Listings() {
           if (!old) return old
           return old.map(listing =>
             listing.id === listingId
-              ? { ...listing, strategy_id: strategyId, reduction_strategy: strategyId }
+              ? { ...listing, strategy_id: strategyId }
               : listing
           )
         })
@@ -217,7 +219,10 @@ export default function Listings() {
         return { previousListings }
       },
       onSuccess: (data) => {
-        showNotification('success', `Strategy updated to ${data.strategy.name}`)
+        const strategyName = data.strategy_id
+          ? strategies.find(s => s.id === data.strategy_id)?.name || 'selected strategy'
+          : 'No strategy';
+        showNotification('success', `Strategy updated to ${strategyName}`)
       },
       onError: (error, variables, context) => {
         if (context?.previousListings) {
@@ -350,15 +355,9 @@ export default function Listings() {
   }
 
   const handleStrategyUpdate = (listingId, strategyId) => {
-    if (!userProfile?.id) {
-      showNotification('error', 'User not authenticated')
-      return
-    }
-
     updateStrategyMutation.mutate({
       listingId,
-      strategyId,
-      userId: userProfile.id
+      strategyId: strategyId || null
     })
   }
 
