@@ -433,11 +433,6 @@ export default function Listings() {
     return `${diffDays} days`
   }
 
-  const calculateSuggestedPrice = (currentPrice, originalPrice) => {
-    const reduction = Math.max(0.05, Math.random() * 0.15)
-    return (currentPrice * (1 - reduction)).toFixed(2)
-  }
-
   // First, filter listings without sorting
   const filteredListings = useMemo(() => {
     let filtered = listings || []
@@ -1081,14 +1076,6 @@ export default function Listings() {
                   <div>
                     <span className="text-gray-500">Quantity:</span>
                     <div className="font-medium">{listing.listing_status === 'Ended' ? 0 : (listing.quantity_available ?? 0)}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Views:</span>
-                    <div className="font-medium">{listing.view_count || 0}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Watchers:</span>
-                    <div className="font-medium">{listing.watch_count || 0}</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Age:</span>
