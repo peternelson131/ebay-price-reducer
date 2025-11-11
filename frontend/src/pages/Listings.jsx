@@ -6,26 +6,61 @@ import apiService from '../services/api'
 import { getActiveStrategies, getStrategyById, getStrategyDisplayName, getStrategyDisplayInfo } from '../data/strategies'
 
 // Helper functions for localStorage
+const VALID_COLUMNS = [
+  'image', 'title', 'quantity', 'currentPrice', 'minimumPrice',
+  'priceReductionEnabled', 'strategy', 'listingAge', 'actions'
+]
+
 const getStoredColumnOrder = () => {
   try {
     const stored = localStorage.getItem('listings-column-order')
     if (stored) {
-      return JSON.parse(stored)
+      const parsed = JSON.parse(stored)
+      // Filter out invalid columns (like viewCount, watchCount, suggestedPrice)
+      const filtered = parsed.filter(col => VALID_COLUMNS.includes(col))
+      // If filtering removed columns, return default to ensure all valid columns are present
+      if (filtered.length !== parsed.length || filtered.length !== VALID_COLUMNS.length) {
+        return VALID_COLUMNS
+      }
+      return filtered
     }
   } catch (error) {
     console.warn('Failed to load column order from localStorage:', error)
   }
-  return [
-    'image', 'title', 'quantity', 'currentPrice', 'minimumPrice',
-    'priceReductionEnabled', 'strategy', 'listingAge', 'actions'
-  ]
+  return VALID_COLUMNS
 }
 
 const getStoredVisibleColumns = () => {
   try {
     const stored = localStorage.getItem('listings-visible-columns')
     if (stored) {
-      return JSON.parse(stored)
+      const parsed = JSON.parse(stored)
+      // Filter out invalid columns and create new object with only valid columns
+      const filtered = {}
+      let hasInvalidColumns = false
+
+      for (const col of VALID_COLUMNS) {
+        if (col in parsed) {
+          filtered[col] = parsed[col]
+        } else {
+          filtered[col] = true // Default to visible if not in stored config
+        }
+      }
+
+      // Check if there were any invalid columns in the stored config
+      for (const col in parsed) {
+        if (!VALID_COLUMNS.includes(col)) {
+          hasInvalidColumns = true
+          break
+        }
+      }
+
+      // If we found invalid columns, clean up localStorage
+      if (hasInvalidColumns) {
+        localStorage.setItem('listings-visible-columns', JSON.stringify(filtered))
+      }
+
+      return filtered
     }
   } catch (error) {
     console.warn('Failed to load visible columns from localStorage:', error)
