@@ -6,7 +6,7 @@ import { strategiesAPI } from '../lib/supabase'
 // Helper function to get active strategies for use in listings
 export const getActiveStrategies = async () => {
   const strategies = await strategiesAPI.getStrategies()
-  return strategies.filter(strategy => strategy.active)
+  return strategies
 }
 
 // Helper function to get strategy by ID
