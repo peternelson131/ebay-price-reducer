@@ -22,10 +22,10 @@ export const getStrategyById = async (id) => {
 // Helper function to get strategy display name
 export const getStrategyDisplayName = (strategy) => {
   if (!strategy) return 'No strategy'
-  const amount = strategy.reduction_type === 'percentage'
-    ? `${strategy.reduction_amount}%`
+  const amount = strategy.strategy_type === 'percentage'
+    ? `${strategy.reduction_percentage}%`
     : `$${strategy.reduction_amount}`
-  return `${strategy.name} (${amount} every ${strategy.frequency_days} days)`
+  return `${strategy.name} (${amount} every ${strategy.interval_days} days)`
 }
 
 // Get all strategies (alias for consistency)
@@ -37,21 +37,24 @@ export const getAllStrategies = async () => {
 const LEGACY_STRATEGIES = {
   'fixed_percentage': {
     name: 'Fixed Percentage',
-    reduction_type: 'percentage',
-    reduction_amount: 10,
-    frequency_days: 7
+    strategy_type: 'percentage',
+    reduction_percentage: 10,
+    reduction_amount: 0,
+    interval_days: 7
   },
   'market_based': {
     name: 'Market Based',
-    reduction_type: 'percentage',
-    reduction_amount: 5,
-    frequency_days: 14
+    strategy_type: 'percentage',
+    reduction_percentage: 5,
+    reduction_amount: 0,
+    interval_days: 14
   },
   'time_based': {
     name: 'Time Based',
-    reduction_type: 'percentage',
-    reduction_amount: 15,
-    frequency_days: 30
+    strategy_type: 'percentage',
+    reduction_percentage: 15,
+    reduction_amount: 0,
+    interval_days: 30
   }
 }
 

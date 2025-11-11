@@ -9,9 +9,10 @@ export default function Strategies() {
   const [notification, setNotification] = useState(null) // { type: 'success'|'error', message: string }
   const [newRule, setNewRule] = useState({
     name: '',
-    reduction_type: 'percentage', // 'percentage' or 'dollar'
-    reduction_amount: 5,
-    frequency_days: 7
+    strategy_type: 'percentage', // 'percentage' or 'dollar'
+    reduction_percentage: 5,
+    reduction_amount: 0,
+    interval_days: 7
   })
 
   // Fetch strategies from database
@@ -70,29 +71,35 @@ export default function Strategies() {
       return
     }
 
-    if (newRule.reduction_amount < 1) {
+    const reductionValue = newRule.strategy_type === 'percentage'
+      ? newRule.reduction_percentage
+      : newRule.reduction_amount
+
+    if (reductionValue < 1) {
       showNotification('error', 'Reduction amount must be at least 1')
       return
     }
 
-    if (newRule.frequency_days < 1 || newRule.frequency_days > 365) {
+    if (newRule.interval_days < 1 || newRule.interval_days > 365) {
       showNotification('error', 'Frequency must be between 1 and 365 days')
       return
     }
 
     createStrategyMutation.mutate({
       name: newRule.name,
-      reduction_type: newRule.reduction_type,
-      reduction_amount: newRule.reduction_amount,
-      frequency_days: newRule.frequency_days,
-      active: true
+      strategy_type: newRule.strategy_type,
+      reduction_percentage: newRule.strategy_type === 'percentage' ? newRule.reduction_percentage : 0,
+      reduction_amount: newRule.strategy_type === 'dollar' ? newRule.reduction_amount : 0,
+      interval_days: newRule.interval_days,
+      stop_at_sell: true
     })
 
     setNewRule({
       name: '',
-      reduction_type: 'percentage',
-      reduction_amount: 5,
-      frequency_days: 7
+      strategy_type: 'percentage',
+      reduction_percentage: 5,
+      reduction_amount: 0,
+      interval_days: 7
     })
     setShowModal(false)
   }
@@ -109,22 +116,13 @@ export default function Strategies() {
     }
   }
 
-  const handleToggleActive = (id) => {
-    const rule = rules.find(r => r.id === id)
-    if (rule) {
-      updateStrategyMutation.mutate({
-        id,
-        updates: { active: !rule.active }
-      })
-    }
-  }
-
   const resetModal = () => {
     setNewRule({
       name: '',
-      reduction_type: 'percentage',
-      reduction_amount: 5,
-      frequency_days: 7
+      strategy_type: 'percentage',
+      reduction_percentage: 5,
+      reduction_amount: 0,
+      interval_days: 7
     })
     setShowModal(false)
   }
@@ -240,27 +238,18 @@ export default function Strategies() {
                     <div className="flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
                         <h4 className="text-lg font-medium text-gray-900">{rule.name}</h4>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          rule.active
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {rule.active ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-6 text-sm">
                         <div className="flex items-center space-x-2">
                           <span className="text-gray-500">Reduction:</span>
                           <div className="font-medium text-blue-600">
-                            {rule.reduction_type === 'percentage' ? `${rule.reduction_amount}%` : `$${rule.reduction_amount}`}
+                            {rule.strategy_type === 'percentage' ? `${rule.reduction_percentage}%` : `$${rule.reduction_amount}`}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className="text-gray-500">Frequency:</span>
-                          <div className="font-medium">Every {rule.frequency_days} day{rule.frequency_days !== 1 ? 's' : ''}</div>
+                          <div className="font-medium">Every {rule.interval_days} day{rule.interval_days !== 1 ? 's' : ''}</div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className="text-gray-500">Created:</span>
@@ -270,16 +259,6 @@ export default function Strategies() {
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-2 lg:ml-6">
-                      <button
-                        onClick={() => handleToggleActive(rule.id)}
-                        className={`px-4 py-2 rounded text-sm font-medium w-full sm:w-auto ${
-                          rule.active
-                            ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                            : 'bg-green-100 text-green-800 hover:bg-green-200'
-                        }`}
-                      >
-                        {rule.active ? 'Pause' : 'Activate'}
-                      </button>
                       <button
                         onClick={() => setEditingRule(rule.id)}
                         className="bg-blue-100 text-blue-800 px-4 py-2 rounded text-sm font-medium hover:bg-blue-200 w-full sm:w-auto"
@@ -332,9 +311,9 @@ export default function Strategies() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setNewRule(prev => ({ ...prev, reduction_type: 'percentage' }))}
+                    onClick={() => setNewRule(prev => ({ ...prev, strategy_type: 'percentage' }))}
                     className={`px-3 py-2 rounded-md border text-sm font-medium ${
-                      newRule.reduction_type === 'percentage'
+                      newRule.strategy_type === 'percentage'
                         ? 'bg-blue-50 border-blue-500 text-blue-700'
                         : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
@@ -343,9 +322,9 @@ export default function Strategies() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setNewRule(prev => ({ ...prev, reduction_type: 'dollar' }))}
+                    onClick={() => setNewRule(prev => ({ ...prev, strategy_type: 'dollar' }))}
                     className={`px-3 py-2 rounded-md border text-sm font-medium ${
-                      newRule.reduction_type === 'dollar'
+                      newRule.strategy_type === 'dollar'
                         ? 'bg-blue-50 border-blue-500 text-blue-700'
                         : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
@@ -357,14 +336,21 @@ export default function Strategies() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Reduction Amount ({newRule.reduction_type === 'percentage' ? '%' : '$'})
+                  Reduction Amount ({newRule.strategy_type === 'percentage' ? '%' : '$'})
                 </label>
                 <input
                   type="number"
                   min="1"
-                  max={newRule.reduction_type === 'percentage' ? "50" : "999"}
-                  value={newRule.reduction_amount}
-                  onChange={(e) => setNewRule(prev => ({ ...prev, reduction_amount: parseInt(e.target.value) || 1 }))}
+                  max={newRule.strategy_type === 'percentage' ? "50" : "999"}
+                  value={newRule.strategy_type === 'percentage' ? newRule.reduction_percentage : newRule.reduction_amount}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 1
+                    if (newRule.strategy_type === 'percentage') {
+                      setNewRule(prev => ({ ...prev, reduction_percentage: value }))
+                    } else {
+                      setNewRule(prev => ({ ...prev, reduction_amount: value }))
+                    }
+                  }}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -375,8 +361,8 @@ export default function Strategies() {
                   type="number"
                   min="1"
                   max="365"
-                  value={newRule.frequency_days}
-                  onChange={(e) => setNewRule(prev => ({ ...prev, frequency_days: parseInt(e.target.value) || 1 }))}
+                  value={newRule.interval_days}
+                  onChange={(e) => setNewRule(prev => ({ ...prev, interval_days: parseInt(e.target.value) || 1 }))}
                   placeholder="Enter number of days (e.g., 7)"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -410,9 +396,10 @@ export default function Strategies() {
 function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
   const [editData, setEditData] = useState({
     name: rule.name,
-    reduction_type: rule.reduction_type,
-    reduction_amount: rule.reduction_amount,
-    frequency_days: rule.frequency_days
+    strategy_type: rule.strategy_type,
+    reduction_percentage: rule.reduction_percentage || 0,
+    reduction_amount: rule.reduction_amount || 0,
+    interval_days: rule.interval_days
   })
 
   const handleSave = () => {
@@ -420,11 +407,14 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
       showNotification('error', 'Please enter a rule name')
       return
     }
-    if (editData.reduction_amount < 1) {
+    const reductionValue = editData.strategy_type === 'percentage'
+      ? editData.reduction_percentage
+      : editData.reduction_amount
+    if (reductionValue < 1) {
       showNotification('error', 'Reduction amount must be at least 1')
       return
     }
-    if (editData.frequency_days < 1 || editData.frequency_days > 365) {
+    if (editData.interval_days < 1 || editData.interval_days > 365) {
       showNotification('error', 'Frequency must be between 1 and 365 days')
       return
     }
@@ -446,8 +436,8 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Reduction Type</label>
           <select
-            value={editData.reduction_type}
-            onChange={(e) => setEditData(prev => ({ ...prev, reduction_type: e.target.value }))}
+            value={editData.strategy_type}
+            onChange={(e) => setEditData(prev => ({ ...prev, strategy_type: e.target.value }))}
             className="w-full border border-gray-300 rounded-md px-3 py-2"
           >
             <option value="percentage">Percentage (%)</option>
@@ -459,13 +449,20 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Reduction Amount ({editData.reduction_type === 'percentage' ? '%' : '$'})
+            Reduction Amount ({editData.strategy_type === 'percentage' ? '%' : '$'})
           </label>
           <input
             type="number"
             min="1"
-            value={editData.reduction_amount}
-            onChange={(e) => setEditData(prev => ({ ...prev, reduction_amount: parseInt(e.target.value) || 1 }))}
+            value={editData.strategy_type === 'percentage' ? editData.reduction_percentage : editData.reduction_amount}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || 1
+              if (editData.strategy_type === 'percentage') {
+                setEditData(prev => ({ ...prev, reduction_percentage: value }))
+              } else {
+                setEditData(prev => ({ ...prev, reduction_amount: value }))
+              }
+            }}
             className="w-full border border-gray-300 rounded-md px-3 py-2"
           />
         </div>
@@ -475,8 +472,8 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
             type="number"
             min="1"
             max="365"
-            value={editData.frequency_days}
-            onChange={(e) => setEditData(prev => ({ ...prev, frequency_days: parseInt(e.target.value) || 1 }))}
+            value={editData.interval_days}
+            onChange={(e) => setEditData(prev => ({ ...prev, interval_days: parseInt(e.target.value) || 1 }))}
             placeholder="Enter number of days"
             className="w-full border border-gray-300 rounded-md px-3 py-2"
           />
