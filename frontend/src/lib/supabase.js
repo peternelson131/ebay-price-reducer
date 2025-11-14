@@ -283,7 +283,7 @@ const mockListingsAPI = {
     if (!listing) throw new Error('Listing not found')
 
     // In mock mode, just update the status
-    listing.listing_status = 'Closed'
+    listing.listing_status = 'Ended'
     listing.updated_at = new Date().toISOString()
 
     return { message: 'Listing closed successfully', listing }
@@ -402,10 +402,10 @@ const realListingsAPI = realSupabaseClient ? {
     const { data: { user } } = await realSupabaseClient.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
-    // Update listing status to 'Closed' in database
+    // Update listing status to 'Ended' in database
     const { data, error } = await realSupabaseClient
       .from('listings')
-      .update({ listing_status: 'Closed' })
+      .update({ listing_status: 'Ended' })
       .eq('id', id)
       .eq('user_id', user.id)
       .select()
