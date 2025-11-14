@@ -283,10 +283,10 @@ const mockListingsAPI = {
     if (!listing) throw new Error('Listing not found')
 
     // In mock mode, just update the status
-    listing.listing_status = 'Ended'
+    listing.listing_status = 'Closed'
     listing.updated_at = new Date().toISOString()
 
-    return { message: 'Listing ended successfully on eBay (mock)', listing }
+    return { message: 'Listing closed successfully', listing }
   },
 
   async recordPriceReduction(listingId, newPrice, reason = 'manual') {
@@ -402,27 +402,18 @@ const realListingsAPI = realSupabaseClient ? {
     const { data: { user } } = await realSupabaseClient.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
-    // Get session token for API call
-    const { data: { session } } = await realSupabaseClient.auth.getSession()
-    if (!session) throw new Error('No active session')
+    // Update listing status to 'Closed' in database
+    const { data, error } = await realSupabaseClient
+      .from('listings')
+      .update({ listing_status: 'Closed' })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
 
-    // Call Netlify function to end listing on eBay
-    const response = await fetch('/.netlify/functions/end-listing', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ listingId: id })
-    })
+    if (error) throw error
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to end listing')
-    }
-
-    return data
+    return { message: 'Listing closed successfully', listing: data }
   },
 
   async recordPriceReduction(listingId, newPrice, reason = 'manual') {

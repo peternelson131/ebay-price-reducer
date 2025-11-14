@@ -186,11 +186,11 @@ export default function Listings() {
 
   const endListingMutation = useMutation(listingsAPI.endListing, {
     onSuccess: () => {
-      showNotification('success', 'Listing ended successfully on eBay')
+      showNotification('success', 'Listing closed successfully')
       queryClient.invalidateQueries('listings')
     },
     onError: (error) => {
-      showNotification('error', error.message || 'Failed to end listing on eBay')
+      showNotification('error', error.message || 'Failed to close listing')
     }
   })
 
@@ -306,7 +306,7 @@ export default function Listings() {
 
 
   const handleDeleteListing = (listingId) => {
-    if (window.confirm('Are you sure you want to close this listing on eBay? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to close this listing? This will mark it as closed in your local database.')) {
       endListingMutation.mutate(listingId)
     }
   }
@@ -324,7 +324,7 @@ export default function Listings() {
     }
 
     const listingType = status === 'Ended' ? 'ended' : 'sold-out'
-    const confirmMessage = `Close ${listingsToClose.length} ${listingType} listing(s)? This action cannot be undone.`
+    const confirmMessage = `Close ${listingsToClose.length} ${listingType} listing(s)? This will mark them as closed in your local database.`
     if (!window.confirm(confirmMessage)) {
       return
     }
@@ -856,7 +856,7 @@ export default function Listings() {
               <button
                 onClick={handleBulkCloseSoldOut}
                 className="bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 flex items-center gap-1 flex-shrink-0"
-                title={status === 'Ended' ? 'Close all ended listings' : 'Close all sold-out listings on eBay'}
+                title={status === 'Ended' ? 'Close all ended listings' : 'Close all sold-out listings'}
               >
                 <span>{buttonText}</span>
               </button>
@@ -1196,16 +1196,14 @@ export default function Listings() {
                   >
                     View on eBay
                   </a>
-                  {(listing.quantity_available === 0 || listing.listing_status === 'Ended') && (
-                    <button
-                      onClick={() => handleDeleteListing(listing.id)}
-                      disabled={endListingMutation.isLoading}
-                      className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
-                      title="Close this listing on eBay"
-                    >
-                      Close
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleDeleteListing(listing.id)}
+                    disabled={endListingMutation.isLoading}
+                    className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
+                    title="Close this listing"
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
             </div>
@@ -1376,16 +1374,14 @@ export default function Listings() {
                               >
                                 View
                               </a>
-                              {(listing.quantity_available === 0 || listing.listing_status === 'Ended') && (
-                                <button
-                                  onClick={() => handleDeleteListing(listing.id)}
-                                  disabled={endListingMutation.isLoading}
-                                  className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
-                                  title="Close this listing on eBay"
-                                >
-                                  Close
-                                </button>
-                              )}
+                              <button
+                                onClick={() => handleDeleteListing(listing.id)}
+                                disabled={endListingMutation.isLoading}
+                                className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
+                                title="Close this listing"
+                              >
+                                Close
+                              </button>
                             </div>
                           )
                         default:
