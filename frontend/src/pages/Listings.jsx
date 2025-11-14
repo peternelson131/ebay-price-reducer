@@ -505,7 +505,11 @@ export default function Listings() {
 
           let listingValue
           if (filter.field === 'strategy') {
-            listingValue = listing.reduction_strategy
+            // Handle "No Strategy" filter
+            if (filter.value === 'none') {
+              return !listing.strategy_id
+            }
+            listingValue = listing.strategy_id
           } else if (filter.field === 'listing_age') {
             const created = new Date(listing.created_at || new Date())
             const now = new Date()
@@ -643,7 +647,10 @@ export default function Listings() {
 
   // Filter configuration
   const filterOptions = [
-    { key: 'strategy', label: 'Strategy', type: 'select', options: strategies.map(s => ({ value: s.id, label: s.name })) },
+    { key: 'strategy', label: 'Strategy', type: 'select', options: [
+      { value: 'none', label: 'No Strategy' },
+      ...strategies.map(s => ({ value: s.id, label: s.name }))
+    ]},
     { key: 'current_price', label: 'Current Price', type: 'number' },
     { key: 'original_price', label: 'Original Price', type: 'number' },
     { key: 'quantity', label: 'Quantity', type: 'number' },
@@ -1176,7 +1183,7 @@ export default function Listings() {
                       onChange={(e) => handleStrategyUpdate(listing.id, e.target.value)}
                       className="text-sm border border-gray-300 rounded px-2 py-1 max-w-32"
                     >
-                      <option value="">Select Strategy</option>
+                      <option value="">No Strategy</option>
                       {strategies.map((strategy) => (
                         <option key={strategy.id} value={strategy.id}>
                           {strategy.name}
@@ -1348,7 +1355,7 @@ export default function Listings() {
                               onChange={(e) => handleStrategyUpdate(listing.id, e.target.value)}
                               className="text-sm border border-gray-300 rounded px-2 py-1 min-w-40"
                             >
-                              <option value="">Select Strategy</option>
+                              <option value="">No Strategy</option>
                               {strategies.map((strategy) => (
                                 <option key={strategy.id} value={strategy.id}>
                                   {strategy.name}
