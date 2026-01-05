@@ -245,7 +245,7 @@ export default function InfluencerAsinCorrelation() {
               <div className="divide-y divide-gray-200">
                 {results.correlations.map((item, index) => {
                   // Use imageUrl if available, otherwise construct from ASIN
-                  const productImage = item.imageUrl || (item.asin ? `https://ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=${item.asin}&Format=_SL250_&ID=AsinImage` : null);
+                  const productImage = item.imageUrl || (item.asin ? `https://images-na.ssl-images-amazon.com/images/P/${item.asin}.jpg` : null);
 
                   return (
                   <div key={item.asin || index} className="flex items-center gap-4 py-3 hover:bg-gray-50 transition-colors">
