@@ -10,6 +10,7 @@ const Login = lazy(() => import('./pages/Login'))
 const AutoList = lazy(() => import('./pages/AutoList'))
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
 const ListingSettings = lazy(() => import('./pages/ListingSettings'))
+const InfluencerAsinCorrelation = lazy(() => import('./pages/InfluencerAsinCorrelation'))
 
 export default function App() {
   const { user, isAuthenticated, signOut } = useAuth()
@@ -109,6 +110,16 @@ export default function App() {
                 Strategies
               </Link>
               <Link
+                to="/asin-lookup"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  location.pathname === '/asin-lookup'
+                    ? 'bg-blue-700 text-white'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-700'
+                }`}
+              >
+                ASIN Lookup
+              </Link>
+              <Link
                 to="/account"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   location.pathname === '/account'
@@ -169,7 +180,7 @@ export default function App() {
                 {/* User Welcome */}
                 {user && (
                   <div className="px-3 py-2 text-blue-100 text-sm border-b border-blue-500 mb-2">
-                    👋 {user.name || user.username || 'User'}
+                    {user.name || user.username || 'User'}
                   </div>
                 )}
 
@@ -217,6 +228,21 @@ export default function App() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                   Strategies
+                </Link>
+
+                <Link
+                  to="/asin-lookup"
+                  className={`flex items-center px-3 py-3 rounded-md text-base font-medium transition-colors ${
+                    location.pathname === '/asin-lookup'
+                      ? 'bg-blue-700 text-white'
+                      : 'text-blue-100 hover:text-white hover:bg-blue-700'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <svg className="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  ASIN Lookup
                 </Link>
 
                 <Link
@@ -273,6 +299,7 @@ export default function App() {
               <Route path="/account" element={<Account />} />
               <Route path="/listing-settings" element={<ListingSettings />} />
               <Route path="/admin-settings" element={<AdminSettings />} />
+              <Route path="/asin-lookup" element={<InfluencerAsinCorrelation />} />
             </Routes>
           </Suspense>
         </div>

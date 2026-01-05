@@ -140,6 +140,14 @@ class ApiService {
   // Removed unused methods that called deleted backend functions:
   // - runScheduledJob, importListings, reducePrice, monitorScheduledReductions
   // - getEbayAuthUrl, getEbayConnectionStatus, disconnectEbayAccount
+
+  // ASIN Correlation Analysis (n8n integration)
+  async triggerAsinCorrelation(asin) {
+    return this.request('/trigger-asin-correlation', {
+      method: 'POST',
+      body: JSON.stringify({ asin })
+    });
+  }
 }
 
 // Create and export a singleton instance
@@ -153,7 +161,8 @@ export const {
   delete: deleteMethod,
   getPriceChanges,
   getPriceReductionLogs,
-  sendNotification
+  sendNotification,
+  triggerAsinCorrelation
 } = apiService;
 
 // Export the full service as default
