@@ -10,6 +10,35 @@ const supabase = createClient(
 // n8n webhook URL from environment
 const N8N_WEBHOOK_URL = process.env.N8N_ASIN_CORRELATION_WEBHOOK_URL;
 
+// Helper function to query and format correlations from database
+async function getCorrelationsFromDB(userId, asin) {
+  const { data: correlations, error: dbError } = await supabase
+    .from('asin_correlations')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('search_asin', asin.toUpperCase())
+    .order('created_at', { ascending: false });
+
+  if (dbError) {
+    console.error('❌ Database query error:', dbError);
+    return { error: dbError, correlations: [] };
+  }
+
+  // Transform database records to frontend format
+  const formattedCorrelations = (correlations || []).map(row => ({
+    asin: row.similar_asin,
+    title: row.correlated_title,
+    imageUrl: row.image_url,
+    searchImageUrl: row.search_image_url,
+    correlationScore: row.correlation_score ? parseFloat(row.correlation_score) / 100 : null,
+    suggestedType: row.suggested_type,
+    source: row.source,
+    url: row.correlated_amazon_url
+  }));
+
+  return { error: null, correlations: formattedCorrelations };
+}
+
 exports.handler = async (event, context) => {
   const headers = getCorsHeaders(event);
 
@@ -55,9 +84,9 @@ exports.handler = async (event, context) => {
 
     console.log(`✅ User authenticated: ${user.id}`);
 
-    // 2. Parse and validate ASIN
-    const { asin } = JSON.parse(event.body);
-    console.log(`📦 Requested ASIN: ${asin}`);
+    // 2. Parse request body
+    const { asin, action = 'check' } = JSON.parse(event.body);
+    console.log(`📦 Requested ASIN: ${asin}, Action: ${action}`);
 
     if (!asin) {
       return {
@@ -78,105 +107,135 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 3. Check n8n webhook URL is configured
-    if (!N8N_WEBHOOK_URL) {
-      console.error('❌ N8N_ASIN_CORRELATION_WEBHOOK_URL not configured');
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({
-          error: 'Workflow service not configured. Please contact administrator.'
-        })
-      };
-    }
+    const normalizedAsin = asin.toUpperCase();
 
-    // 4. Call n8n webhook
-    console.log(`🚀 Calling n8n webhook for ASIN: ${asin.toUpperCase()}`);
+    // ACTION: CHECK - Just check if ASIN exists in database
+    if (action === 'check') {
+      console.log(`🔎 Checking database for ASIN: ${normalizedAsin}`);
 
-    const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        asin: asin.toUpperCase(),
-        userId: user.id,
-        userEmail: user.email,
-        timestamp: new Date().toISOString()
-      })
-    });
+      const { error, correlations } = await getCorrelationsFromDB(user.id, normalizedAsin);
 
-    // 5. Handle n8n response
-    if (!n8nResponse.ok) {
-      const errorText = await n8nResponse.text();
-      console.error('❌ n8n webhook error:', n8nResponse.status, errorText);
-      return {
-        statusCode: 502,
-        headers,
-        body: JSON.stringify({
-          error: 'Workflow service unavailable',
-          details: `Status: ${n8nResponse.status}`
-        })
-      };
-    }
+      if (error) {
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Database query failed' })
+        };
+      }
 
-    const n8nResult = await n8nResponse.json();
-    console.log(`✅ n8n workflow completed:`, {
-      hasResult: !!n8nResult,
-      resultType: typeof n8nResult
-    });
+      const exists = correlations.length > 0;
+      console.log(`📊 ASIN ${normalizedAsin} exists: ${exists}, count: ${correlations.length}`);
 
-    // 6. Query Supabase for correlations (n8n writes to database)
-    // Small delay to ensure n8n has finished writing
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const { data: correlations, error: dbError } = await supabase
-      .from('asin_correlations')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('search_asin', asin.toUpperCase())
-      .order('created_at', { ascending: false });
-
-    if (dbError) {
-      console.error('❌ Database query error:', dbError);
-      // Fall back to n8n direct response if DB query fails
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           success: true,
-          asin: asin.toUpperCase(),
-          correlations: Array.isArray(n8nResult) ? n8nResult : [],
-          source: 'n8n_direct'
+          asin: normalizedAsin,
+          exists: exists,
+          correlations: correlations,
+          count: correlations.length,
+          source: 'database'
         })
       };
     }
 
-    console.log(`📊 Found ${correlations?.length || 0} correlations in database`);
+    // ACTION: SYNC - Trigger n8n webhook then return data
+    if (action === 'sync') {
+      console.log(`🔄 Syncing ASIN: ${normalizedAsin}`);
 
-    // Transform database records to frontend format
-    const formattedCorrelations = (correlations || []).map(row => ({
-      asin: row.similar_asin,
-      title: row.correlated_title,
-      imageUrl: row.image_url,
-      searchImageUrl: row.search_image_url,
-      correlationScore: row.correlation_score ? parseFloat(row.correlation_score) / 100 : null,
-      suggestedType: row.suggested_type,
-      source: row.source,
-      url: row.correlated_amazon_url
-    }));
+      // Check n8n webhook URL is configured
+      if (!N8N_WEBHOOK_URL) {
+        console.error('❌ N8N_ASIN_CORRELATION_WEBHOOK_URL not configured');
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: 'Workflow service not configured. Please contact administrator.'
+          })
+        };
+      }
 
-    // 7. Return results from database
+      // Call n8n webhook
+      console.log(`🚀 Calling n8n webhook for ASIN: ${normalizedAsin}`);
+
+      const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          asin: normalizedAsin,
+          userId: user.id,
+          userEmail: user.email,
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      // Handle n8n response
+      if (!n8nResponse.ok) {
+        const errorText = await n8nResponse.text();
+        console.error('❌ n8n webhook error:', n8nResponse.status, errorText);
+        return {
+          statusCode: 502,
+          headers,
+          body: JSON.stringify({
+            error: 'Workflow service unavailable',
+            details: `Status: ${n8nResponse.status}`
+          })
+        };
+      }
+
+      const n8nResult = await n8nResponse.json();
+      console.log(`✅ n8n workflow completed:`, {
+        hasResult: !!n8nResult,
+        resultType: typeof n8nResult
+      });
+
+      // Small delay to ensure n8n has finished writing to database
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Query database for results
+      const { error, correlations } = await getCorrelationsFromDB(user.id, normalizedAsin);
+
+      if (error) {
+        // Fall back to n8n direct response if DB query fails
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            asin: normalizedAsin,
+            exists: true,
+            correlations: Array.isArray(n8nResult) ? n8nResult : [],
+            count: Array.isArray(n8nResult) ? n8nResult.length : 0,
+            source: 'n8n_direct'
+          })
+        };
+      }
+
+      console.log(`📊 Found ${correlations.length} correlations after sync`);
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          asin: normalizedAsin,
+          exists: true,
+          correlations: correlations,
+          count: correlations.length,
+          source: 'database',
+          synced: true
+        })
+      };
+    }
+
+    // Invalid action
     return {
-      statusCode: 200,
+      statusCode: 400,
       headers,
-      body: JSON.stringify({
-        success: true,
-        asin: asin.toUpperCase(),
-        correlations: formattedCorrelations,
-        count: formattedCorrelations.length,
-        source: 'database'
-      })
+      body: JSON.stringify({ error: 'Invalid action. Use "check" or "sync".' })
     };
 
   } catch (error) {

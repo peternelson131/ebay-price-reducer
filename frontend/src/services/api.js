@@ -142,11 +142,26 @@ class ApiService {
   // - getEbayAuthUrl, getEbayConnectionStatus, disconnectEbayAccount
 
   // ASIN Correlation Analysis (n8n integration)
-  async triggerAsinCorrelation(asin) {
+
+  // Check if ASIN exists in database
+  async checkAsinCorrelation(asin) {
     return this.request('/trigger-asin-correlation', {
       method: 'POST',
-      body: JSON.stringify({ asin })
+      body: JSON.stringify({ asin, action: 'check' })
     });
+  }
+
+  // Sync ASIN via n8n webhook
+  async syncAsinCorrelation(asin) {
+    return this.request('/trigger-asin-correlation', {
+      method: 'POST',
+      body: JSON.stringify({ asin, action: 'sync' })
+    });
+  }
+
+  // Legacy method for backwards compatibility
+  async triggerAsinCorrelation(asin) {
+    return this.checkAsinCorrelation(asin);
   }
 }
 
@@ -162,6 +177,8 @@ export const {
   getPriceChanges,
   getPriceReductionLogs,
   sendNotification,
+  checkAsinCorrelation,
+  syncAsinCorrelation,
   triggerAsinCorrelation
 } = apiService;
 

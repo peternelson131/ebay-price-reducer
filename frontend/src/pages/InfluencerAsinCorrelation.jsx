@@ -4,8 +4,11 @@ import apiService, { handleApiError } from '../services/api';
 export default function InfluencerAsinCorrelation() {
   const [asin, setAsin] = useState('');
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingAsin, setPendingAsin] = useState(null);
 
   // Validate ASIN format (client-side)
   const isValidAsin = (value) => {
@@ -28,14 +31,63 @@ export default function InfluencerAsinCorrelation() {
     setLoading(true);
     setError(null);
     setResults(null);
+    setShowConfirmDialog(false);
 
     try {
-      const data = await apiService.triggerAsinCorrelation(asin.toUpperCase());
-      setResults(data);
+      // First, check if ASIN exists in database
+      const data = await apiService.checkAsinCorrelation(asin.toUpperCase());
+
+      if (data.exists && data.correlations && data.correlations.length > 0) {
+        // ASIN exists - display the data
+        setResults(data);
+      } else {
+        // ASIN not found - show confirmation dialog
+        setPendingAsin(asin.toUpperCase());
+        setShowConfirmDialog(true);
+      }
     } catch (err) {
-      setError(handleApiError(err, 'Failed to analyze ASIN'));
+      setError(handleApiError(err, 'Failed to check ASIN'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmSync = async () => {
+    if (!pendingAsin) return;
+
+    setShowConfirmDialog(false);
+    setSyncing(true);
+    setError(null);
+
+    try {
+      const data = await apiService.syncAsinCorrelation(pendingAsin);
+      setResults(data);
+    } catch (err) {
+      setError(handleApiError(err, 'Failed to sync ASIN'));
+    } finally {
+      setSyncing(false);
+      setPendingAsin(null);
+    }
+  };
+
+  const handleCancelSync = () => {
+    setShowConfirmDialog(false);
+    setPendingAsin(null);
+  };
+
+  const handleResync = async () => {
+    if (!results?.asin) return;
+
+    setSyncing(true);
+    setError(null);
+
+    try {
+      const data = await apiService.syncAsinCorrelation(results.asin);
+      setResults(data);
+    } catch (err) {
+      setError(handleApiError(err, 'Failed to re-sync ASIN'));
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -43,6 +95,8 @@ export default function InfluencerAsinCorrelation() {
     setAsin('');
     setResults(null);
     setError(null);
+    setShowConfirmDialog(false);
+    setPendingAsin(null);
   };
 
   return (
@@ -71,11 +125,11 @@ export default function InfluencerAsinCorrelation() {
                 placeholder="e.g., B07XJ8C8F5"
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 maxLength={10}
-                disabled={loading}
+                disabled={loading || syncing}
               />
               <button
                 type="submit"
-                disabled={loading || !asin.trim()}
+                disabled={loading || syncing || !asin.trim()}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? (
@@ -84,7 +138,7 @@ export default function InfluencerAsinCorrelation() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Searching...
+                    Checking...
                   </span>
                 ) : (
                   'Search'
@@ -94,7 +148,8 @@ export default function InfluencerAsinCorrelation() {
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={loading || syncing}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
                   Clear
                 </button>
@@ -106,6 +161,37 @@ export default function InfluencerAsinCorrelation() {
           </div>
         </form>
       </div>
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
+            <div className="flex items-center mb-4">
+              <svg className="w-6 h-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="text-lg font-semibold text-gray-900">ASIN Not Found</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              The ASIN <span className="font-mono font-semibold text-blue-600">{pendingAsin}</span> was not found in our database. Would you like to sync this ASIN?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleCancelSync}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                No
+              </button>
+              <button
+                onClick={handleConfirmSync}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Yes, Sync ASIN
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error Display */}
       {error && (
@@ -119,30 +205,42 @@ export default function InfluencerAsinCorrelation() {
         </div>
       )}
 
-      {/* Loading State */}
-      {loading && (
+      {/* Syncing State */}
+      {syncing && (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Analyzing ASIN and finding correlations...</p>
+          <p className="mt-4 text-gray-600">Syncing ASIN and finding correlations...</p>
           <p className="mt-1 text-sm text-gray-500">This may take a few moments</p>
         </div>
       )}
 
       {/* Results Display */}
-      {results && !loading && (
+      {results && !loading && !syncing && (
         <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-lg font-semibold">
-              Results for ASIN: <span className="text-blue-600">{results.asin}</span>
-            </h2>
-            {results.correlations && Array.isArray(results.correlations) && (
-              <span className="text-sm text-gray-500">
-                {results.correlations.length} result{results.correlations.length !== 1 ? 's' : ''} found
-              </span>
-            )}
+          <div className="px-6 py-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">
+                Results for ASIN: <span className="text-blue-600">{results.asin}</span>
+              </h2>
+              {results.correlations && Array.isArray(results.correlations) && (
+                <span className="text-sm text-gray-500">
+                  {results.correlations.length} result{results.correlations.length !== 1 ? 's' : ''} found
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleResync}
+              disabled={syncing}
+              className="px-4 py-2 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Re-sync
+            </button>
           </div>
           <div className="p-6">
-            {/* Render correlation results - structure depends on n8n response */}
+            {/* Render correlation results */}
             {results.correlations && Array.isArray(results.correlations) && results.correlations.length > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {results.correlations.map((item, index) => (
@@ -160,25 +258,17 @@ export default function InfluencerAsinCorrelation() {
                     <h3 className="font-medium text-sm line-clamp-2 min-h-[2.5rem]">
                       {item.title || 'Untitled Product'}
                     </h3>
-                    {item.price !== undefined && item.price !== null && (
-                      <p className="text-green-600 font-bold mt-2">
-                        ${typeof item.price === 'number' ? item.price.toFixed(2) : item.price}
-                      </p>
-                    )}
                     {item.asin && (
                       <p className="text-xs text-gray-500 mt-1">ASIN: {item.asin}</p>
                     )}
-                    {item.category && (
-                      <p className="text-xs text-gray-500 mt-1 truncate" title={item.category}>
-                        {item.category}
-                      </p>
-                    )}
-                    {item.correlationScore !== undefined && (
-                      <div className="mt-2">
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {Math.round(item.correlationScore * 100)}% match
-                        </span>
-                      </div>
+                    {item.suggestedType && (
+                      <span className={`inline-block mt-2 text-xs px-2 py-1 rounded ${
+                        item.suggestedType === 'variation'
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {item.suggestedType}
+                      </span>
                     )}
                     {item.url && (
                       <a
@@ -193,21 +283,13 @@ export default function InfluencerAsinCorrelation() {
                   </div>
                 ))}
               </div>
-            ) : results.correlations && typeof results.correlations === 'object' && !Array.isArray(results.correlations) ? (
-              // Handle case where n8n returns an object instead of array
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-medium mb-2">Correlation Data</h3>
-                <pre className="text-sm text-gray-700 overflow-auto max-h-96">
-                  {JSON.stringify(results.correlations, null, 2)}
-                </pre>
-              </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p>No correlations found for this ASIN</p>
-                <p className="text-sm mt-1">Try a different product ASIN</p>
+                <p className="text-sm mt-1">Try syncing to fetch the latest data</p>
               </div>
             )}
           </div>
@@ -215,7 +297,7 @@ export default function InfluencerAsinCorrelation() {
       )}
 
       {/* Empty State - Before Search */}
-      {!results && !loading && !error && (
+      {!results && !loading && !syncing && !error && !showConfirmDialog && (
         <div className="bg-gray-50 rounded-lg p-8 text-center">
           <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
