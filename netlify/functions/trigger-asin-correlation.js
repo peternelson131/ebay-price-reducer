@@ -120,21 +120,61 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const correlationData = await n8nResponse.json();
-    console.log(`✅ n8n response received:`, {
-      hasData: !!correlationData,
-      isArray: Array.isArray(correlationData),
-      count: Array.isArray(correlationData) ? correlationData.length : 'N/A'
+    const n8nResult = await n8nResponse.json();
+    console.log(`✅ n8n workflow completed:`, {
+      hasResult: !!n8nResult,
+      resultType: typeof n8nResult
     });
 
-    // 6. Return results
+    // 6. Query Supabase for correlations (n8n writes to database)
+    // Small delay to ensure n8n has finished writing
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const { data: correlations, error: dbError } = await supabase
+      .from('asin_correlations')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('search_asin', asin.toUpperCase())
+      .order('created_at', { ascending: false });
+
+    if (dbError) {
+      console.error('❌ Database query error:', dbError);
+      // Fall back to n8n direct response if DB query fails
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          asin: asin.toUpperCase(),
+          correlations: Array.isArray(n8nResult) ? n8nResult : [],
+          source: 'n8n_direct'
+        })
+      };
+    }
+
+    console.log(`📊 Found ${correlations?.length || 0} correlations in database`);
+
+    // Transform database records to frontend format
+    const formattedCorrelations = (correlations || []).map(row => ({
+      asin: row.similar_asin,
+      title: row.title,
+      price: row.price ? parseFloat(row.price) : null,
+      imageUrl: row.image_url,
+      correlationScore: row.correlation_score ? parseFloat(row.correlation_score) / 100 : null,
+      suggestedType: row.suggested_type,
+      source: row.source
+    }));
+
+    // 7. Return results from database
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
         asin: asin.toUpperCase(),
-        correlations: correlationData
+        correlations: formattedCorrelations,
+        count: formattedCorrelations.length,
+        source: 'database'
       })
     };
 
