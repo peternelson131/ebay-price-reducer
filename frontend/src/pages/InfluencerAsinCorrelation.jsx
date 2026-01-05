@@ -49,7 +49,7 @@ export default function InfluencerAsinCorrelation() {
     <div className="p-4 sm:p-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Influencer ASIN Correlation</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Influencer Central</h1>
         <p className="text-gray-600 mt-1">
           Search for an Amazon ASIN to find similar and correlated products
         </p>
