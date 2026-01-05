@@ -240,46 +240,61 @@ export default function InfluencerAsinCorrelation() {
             </button>
           </div>
           <div className="p-6">
-            {/* Render correlation results */}
+            {/* Render correlation results as list */}
             {results.correlations && Array.isArray(results.correlations) && results.correlations.length > 0 ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="divide-y divide-gray-200">
                 {results.correlations.map((item, index) => (
-                  <div key={item.asin || index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    {item.imageUrl && (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title || 'Product'}
-                        className="w-full h-32 object-contain mb-3 bg-gray-50 rounded"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    )}
-                    <h3 className="font-medium text-sm line-clamp-2 min-h-[2.5rem]">
-                      {item.title || 'Untitled Product'}
-                    </h3>
-                    {item.asin && (
-                      <p className="text-xs text-gray-500 mt-1">ASIN: {item.asin}</p>
-                    )}
-                    {item.suggestedType && (
-                      <span className={`inline-block mt-2 text-xs px-2 py-1 rounded ${
-                        item.suggestedType === 'variation'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {item.suggestedType}
-                      </span>
-                    )}
-                    {item.url && (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 text-xs text-blue-600 hover:underline inline-block"
-                      >
-                        View on Amazon
-                      </a>
-                    )}
+                  <div key={item.asin || index} className="flex items-center gap-4 py-3 hover:bg-gray-50 transition-colors">
+                    {/* Image */}
+                    <div className="flex-shrink-0 w-16 h-16">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title || 'Product'}
+                          className="w-16 h-16 object-contain bg-gray-50 rounded"
+                          onError={(e) => {
+                            e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
+                          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Title */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {item.title || 'Untitled Product'}
+                      </p>
+                      {item.suggestedType && (
+                        <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded ${
+                          item.suggestedType === 'variation'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {item.suggestedType}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* ASIN */}
+                    <div className="flex-shrink-0 text-right">
+                      <p className="text-sm font-mono text-gray-600">{item.asin || 'N/A'}</p>
+                      {item.url && (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          View
+                        </a>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
