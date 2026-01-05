@@ -158,8 +158,8 @@ exports.handler = async (event, context) => {
     const formattedCorrelations = (correlations || []).map(row => ({
       asin: row.similar_asin,
       title: row.title,
-      price: row.price ? parseFloat(row.price) : null,
       imageUrl: row.image_url,
+      searchImageUrl: row.search_image_url,
       correlationScore: row.correlation_score ? parseFloat(row.correlation_score) / 100 : null,
       suggestedType: row.suggested_type,
       source: row.source,
