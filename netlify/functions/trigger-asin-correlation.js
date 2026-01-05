@@ -162,7 +162,8 @@ exports.handler = async (event, context) => {
       imageUrl: row.image_url,
       correlationScore: row.correlation_score ? parseFloat(row.correlation_score) / 100 : null,
       suggestedType: row.suggested_type,
-      source: row.source
+      source: row.source,
+      url: row.correlated_amazon_url
     }));
 
     // 7. Return results from database
