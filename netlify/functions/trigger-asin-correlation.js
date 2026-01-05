@@ -157,7 +157,7 @@ exports.handler = async (event, context) => {
     // Transform database records to frontend format
     const formattedCorrelations = (correlations || []).map(row => ({
       asin: row.similar_asin,
-      title: row.title,
+      title: row.correlated_title,
       imageUrl: row.image_url,
       searchImageUrl: row.search_image_url,
       correlationScore: row.correlation_score ? parseFloat(row.correlation_score) / 100 : null,
