@@ -12,10 +12,11 @@ const N8N_WEBHOOK_URL = process.env.N8N_ASIN_CORRELATION_WEBHOOK_URL;
 
 // Helper function to query and format correlations from database
 async function getCorrelationsFromDB(userId, asin) {
+  // Note: user_id filter removed since n8n uses hardcoded user_id
+  // All users see the same correlation data
   const { data: correlations, error: dbError } = await supabase
     .from('asin_correlations')
     .select('*')
-    .eq('user_id', userId)
     .eq('search_asin', asin.toUpperCase())
     .order('created_at', { ascending: false });
 
