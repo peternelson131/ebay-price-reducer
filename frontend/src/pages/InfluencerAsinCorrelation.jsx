@@ -243,13 +243,17 @@ export default function InfluencerAsinCorrelation() {
             {/* Render correlation results as list */}
             {results.correlations && Array.isArray(results.correlations) && results.correlations.length > 0 ? (
               <div className="divide-y divide-gray-200">
-                {results.correlations.map((item, index) => (
+                {results.correlations.map((item, index) => {
+                  // Use imageUrl if available, otherwise construct from ASIN
+                  const productImage = item.imageUrl || (item.asin ? `https://ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=${item.asin}&Format=_SL250_&ID=AsinImage` : null);
+
+                  return (
                   <div key={item.asin || index} className="flex items-center gap-4 py-3 hover:bg-gray-50 transition-colors">
                     {/* Image */}
                     <div className="flex-shrink-0 w-16 h-16">
-                      {item.imageUrl ? (
+                      {productImage ? (
                         <img
-                          src={item.imageUrl}
+                          src={productImage}
                           alt={item.title || 'Product'}
                           className="w-16 h-16 object-contain bg-gray-50 rounded"
                           onError={(e) => {
@@ -296,7 +300,8 @@ export default function InfluencerAsinCorrelation() {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
