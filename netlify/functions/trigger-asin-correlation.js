@@ -14,8 +14,10 @@ function getSupabase() {
   return supabase;
 }
 
-// n8n webhook URL from environment
-const N8N_WEBHOOK_URL = process.env.N8N_ASIN_CORRELATION_WEBHOOK_URL;
+// n8n webhook URL - read at runtime, not module load
+function getN8nWebhookUrl() {
+  return process.env.N8N_ASIN_CORRELATION_WEBHOOK_URL;
+}
 
 // Helper function to query and format correlations from database
 async function getCorrelationsFromDB(userId, asin) {
@@ -49,6 +51,13 @@ async function getCorrelationsFromDB(userId, asin) {
 
 exports.handler = async (event, context) => {
   const headers = getCorsHeaders(event);
+
+  // Debug: Log available env vars (remove in production)
+  console.log('ENV DEBUG:', {
+    N8N_URL: process.env.N8N_ASIN_CORRELATION_WEBHOOK_URL ? 'SET' : 'NOT SET',
+    SUPABASE_URL: process.env.SUPABASE_URL ? 'SET' : 'NOT SET',
+    NODE_ENV: process.env.NODE_ENV
+  });
 
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
@@ -153,7 +162,10 @@ exports.handler = async (event, context) => {
       console.log(`🔄 Syncing ASIN: ${normalizedAsin}`);
 
       // Check n8n webhook URL is configured
-      if (!N8N_WEBHOOK_URL) {
+      const webhookUrl = getN8nWebhookUrl();
+      console.log(`🔗 Webhook URL: ${webhookUrl ? webhookUrl.substring(0, 30) + '...' : 'NOT SET'}`);
+
+      if (!webhookUrl) {
         console.error('❌ N8N_ASIN_CORRELATION_WEBHOOK_URL not configured');
         return {
           statusCode: 500,
@@ -167,7 +179,7 @@ exports.handler = async (event, context) => {
       // Call n8n webhook
       console.log(`🚀 Calling n8n webhook for ASIN: ${normalizedAsin}`);
 
-      const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
+      const n8nResponse = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
