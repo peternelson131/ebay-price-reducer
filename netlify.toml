@@ -18,6 +18,9 @@
 [build.environment]
   NODE_VERSION = "20"
 
+[context.production.environment]
+  N8N_ASIN_CORRELATION_WEBHOOK_URL = "https://pcn13.app.n8n.cloud/webhook/influencer-asin-lookup"
+
 [[headers]]
   for = "/*"
   [headers.values]
