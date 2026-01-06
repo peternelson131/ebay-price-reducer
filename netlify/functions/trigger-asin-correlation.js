@@ -2,10 +2,17 @@ const fetch = require('node-fetch');
 const { getCorsHeaders } = require('./utils/cors');
 const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Lazy-init Supabase client
+let supabase = null;
+function getSupabase() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+  }
+  return supabase;
+}
 
 // n8n webhook URL from environment
 const N8N_WEBHOOK_URL = process.env.N8N_ASIN_CORRELATION_WEBHOOK_URL;
@@ -14,7 +21,7 @@ const N8N_WEBHOOK_URL = process.env.N8N_ASIN_CORRELATION_WEBHOOK_URL;
 async function getCorrelationsFromDB(userId, asin) {
   // Note: user_id filter removed since n8n uses hardcoded user_id
   // All users see the same correlation data
-  const { data: correlations, error: dbError } = await supabase
+  const { data: correlations, error: dbError } = await getSupabase()
     .from('asin_correlations')
     .select('*')
     .eq('search_asin', asin.toUpperCase())
@@ -72,7 +79,7 @@ exports.handler = async (event, context) => {
     }
 
     const token = authHeader.substring(7);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       console.log('❌ Auth error:', authError);
