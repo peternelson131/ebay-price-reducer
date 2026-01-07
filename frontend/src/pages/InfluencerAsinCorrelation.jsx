@@ -244,8 +244,8 @@ export default function InfluencerAsinCorrelation() {
             {results.correlations && Array.isArray(results.correlations) && results.correlations.length > 0 ? (
               <div className="divide-y divide-gray-200">
                 {results.correlations.map((item, index) => {
-                  // Use searchImageUrl (the primary product's image)
-                  const productImage = item.searchImageUrl || null;
+                  // Use correlated_amazon_url (the correlated product's image)
+                  const productImage = item.correlated_amazon_url || null;
 
                   return (
                   <div key={item.asin || index} className="flex items-center gap-4 py-3 hover:bg-gray-50 transition-colors">
