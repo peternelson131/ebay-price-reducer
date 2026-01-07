@@ -243,9 +243,16 @@ export default function InfluencerAsinCorrelation() {
             {/* Render correlation results as list */}
             {results.correlations && Array.isArray(results.correlations) && results.correlations.length > 0 ? (
               <div className="divide-y divide-gray-200">
-                {results.correlations.map((item, index) => {
-                  // Use correlated_amazon_url (the correlated product's image)
-                  const productImage = item.correlated_amazon_url || null;
+                {/* Sort: variations first, then similar ASINs */}
+                {[...results.correlations]
+                  .sort((a, b) => {
+                    if (a.suggestedType === 'variation' && b.suggestedType !== 'variation') return -1;
+                    if (a.suggestedType !== 'variation' && b.suggestedType === 'variation') return 1;
+                    return 0;
+                  })
+                  .map((item, index) => {
+                  // Use imageUrl for the product image
+                  const productImage = item.imageUrl || item.searchImageUrl || null;
 
                   return (
                   <div key={item.asin || index} className="flex items-center gap-4 py-3 hover:bg-gray-50 transition-colors">
