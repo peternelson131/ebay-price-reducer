@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import apiService, { handleApiError } from '../services/api';
 
 export default function InfluencerAsinCorrelation() {
   const [asin, setAsin] = useState('');
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState('');
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingAsin, setPendingAsin] = useState(null);
+  const pollingRef = useRef(null);
+  const pollCountRef = useRef(0);
 
   // Validate ASIN format (client-side)
   const isValidAsin = (value) => {
@@ -52,20 +55,78 @@ export default function InfluencerAsinCorrelation() {
     }
   };
 
+  // Stop any active polling
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+    pollCountRef.current = 0;
+  }, []);
+
+  // Poll for results after triggering sync
+  const startPolling = useCallback((targetAsin) => {
+    stopPolling();
+    pollCountRef.current = 0;
+    const maxPolls = 24; // 2 minutes max (24 * 5 seconds)
+
+    pollingRef.current = setInterval(async () => {
+      pollCountRef.current++;
+      const elapsed = pollCountRef.current * 5;
+      setSyncProgress(`Checking for results... (${elapsed}s)`);
+
+      try {
+        const data = await apiService.checkAsinCorrelation(targetAsin);
+
+        if (data.exists && data.correlations && data.correlations.length > 0) {
+          // Results found!
+          stopPolling();
+          setResults(data);
+          setSyncing(false);
+          setSyncProgress('');
+        } else if (pollCountRef.current >= maxPolls) {
+          // Timeout - stop polling
+          stopPolling();
+          setSyncing(false);
+          setSyncProgress('');
+          setError('Sync is taking longer than expected. Please try searching again in a minute.');
+        }
+      } catch (err) {
+        // Don't stop on errors, just log and continue polling
+        console.error('Polling error:', err);
+        if (pollCountRef.current >= maxPolls) {
+          stopPolling();
+          setSyncing(false);
+          setSyncProgress('');
+          setError('Failed to check sync status. Please try again.');
+        }
+      }
+    }, 5000);
+  }, [stopPolling]);
+
   const handleConfirmSync = async () => {
     if (!pendingAsin) return;
 
     setShowConfirmDialog(false);
     setSyncing(true);
     setError(null);
+    setSyncProgress('Starting sync...');
 
     try {
-      const data = await apiService.syncAsinCorrelation(pendingAsin);
-      setResults(data);
+      // Fire off sync request - don't wait for it to complete
+      apiService.syncAsinCorrelation(pendingAsin).catch(err => {
+        // Log but don't fail - the workflow may timeout but still complete
+        console.log('Sync request completed or timed out:', err?.message || 'ok');
+      });
+
+      // Start polling for results
+      setSyncProgress('Sync started. Checking for results...');
+      startPolling(pendingAsin);
     } catch (err) {
-      setError(handleApiError(err, 'Failed to sync ASIN'));
-    } finally {
+      setError(handleApiError(err, 'Failed to start sync'));
       setSyncing(false);
+      setSyncProgress('');
+    } finally {
       setPendingAsin(null);
     }
   };
@@ -73,6 +134,7 @@ export default function InfluencerAsinCorrelation() {
   const handleCancelSync = () => {
     setShowConfirmDialog(false);
     setPendingAsin(null);
+    stopPolling();
   };
 
   const handleResync = async () => {
@@ -80,14 +142,23 @@ export default function InfluencerAsinCorrelation() {
 
     setSyncing(true);
     setError(null);
+    setSyncProgress('Starting re-sync...');
 
     try {
-      const data = await apiService.syncAsinCorrelation(results.asin);
-      setResults(data);
+      const targetAsin = results.asin;
+
+      // Fire off sync request - don't wait for it to complete
+      apiService.syncAsinCorrelation(targetAsin).catch(err => {
+        console.log('Re-sync request completed or timed out:', err?.message || 'ok');
+      });
+
+      // Start polling for results
+      setSyncProgress('Re-sync started. Checking for results...');
+      startPolling(targetAsin);
     } catch (err) {
-      setError(handleApiError(err, 'Failed to re-sync ASIN'));
-    } finally {
+      setError(handleApiError(err, 'Failed to start re-sync'));
       setSyncing(false);
+      setSyncProgress('');
     }
   };
 
@@ -97,6 +168,8 @@ export default function InfluencerAsinCorrelation() {
     setError(null);
     setShowConfirmDialog(false);
     setPendingAsin(null);
+    setSyncProgress('');
+    stopPolling();
   };
 
   return (
@@ -210,7 +283,14 @@ export default function InfluencerAsinCorrelation() {
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Syncing ASIN and finding correlations...</p>
-          <p className="mt-1 text-sm text-gray-500">This may take a few moments</p>
+          <p className="mt-2 text-sm text-blue-600 font-medium">{syncProgress}</p>
+          <p className="mt-1 text-xs text-gray-500">The workflow is running in the background. Results will appear automatically.</p>
+          <button
+            onClick={() => { stopPolling(); setSyncing(false); setSyncProgress(''); }}
+            className="mt-4 px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
         </div>
       )}
 
