@@ -252,7 +252,7 @@ export default function InfluencerAsinCorrelation() {
                   })
                   .map((item, index) => {
                   // Use imageUrl for the product image
-                  const productImage = item.imageUrl || item.searchImageUrl || null;
+                  const productImage = item.imageUrl || null;
 
                   return (
                   <div key={item.asin || index} className="flex items-center gap-4 py-3 hover:bg-gray-50 transition-colors">
