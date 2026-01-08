@@ -10,6 +10,7 @@
 
 const { getCorsHeaders } = require('./utils/cors');
 const { createClient } = require('@supabase/supabase-js');
+const axios = require('axios');
 
 let supabase = null;
 
@@ -90,31 +91,27 @@ async function keepaProductLookup(asins, keepaKey) {
   
   console.log(`📦 Keepa lookup: ${asinString.substring(0, 30)}...`);
   
-  const response = await fetch(url, {
-    headers: {
-      'Accept-Encoding': 'gzip, deflate'
+  try {
+    const response = await axios.get(url, {
+      decompress: true,  // auto-decompress gzip
+      timeout: 30000
+    });
+    
+    const data = response.data;
+    
+    // Check for Keepa-specific errors
+    if (data.error) {
+      throw new Error(`Keepa error: ${data.error.message || JSON.stringify(data.error)}`);
     }
-  });
-  
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Keepa API error: ${response.status} - ${text}`);
+    
+    console.log(`✅ Keepa returned ${data.products?.length || 0} products`);
+    return data.products || [];
+  } catch (error) {
+    if (error.response) {
+      throw new Error(`Keepa API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+    }
+    throw error;
   }
-  
-  const data = await response.json();
-  
-  // Check for Keepa-specific errors
-  if (data.error) {
-    throw new Error(`Keepa error: ${data.error.message || JSON.stringify(data.error)}`);
-  }
-  
-  console.log(`✅ Keepa returned ${data.products?.length || 0} products`);
-  
-  if (data.error) {
-    throw new Error(`Keepa error: ${JSON.stringify(data.error)}`);
-  }
-  
-  return data.products || [];
 }
 
 async function keepaProductSearch(title, keepaKey) {
@@ -127,13 +124,23 @@ async function keepaProductSearch(title, keepaKey) {
   
   const url = `https://api.keepa.com/query?key=${keepaKey}&domain=1&type=product&term=${encodeURIComponent(keywords)}`;
   
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Keepa search error: ${response.status}`);
-  }
+  console.log(`🔍 Keepa search: "${keywords}"`);
   
-  const data = await response.json();
-  return data.asinList || [];
+  try {
+    const response = await axios.get(url, {
+      decompress: true,
+      timeout: 30000
+    });
+    
+    const data = response.data;
+    console.log(`✅ Keepa search returned ${data.asinList?.length || 0} ASINs`);
+    return data.asinList || [];
+  } catch (error) {
+    if (error.response) {
+      throw new Error(`Keepa search error: ${error.response.status}`);
+    }
+    throw error;
+  }
 }
 
 // ==================== HELPERS ====================
