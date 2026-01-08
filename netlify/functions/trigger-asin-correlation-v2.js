@@ -193,11 +193,12 @@ Answer with ONLY: YES or NO`;
 
 // ==================== DATABASE ====================
 
-async function getCorrelationsFromDB(asin) {
+async function getCorrelationsFromDB(asin, userId) {
   const { data: correlations, error: dbError } = await getSupabase()
     .from('asin_correlations')
     .select('*')
     .eq('search_asin', asin.toUpperCase())
+    .eq('user_id', userId)  // IMPORTANT: Only return this user's data
     .order('created_at', { ascending: false });
 
   if (dbError) {
@@ -400,7 +401,7 @@ exports.handler = async (event, context) => {
     
     // ACTION: CHECK
     if (action === 'check') {
-      const { error, correlations } = await getCorrelationsFromDB(normalizedAsin);
+      const { error, correlations } = await getCorrelationsFromDB(normalizedAsin, user.id);
       
       if (error) {
         return { statusCode: 500, headers, body: JSON.stringify({ error: 'Database error' }) };
@@ -469,7 +470,7 @@ exports.handler = async (event, context) => {
       }
       
       // Fetch final results from DB
-      const { correlations } = await getCorrelationsFromDB(normalizedAsin);
+      const { correlations } = await getCorrelationsFromDB(normalizedAsin, user.id);
       
       return {
         statusCode: 200,
