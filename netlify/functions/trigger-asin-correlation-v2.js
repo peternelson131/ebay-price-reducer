@@ -288,47 +288,10 @@ async function processAsin(asin, userId, keepaKey) {
     }));
   }
   
-  // 3. Search for similar products
-  console.log('🔍 Searching for similar products...');
-  const similarAsins = await keepaProductSearch(primaryData.title, keepaKey);
-  
-  const excludeSet = new Set([asin, ...variationAsins]);
-  const candidateAsins = similarAsins
-    .filter(a => !excludeSet.has(a))
-    .slice(0, 5);  // Limit to 5 for speed
-  
-  // 4. AI evaluate candidates (parallel)
+  // 3. Similar product search - disabled for now (Keepa query API needs different format)
+  // TODO: Implement proper Keepa selection query JSON format
   let similarProducts = [];
-  if (candidateAsins.length > 0) {
-    const candidateProducts = await keepaProductLookup(candidateAsins, keepaKey);
-    
-    console.log(`🤖 AI evaluating ${candidateProducts.length} candidates...`);
-    
-    // Prepare candidates
-    const candidatesData = candidateProducts.map(candidate => ({
-      asin: candidate.asin,
-      title: candidate.title || 'Unknown',
-      brand: candidate.brand || 'Unknown',
-      image: getImageUrl(candidate),
-      url: getAmazonUrl(candidate.asin)
-    }));
-    
-    // Parallel AI evaluation
-    const results = await Promise.all(
-      candidatesData.map(async (candidateData) => {
-        try {
-          const isApproved = await evaluateSimilarity(primaryData, candidateData);
-          return isApproved ? { ...candidateData, type: 'similar' } : null;
-        } catch (e) {
-          console.error(`AI eval failed for ${candidateData.asin}:`, e.message);
-          return null;
-        }
-      })
-    );
-    
-    similarProducts = results.filter(Boolean);
-    console.log(`✅ ${similarProducts.length}/${candidatesData.length} candidates approved`);
-  }
+  console.log(`📦 Found ${variations.length} variations, skipping similar search for now`);
   
   
   // 5. Combine and write to DB
