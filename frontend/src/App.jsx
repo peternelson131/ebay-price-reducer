@@ -11,6 +11,7 @@ const AutoList = lazy(() => import('./pages/AutoList'))
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
 const ListingSettings = lazy(() => import('./pages/ListingSettings'))
 const InfluencerAsinCorrelation = lazy(() => import('./pages/InfluencerAsinCorrelation'))
+const ApiKeys = lazy(() => import('./pages/ApiKeys'))
 
 export default function App() {
   const { user, isAuthenticated, signOut } = useAuth()
@@ -128,6 +129,16 @@ export default function App() {
                 }`}
               >
                 Account
+              </Link>
+              <Link
+                to="/api-keys"
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  location.pathname === '/api-keys'
+                    ? 'bg-blue-700 text-white'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-700'
+                }`}
+              >
+                API Keys
               </Link>
               <button
                 onClick={handleLogout}
@@ -300,6 +311,7 @@ export default function App() {
               <Route path="/listing-settings" element={<ListingSettings />} />
               <Route path="/admin-settings" element={<AdminSettings />} />
               <Route path="/asin-lookup" element={<InfluencerAsinCorrelation />} />
+              <Route path="/api-keys" element={<ApiKeys />} />
             </Routes>
           </Suspense>
         </div>

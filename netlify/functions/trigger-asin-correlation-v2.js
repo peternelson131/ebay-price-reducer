@@ -23,6 +23,40 @@ function getSupabase() {
   return supabase;
 }
 
+// Get user's API key from database
+async function getUserApiKey(userId, service) {
+  const { data, error } = await getSupabase()
+    .from('user_api_keys')
+    .select('api_key_encrypted')
+    .eq('user_id', userId)
+    .eq('service', service)
+    .single();
+  
+  if (error || !data) {
+    return null;
+  }
+  
+  // In production, decrypt the key here
+  return data.api_key_encrypted;
+}
+
+// Track API usage
+async function trackUsage(userId, service, action, tokensUsed = 0, costCents = 0) {
+  try {
+    await getSupabase()
+      .from('api_usage')
+      .insert({
+        user_id: userId,
+        service,
+        action,
+        tokens_used: tokensUsed,
+        cost_cents: costCents
+      });
+  } catch (e) {
+    console.error('Failed to track usage:', e);
+  }
+}
+
 // Direct Anthropic API call (no SDK needed)
 async function callClaude(prompt) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -350,8 +384,18 @@ exports.handler = async (event, context) => {
     
     // ACTION: SYNC
     if (action === 'sync') {
-      // Get Keepa key (user-provided or env fallback)
-      const apiKey = keepaKey || process.env.KEEPA_API_KEY;
+      // Get Keepa key: request body > user's stored key > env fallback
+      let apiKey = keepaKey;
+      
+      if (!apiKey) {
+        // Try to get from user's stored keys
+        apiKey = await getUserApiKey(user.id, 'keepa');
+      }
+      
+      if (!apiKey) {
+        // Fall back to env (admin's key)
+        apiKey = process.env.KEEPA_API_KEY;
+      }
       
       if (!apiKey) {
         return {
@@ -359,7 +403,7 @@ exports.handler = async (event, context) => {
           headers,
           body: JSON.stringify({ 
             error: 'Keepa API key required',
-            message: 'Please provide your Keepa API key in account settings'
+            message: 'Please add your Keepa API key in Settings > API Keys'
           })
         };
       }
