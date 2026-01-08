@@ -238,7 +238,7 @@ async function writeCorrelationsToDB(asin, primaryData, correlations, userId) {
   const { error } = await getSupabase()
     .from('asin_correlations')
     .upsert(records, { 
-      onConflict: 'search_asin,similar_asin',
+      onConflict: 'user_id,search_asin,similar_asin',
       ignoreDuplicates: false 
     });
   
