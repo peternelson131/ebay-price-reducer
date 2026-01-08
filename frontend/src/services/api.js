@@ -145,7 +145,7 @@ class ApiService {
 
   // Check if ASIN exists in database
   async checkAsinCorrelation(asin) {
-    return this.request('/trigger-asin-correlation-v2', {
+    return this.request('/trigger-asin-correlation', {
       method: 'POST',
       body: JSON.stringify({ asin, action: 'check' })
     });
@@ -153,7 +153,7 @@ class ApiService {
 
   // Sync ASIN via n8n webhook
   async syncAsinCorrelation(asin) {
-    return this.request('/trigger-asin-correlation-v2', {
+    return this.request('/trigger-asin-correlation', {
       method: 'POST',
       body: JSON.stringify({ asin, action: 'sync' })
     });
