@@ -1,0 +1,948 @@
+{
+  "name": "ASIN Similar Products - Webhook Version",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "asin-correlation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        8992,
+        -224
+      ],
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "webhookId": "asin-correlation"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Processing started', asin: $json.body.asin }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        9232,
+        -400
+      ],
+      "id": "respond-immediately",
+      "name": "Respond Immediately"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "767d84d9-d8e4-4a4a-861b-ffce2db7fc86",
+              "name": "asin",
+              "value": "={{ $json.body.asin }}",
+              "type": "string"
+            },
+            {
+              "id": "user-id-field",
+              "name": "userId",
+              "value": "={{ $json.body.userId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        9456,
+        -224
+      ],
+      "id": "347b2f83-4946-43cf-b9ce-3cf740b4c48e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const product = $input.first().json.products[0];\nconst variations = product.variations || [];\nconst primaryAsin = product.asin;\n\nconst getImageUrl = (prod) => {\n  if (!prod || !prod.images || !prod.images[0]) return '';\n  const img = prod.images[0].l || prod.images[0].m || '';\n  return img ? `https://m.media-amazon.com/images/I/${img}` : '';\n};\n\n// Get variation ASINs (excluding primary)\nconst variationAsins = variations\n  .map(v => v.asin)\n  .filter(asin => asin !== primaryAsin);\n\nreturn [{\n  json: {\n    primaryAsin,\n    primaryTitle: product.title || '',\n    primaryBrand: product.brand || '',\n    primaryImage: getImageUrl(product),\n    primaryUrl: `https://www.amazon.com/dp/${primaryAsin}`,\n    rootCategory: product.rootCategory,\n    variationAsins,\n    variationLookupString: variationAsins.slice(0, 20).join(','),\n    hasVariations: variationAsins.length > 0,\n    searchQuery: JSON.stringify({ brand: product.brand || '', rootCategory: product.rootCategory, perPage: 50 })\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10256,
+        -224
+      ],
+      "id": "d224943b-21bf-45ce-be1a-a2538d34533b",
+      "name": "Prep Data"
+    },
+    {
+      "parameters": {
+        "url": "https://api.keepa.com/product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "domain",
+              "value": "1"
+            },
+            {
+              "name": "asin",
+              "value": "={{ $json.variationLookupString }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cf64d463-5446-4ddf-8ae0-16ea433bea2d",
+      "name": "Get Variation Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        10480,
+        -400
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "tRYlvW1nmaLYQPPr",
+          "name": "Keepa API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst variationProducts = input.products || [];\nconst prepData = $('Prep Data').first().json;\n\nconst getImageUrl = (prod) => {\n  if (!prod || !prod.images || !prod.images[0]) return '';\n  const img = prod.images[0].l || prod.images[0].m || '';\n  return img ? `https://m.media-amazon.com/images/I/${img}` : '';\n};\n\n// Build variation list\nconst variations = variationProducts\n  .filter(p => p.asin !== prepData.primaryAsin)\n  .map(p => ({\n    asin: p.asin,\n    title: p.title || '',\n    brand: p.brand || '',\n    image: getImageUrl(p),\n    url: `https://www.amazon.com/dp/${p.asin}`,\n    type: 'variation'\n  }));\n\nreturn [{\n  json: {\n    primaryAsin: prepData.primaryAsin,\n    primaryTitle: prepData.primaryTitle,\n    primaryBrand: prepData.primaryBrand,\n    primaryImage: prepData.primaryImage,\n    primaryUrl: prepData.primaryUrl,\n    variations\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10704,
+        -400
+      ],
+      "id": "88c163c7-b31a-473a-93cb-0fa2297d0a0f",
+      "name": "Extract Variations"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.keepa.com/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "domain",
+              "value": "1"
+            },
+            {
+              "name": "selection",
+              "value": "={{ $json.searchQuery }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9e0f5c3c-40a7-4cfa-b40e-8e489918210a",
+      "name": "Search Similar Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        10928,
+        32
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "tRYlvW1nmaLYQPPr",
+          "name": "Keepa API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        12848,
+        -400
+      ],
+      "id": "606411fe-bd9a-44e6-84d4-4a112bae5378",
+      "name": "Merge Branches"
+    },
+    {
+      "parameters": {
+        "jsCode": "  const items = $input.all();\n\n  const primaryData = items[0]?.json || {};\n  const similarData = items[1]?.json || { similarProducts: [] };\n\n  const results = [];\n\n  // Primary ASIN info\n  const primaryAsin = primaryData.primaryAsin;\n  const primaryTitle = primaryData.primaryTitle;\n  const primaryBrand = primaryData.primaryBrand;\n  const primaryImage = primaryData.primaryImage;\n  const primaryUrl = primaryData.primaryUrl;\n\n  // Add variations - each as separate row correlated with primary\n  (primaryData.variations || []).forEach(v => {\n    results.push({\n      json: {\n        search_asin: primaryAsin,\n        search_title: primaryTitle,\n        search_brand: primaryBrand,\n        search_image: primaryImage,\n        search_url: primaryUrl,\n        similar_asin: v.asin,\n        title: v.title,\n        brand: v.brand,\n        image_url: v.image,\n        correlated_amazon_url: v.url,\n        suggested_type: 'variation'\n      }\n    });\n  });\n\n  // Add similar products - each as separate row correlated with primary\n  (similarData.similarProducts || []).forEach(s => {\n    results.push({\n      json: {\n        search_asin: primaryAsin,\n        search_title: primaryTitle,\n        search_brand: primaryBrand,\n        search_image: primaryImage,\n        search_url: primaryUrl,\n        similar_asin: s.asin,\n        title: s.title,\n        brand: null,\n        image_url: s.image,\n        correlated_amazon_url: s.url,\n        suggested_type: 'similar'\n      }\n    });\n  });\n\n  return results.length > 0 ? results : [{ json: { error: 'No correlations found' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        13072,
+        -400
+      ],
+      "id": "8e05079d-403f-42ec-89f3-f8b48e3c8598",
+      "name": "Build Final Output"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        11152,
+        -16
+      ],
+      "id": "07be3fa0-30c8-4ccc-928c-4a3b840e781f",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "  const input = $input.first().json;\n\n  const variationAsins = (input.variations || []).map(v => v.asin);\n\n  return [{\n    json: {\n      primaryAsin: input.primaryAsin,\n      primaryTitle: input.primaryTitle,\n      primaryBrand: input.primaryBrand,\n      primaryImage: input.primaryImage,\n      primaryUrl: input.primaryUrl,\n      variationAsins: variationAsins\n    }\n  }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10928,
+        -400
+      ],
+      "id": "af651bbc-aeae-4084-856d-b5438978538c",
+      "name": "VariationsToCompare"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n  const variationData = items[0].json;\n  const asinListData = items[1].json;\n\n  const primaryAsin = variationData.primaryAsin;\n  const variationAsins = variationData.variationAsins || [];\n\n  // Create set of ASINs to exclude (primary + variations)\n  const excludeAsins = new Set([primaryAsin, ...variationAsins]);\n\n  // Filter asinList to keep only those NOT in variations\n  const candidateAsins = (asinListData.asinList || [])\n    .filter(asin => !excludeAsins.has(asin));\n\n  return [{\n    json: {\n      primaryAsin: variationData.primaryAsin,\n      primaryTitle: variationData.primaryTitle,\n      primaryBrand: variationData.primaryBrand,\n      primaryImage: variationData.primaryImage,\n      primaryUrl: variationData.primaryUrl,\n      candidateAsins: candidateAsins\n    }\n  }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11376,
+        -16
+      ],
+      "id": "e8812b9d-581a-49b7-9e73-3ceee8e7150f",
+      "name": "CandidateAsins"
+    },
+    {
+      "parameters": {
+        "jsCode": "  const input = $input.first().json;\n\n  const items = input.candidateAsins.map(asin => ({\n    json: {\n      primaryAsin: input.primaryAsin,\n      primaryTitle: input.primaryTitle,\n      primaryBrand: input.primaryBrand,\n      primaryImage: input.primaryImage,\n      primaryUrl: input.primaryUrl,\n      candidateAsin: asin\n    }\n  }));\n\n  return items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11600,
+        -16
+      ],
+      "id": "49552b2d-575c-4e85-af06-3245d6593d65",
+      "name": "SplitASINs"
+    },
+    {
+      "parameters": {
+        "url": "https://api.keepa.com/product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "domain",
+              "value": "1"
+            },
+            {
+              "name": "asin",
+              "value": "={{ $json.candidateAsin }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b9f14fc7-be88-4c46-aef2-9c2cda5ff1eb",
+      "name": "Get Candidate Details1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        12048,
+        -112
+      ],
+      "notesInFlow": false,
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "tRYlvW1nmaLYQPPr",
+          "name": "Keepa API"
+        }
+      },
+      "notes": "test"
+    },
+    {
+      "parameters": {
+        "jsCode": "  const input = $input.first().json;\n  const product = input.products?.[0] || {};\n\n  // Get primary data from the loop node\n  const loopData = $('Loop Over Items').item.json;\n\n  const getImageUrl = (prod) => {\n    if (!prod?.images?.[0]) return '';\n    const img = prod.images[0].l || prod.images[0].m || '';\n    return img ? `https://m.media-amazon.com/images/I/${img}` : '';\n  };\n\n  return [{\n    json: {\n      primaryAsin: loopData.primaryAsin,\n      primaryTitle: loopData.primaryTitle,\n      primaryBrand: loopData.primaryBrand,\n      primaryImage: loopData.primaryImage,\n      primaryUrl: loopData.primaryUrl,\n      candidateAsin: product.asin,\n      candidateTitle: product.title || 'Unknown',\n      candidateBrand: product.brand || 'Unknown',\n      candidateImage: getImageUrl(product),\n      candidateUrl: `https://www.amazon.com/dp/${product.asin}`\n    }\n  }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12272,
+        -112
+      ],
+      "id": "269c1ae3-e599-4e25-826b-497fe84134a7",
+      "name": "Get Candidate Details2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        11824,
+        -16
+      ],
+      "id": "f5cd6ed3-7a41-4a8c-a60f-9867b3f0a08c",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=  PRIMARY PRODUCT:\n  Title: {{ $json.primaryTitle }}\n  Brand: {{ $json.primaryBrand }}\n\n  CANDIDATE PRODUCT:\n  ASIN: {{ $json.candidateAsin }}\n  Title: {{ $json.candidateTitle }}\n  Brand: {{ $json.candidateBrand }}\n\n  Question: Is the CANDIDATE the same product as the primary product?\n\n  Answer YES if:\n  - Both are the same product (e.g., both speakers, both headphones)\n  - Candidate is a variant of the primary (different color, size, model)\n\n  Answer NO if:\n  - Candidate is a different kind of product (e.g., primary is speaker, candidate is cable)\n  - Candidate is an accessory (charger, cable, case, adapter)\n  - Candidate serves a completely different purpose\n  - The candidate is a different year's model of a product\n\n  Answer with ONLY: YES or NO",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        12496,
+        -112
+      ],
+      "id": "c1dba99c-41a6-4bd7-9fc8-0e2df40912e4",
+      "name": "AI Evaluate"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-5-20250929",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        12576,
+        128
+      ],
+      "id": "79f0c19f-82e3-4942-b940-36181c577502",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "TsgFnYtxloDeXOR2",
+          "name": "AnthropicNode"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "  const input = $input.first().json;\n  const response = (input.text || '').toUpperCase().trim();\n  const isApproved = response.includes('YES');\n\n  const loopData = $('Loop Over Items').item.json;\n  const candidateData = $('Get Candidate Details2').first().json;\n\n  return [{\n    json: {\n      primaryAsin: loopData.primaryAsin,\n      primaryTitle: loopData.primaryTitle,\n      primaryImage: loopData.primaryImage,\n      primaryUrl: loopData.primaryUrl,\n      candidateAsin: candidateData.candidateAsin,\n      candidateTitle: candidateData.candidateTitle,\n      candidateImage: candidateData.candidateImage,\n      candidateUrl: candidateData.candidateUrl,\n      isApproved\n    }\n  }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12848,
+        128
+      ],
+      "id": "af17cf67-4831-4cef-86d5-ad365cf11d44",
+      "name": "AI Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e6d1a0bf-9865-43be-a432-8eb56c089a07",
+              "leftValue": "={{ $json.isApproved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        12048,
+        -400
+      ],
+      "id": "b2eec3ee-9471-4d5f-b9b1-994a25725bd2",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n  const similarProducts = items.map(item => ({\n    asin: item.json.asin,\n    title: item.json.title,\n    image: item.json.image,\n    url: item.json.url,\n    type: 'similar'\n  }));\n\n  return [{\n    json: {\n      similarProducts: similarProducts\n    }\n  }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12560,
+        -400
+      ],
+      "id": "53708876-3e2e-46fd-905c-40c9de79b2e4",
+      "name": "Approved Container"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n  return items.map(item => ({\n    json: {\n      asin: item.json.candidateAsin,\n      title: item.json.candidateTitle,\n      image: item.json.candidateImage,\n      url: item.json.candidateUrl\n    }\n  }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12272,
+        -400
+      ],
+      "id": "a820fefa-7060-4380-8e4e-f2da3ff7a2c8",
+      "name": "RemovePrimaryASIN"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "asin_correlations",
+          "mode": "list",
+          "cachedResultName": "asin_correlations"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "search_asin": "={{ $json.search_asin }}",
+            "suggested_type": "={{ $json.suggested_type }}",
+            "correlated_amazon_url": "={{ $json.correlated_amazon_url }}",
+            "search_image_url": "={{ $json.search_image }}",
+            "similar_asin": "={{ $json.similar_asin }}",
+            "correlated_title": "={{ $json.title }}",
+            "user_id": "94e1f3a0-6e1b-4d23-befc-750fe1832da8",
+            "image_url": "={{ $json.image_url }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "search_asin",
+              "displayName": "search_asin",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "similar_asin",
+              "displayName": "similar_asin",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "correlated_title",
+              "displayName": "correlated_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "suggested_type",
+              "displayName": "suggested_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "correlation_score",
+              "displayName": "correlation_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "correlated_amazon_url",
+              "displayName": "correlated_amazon_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "search_image_url",
+              "displayName": "search_image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a25c7385-5eda-482a-8181-ab492781c52b",
+      "name": "UpdateExistingSku",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        13696,
+        -384
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxtUSihbqdQS39kv",
+          "name": "Postgres account 2"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Fast query using service_role"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        13296,
+        -432
+      ],
+      "id": "301593d8-63d5-4729-9001-de45f1acb7bc",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "url": "https://api.keepa.com/product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "domain",
+              "value": "1"
+            },
+            {
+              "name": "asin",
+              "value": "={{ $json.asin }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "25577afd-597f-4a92-b3f1-0d639285c2a3",
+      "name": "Get Product Data1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        10000,
+        -208
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "tRYlvW1nmaLYQPPr",
+          "name": "Keepa API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Done",
+      "typeVersion": 1,
+      "position": [
+        13920,
+        -384
+      ],
+      "id": "done-node"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond Immediately",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Get Product Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Data": {
+      "main": [
+        [
+          {
+            "node": "Get Variation Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search Similar Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Variation Details": {
+      "main": [
+        [
+          {
+            "node": "Extract Variations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Variations": {
+      "main": [
+        [
+          {
+            "node": "Merge Branches",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "VariationsToCompare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Similar Products": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Branches": {
+      "main": [
+        [
+          {
+            "node": "Build Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Final Output": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "CandidateAsins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VariationsToCompare": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CandidateAsins": {
+      "main": [
+        [
+          {
+            "node": "SplitASINs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitASINs": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Candidate Details1": {
+      "main": [
+        [
+          {
+            "node": "Get Candidate Details2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Candidate Details1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Candidate Details2": {
+      "main": [
+        [
+          {
+            "node": "AI Evaluate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Evaluate",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Evaluate": {
+      "main": [
+        [
+          {
+            "node": "AI Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Parser": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "RemovePrimaryASIN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved Container": {
+      "main": [
+        [
+          {
+            "node": "Merge Branches",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "RemovePrimaryASIN": {
+      "main": [
+        [
+          {
+            "node": "Approved Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "UpdateExistingSku",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UpdateExistingSku": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Product Data1": {
+      "main": [
+        [
+          {
+            "node": "Prep Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "webhook-version-1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9febb8d6c45c2b62f4b2515d981816fce91273d12c64817a575015f004243210"
+  },
+  "id": "asin-correlation-webhook",
+  "tags": []
+}
