@@ -10,10 +10,8 @@
 
 const { getCorsHeaders } = require('./utils/cors');
 const { createClient } = require('@supabase/supabase-js');
-const Anthropic = require('@anthropic-ai/sdk').default;
 
 let supabase = null;
-let anthropic = null;
 
 function getSupabase() {
   if (!supabase) {
@@ -25,13 +23,29 @@ function getSupabase() {
   return supabase;
 }
 
-function getAnthropic() {
-  if (!anthropic) {
-    anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY
-    });
+// Direct Anthropic API call (no SDK needed)
+async function callClaude(prompt) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 10,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Claude API error: ${response.status} - ${error}`);
   }
-  return anthropic;
+  
+  const data = await response.json();
+  return data.content[0].text;
 }
 
 // ==================== KEEPA API ====================
@@ -113,14 +127,8 @@ Answer NO if:
 Answer with ONLY: YES or NO`;
 
   try {
-    const response = await getAnthropic().messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 10,
-      messages: [{ role: 'user', content: prompt }]
-    });
-    
-    const answer = response.content[0].text.toUpperCase().trim();
-    return answer.includes('YES');
+    const answer = await callClaude(prompt);
+    return answer.toUpperCase().trim().includes('YES');
   } catch (error) {
     console.error(`AI evaluation failed for ${candidate.asin}:`, error.message);
     return false;
