@@ -288,48 +288,11 @@ async function processAsin(asin, userId, keepaKey) {
     }));
   }
   
-  // 3. Search for similar
-  console.log('🔍 Searching for similar products...');
-  const similarAsins = await keepaProductSearch(primaryData.title, keepaKey);
-  
-  const excludeSet = new Set([asin, ...variationAsins]);
-  const candidateAsins = similarAsins
-    .filter(a => !excludeSet.has(a))
-    .slice(0, 30);
-  
-  // 4. AI evaluate candidates (parallel, limited to 10 for speed)
+  // 3. Skip AI evaluation for now - just save variations
+  // TODO: Add background job for AI evaluation later
   let similarProducts = [];
-  if (candidateAsins.length > 0) {
-    // Limit to 10 candidates for speed (function timeout is 10s)
-    const limitedAsins = candidateAsins.slice(0, 10);
-    const candidateProducts = await keepaProductLookup(limitedAsins, keepaKey);
-    
-    console.log(`🤖 AI evaluating ${candidateProducts.length} candidates (parallel)...`);
-    
-    // Prepare candidates
-    const candidatesData = candidateProducts.map(candidate => ({
-      asin: candidate.asin,
-      title: candidate.title || 'Unknown',
-      brand: candidate.brand || 'Unknown',
-      image: getImageUrl(candidate),
-      url: getAmazonUrl(candidate.asin)
-    }));
-    
-    // Parallel AI evaluation (5 at a time)
-    const batchSize = 5;
-    for (let i = 0; i < candidatesData.length; i += batchSize) {
-      const batch = candidatesData.slice(i, i + batchSize);
-      const results = await Promise.all(
-        batch.map(async (candidateData) => {
-          const isApproved = await evaluateSimilarity(primaryData, candidateData);
-          return isApproved ? { ...candidateData, type: 'similar' } : null;
-        })
-      );
-      similarProducts.push(...results.filter(Boolean));
-    }
-    
-    console.log(`✅ ${similarProducts.length} candidates approved`);
-  }
+  console.log(`⏭️ Skipping AI evaluation (${variationAsins.length} variations found)`);
+  
   
   // 5. Combine and write to DB
   const allCorrelations = [...variations, ...similarProducts];
