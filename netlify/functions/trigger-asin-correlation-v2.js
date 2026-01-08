@@ -10,7 +10,7 @@
 
 const { getCorsHeaders } = require('./utils/cors');
 const { createClient } = require('@supabase/supabase-js');
-const Anthropic = require('@anthropic-ai/sdk');
+const Anthropic = require('@anthropic-ai/sdk').default;
 
 let supabase = null;
 let anthropic = null;
