@@ -40,12 +40,90 @@ const API_SERVICES = [
   }
 ];
 
+// Individual key input component
+function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
+  const [inputValue, setInputValue] = useState(existingKey?.value || '');
+  const [showKey, setShowKey] = useState(false);
+
+  useEffect(() => {
+    setInputValue(existingKey?.value || '');
+  }, [existingKey]);
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-lg font-medium text-gray-900">{service.name}</h3>
+          <p className="mt-1 text-sm text-gray-500">{service.description}</p>
+          <a
+            href={service.helpUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 text-sm text-blue-600 hover:text-blue-800"
+          >
+            Get API key →
+          </a>
+        </div>
+        {existingKey && (
+          <span className={`px-2 py-1 text-xs rounded-full ${
+            existingKey.isValid 
+              ? 'bg-green-100 text-green-800' 
+              : 'bg-red-100 text-red-800'
+          }`}>
+            {existingKey.isValid ? 'Active' : 'Invalid'}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4">
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <input
+              type={showKey ? 'text' : 'password'}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={service.placeholder}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey(!showKey)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              {showKey ? '🙈' : '👁️'}
+            </button>
+          </div>
+          <button
+            onClick={() => onSave(service.id, inputValue)}
+            disabled={saving || !inputValue.trim()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+          {existingKey && (
+            <button
+              onClick={() => onDelete(service.id)}
+              className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+        {existingKey?.lastUsed && (
+          <p className="mt-2 text-xs text-gray-400">
+            Last used: {new Date(existingKey.lastUsed).toLocaleString()}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ApiKeys() {
   const { user } = useAuth();
   const [keys, setKeys] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
-  const [showKeys, setShowKeys] = useState({});
   const [message, setMessage] = useState(null);
 
   useEffect(() => {
@@ -67,7 +145,7 @@ export default function ApiKeys() {
       (data || []).forEach(row => {
         keyMap[row.service] = {
           id: row.id,
-          value: row.api_key_encrypted, // In production, decrypt this
+          value: row.api_key_encrypted,
           isValid: row.is_valid,
           lastUsed: row.last_used_at
         };
@@ -91,7 +169,6 @@ export default function ApiKeys() {
       const existing = keys[serviceId];
       
       if (existing?.id) {
-        // Update existing
         const { error } = await supabase
           .from('user_api_keys')
           .update({
@@ -103,7 +180,6 @@ export default function ApiKeys() {
         
         if (error) throw error;
       } else {
-        // Insert new
         const { error } = await supabase
           .from('user_api_keys')
           .insert({
@@ -148,10 +224,6 @@ export default function ApiKeys() {
     }
   };
 
-  const toggleShowKey = (serviceId) => {
-    setShowKeys(prev => ({ ...prev, [serviceId]: !prev[serviceId] }));
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -178,79 +250,16 @@ export default function ApiKeys() {
       )}
 
       <div className="space-y-6">
-        {API_SERVICES.map(service => {
-          const existingKey = keys[service.id];
-          const [inputValue, setInputValue] = useState(existingKey?.value || '');
-
-          return (
-            <div key={service.id} className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">{service.name}</h3>
-                  <p className="mt-1 text-sm text-gray-500">{service.description}</p>
-                  <a
-                    href={service.helpUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    Get API key →
-                  </a>
-                </div>
-                {existingKey && (
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    existingKey.isValid 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {existingKey.isValid ? 'Active' : 'Invalid'}
-                  </span>
-                )}
-              </div>
-
-              <div className="mt-4">
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <input
-                      type={showKeys[service.id] ? 'text' : 'password'}
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      placeholder={service.placeholder}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => toggleShowKey(service.id)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showKeys[service.id] ? '🙈' : '👁️'}
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => saveKey(service.id, inputValue)}
-                    disabled={saving[service.id] || !inputValue.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {saving[service.id] ? 'Saving...' : 'Save'}
-                  </button>
-                  {existingKey && (
-                    <button
-                      onClick={() => deleteKey(service.id)}
-                      className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-                {existingKey?.lastUsed && (
-                  <p className="mt-2 text-xs text-gray-400">
-                    Last used: {new Date(existingKey.lastUsed).toLocaleString()}
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {API_SERVICES.map(service => (
+          <ApiKeyInput
+            key={service.id}
+            service={service}
+            existingKey={keys[service.id]}
+            onSave={saveKey}
+            onDelete={deleteKey}
+            saving={saving[service.id]}
+          />
+        ))}
       </div>
 
       <div className="mt-8 p-4 bg-blue-50 rounded-lg">
