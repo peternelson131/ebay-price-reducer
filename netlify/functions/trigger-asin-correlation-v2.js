@@ -297,27 +297,35 @@ async function processAsin(asin, userId, keepaKey) {
     .filter(a => !excludeSet.has(a))
     .slice(0, 30);
   
-  // 4. AI evaluate candidates
+  // 4. AI evaluate candidates (parallel, limited to 10 for speed)
   let similarProducts = [];
   if (candidateAsins.length > 0) {
-    const candidateProducts = await keepaProductLookup(candidateAsins, keepaKey);
+    // Limit to 10 candidates for speed (function timeout is 10s)
+    const limitedAsins = candidateAsins.slice(0, 10);
+    const candidateProducts = await keepaProductLookup(limitedAsins, keepaKey);
     
-    console.log(`🤖 AI evaluating ${candidateProducts.length} candidates...`);
+    console.log(`🤖 AI evaluating ${candidateProducts.length} candidates (parallel)...`);
     
-    for (const candidate of candidateProducts) {
-      const candidateData = {
-        asin: candidate.asin,
-        title: candidate.title || 'Unknown',
-        brand: candidate.brand || 'Unknown',
-        image: getImageUrl(candidate),
-        url: getAmazonUrl(candidate.asin)
-      };
-      
-      const isApproved = await evaluateSimilarity(primaryData, candidateData);
-      
-      if (isApproved) {
-        similarProducts.push({ ...candidateData, type: 'similar' });
-      }
+    // Prepare candidates
+    const candidatesData = candidateProducts.map(candidate => ({
+      asin: candidate.asin,
+      title: candidate.title || 'Unknown',
+      brand: candidate.brand || 'Unknown',
+      image: getImageUrl(candidate),
+      url: getAmazonUrl(candidate.asin)
+    }));
+    
+    // Parallel AI evaluation (5 at a time)
+    const batchSize = 5;
+    for (let i = 0; i < candidatesData.length; i += batchSize) {
+      const batch = candidatesData.slice(i, i + batchSize);
+      const results = await Promise.all(
+        batch.map(async (candidateData) => {
+          const isApproved = await evaluateSimilarity(primaryData, candidateData);
+          return isApproved ? { ...candidateData, type: 'similar' } : null;
+        })
+      );
+      similarProducts.push(...results.filter(Boolean));
     }
     
     console.log(`✅ ${similarProducts.length} candidates approved`);

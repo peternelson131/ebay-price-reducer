@@ -5,6 +5,14 @@
 [functions]
   directory = "netlify/functions"
 
+# Increase timeout for correlation function (26s max on Pro)
+[functions."trigger-asin-correlation-v2"]
+  external_node_modules = ["axios"]
+  
+# Keep original function for fallback
+[functions."trigger-asin-correlation"]
+  external_node_modules = ["axios"]
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
