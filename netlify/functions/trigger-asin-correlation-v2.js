@@ -114,17 +114,17 @@ async function keepaProductLookup(asins, keepaKey) {
   }
 }
 
-async function keepaProductSearch(title, keepaKey) {
-  const keywords = title
-    .replace(/[^a-zA-Z0-9\s]/g, '')
-    .split(' ')
-    .filter(w => w.length > 2)
-    .slice(0, 5)
-    .join(' ');
+async function keepaProductSearch(brand, rootCategory, keepaKey) {
+  // Keepa Product Finder query format
+  const selection = JSON.stringify({
+    brand: brand || '',
+    rootCategory: rootCategory || 0,
+    perPage: 50
+  });
   
-  const url = `https://api.keepa.com/query?key=${keepaKey}&domain=1&type=product&term=${encodeURIComponent(keywords)}`;
+  const url = `https://api.keepa.com/query?key=${keepaKey}&domain=1&selection=${encodeURIComponent(selection)}`;
   
-  console.log(`🔍 Keepa search: "${keywords}"`);
+  console.log(`🔍 Keepa search: brand="${brand}", category=${rootCategory}`);
   
   try {
     const response = await axios.get(url, {
@@ -137,6 +137,7 @@ async function keepaProductSearch(title, keepaKey) {
     return data.asinList || [];
   } catch (error) {
     if (error.response) {
+      console.error('Keepa search error response:', error.response.data);
       throw new Error(`Keepa search error: ${error.response.status}`);
     }
     throw error;
@@ -288,10 +289,55 @@ async function processAsin(asin, userId, keepaKey) {
     }));
   }
   
-  // 3. Similar product search - disabled for now (Keepa query API needs different format)
-  // TODO: Implement proper Keepa selection query JSON format
+  // 3. Search for similar products (same brand + category)
   let similarProducts = [];
-  console.log(`📦 Found ${variations.length} variations, skipping similar search for now`);
+  
+  if (primary.brand && primary.rootCategory) {
+    console.log('🔍 Searching for similar products...');
+    try {
+      const similarAsins = await keepaProductSearch(primary.brand, primary.rootCategory, keepaKey);
+      
+      const excludeSet = new Set([asin, ...variationAsins]);
+      const candidateAsins = similarAsins
+        .filter(a => !excludeSet.has(a))
+        .slice(0, 5);  // Limit to 5 for speed
+      
+      if (candidateAsins.length > 0) {
+        const candidateProducts = await keepaProductLookup(candidateAsins, keepaKey);
+        
+        console.log(`🤖 AI evaluating ${candidateProducts.length} candidates...`);
+        
+        // Parallel AI evaluation
+        const results = await Promise.all(
+          candidateProducts.map(async (candidate) => {
+            const candidateData = {
+              asin: candidate.asin,
+              title: candidate.title || 'Unknown',
+              brand: candidate.brand || 'Unknown',
+              image: getImageUrl(candidate),
+              url: getAmazonUrl(candidate.asin)
+            };
+            
+            try {
+              const isApproved = await evaluateSimilarity(primaryData, candidateData);
+              return isApproved ? { ...candidateData, type: 'similar' } : null;
+            } catch (e) {
+              console.error(`AI eval failed for ${candidate.asin}:`, e.message);
+              return null;
+            }
+          })
+        );
+        
+        similarProducts = results.filter(Boolean);
+        console.log(`✅ ${similarProducts.length}/${candidateProducts.length} candidates approved`);
+      }
+    } catch (searchError) {
+      console.error('Similar search failed:', searchError.message);
+      // Continue without similar products
+    }
+  } else {
+    console.log('⏭️ Skipping similar search (no brand or category)');
+  }
   
   
   // 5. Combine and write to DB
