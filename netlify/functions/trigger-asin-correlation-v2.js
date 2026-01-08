@@ -374,6 +374,8 @@ exports.handler = async (event, context) => {
       }
       
       // Process immediately (may take 30-60s)
+      console.log('🚀 Starting processAsin with KEEPA_KEY length:', apiKey.length);
+      console.log('🔑 ANTHROPIC_KEY set:', !!process.env.ANTHROPIC_API_KEY);
       const result = await processAsin(normalizedAsin, user.id, apiKey);
       
       if (result.error) {
@@ -414,12 +416,14 @@ exports.handler = async (event, context) => {
     
   } catch (error) {
     console.error('❌ Error:', error);
+    console.error('Stack:', error.stack);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         error: 'Processing failed',
-        message: error.message
+        message: error.message,
+        stack: error.stack?.split('\n').slice(0, 5)
       })
     };
   }
