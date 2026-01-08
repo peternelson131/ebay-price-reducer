@@ -86,15 +86,29 @@ async function callClaude(prompt) {
 
 async function keepaProductLookup(asins, keepaKey) {
   const asinString = Array.isArray(asins) ? asins.join(',') : asins;
-  const url = `https://api.keepa.com/product?key=${keepaKey}&domain=1&asin=${asinString}&offers=0&history=0`;
+  const url = `https://api.keepa.com/product?key=${keepaKey}&domain=1&asin=${asinString}`;
   
-  const response = await fetch(url);
+  console.log(`📦 Keepa lookup: ${asinString.substring(0, 30)}...`);
+  
+  const response = await fetch(url, {
+    headers: {
+      'Accept-Encoding': 'gzip, deflate'
+    }
+  });
+  
   if (!response.ok) {
     const text = await response.text();
     throw new Error(`Keepa API error: ${response.status} - ${text}`);
   }
   
   const data = await response.json();
+  
+  // Check for Keepa-specific errors
+  if (data.error) {
+    throw new Error(`Keepa error: ${data.error.message || JSON.stringify(data.error)}`);
+  }
+  
+  console.log(`✅ Keepa returned ${data.products?.length || 0} products`);
   
   if (data.error) {
     throw new Error(`Keepa error: ${JSON.stringify(data.error)}`);
