@@ -117,7 +117,7 @@ export default function ListingSettings() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">Loading settings...</p>
+            <p className="mt-2 text-text-secondary">Loading settings...</p>
           </div>
         </div>
       </div>
@@ -130,16 +130,16 @@ export default function ListingSettings() {
 
       {/* Info Message */}
       {!ebayConnected && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="mb-6 bg-accent/10 border border-accent/30 rounded-lg p-4">
           <div className="flex items-start">
             <svg className="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
             <div className="ml-3">
-              <p className="text-sm text-blue-800">
+              <p className="text-sm text-accent">
                 You can configure your listing settings manually. Connect your eBay account to see available policies for reference.
               </p>
-              <a href="/account?tab=integrations" className="text-sm text-blue-600 underline mt-2 inline-block">
+              <a href="/account?tab=integrations" className="text-sm text-accent underline mt-2 inline-block">
                 Go to Account → Integrations to connect eBay
               </a>
             </div>
@@ -149,13 +149,13 @@ export default function ListingSettings() {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="mb-6 bg-error/10 border border-error/30 rounded-lg p-4">
           <div className="flex items-start">
             <svg className="w-5 h-5 text-red-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
             <div className="ml-3">
-              <p className="text-sm text-red-800">{error}</p>
+              <p className="text-sm text-error">{error}</p>
             </div>
           </div>
         </div>
@@ -179,20 +179,20 @@ export default function ListingSettings() {
           placeholder="e.g., 123456789012"
         />
         {validationErrors.defaultPaymentPolicyId && (
-          <p className="text-sm text-red-600 mt-1">
+          <p className="text-sm text-error mt-1">
             {validationErrors.defaultPaymentPolicyId}
           </p>
         )}
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-text-tertiary mt-1">
           Find your policy IDs in eBay Seller Hub → Business Policies → Payment Policies
         </p>
         {availablePolicies.payment.length > 0 && (
           <details className="mt-2">
-            <summary className="text-xs text-blue-600 cursor-pointer">Available policies</summary>
-            <ul className="text-xs text-gray-600 mt-1 ml-4 list-disc">
+            <summary className="text-xs text-accent cursor-pointer">Available policies</summary>
+            <ul className="text-xs text-text-secondary mt-1 ml-4 list-disc">
               {availablePolicies.payment.map(policy => (
                 <li key={policy.paymentPolicyId}>
-                  {policy.name}: <code className="bg-gray-100 px-1 rounded">{policy.paymentPolicyId}</code>
+                  {policy.name}: <code className="bg-dark-hover px-1 rounded">{policy.paymentPolicyId}</code>
                 </li>
               ))}
             </ul>
@@ -218,20 +218,20 @@ export default function ListingSettings() {
           placeholder="e.g., 123456789012"
         />
         {validationErrors.defaultFulfillmentPolicyId && (
-          <p className="text-sm text-red-600 mt-1">
+          <p className="text-sm text-error mt-1">
             {validationErrors.defaultFulfillmentPolicyId}
           </p>
         )}
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-text-tertiary mt-1">
           Find your policy IDs in eBay Seller Hub → Business Policies → Shipping Policies
         </p>
         {availablePolicies.fulfillment.length > 0 && (
           <details className="mt-2">
-            <summary className="text-xs text-blue-600 cursor-pointer">Available policies</summary>
-            <ul className="text-xs text-gray-600 mt-1 ml-4 list-disc">
+            <summary className="text-xs text-accent cursor-pointer">Available policies</summary>
+            <ul className="text-xs text-text-secondary mt-1 ml-4 list-disc">
               {availablePolicies.fulfillment.map(policy => (
                 <li key={policy.fulfillmentPolicyId}>
-                  {policy.name}: <code className="bg-gray-100 px-1 rounded">{policy.fulfillmentPolicyId}</code>
+                  {policy.name}: <code className="bg-dark-hover px-1 rounded">{policy.fulfillmentPolicyId}</code>
                 </li>
               ))}
             </ul>
@@ -257,20 +257,20 @@ export default function ListingSettings() {
           placeholder="e.g., 123456789012"
         />
         {validationErrors.defaultReturnPolicyId && (
-          <p className="text-sm text-red-600 mt-1">
+          <p className="text-sm text-error mt-1">
             {validationErrors.defaultReturnPolicyId}
           </p>
         )}
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-text-tertiary mt-1">
           Find your policy IDs in eBay Seller Hub → Business Policies → Return Policies
         </p>
         {availablePolicies.return.length > 0 && (
           <details className="mt-2">
-            <summary className="text-xs text-blue-600 cursor-pointer">Available policies</summary>
-            <ul className="text-xs text-gray-600 mt-1 ml-4 list-disc">
+            <summary className="text-xs text-accent cursor-pointer">Available policies</summary>
+            <ul className="text-xs text-text-secondary mt-1 ml-4 list-disc">
               {availablePolicies.return.map(policy => (
                 <li key={policy.returnPolicyId}>
-                  {policy.name}: <code className="bg-gray-100 px-1 rounded">{policy.returnPolicyId}</code>
+                  {policy.name}: <code className="bg-dark-hover px-1 rounded">{policy.returnPolicyId}</code>
                 </li>
               ))}
             </ul>
@@ -301,7 +301,7 @@ export default function ListingSettings() {
           <option value="USED_GOOD">Used - Good</option>
         </select>
         {validationErrors.defaultCondition && (
-          <p className="text-sm text-red-600 mt-1">
+          <p className="text-sm text-error mt-1">
             {validationErrors.defaultCondition}
           </p>
         )}
@@ -326,15 +326,15 @@ export default function ListingSettings() {
           }`}
         />
         {validationErrors.skuPrefix && (
-          <p className="text-sm text-red-600 mt-1">
+          <p className="text-sm text-error mt-1">
             {validationErrors.skuPrefix}
           </p>
         )}
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-text-tertiary mt-1">
           This prefix will appear at the beginning of all auto-generated SKUs.
           Example: "PETE-a7b3c4d5-3f2a1b4c"
         </p>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-text-tertiary mt-1">
           Leave blank to use default "SKU-" prefix.
         </p>
       </div>
@@ -426,7 +426,7 @@ export default function ListingSettings() {
           </div>
         </div>
         {validationErrors.defaultLocation && (
-          <p className="text-sm text-red-600 mt-2">
+          <p className="text-sm text-error mt-2">
             {validationErrors.defaultLocation}
           </p>
         )}
@@ -449,7 +449,7 @@ export default function ListingSettings() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+          className="bg-accent text-white px-6 py-2 rounded hover:bg-accent-hover disabled:bg-gray-400"
         >
           {saving ? 'Saving...' : 'Save Settings'}
         </button>

@@ -132,9 +132,9 @@ export default function AdminSettings() {
     return (
       <div className="container mx-auto p-4">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Settings</h1>
-          <div className="bg-white shadow rounded-lg p-6">
-            <p className="text-gray-600">Loading credentials...</p>
+          <h1 className="text-3xl font-bold text-text-primary mb-8">Admin Settings</h1>
+          <div className="bg-dark-surface border border-dark-border rounded-lg p-6">
+            <p className="text-text-secondary">Loading credentials...</p>
           </div>
         </div>
       </div>
@@ -144,32 +144,32 @@ export default function AdminSettings() {
   return (
     <div className="container mx-auto p-4">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Settings</h1>
+        <h1 className="text-3xl font-bold text-text-primary mb-8">Admin Settings</h1>
 
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">eBay Developer Credentials</h2>
+        <div className="bg-dark-surface border border-dark-border rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-text-primary mb-4">eBay Developer Credentials</h2>
 
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="mb-6 p-4 bg-accent/10 border border-accent/30 rounded-lg">
             <p className="text-sm text-blue-900 mb-2">
               <strong>Important:</strong> These are your eBay Developer Application credentials, not your eBay account login.
             </p>
-            <p className="text-sm text-blue-800 mb-2">
+            <p className="text-sm text-accent mb-2">
               To get these credentials:
             </p>
-            <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1">
+            <ol className="list-decimal list-inside text-sm text-accent space-y-1">
               <li>Go to <a href="https://developer.ebay.com" target="_blank" rel="noopener noreferrer" className="underline">developer.ebay.com</a></li>
               <li>Sign in and go to "My Account" → "Application Keys"</li>
               <li>Create a Production application if you haven't already</li>
               <li>Copy your App ID (Client ID) and Cert ID (Client Secret)</li>
-              <li>Set the redirect URI to: <code className="bg-blue-100 px-1">https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth-callback</code></li>
+              <li>Set the redirect URI to: <code className="bg-accent/10 px-1">https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth-callback</code></li>
             </ol>
           </div>
 
           {message.text && (
             <div className={`mb-4 p-3 rounded-lg ${
-              message.type === 'success' ? 'bg-green-100 text-green-800' :
-              message.type === 'info' ? 'bg-blue-100 text-blue-800' :
-              'bg-red-100 text-red-800'
+              message.type === 'success' ? 'bg-success/10 text-success' :
+              message.type === 'info' ? 'bg-accent/10 text-accent' :
+              'bg-error/10 text-error'
             }`}>
               {message.text}
             </div>
@@ -177,7 +177,7 @@ export default function AdminSettings() {
 
           <form onSubmit={handleSave} className="space-y-4">
             <div>
-              <label htmlFor="app_id" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="app_id" className="block text-sm font-medium text-text-secondary mb-1">
                 App ID (Client ID) *
               </label>
               <input
@@ -185,14 +185,14 @@ export default function AdminSettings() {
                 id="app_id"
                 value={credentials.app_id}
                 onChange={(e) => setCredentials({ ...credentials, app_id: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-dark-border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Enter your eBay App ID"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="cert_id" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="cert_id" className="block text-sm font-medium text-text-secondary mb-1">
                 Cert ID (Client Secret) *
               </label>
               <div className="relative">
@@ -201,14 +201,14 @@ export default function AdminSettings() {
                   id="cert_id"
                   value={credentials.cert_id}
                   onChange={(e) => setCredentials({ ...credentials, cert_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 pr-10"
+                  className="w-full px-3 py-2 border border-dark-border rounded-lg focus:ring-indigo-500 focus:border-indigo-500 pr-10"
                   placeholder="Enter your eBay Cert ID"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowCertId(!showCertId)}
-                  className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-600 hover:text-gray-800"
+                  className="absolute inset-y-0 right-0 px-3 flex items-center text-text-secondary hover:text-text-primary"
                 >
                   {showCertId ? 'Hide' : 'Show'}
                 </button>
@@ -216,7 +216,7 @@ export default function AdminSettings() {
             </div>
 
             <div>
-              <label htmlFor="dev_id" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="dev_id" className="block text-sm font-medium text-text-secondary mb-1">
                 Dev ID (Optional)
               </label>
               <input
@@ -224,7 +224,7 @@ export default function AdminSettings() {
                 id="dev_id"
                 value={credentials.dev_id}
                 onChange={(e) => setCredentials({ ...credentials, dev_id: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-dark-border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Enter your eBay Dev ID (optional)"
               />
             </div>
@@ -233,23 +233,23 @@ export default function AdminSettings() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-400"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
               >
                 {saving ? 'Saving...' : (credentials.app_id || credentials.cert_id) ? 'Update Credentials' : 'Save Credentials'}
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/account')}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                className="px-4 py-2 bg-gray-300 text-text-secondary rounded-lg hover:bg-gray-400"
               >
                 Cancel
               </button>
             </div>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Security Note</h3>
-            <p className="text-sm text-gray-600">
+          <div className="mt-6 pt-6 border-t border-dark-border">
+            <h3 className="text-sm font-medium text-text-secondary mb-2">Security Note</h3>
+            <p className="text-sm text-text-secondary">
               Your credentials are encrypted and stored securely in the database. They are only accessible
               by the backend services and are never exposed to the frontend after saving.
             </p>

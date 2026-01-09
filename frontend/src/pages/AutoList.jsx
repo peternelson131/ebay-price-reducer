@@ -571,14 +571,14 @@ export default function AutoList() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Auto-List</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-2xl font-bold text-text-primary">Auto-List</h1>
+        <p className="text-text-secondary mt-2">
           Create eBay listings automatically using file uploads, manual ASIN entry, or Google Sheets integration
         </p>
       </div>
 
       {/* Progress Steps */}
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+      <div className="bg-dark-surface rounded-lg border border-dark-border p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-4">
           {[
             { num: 1, label: 'Select Method' },
@@ -588,16 +588,16 @@ export default function AutoList() {
           ].map((s, idx) => (
             <div key={s.num} className="flex items-center w-full sm:w-auto">
               <div className={`flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 ${
-                step >= s.num ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                step >= s.num ? 'bg-accent text-white' : 'bg-dark-border text-text-secondary'
               }`}>
                 {step > s.num ? '✓' : s.num}
               </div>
-              <div className={`ml-3 text-sm sm:text-base ${step >= s.num ? 'text-gray-900' : 'text-gray-400'}`}>
+              <div className={`ml-3 text-sm sm:text-base ${step >= s.num ? 'text-text-primary' : 'text-text-tertiary'}`}>
                 {s.label}
               </div>
               {idx < 3 && (
                 <div className={`ml-4 w-full sm:w-20 h-1 hidden sm:block ${
-                  step > s.num ? 'bg-blue-600' : 'bg-gray-200'
+                  step > s.num ? 'bg-accent' : 'bg-dark-border'
                 }`} />
               )}
             </div>
@@ -607,10 +607,10 @@ export default function AutoList() {
 
       {/* Notification */}
       {notification && (
-        <div className={`rounded-md p-3 ${
+        <div className={`rounded-lg p-3 ${
           notification.type === 'success'
-            ? 'bg-green-50 border border-green-200 text-green-800'
-            : 'bg-red-50 border border-red-200 text-red-800'
+            ? 'bg-success/10 border border-success/30 text-success'
+            : 'bg-error/10 border border-error/30 text-error'
         }`}>
           {notification.message}
         </div>
@@ -618,9 +618,9 @@ export default function AutoList() {
 
       {/* Step 1: Select Input Method */}
       {step === 1 && (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-dark-surface rounded-lg border border-dark-border">
           <div className="p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">
+            <h2 className="text-lg font-medium text-text-primary mb-6">
               Choose Your Input Method
             </h2>
 
@@ -632,17 +632,17 @@ export default function AutoList() {
                   setInputMethod('file')
                   setStep(2)
                 }}
-                className="border-2 border-gray-200 rounded-lg p-6 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-colors"
+                className="border-2 border-dark-border rounded-lg p-6 hover:border-blue-500 hover:bg-accent/10 cursor-pointer transition-colors"
               >
                 <div className="text-center">
-                  <svg className="mx-auto h-12 w-12 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="mx-auto h-12 w-12 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mt-4">File Upload</h3>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <h3 className="text-lg font-medium text-text-primary mt-4">File Upload</h3>
+                  <p className="text-sm text-text-tertiary mt-2">
                     Upload Excel/CSV files with product data
                   </p>
-                  <div className="mt-4 text-xs text-gray-400">
+                  <div className="mt-4 text-xs text-text-tertiary">
                     • Amazon removal orders
                     • Custom product lists
                     • Inventory exports
@@ -656,17 +656,17 @@ export default function AutoList() {
                   setInputMethod('manual')
                   setStep(2)
                 }}
-                className="border-2 border-gray-200 rounded-lg p-6 hover:border-green-500 hover:bg-green-50 cursor-pointer transition-colors"
+                className="border-2 border-dark-border rounded-lg p-6 hover:border-green-500 hover:bg-success/10 cursor-pointer transition-colors"
               >
                 <div className="text-center">
-                  <svg className="mx-auto h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="mx-auto h-12 w-12 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mt-4">Manual Entry</h3>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <h3 className="text-lg font-medium text-text-primary mt-4">Manual Entry</h3>
+                  <p className="text-sm text-text-tertiary mt-2">
                     Enter ASINs manually for quick listing
                   </p>
-                  <div className="mt-4 text-xs text-gray-400">
+                  <div className="mt-4 text-xs text-text-tertiary">
                     • Single or batch ASIN entry
                     • Keepa data lookup
                     • Immediate processing
@@ -680,17 +680,17 @@ export default function AutoList() {
                   setInputMethod('sheets')
                   setStep(2)
                 }}
-                className="border-2 border-gray-200 rounded-lg p-6 hover:border-purple-500 hover:bg-purple-50 cursor-pointer transition-colors"
+                className="border-2 border-dark-border rounded-lg p-6 hover:border-purple-500 hover:bg-purple-50 cursor-pointer transition-colors"
               >
                 <div className="text-center">
                   <svg className="mx-auto h-12 w-12 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mt-4">Google Sheets</h3>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <h3 className="text-lg font-medium text-text-primary mt-4">Google Sheets</h3>
+                  <p className="text-sm text-text-tertiary mt-2">
                     Connect to your Google Sheets
                   </p>
-                  <div className="mt-4 text-xs text-gray-400">
+                  <div className="mt-4 text-xs text-text-tertiary">
                     • Live sync with sheets
                     • Collaborative editing
                     • Real-time updates
@@ -705,10 +705,10 @@ export default function AutoList() {
 
       {/* Step 2: Input Data */}
       {step === 2 && (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-dark-surface rounded-lg border border-dark-border">
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-gray-900">
+              <h2 className="text-lg font-medium text-text-primary">
                 {inputMethod === 'file' && 'Upload File'}
                 {inputMethod === 'manual' && 'Enter ASINs Manually'}
                 {inputMethod === 'sheets' && 'Connect Google Sheets'}
@@ -718,7 +718,7 @@ export default function AutoList() {
                   setStep(1)
                   setInputMethod(null)
                 }}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="text-sm text-text-tertiary hover:text-text-secondary"
               >
                 ← Change Method
               </button>
@@ -730,29 +730,29 @@ export default function AutoList() {
                 <div
                   {...getRootProps()}
                   className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-                    isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+                    isDragActive ? 'border-blue-500 bg-accent/10' : 'border-dark-border hover:border-gray-400'
                   }`}
                 >
                   <input {...getInputProps()} />
-                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="mx-auto h-12 w-12 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
-                  <p className="mt-2 text-sm text-gray-600">
+                  <p className="mt-2 text-sm text-text-secondary">
                     {isDragActive
                       ? 'Drop your Excel file here...'
                       : 'Drag and drop your Excel file here, or click to browse'
                     }
                   </p>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-text-tertiary">
                     Supports .xls, .xlsx, and .csv files
                   </p>
                 </div>
 
                 <div className="mt-6 border-t pt-6">
-                  <h3 className="text-sm font-medium text-gray-900 mb-2">
+                  <h3 className="text-sm font-medium text-text-primary mb-2">
                     Expected Excel Columns:
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-gray-600">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-text-secondary">
                     <div>• ASIN</div>
                     <div>• SKU</div>
                     <div>• FNSKU</div>
@@ -770,14 +770,14 @@ export default function AutoList() {
             {inputMethod === 'manual' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-text-secondary mb-2">
                     Enter ASINs (one per line)
                   </label>
                   <textarea
                     rows={8}
                     value={manualAsins}
                     onChange={(e) => setManualAsins(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-dark-border rounded-lg p-3 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="B0123456789
 B0987654321
 B0555666777
@@ -785,9 +785,9 @@ B0555666777
 Enter multiple ASINs, one per line"
                   />
                 </div>
-                <div className="bg-blue-50 p-4 rounded-md">
+                <div className="bg-accent/10 p-4 rounded-lg">
                   <h4 className="text-sm font-medium text-blue-900 mb-2">How it works:</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
+                  <ul className="text-sm text-accent space-y-1">
                     <li>• Enter Amazon ASINs (10-character product IDs)</li>
                     <li>• Product data will be fetched from Keepa API</li>
                     <li>• Pricing will be calculated automatically</li>
@@ -795,7 +795,7 @@ Enter multiple ASINs, one per line"
                   </ul>
                 </div>
                 <button
-                  className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                   onClick={processManualAsins}
                   disabled={loadingAsins || !manualAsins.trim()}
                 >
@@ -808,18 +808,18 @@ Enter multiple ASINs, one per line"
             {inputMethod === 'sheets' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-text-secondary mb-2">
                     Google Sheets URL
                   </label>
                   <input
                     type="url"
                     value={sheetsUrl}
                     onChange={(e) => setSheetsUrl(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full border border-dark-border rounded-lg p-3 focus:ring-purple-500 focus:border-purple-500"
                     placeholder="https://docs.google.com/spreadsheets/d/..."
                   />
                 </div>
-                <div className="bg-purple-50 p-4 rounded-md">
+                <div className="bg-purple-50 p-4 rounded-lg">
                   <h4 className="text-sm font-medium text-purple-900 mb-2">Setup Instructions:</h4>
                   <ol className="text-sm text-purple-800 space-y-1 list-decimal list-inside">
                     <li>Make your Google Sheet publicly viewable</li>
@@ -828,7 +828,7 @@ Enter multiple ASINs, one per line"
                     <li>Click "Connect Sheet" to import data</li>
                   </ol>
                 </div>
-                <div className="bg-amber-50 p-4 rounded-md">
+                <div className="bg-amber-50 p-4 rounded-lg">
                   <h4 className="text-sm font-medium text-amber-900 mb-2">Expected Columns:</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-amber-800">
                     <div>• ASIN</div>
@@ -840,7 +840,7 @@ Enter multiple ASINs, one per line"
                   </div>
                 </div>
                 <button
-                  className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                  className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
                   onClick={processGoogleSheets}
                   disabled={loadingSheets || !sheetsUrl.trim()}
                 >
@@ -854,22 +854,22 @@ Enter multiple ASINs, one per line"
 
       {/* Step 3: Review & Select */}
       {step === 3 && (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-dark-surface rounded-lg border border-dark-border">
           <div className="p-6">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-              <h2 className="text-lg font-medium text-gray-900">
+              <h2 className="text-lg font-medium text-text-primary">
                 Review Items ({excelData.length} total, {selectedItems.size} selected)
               </h2>
               <div className="flex gap-2">
                 <button
                   onClick={selectAll}
-                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                  className="px-3 py-1 text-sm bg-dark-hover text-text-secondary rounded hover:bg-dark-border"
                 >
                   Select All
                 </button>
                 <button
                   onClick={deselectAll}
-                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                  className="px-3 py-1 text-sm bg-dark-hover text-text-secondary rounded hover:bg-dark-border"
                 >
                   Deselect All
                 </button>
@@ -885,7 +885,7 @@ Enter multiple ASINs, one per line"
                                     (item.imageUrl ? `https://images-na.ssl-images-amazon.com/images/I/${item.imageUrl.trim()}` : null);
 
                 return (
-                  <div key={item.id} className="border rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div key={item.id} className="border rounded-lg p-3 bg-dark-bg hover:bg-dark-hover transition-colors">
                     <div className="flex gap-3">
                       {/* Checkbox */}
                       <div className="flex-shrink-0 flex items-start pt-1">
@@ -893,7 +893,7 @@ Enter multiple ASINs, one per line"
                           type="checkbox"
                           checked={selectedItems.has(item.id)}
                           onChange={() => toggleSelection(item.id)}
-                          className="rounded border-gray-300 w-4 h-4"
+                          className="rounded border-dark-border w-4 h-4"
                         />
                       </div>
 
@@ -903,14 +903,14 @@ Enter multiple ASINs, one per line"
                           <img
                             src={primaryImage}
                             alt={item.title}
-                            className="w-20 h-20 object-cover rounded border border-gray-200"
+                            className="w-20 h-20 object-cover rounded border border-dark-border"
                             onError={(e) => {
                               e.target.style.display = 'none';
                             }}
                           />
                         ) : (
-                          <div className="w-20 h-20 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
-                            <span className="text-gray-400 text-xs">No image</span>
+                          <div className="w-20 h-20 bg-dark-border rounded border border-dark-border flex items-center justify-center">
+                            <span className="text-text-tertiary text-xs">No image</span>
                           </div>
                         )}
                       </div>
@@ -919,10 +919,10 @@ Enter multiple ASINs, one per line"
                       <div className="flex-1 min-w-0">
                         {/* Title and SKU */}
                         <div className="mb-2">
-                          <h3 className="font-medium text-sm text-gray-900 truncate" title={item.title}>
+                          <h3 className="font-medium text-sm text-text-primary truncate" title={item.title}>
                             {item.title}
                           </h3>
-                          <div className="flex gap-3 text-xs text-gray-500 mt-0.5">
+                          <div className="flex gap-3 text-xs text-text-tertiary mt-0.5">
                             <span>SKU: {item.sku}</span>
                             {item.asin && <span>ASIN: {item.asin}</span>}
                           </div>
@@ -931,26 +931,26 @@ Enter multiple ASINs, one per line"
                         {/* Product Info Grid */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
                           <div>
-                            <span className="text-xs text-gray-500">Qty:</span>{' '}
+                            <span className="text-xs text-text-tertiary">Qty:</span>{' '}
                             <span className="font-medium">{item.quantity}</span>
                           </div>
                           <div>
                             <span className={`px-2 py-0.5 text-xs rounded-full ${
                               item.condition === 'New' || item.condition === 'NEW'
-                                ? 'bg-green-100 text-green-800'
+                                ? 'bg-success/10 text-success'
                                 : 'bg-yellow-100 text-yellow-800'
                             }`}>
                               {item.condition}
                             </span>
                           </div>
                           <div>
-                            <span className="text-xs text-gray-500">Original:</span>{' '}
+                            <span className="text-xs text-text-tertiary">Original:</span>{' '}
                             <span className="font-medium">${item.originalPrice}</span>
                           </div>
                           <div>
-                            <span className="text-xs text-gray-500">eBay:</span>{' '}
+                            <span className="text-xs text-text-tertiary">eBay:</span>{' '}
                             {item.originalPrice > 0 ? (
-                              <span className="text-green-600 font-semibold">
+                              <span className="text-success font-semibold">
                                 ${calculateEbayPrice(item.originalPrice, item.condition)}
                               </span>
                             ) : (
@@ -970,14 +970,14 @@ Enter multiple ASINs, one per line"
             <div className="mt-6 flex flex-col sm:flex-row sm:justify-between gap-3">
               <button
                 onClick={() => setStep(2)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 w-full sm:w-auto"
+                className="px-4 py-2 bg-dark-border text-text-secondary rounded hover:bg-gray-300 w-full sm:w-auto"
               >
                 Back
               </button>
               <button
                 onClick={processForEbay}
                 disabled={selectedItems.size === 0 || processing}
-                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
+                className="px-6 py-2 bg-accent text-white rounded hover:bg-accent-hover disabled:opacity-50 w-full sm:w-auto"
               >
                 {processing ? 'Processing...' : `Process ${selectedItems.size} Items`}
               </button>
@@ -988,9 +988,9 @@ Enter multiple ASINs, one per line"
 
       {/* Step 4: Create Listings */}
       {step === 4 && (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-dark-surface rounded-lg border border-dark-border">
           <div className="p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
+            <h2 className="text-lg font-medium text-text-primary mb-4">
               Review eBay Listings ({processedData.length} items)
             </h2>
 
@@ -1003,7 +1003,7 @@ Enter multiple ASINs, one per line"
                                       (item.imageUrl ? `https://images-na.ssl-images-amazon.com/images/I/${item.imageUrl.trim()}` : null);
 
                   return (
-                    <div key={item.id} className="border rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div key={item.id} className="border rounded-lg p-3 bg-dark-bg hover:bg-dark-hover transition-colors">
                       <div className="flex gap-3">
                         {/* Product Image */}
                         <div className="flex-shrink-0">
@@ -1011,14 +1011,14 @@ Enter multiple ASINs, one per line"
                             <img
                               src={primaryImage}
                               alt={item.title}
-                              className="w-20 h-20 object-cover rounded border border-gray-200"
+                              className="w-20 h-20 object-cover rounded border border-dark-border"
                               onError={(e) => {
                                 e.target.style.display = 'none';
                               }}
                             />
                           ) : (
-                            <div className="w-20 h-20 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
-                              <span className="text-gray-400 text-xs">No image</span>
+                            <div className="w-20 h-20 bg-dark-border rounded border border-dark-border flex items-center justify-center">
+                              <span className="text-text-tertiary text-xs">No image</span>
                             </div>
                           )}
                         </div>
@@ -1032,12 +1032,12 @@ Enter multiple ASINs, one per line"
                               maxLength="80"
                               defaultValue={item.listingTitle}
                               onChange={(e) => handleTitleChange(item.id, e.target.value)}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              className="w-full px-2 py-1 text-sm border border-dark-border rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                               placeholder="Enter listing title"
                             />
                             <div className="flex justify-between items-center mt-0.5">
-                              <span className="text-xs text-gray-500">SKU: {item.sku}</span>
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-text-tertiary">SKU: {item.sku}</span>
+                              <span className="text-xs text-text-tertiary">
                                 {editableTitles[item.id]?.length || item.listingTitle.length}/80
                               </span>
                             </div>
@@ -1047,24 +1047,24 @@ Enter multiple ASINs, one per line"
                           <div className="grid grid-cols-4 gap-2">
                             {/* Quantity */}
                             <div>
-                              <label className="block text-xs text-gray-600 mb-0.5">Qty</label>
+                              <label className="block text-xs text-text-secondary mb-0.5">Qty</label>
                               <input
                                 type="number"
                                 min="1"
                                 max="10000"
                                 defaultValue={item.quantity}
                                 onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1 text-sm border border-dark-border rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                               />
                             </div>
 
                             {/* Condition */}
                             <div className="col-span-2">
-                              <label className="block text-xs text-gray-600 mb-0.5">Condition</label>
+                              <label className="block text-xs text-text-secondary mb-0.5">Condition</label>
                               <select
                                 defaultValue="NEW_OTHER"
                                 onChange={(e) => handleConditionChange(item.id, e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1 text-sm border border-dark-border rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                               >
                                 {ebayConditions.map((condition) => (
                                   <option key={condition.value} value={condition.value}>
@@ -1076,16 +1076,16 @@ Enter multiple ASINs, one per line"
 
                             {/* Price */}
                             <div>
-                              <label className="block text-xs text-gray-600 mb-0.5">Price</label>
+                              <label className="block text-xs text-text-secondary mb-0.5">Price</label>
                               <div className="relative">
-                                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+                                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-text-tertiary text-sm">$</span>
                                 <input
                                   type="number"
                                   step="0.01"
                                   min="0"
                                   defaultValue={item.suggestedPrice}
                                   onChange={(e) => handlePriceChange(item.id, e.target.value)}
-                                  className="w-full pl-6 pr-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                  className="w-full pl-6 pr-2 py-1 text-sm border border-dark-border rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                 />
                               </div>
                             </div>
@@ -1101,7 +1101,7 @@ Enter multiple ASINs, one per line"
             {/* Creation Results */}
             {creationResults && (
               <div className="space-y-4 max-h-96 overflow-y-auto">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 mb-4">
                   <h3 className="font-medium text-blue-900 mb-2">Creation Summary</h3>
                   <p className="text-sm text-blue-700">
                     ✅ Successful: {creationResults.filter(r => r.success).length} listings<br/>
@@ -1111,15 +1111,15 @@ Enter multiple ASINs, one per line"
 
                 {creationResults.map((result) => (
                   <div key={result.id} className={`border rounded-lg p-4 ${
-                    result.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                    result.success ? 'bg-success/10 border-success/30' : 'bg-error/10 border-error/30'
                   }`}>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           {result.success ? (
-                            <span className="text-green-600 font-bold">✓</span>
+                            <span className="text-success font-bold">✓</span>
                           ) : (
-                            <span className="text-red-600 font-bold">✗</span>
+                            <span className="text-error font-bold">✗</span>
                           )}
                           <h3 className={`font-medium ${result.success ? 'text-green-900' : 'text-red-900'}`}>
                             {result.title}
@@ -1129,7 +1129,7 @@ Enter multiple ASINs, one per line"
                           SKU: {result.sku}
                         </p>
                         {!result.success && (
-                          <p className="text-sm text-red-700 mt-2 bg-red-100 p-2 rounded">
+                          <p className="text-sm text-red-700 mt-2 bg-error/10 p-2 rounded">
                             Error: {result.error}
                           </p>
                         )}
@@ -1146,7 +1146,7 @@ Enter multiple ASINs, one per line"
                   <button
                     onClick={() => setStep(3)}
                     disabled={createListingsMutation.isLoading}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 w-full sm:w-auto"
+                    className="px-4 py-2 bg-dark-border text-text-secondary rounded hover:bg-gray-300 disabled:opacity-50 w-full sm:w-auto"
                   >
                     Back
                   </button>
@@ -1174,7 +1174,7 @@ Enter multiple ASINs, one per line"
                     setSelectedItems(new Set())
                     setStep(1)
                   }}
-                  className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto"
+                  className="px-6 py-2 bg-accent text-white rounded hover:bg-accent-hover w-full sm:w-auto"
                 >
                   Start Over
                 </button>

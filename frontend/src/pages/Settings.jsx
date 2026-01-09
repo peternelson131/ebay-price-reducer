@@ -300,15 +300,15 @@ export default function Settings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-text-primary">Settings</h1>
+        <p className="mt-1 text-sm text-text-tertiary">
           Configure your eBay price reduction preferences
         </p>
       </div>
 
       <div className="card">
         {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-dark-border">
           <nav className="-mb-px flex space-x-8 px-6">
             {tabs.map((tab) => (
               <button
@@ -317,7 +317,7 @@ export default function Settings() {
                 className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'border-ebay-blue text-ebay-blue'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-text-tertiary hover:text-text-secondary hover:border-dark-border'
                 }`}
               >
                 {tab.name}
@@ -331,7 +331,7 @@ export default function Settings() {
           {activeTab === 'general' && (
             <form onSubmit={handleSubmit(onSaveGeneral)} className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                <h3 className="text-lg font-medium text-text-primary mb-4">
                   Default Price Reduction Settings
                 </h3>
 
@@ -343,7 +343,7 @@ export default function Settings() {
                       <option value="market_based">Market Based</option>
                       <option value="time_based">Time Based</option>
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-text-tertiary mt-1">
                       Strategy applied to new imported listings
                     </p>
                   </div>
@@ -382,7 +382,7 @@ export default function Settings() {
                       {...register('defaultMinimumPriceRatio')}
                       className="form-input"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-text-tertiary mt-1">
                       Percentage of original price to set as minimum (70% = never go below 70% of original)
                     </p>
                   </div>
@@ -390,7 +390,7 @@ export default function Settings() {
               </div>
 
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                <h3 className="text-lg font-medium text-text-primary mb-4">
                   Monitoring Preferences
                 </h3>
 
@@ -401,9 +401,9 @@ export default function Settings() {
                       id="autoEnableMonitoring"
                       defaultChecked
                       {...register('autoEnableMonitoring')}
-                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-gray-300 rounded"
+                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
                     />
-                    <label htmlFor="autoEnableMonitoring" className="ml-2 text-sm text-gray-700">
+                    <label htmlFor="autoEnableMonitoring" className="ml-2 text-sm text-text-secondary">
                       Automatically enable monitoring for newly imported listings
                     </label>
                   </div>
@@ -413,9 +413,9 @@ export default function Settings() {
                       type="checkbox"
                       id="pauseOnWeekends"
                       {...register('pauseOnWeekends')}
-                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-gray-300 rounded"
+                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
                     />
-                    <label htmlFor="pauseOnWeekends" className="ml-2 text-sm text-gray-700">
+                    <label htmlFor="pauseOnWeekends" className="ml-2 text-sm text-text-secondary">
                       Pause price reductions on weekends
                     </label>
                   </div>
@@ -426,9 +426,9 @@ export default function Settings() {
                       id="marketAnalysisBeforeReduction"
                       defaultChecked
                       {...register('marketAnalysisBeforeReduction')}
-                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-gray-300 rounded"
+                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
                     />
-                    <label htmlFor="marketAnalysisBeforeReduction" className="ml-2 text-sm text-gray-700">
+                    <label htmlFor="marketAnalysisBeforeReduction" className="ml-2 text-sm text-text-secondary">
                       Perform market analysis before each price reduction
                     </label>
                   </div>
@@ -448,9 +448,9 @@ export default function Settings() {
             <div className="space-y-6">
               {/* Help text for new users */}
               {!credentials?.hasAppId && !loadingCredentials && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
                   <h4 className="font-medium text-blue-900 mb-2">Getting Started with eBay Integration</h4>
-                  <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
+                  <ol className="text-sm text-accent space-y-2 list-decimal list-inside">
                     <li>Get your eBay developer credentials from <a href="https://developer.ebay.com" target="_blank" rel="noopener noreferrer" className="underline">eBay Developers Program</a></li>
                     <li>Enter your App ID and Cert ID below and click "Save Credentials"</li>
                     <li>Click "Connect eBay Account" to authorize access to your listings</li>
@@ -461,7 +461,7 @@ export default function Settings() {
 
               {/* Loading State */}
               {(loadingCredentials || loadingStatus) && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="bg-dark-bg border border-dark-border rounded-lg p-4">
                   <div className="animate-pulse flex space-x-4">
                     <div className="h-4 bg-gray-300 rounded w-1/4"></div>
                   </div>
@@ -472,7 +472,7 @@ export default function Settings() {
               {!loadingCredentials && credentials && (
                 <div className={`border rounded-lg p-4 ${
                   credentials.hasAppId && credentials.hasCertId
-                    ? 'bg-green-50 border-green-200'
+                    ? 'bg-success/10 border-success/30'
                     : 'bg-yellow-50 border-yellow-200'
                 }`}>
                   <h4 className={`font-medium mb-2 ${
@@ -500,13 +500,13 @@ export default function Settings() {
               {!loadingStatus && connectionStatus && (
                 <div className={`border rounded-lg p-4 ${
                   connectionStatus.connected
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-gray-50 border-gray-200'
+                    ? 'bg-success/10 border-success/30'
+                    : 'bg-dark-bg border-dark-border'
                 }`}>
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className={`font-medium ${
-                        connectionStatus.connected ? 'text-green-900' : 'text-gray-900'
+                        connectionStatus.connected ? 'text-green-900' : 'text-text-primary'
                       }`}>
                         eBay Account {connectionStatus.connected ? 'Connected' : 'Not Connected'}
                       </h4>
@@ -516,14 +516,14 @@ export default function Settings() {
                         </p>
                       )}
                       {connectionStatus.connected && connectionStatus.refreshTokenExpiresAt && (
-                        <p className="text-xs text-green-600 mt-1">
+                        <p className="text-xs text-success mt-1">
                           Token expires: {new Date(connectionStatus.refreshTokenExpiresAt).toLocaleDateString()}
                         </p>
                       )}
                     </div>
                     {connectionStatus.connected && (
                       <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <div className="w-3 h-3 bg-success/100 rounded-full animate-pulse"></div>
                         <span className="text-sm font-medium text-green-700">Active</span>
                       </div>
                     )}
@@ -533,10 +533,10 @@ export default function Settings() {
 
               <form onSubmit={handleSubmit(onSaveEbay)} className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  <h3 className="text-lg font-medium text-text-primary mb-4">
                     eBay API Credentials
                   </h3>
-                  <p className="text-sm text-gray-600 mb-6">
+                  <p className="text-sm text-text-secondary mb-6">
                     Configure your eBay developer credentials to enable API access.
                     <a href="https://developer.ebay.com" target="_blank" rel="noopener noreferrer" className="text-ebay-blue hover:text-blue-700 ml-1">
                       Get your credentials here
@@ -595,7 +595,7 @@ export default function Settings() {
                       <button
                         type="button"
                         onClick={testConnection}
-                        className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                        className="bg-accent text-white px-6 py-2 rounded-lg hover:bg-accent-hover transition-colors"
                       >
                         Test Connection
                       </button>
@@ -624,7 +624,7 @@ export default function Settings() {
               {/* Only show sync settings if connected */}
               {connectionStatus?.connected && (
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  <h3 className="text-lg font-medium text-text-primary mb-4">
                     Sync Settings
                   </h3>
 
@@ -637,7 +637,7 @@ export default function Settings() {
                         <option value="12">Every 12 hours</option>
                         <option value="24">Daily</option>
                       </select>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-text-tertiary mt-1">
                         How often to automatically sync your eBay listings
                       </p>
                     </div>
@@ -648,9 +648,9 @@ export default function Settings() {
                         id="autoImportNewListings"
                         defaultChecked
                         {...register('autoImportNewListings')}
-                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-gray-300 rounded"
+                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
                       />
-                      <label htmlFor="autoImportNewListings" className="ml-2 text-sm text-gray-700">
+                      <label htmlFor="autoImportNewListings" className="ml-2 text-sm text-text-secondary">
                         Automatically import new eBay listings
                       </label>
                     </div>
@@ -664,7 +664,7 @@ export default function Settings() {
           {activeTab === 'notifications' && (
             <form onSubmit={handleSubmit(onSaveNotifications)} className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                <h3 className="text-lg font-medium text-text-primary mb-4">
                   Email Notifications
                 </h3>
 
@@ -686,9 +686,9 @@ export default function Settings() {
                         id="priceReductionAlerts"
                         defaultChecked
                         {...register('priceReductionAlerts')}
-                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-gray-300 rounded"
+                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
                       />
-                      <label htmlFor="priceReductionAlerts" className="ml-2 text-sm text-gray-700">
+                      <label htmlFor="priceReductionAlerts" className="ml-2 text-sm text-text-secondary">
                         Notify when prices are reduced
                       </label>
                     </div>
@@ -699,9 +699,9 @@ export default function Settings() {
                         id="errorAlerts"
                         defaultChecked
                         {...register('errorAlerts')}
-                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-gray-300 rounded"
+                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
                       />
-                      <label htmlFor="errorAlerts" className="ml-2 text-sm text-gray-700">
+                      <label htmlFor="errorAlerts" className="ml-2 text-sm text-text-secondary">
                         Notify when errors occur
                       </label>
                     </div>
@@ -711,9 +711,9 @@ export default function Settings() {
                         type="checkbox"
                         id="weeklyReports"
                         {...register('weeklyReports')}
-                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-gray-300 rounded"
+                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
                       />
-                      <label htmlFor="weeklyReports" className="ml-2 text-sm text-gray-700">
+                      <label htmlFor="weeklyReports" className="ml-2 text-sm text-text-secondary">
                         Send weekly activity reports
                       </label>
                     </div>
@@ -723,9 +723,9 @@ export default function Settings() {
                         type="checkbox"
                         id="marketInsights"
                         {...register('marketInsights')}
-                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-gray-300 rounded"
+                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
                       />
-                      <label htmlFor="marketInsights" className="ml-2 text-sm text-gray-700">
+                      <label htmlFor="marketInsights" className="ml-2 text-sm text-text-secondary">
                         Send market analysis insights
                       </label>
                     </div>
@@ -734,7 +734,7 @@ export default function Settings() {
               </div>
 
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                <h3 className="text-lg font-medium text-text-primary mb-4">
                   Alert Thresholds
                 </h3>
 
@@ -749,7 +749,7 @@ export default function Settings() {
                       {...register('priceDropThreshold')}
                       className="form-input"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-text-tertiary mt-1">
                       Get notified when a listing's price drops below this percentage of its original price
                     </p>
                   </div>
@@ -764,7 +764,7 @@ export default function Settings() {
                       {...register('nearMinimumThreshold')}
                       className="form-input"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-text-tertiary mt-1">
                       Get notified when a listing is close to its minimum price
                     </p>
                   </div>

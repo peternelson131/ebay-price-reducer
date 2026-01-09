@@ -282,17 +282,17 @@ export default function Account() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
-        <p className="text-gray-600 mt-2">Manage your account settings and preferences</p>
+        <h1 className="text-3xl font-bold text-text-primary">Account Settings</h1>
+        <p className="text-text-secondary mt-2">Manage your account settings and preferences</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-dark-surface rounded-lg border border-dark-border overflow-hidden">
         {/* Mobile Tab Selector */}
         <div className="sm:hidden">
           <select
             value={activeTab}
             onChange={(e) => setActiveTab(e.target.value)}
-            className="w-full px-4 py-3 text-base border-b border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 text-base border-b border-dark-border focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {tabs.map((tab) => (
               <option key={tab.id} value={tab.id}>
@@ -303,7 +303,7 @@ export default function Account() {
         </div>
 
         {/* Desktop Tab Navigation */}
-        <div className="hidden sm:block border-b border-gray-200">
+        <div className="hidden sm:block border-b border-dark-border">
           <nav className="flex flex-wrap" aria-label="Tabs">
             {tabs.map((tab) => (
               <button
@@ -311,8 +311,8 @@ export default function Account() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`${
                   activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-accent bg-accent/10'
+                    : 'border-transparent text-text-tertiary hover:text-text-secondary hover:border-dark-border'
                 } whitespace-nowrap py-4 px-4 sm:px-6 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors`}
               >
                 <span className="text-lg">{tab.icon}</span>
@@ -327,51 +327,51 @@ export default function Account() {
           {activeTab === 'profile' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Profile Information</h3>
-                <p className="text-sm text-gray-600">Update your account profile information.</p>
+                <h3 className="text-lg font-medium text-text-primary">Profile Information</h3>
+                <p className="text-sm text-text-secondary">Update your account profile information.</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">Full Name</label>
                   {isEditing ? (
                     <input
                       type="text"
                       value={profileData.name || profile?.name || ''}
                       onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="w-full border border-dark-border rounded-lg px-3 py-2"
                     />
                   ) : (
-                    <div className="text-gray-900">{profile?.name || 'Not set'}</div>
+                    <div className="text-text-primary">{profile?.name || 'Not set'}</div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <div className="text-gray-900">{profile?.email || 'Not available'}</div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">Email</label>
+                  <div className="text-text-primary">{profile?.email || 'Not available'}</div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Default Reduction Strategy</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">Default Reduction Strategy</label>
                   {isEditing ? (
                     <select
                       value={profileData.default_reduction_strategy || profile?.default_reduction_strategy || ''}
                       onChange={(e) => setProfileData(prev => ({ ...prev, default_reduction_strategy: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="w-full border border-dark-border rounded-lg px-3 py-2"
                     >
                       <option value="fixed_percentage">Fixed Percentage</option>
                       <option value="market_based">Market Based</option>
                       <option value="time_based">Time Based</option>
                     </select>
                   ) : (
-                    <div className="text-gray-900 capitalize">
+                    <div className="text-text-primary capitalize">
                       {profile?.default_reduction_strategy?.replace('_', ' ') || 'Fixed Percentage'}
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Default Reduction Percentage</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">Default Reduction Percentage</label>
                   {isEditing ? (
                     <input
                       type="number"
@@ -379,15 +379,15 @@ export default function Account() {
                       max="50"
                       value={profileData.default_reduction_percentage || profile?.default_reduction_percentage || ''}
                       onChange={(e) => setProfileData(prev => ({ ...prev, default_reduction_percentage: parseInt(e.target.value) }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="w-full border border-dark-border rounded-lg px-3 py-2"
                     />
                   ) : (
-                    <div className="text-gray-900">{profile?.default_reduction_percentage || 5}%</div>
+                    <div className="text-text-primary">{profile?.default_reduction_percentage || 5}%</div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Default Reduction Interval (Days)</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">Default Reduction Interval (Days)</label>
                   {isEditing ? (
                     <input
                       type="number"
@@ -395,10 +395,10 @@ export default function Account() {
                       max="30"
                       value={profileData.default_reduction_interval || profile?.default_reduction_interval || ''}
                       onChange={(e) => setProfileData(prev => ({ ...prev, default_reduction_interval: parseInt(e.target.value) }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="w-full border border-dark-border rounded-lg px-3 py-2"
                     />
                   ) : (
-                    <div className="text-gray-900">{profile?.default_reduction_interval || 7} days</div>
+                    <div className="text-text-primary">{profile?.default_reduction_interval || 7} days</div>
                   )}
                 </div>
               </div>
@@ -409,7 +409,7 @@ export default function Account() {
                     <button
                       onClick={handleProfileSave}
                       disabled={updateProfileMutation.isLoading}
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                      className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover disabled:opacity-50"
                     >
                       Save Changes
                     </button>
@@ -423,7 +423,7 @@ export default function Account() {
                 ) : (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
                   >
                     Edit Profile
                   </button>
@@ -435,15 +435,15 @@ export default function Account() {
           {activeTab === 'preferences' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Preferences</h3>
-                <p className="text-sm text-gray-600">Customize your application preferences.</p>
+                <h3 className="text-lg font-medium text-text-primary">Preferences</h3>
+                <p className="text-sm text-text-secondary">Customize your application preferences.</p>
               </div>
 
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2 border-b sm:border-0">
                   <div>
-                    <label className="text-sm font-medium text-gray-900">Email Notifications</label>
-                    <p className="text-sm text-gray-600">Receive general email notifications</p>
+                    <label className="text-sm font-medium text-text-primary">Email Notifications</label>
+                    <p className="text-sm text-text-secondary">Receive general email notifications</p>
                   </div>
                   <input
                     type="checkbox"
@@ -454,14 +454,14 @@ export default function Account() {
                       }
                     }}
                     disabled={!isEditingPreferences}
-                    className="h-4 w-4 text-blue-600"
+                    className="h-4 w-4 text-accent"
                   />
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2 border-b sm:border-0">
                   <div>
-                    <label className="text-sm font-medium text-gray-900">Price Reduction Alerts</label>
-                    <p className="text-sm text-gray-600">Receive alerts when prices are automatically reduced</p>
+                    <label className="text-sm font-medium text-text-primary">Price Reduction Alerts</label>
+                    <p className="text-sm text-text-secondary">Receive alerts when prices are automatically reduced</p>
                   </div>
                   <input
                     type="checkbox"
@@ -472,7 +472,7 @@ export default function Account() {
                       }
                     }}
                     disabled={!isEditingPreferences}
-                    className="h-4 w-4 text-blue-600"
+                    className="h-4 w-4 text-accent"
                   />
                 </div>
               </div>
@@ -483,7 +483,7 @@ export default function Account() {
                     <button
                       onClick={handlePreferencesSave}
                       disabled={updatePreferencesMutation.isLoading}
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                      className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover disabled:opacity-50"
                     >
                       Save Changes
                     </button>
@@ -497,7 +497,7 @@ export default function Account() {
                 ) : (
                   <button
                     onClick={() => setIsEditingPreferences(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
                   >
                     Edit Preferences
                   </button>
@@ -509,44 +509,44 @@ export default function Account() {
           {activeTab === 'security' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Security Settings</h3>
-                <p className="text-sm text-gray-600">Manage your account security and password.</p>
+                <h3 className="text-lg font-medium text-text-primary">Security Settings</h3>
+                <p className="text-sm text-text-secondary">Manage your account security and password.</p>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">Current Password</label>
                   <input
                     type="password"
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-dark-border rounded-lg px-3 py-2"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">New Password</label>
                   <input
                     type="password"
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-dark-border rounded-lg px-3 py-2"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">Confirm New Password</label>
                   <input
                     type="password"
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-dark-border rounded-lg px-3 py-2"
                   />
                 </div>
 
                 <button
                   onClick={handlePasswordChange}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
                 >
                   Update Password
                 </button>
@@ -557,12 +557,12 @@ export default function Account() {
           {activeTab === 'integrations' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Platform Integrations</h3>
-                <p className="text-sm text-gray-600">Connect your accounts and configure API access for various platforms.</p>
+                <h3 className="text-lg font-medium text-text-primary">Platform Integrations</h3>
+                <p className="text-sm text-text-secondary">Connect your accounts and configure API access for various platforms.</p>
               </div>
 
               {/* Quick Link to Listing Settings */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h4 className="font-medium text-blue-900 mb-1">📋 eBay Listing Settings</h4>
@@ -571,7 +571,7 @@ export default function Account() {
                     </p>
                     <Link
                       to="/listing-settings"
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium"
+                      className="inline-flex items-center px-4 py-2 bg-accent text-white rounded hover:bg-accent-hover transition-colors text-sm font-medium"
                     >
                       Open Listing Settings →
                     </Link>
@@ -580,7 +580,7 @@ export default function Account() {
               </div>
 
               {/* Keepa Integration - Collapsible */}
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-dark-surface border border-dark-border rounded-lg overflow-hidden">
                 <button
                   type="button"
                   onClick={() => toggleSection('keepa')}
@@ -591,12 +591,12 @@ export default function Account() {
                       K
                     </div>
                     <div className="text-left">
-                      <h4 className="font-medium text-gray-900">Keepa Integration</h4>
-                      <p className="text-sm text-gray-600">Amazon market data and price tracking</p>
+                      <h4 className="font-medium text-text-primary">Keepa Integration</h4>
+                      <p className="text-sm text-text-secondary">Amazon market data and price tracking</p>
                     </div>
                   </div>
                   <svg
-                    className={`w-5 h-5 text-gray-500 transform transition-transform ${expandedSections.keepa ? 'rotate-180' : ''}`}
+                    className={`w-5 h-5 text-text-tertiary transform transition-transform ${expandedSections.keepa ? 'rotate-180' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -606,20 +606,20 @@ export default function Account() {
                 </button>
 
                 {expandedSections.keepa && (
-                  <div className="p-6 space-y-6 border-t border-gray-200">
+                  <div className="p-6 space-y-6 border-t border-dark-border">
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                      <h4 className="font-medium text-gray-900 mb-2">What is Keepa?</h4>
-                      <p className="text-sm text-gray-600">
+                      <h4 className="font-medium text-text-primary mb-2">What is Keepa?</h4>
+                      <p className="text-sm text-text-secondary">
                         Keepa is a powerful Amazon price tracker that provides historical price data, product research tools,
                         and market insights. Integrate Keepa to analyze Amazon market trends and optimize your eBay pricing strategy.
                       </p>
                     </div>
 
                     {/* Step 1: Create Keepa Account */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                      <h5 className="font-medium text-gray-900 text-base mb-3">Step 1: Create Your Keepa Account</h5>
-                      <div className="space-y-3 text-sm text-gray-700">
-                        <p>1. Visit <a href="https://keepa.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Keepa.com</a></p>
+                    <div className="bg-dark-surface border border-dark-border rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-text-primary text-base mb-3">Step 1: Create Your Keepa Account</h5>
+                      <div className="space-y-3 text-sm text-text-secondary">
+                        <p>1. Visit <a href="https://keepa.com" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Keepa.com</a></p>
                         <p>2. Click "Register" in the top right corner</p>
                         <p>3. Fill in your email address and create a secure password</p>
                         <p>4. Verify your email address through the confirmation link</p>
@@ -628,9 +628,9 @@ export default function Account() {
                     </div>
 
                     {/* Step 2: Subscribe to API Access */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                      <h5 className="font-medium text-gray-900 text-base mb-3">Step 2: Subscribe to API Access</h5>
-                      <div className="space-y-3 text-sm text-gray-700">
+                    <div className="bg-dark-surface border border-dark-border rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-text-primary text-base mb-3">Step 2: Subscribe to API Access</h5>
+                      <div className="space-y-3 text-sm text-text-secondary">
                         <p>Keepa API access requires a subscription. Choose a plan that fits your needs:</p>
                         <div className="ml-4 space-y-2">
                           <p>• <strong>Data API:</strong> €49/month - Ideal for price tracking and market analysis</p>
@@ -647,9 +647,9 @@ export default function Account() {
                     </div>
 
                     {/* Step 3: Generate API Key */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                      <h5 className="font-medium text-gray-900 text-base mb-3">Step 3: Generate Your API Key</h5>
-                      <div className="space-y-3 text-sm text-gray-700">
+                    <div className="bg-dark-surface border border-dark-border rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-text-primary text-base mb-3">Step 3: Generate Your API Key</h5>
+                      <div className="space-y-3 text-sm text-text-secondary">
                         <p>After subscribing to API access:</p>
                         <div className="space-y-2">
                           <p>1. Log in to your Keepa account</p>
@@ -658,10 +658,10 @@ export default function Account() {
                           <p>4. Give your API key a descriptive name (e.g., "eBay Price Reducer")</p>
                           <p>5. Set usage limits if desired (optional)</p>
                           <p>6. Click <strong>"Create API Key"</strong></p>
-                          <p>7. <strong className="text-red-600">Important:</strong> Copy your API key immediately - it won't be shown again!</p>
+                          <p>7. <strong className="text-error">Important:</strong> Copy your API key immediately - it won't be shown again!</p>
                         </div>
-                        <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-3">
-                          <p className="text-blue-800 text-sm">
+                        <div className="bg-accent/10 border border-accent/30 rounded p-3 mt-3">
+                          <p className="text-accent text-sm">
                             <strong>Tip:</strong> Store your API key securely. You can regenerate it if lost,
                             but this will invalidate the old key.
                           </p>
@@ -670,24 +670,24 @@ export default function Account() {
                     </div>
 
                     {/* Step 4: Enter API Key */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                      <h5 className="font-medium text-gray-900 text-base mb-4">Step 4: Enter Your Keepa API Key</h5>
+                    <div className="bg-dark-surface border border-dark-border rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-text-primary text-base mb-4">Step 4: Enter Your Keepa API Key</h5>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                          <label className="block text-sm font-medium text-text-secondary mb-1">API Key</label>
                           <input
                             type="password"
                             placeholder={profile?.keepa_api_key ? "••••••••••••••••••••••••••••••••" : "Enter your Keepa API key"}
                             value={keepaCredentials.api_key}
                             onChange={(e) => setKeepaCredentials({ api_key: e.target.value })}
-                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            className="w-full border border-dark-border rounded-lg px-3 py-2 text-sm"
                           />
                           <div className="flex items-center justify-between mt-1">
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-text-tertiary">
                               Your API key should be 64 characters long and contain letters and numbers.
                             </p>
                             {profile?.keepa_api_key && (
-                              <span className="text-xs text-green-600 font-medium">
+                              <span className="text-xs text-success font-medium">
                                 ✓ API key configured
                               </span>
                             )}
@@ -713,12 +713,12 @@ export default function Account() {
                     </div>
 
                     {/* API Features */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                      <h5 className="font-medium text-gray-900 text-base mb-3">What You Can Do With Keepa API</h5>
+                    <div className="bg-dark-surface border border-dark-border rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-text-primary text-base mb-3">What You Can Do With Keepa API</h5>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <h6 className="font-medium text-gray-900 mb-2">Price History</h6>
-                          <ul className="space-y-1 text-gray-600">
+                          <h6 className="font-medium text-text-primary mb-2">Price History</h6>
+                          <ul className="space-y-1 text-text-secondary">
                             <li>• Historical price data</li>
                             <li>• Sales rank tracking</li>
                             <li>• Price drop alerts</li>
@@ -726,8 +726,8 @@ export default function Account() {
                           </ul>
                         </div>
                         <div>
-                          <h6 className="font-medium text-gray-900 mb-2">Product Research</h6>
-                          <ul className="space-y-1 text-gray-600">
+                          <h6 className="font-medium text-text-primary mb-2">Product Research</h6>
+                          <ul className="space-y-1 text-text-secondary">
                             <li>• Product finder</li>
                             <li>• Category best sellers</li>
                             <li>• Competitor analysis</li>
@@ -738,7 +738,7 @@ export default function Account() {
                     </div>
 
                     {/* Connection Status */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="bg-dark-bg border border-dark-border rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           {connectionStatusLoading ? (
@@ -746,13 +746,13 @@ export default function Account() {
                           ) : (
                             <div className={`w-3 h-3 rounded-full ${
                               keepaConnectionStatus?.connected
-                                ? 'bg-green-500'
+                                ? 'bg-success/100'
                                 : profile?.keepa_api_key
-                                ? 'bg-red-500'
+                                ? 'bg-error/100'
                                 : 'bg-gray-400'
                             }`}></div>
                           )}
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm font-medium text-text-primary">
                             Keepa API Status: {
                               connectionStatusLoading
                                 ? 'Checking...'
@@ -764,7 +764,7 @@ export default function Account() {
                             }
                           </span>
                         </div>
-                        <div className="text-xs text-gray-500 text-right">
+                        <div className="text-xs text-text-tertiary text-right">
                           {connectionStatusLoading ? (
                             'Testing connection...'
                           ) : keepaConnectionStatus?.connected ? (
@@ -785,13 +785,13 @@ export default function Account() {
                     </div>
 
                     {/* Additional Resources */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                      <h5 className="font-medium text-gray-900 text-base mb-3">Keepa Resources</h5>
+                    <div className="bg-dark-surface border border-dark-border rounded-lg p-4 sm:p-6">
+                      <h5 className="font-medium text-text-primary text-base mb-3">Keepa Resources</h5>
                       <div className="space-y-2 text-sm">
-                        <p>• <a href="https://keepa.com/#!api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">API Documentation</a></p>
-                        <p>• <a href="https://keepa.com/#!discuss/t/api-documentation/1295" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">API Forums & Support</a></p>
-                        <p>• <a href="https://keepa.com/#!addon" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Browser Extension</a></p>
-                        <p>• <a href="https://keepa.com/#!pricing" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Pricing Plans</a></p>
+                        <p>• <a href="https://keepa.com/#!api" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">API Documentation</a></p>
+                        <p>• <a href="https://keepa.com/#!discuss/t/api-documentation/1295" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">API Forums & Support</a></p>
+                        <p>• <a href="https://keepa.com/#!addon" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Browser Extension</a></p>
+                        <p>• <a href="https://keepa.com/#!pricing" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Pricing Plans</a></p>
                       </div>
                     </div>
                   </div>
@@ -799,23 +799,23 @@ export default function Account() {
               </div>
 
               {/* Other Integrations - Collapsible */}
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-dark-surface border border-dark-border rounded-lg overflow-hidden">
                 <button
                   type="button"
                   onClick={() => toggleSection('other')}
-                  className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
+                  className="w-full px-6 py-4 bg-dark-bg hover:bg-dark-hover transition-colors flex items-center justify-between"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-gray-600 rounded flex items-center justify-center text-white font-bold text-sm">
                       ⚙️
                     </div>
                     <div className="text-left">
-                      <h4 className="font-medium text-gray-900">Other Integrations</h4>
-                      <p className="text-sm text-gray-600">Additional tools and export options</p>
+                      <h4 className="font-medium text-text-primary">Other Integrations</h4>
+                      <p className="text-sm text-text-secondary">Additional tools and export options</p>
                     </div>
                   </div>
                   <svg
-                    className={`w-5 h-5 text-gray-500 transform transition-transform ${expandedSections.other ? 'rotate-180' : ''}`}
+                    className={`w-5 h-5 text-text-tertiary transform transition-transform ${expandedSections.other ? 'rotate-180' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -825,30 +825,30 @@ export default function Account() {
                 </button>
 
                 {expandedSections.other && (
-                  <div className="p-6 space-y-4 border-t border-gray-200">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
+                  <div className="p-6 space-y-4 border-t border-dark-border">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-dark-border rounded-lg">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-red-600 rounded flex items-center justify-center text-white font-bold">
                           📧
                         </div>
                         <div>
-                          <h5 className="font-medium text-gray-900">Email Notifications</h5>
-                          <p className="text-sm text-gray-600">Receive alerts and reports via email</p>
+                          <h5 className="font-medium text-text-primary">Email Notifications</h5>
+                          <p className="text-sm text-text-secondary">Receive alerts and reports via email</p>
                         </div>
                       </div>
-                      <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto">
+                      <button className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover w-full sm:w-auto">
                         Configure
                       </button>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-dark-border rounded-lg">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-purple-600 rounded flex items-center justify-center text-white font-bold">
                           📊
                         </div>
                         <div>
-                          <h5 className="font-medium text-gray-900">Analytics Export</h5>
-                          <p className="text-sm text-gray-600">Export data to Google Sheets or CSV</p>
+                          <h5 className="font-medium text-text-primary">Analytics Export</h5>
+                          <p className="text-sm text-text-secondary">Export data to Google Sheets or CSV</p>
                         </div>
                       </div>
                       <button className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 w-full sm:w-auto">
@@ -856,14 +856,14 @@ export default function Account() {
                       </button>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-dark-border rounded-lg">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-green-600 rounded flex items-center justify-center text-white font-bold">
                           🔄
                         </div>
                         <div>
-                          <h5 className="font-medium text-gray-900">Webhooks</h5>
-                          <p className="text-sm text-gray-600">Send real-time updates to external services</p>
+                          <h5 className="font-medium text-text-primary">Webhooks</h5>
+                          <p className="text-sm text-text-secondary">Send real-time updates to external services</p>
                         </div>
                       </div>
                       <button className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 w-full sm:w-auto">
@@ -871,14 +871,14 @@ export default function Account() {
                       </button>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-gray-200 rounded-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-dark-border rounded-lg">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-indigo-600 rounded flex items-center justify-center text-white font-bold">
                           🤖
                         </div>
                         <div>
-                          <h5 className="font-medium text-gray-900">Zapier Integration</h5>
-                          <p className="text-sm text-gray-600">Connect to 5,000+ apps via Zapier</p>
+                          <h5 className="font-medium text-text-primary">Zapier Integration</h5>
+                          <p className="text-sm text-text-secondary">Connect to 5,000+ apps via Zapier</p>
                         </div>
                       </div>
                       <button className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 w-full sm:w-auto">
@@ -894,12 +894,12 @@ export default function Account() {
       </div>
 
       {/* Data & Privacy Section */}
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Data & Privacy</h3>
+      <div className="bg-dark-surface rounded-lg border border-dark-border p-4 sm:p-6">
+        <h3 className="text-lg font-medium text-text-primary mb-4">Data & Privacy</h3>
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={handleExportData}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
           >
             Export My Data
           </button>
