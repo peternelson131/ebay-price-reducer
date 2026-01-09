@@ -281,7 +281,7 @@ await ebayApi.deleteInventoryItem(sku);
 
 | Story | Status | Notes |
 |-------|--------|-------|
-| 1. Inventory Item | 🔲 Not Started | |
+| 1. Inventory Item | 🟡 Ready for Testing | `create-ebay-inventory-item.js` deployed |
 | 2. Create Offer | 🔲 Not Started | |
 | 3. Publish Offer | 🔲 Not Started | |
 | 4. Category Mapping | 🔲 Not Started | |

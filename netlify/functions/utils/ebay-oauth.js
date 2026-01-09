@@ -22,10 +22,15 @@ const EBAY_API_BASE = 'https://api.ebay.com';
 
 // Required OAuth scopes for selling
 // Note: These must be enabled in the eBay Developer Console for your app
-// Start minimal - only request what's needed for Inventory API listing creation
+// 
+// Scopes needed for full listing flow:
+// - api_scope: Base scope (always required)
+// - sell.inventory: Create/manage inventory items & offers
+// - sell.account: Access business policies (fulfillment, payment, return)
 const EBAY_SCOPES = [
-  'https://api.ebay.com/oauth/api_scope',                    // Base scope (always required)
-  'https://api.ebay.com/oauth/api_scope/sell.inventory'      // Create/manage inventory items & offers
+  'https://api.ebay.com/oauth/api_scope',
+  'https://api.ebay.com/oauth/api_scope/sell.inventory',
+  'https://api.ebay.com/oauth/api_scope/sell.account'
 ].join(' ');
 
 /**
