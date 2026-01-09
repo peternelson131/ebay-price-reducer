@@ -281,8 +281,8 @@ await ebayApi.deleteInventoryItem(sku);
 
 | Story | Status | Notes |
 |-------|--------|-------|
-| 1. Inventory Item | 🟡 Ready for Testing | `create-ebay-inventory-item.js` deployed |
-| 2. Create Offer | 🔲 Not Started | |
+| 1. Inventory Item | ✅ Complete | Tested 2026-01-09, creates & deletes work |
+| 2. Create Offer | 🟡 In Progress | |
 | 3. Publish Offer | 🔲 Not Started | |
 | 4. Category Mapping | 🔲 Not Started | |
 | 5. AI Generation | 🔲 Not Started | |
