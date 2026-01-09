@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ExternalLink, CheckCircle, XCircle, AlertCircle, Loader, Link2, Unlink } from 'lucide-react';
 
+// Simple API key services (just Keepa now)
 const API_SERVICES = [
   {
     id: 'keepa',
@@ -10,34 +11,6 @@ const API_SERVICES = [
     description: 'Required for product data, variations, and similar product search',
     helpUrl: 'https://keepa.com/#!api',
     placeholder: 'Enter your Keepa API key'
-  },
-  {
-    id: 'ebay_app_id',
-    name: 'eBay App ID (Client ID)',
-    description: 'From eBay Developer Program',
-    helpUrl: 'https://developer.ebay.com/my/keys',
-    placeholder: 'Enter your eBay App ID'
-  },
-  {
-    id: 'ebay_cert_id',
-    name: 'eBay Cert ID (Client Secret)',
-    description: 'From eBay Developer Program',
-    helpUrl: 'https://developer.ebay.com/my/keys',
-    placeholder: 'Enter your eBay Cert ID'
-  },
-  {
-    id: 'ebay_dev_id',
-    name: 'eBay Dev ID',
-    description: 'From eBay Developer Program',
-    helpUrl: 'https://developer.ebay.com/my/keys',
-    placeholder: 'Enter your eBay Dev ID'
-  },
-  {
-    id: 'ebay_refresh_token',
-    name: 'eBay Refresh Token',
-    description: 'OAuth refresh token for API access',
-    helpUrl: 'https://developer.ebay.com/api-docs/static/oauth-tokens.html',
-    placeholder: 'Enter your eBay refresh token'
   }
 ];
 
@@ -59,9 +32,9 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
             href={service.helpUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 text-sm text-accent hover:text-accent-hover transition-colors inline-block"
+            className="mt-1 text-sm text-accent hover:text-accent-hover transition-colors inline-flex items-center gap-1"
           >
-            Get API key →
+            Get API key <ExternalLink className="h-3 w-3" />
           </a>
         </div>
         {existingKey && (
@@ -109,12 +82,302 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
             </button>
           )}
         </div>
-        {existingKey?.lastUsed && (
-          <p className="mt-2 text-xs text-text-tertiary">
-            Last used: {new Date(existingKey.lastUsed).toLocaleString()}
-          </p>
-        )}
       </div>
+    </div>
+  );
+}
+
+function EbayConnectionCard() {
+  const { user } = useAuth();
+  const [status, setStatus] = useState('loading'); // loading, not_connected, pending, connected, error
+  const [message, setMessage] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [showSecret, setShowSecret] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [showCredentialsForm, setShowCredentialsForm] = useState(false);
+
+  // Check URL params for OAuth callback results
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('ebay_connected') === 'true') {
+      setMessage('eBay account connected successfully!');
+      setStatus('connected');
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('ebay_error')) {
+      setMessage(`eBay connection failed: ${params.get('ebay_error')}`);
+      setStatus('error');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  // Check connection status on mount
+  useEffect(() => {
+    checkConnectionStatus();
+  }, [user]);
+
+  const checkConnectionStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/.netlify/functions/ebay-connection-status', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.connected) {
+        setStatus('connected');
+      } else if (data.status === 'pending') {
+        setStatus('pending');
+      } else {
+        setStatus('not_connected');
+      }
+    } catch (error) {
+      console.error('Failed to check eBay status:', error);
+      setStatus('not_connected');
+    }
+  };
+
+  const startOAuthFlow = async () => {
+    if (!clientId.trim() || !clientSecret.trim()) {
+      setMessage('Please enter both Client ID and Client Secret');
+      return;
+    }
+
+    setConnecting(true);
+    setMessage('');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/.netlify/functions/ebay-auth-start', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ clientId, clientSecret })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start authorization');
+      }
+
+      // Redirect to eBay authorization
+      window.location.href = data.authUrl;
+    } catch (error) {
+      console.error('OAuth start error:', error);
+      setMessage(error.message);
+      setConnecting(false);
+    }
+  };
+
+  const disconnectEbay = async () => {
+    if (!confirm('Are you sure you want to disconnect your eBay account?')) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/.netlify/functions/ebay-disconnect', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to disconnect');
+      }
+
+      setStatus('not_connected');
+      setMessage('eBay account disconnected');
+      setClientId('');
+      setClientSecret('');
+      setShowCredentialsForm(false);
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      setMessage(error.message);
+    }
+  };
+
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'loading':
+        return <Loader className="h-5 w-5 animate-spin text-text-tertiary" />;
+      case 'connected':
+        return <CheckCircle className="h-5 w-5 text-success" />;
+      case 'pending':
+        return <AlertCircle className="h-5 w-5 text-warning" />;
+      case 'error':
+        return <XCircle className="h-5 w-5 text-error" />;
+      default:
+        return <XCircle className="h-5 w-5 text-text-tertiary" />;
+    }
+  };
+
+  const getStatusBadge = () => {
+    switch (status) {
+      case 'connected':
+        return <span className="px-2 py-1 text-xs rounded-lg bg-success/10 text-success">Connected</span>;
+      case 'pending':
+        return <span className="px-2 py-1 text-xs rounded-lg bg-warning/10 text-warning">Pending</span>;
+      default:
+        return <span className="px-2 py-1 text-xs rounded-lg bg-dark-border text-text-tertiary">Not Connected</span>;
+    }
+  };
+
+  return (
+    <div className="bg-dark-surface rounded-lg border border-dark-border p-6">
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-3">
+          {getStatusIcon()}
+          <div>
+            <h3 className="text-lg font-medium text-text-primary">eBay Account</h3>
+            <p className="mt-1 text-sm text-text-tertiary">
+              Connect your eBay seller account to create and manage listings
+            </p>
+          </div>
+        </div>
+        {getStatusBadge()}
+      </div>
+
+      {message && (
+        <div className={`mt-4 p-3 rounded-lg text-sm ${
+          message.includes('success') || message.includes('connected') 
+            ? 'bg-success/10 text-success' 
+            : 'bg-error/10 text-error'
+        }`}>
+          {message}
+        </div>
+      )}
+
+      {status === 'connected' ? (
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-sm text-success">Your eBay account is connected and ready to use.</p>
+          <button
+            onClick={disconnectEbay}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-error border border-error/30 rounded-lg hover:bg-error/10 transition-colors"
+          >
+            <Unlink className="h-4 w-4" />
+            Disconnect
+          </button>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          {!showCredentialsForm ? (
+            <div>
+              <p className="text-sm text-text-secondary mb-4">
+                To connect your eBay account, you'll need your eBay Developer credentials.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCredentialsForm(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors font-medium"
+                >
+                  <Link2 className="h-4 w-4" />
+                  Connect eBay Account
+                </button>
+                <a
+                  href="https://developer.ebay.com/my/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2.5 text-text-secondary border border-dark-border rounded-lg hover:bg-dark-hover transition-colors"
+                >
+                  Get Credentials <ExternalLink className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 border-t border-dark-border pt-4">
+              <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
+                <h4 className="font-medium text-accent mb-2">Setup Instructions</h4>
+                <ol className="text-sm text-text-secondary space-y-1 list-decimal list-inside">
+                  <li>Go to <a href="https://developer.ebay.com/my/keys" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">eBay Developer Console</a></li>
+                  <li>Create or select your Production application</li>
+                  <li>Copy your App ID (Client ID) and Cert ID (Client Secret)</li>
+                  <li>Add this redirect URL to your app's OAuth settings:
+                    <code className="block mt-1 p-2 bg-dark-bg rounded text-xs text-text-primary break-all">
+                      {window.location.origin}/.netlify/functions/ebay-oauth-callback
+                    </code>
+                  </li>
+                  <li>Enter your credentials below and click Connect</li>
+                </ol>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  App ID (Client ID)
+                </label>
+                <input
+                  type="text"
+                  value={clientId}
+                  onChange={(e) => setClientId(e.target.value)}
+                  placeholder="Your eBay App ID"
+                  className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Cert ID (Client Secret)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showSecret ? 'text' : 'password'}
+                    value={clientSecret}
+                    onChange={(e) => setClientSecret(e.target.value)}
+                    placeholder="Your eBay Cert ID"
+                    className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecret(!showSecret)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+                  >
+                    {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={startOAuthFlow}
+                  disabled={connecting || !clientId.trim() || !clientSecret.trim()}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  {connecting ? (
+                    <>
+                      <Loader className="h-4 w-4 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-4 w-4" />
+                      Connect to eBay
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setShowCredentialsForm(false)}
+                  className="px-4 py-2.5 text-text-secondary border border-dark-border rounded-lg hover:bg-dark-hover transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -252,6 +515,10 @@ export default function ApiKeys() {
       )}
 
       <div className="space-y-4">
+        {/* eBay Connection - OAuth Flow */}
+        <EbayConnectionCard />
+
+        {/* Simple API Key Services */}
         {API_SERVICES.map(service => (
           <ApiKeyInput
             key={service.id}
