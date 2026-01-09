@@ -282,9 +282,9 @@ await ebayApi.deleteInventoryItem(sku);
 | Story | Status | Notes |
 |-------|--------|-------|
 | 1. Inventory Item | ✅ Complete | Tested 2026-01-09, creates & deletes work |
-| 2. Create Offer | 🟡 In Progress | |
-| 3. Publish Offer | 🔲 Not Started | |
-| 4. Category Mapping | 🔲 Not Started | |
+| 2. Create Offer | ✅ Complete | Fixed: merchant location, MPN requirement |
+| 3. Publish Offer | ✅ Complete | Live listing created: 187933010709 |
+| 4. Category Mapping | 🟡 In Progress | |
 | 5. AI Generation | 🔲 Not Started | |
 | 6. Auto-List Endpoint | 🔲 Not Started | |
 | 7. Simplified UI | 🔲 Not Started | |
