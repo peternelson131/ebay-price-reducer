@@ -1,0 +1,154 @@
+{
+  "name": "eBay Aspect Keyword Review",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 5 }]
+        }
+      },
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM ebay_aspect_misses WHERE status = 'pending' LIMIT 10",
+        "additionalFields": {}
+      },
+      "name": "Get Pending Misses",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": { "id": "YOUR_SUPABASE_CREDENTIAL_ID", "name": "Supabase Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.id }}", "value2": "", "operation": "notEmpty" }
+          ]
+        }
+      },
+      "name": "Has Records?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You analyze product titles and extract keyword patterns for eBay listing aspects.\n\nYou will receive:\n- aspect_name: The eBay aspect that needs a value (e.g., 'Type', 'Connectivity', 'Platform')\n- product_title: The product title from Amazon/Keepa\n- category_name: The eBay category\n\nRespond with JSON only:\n{\n  \"aspect_value\": \"The exact value to use for eBay (e.g., 'Wireless', 'Ear-Cup (Over the Ear)')\",\n  \"keyword_pattern\": \"A regex pattern to match similar products (e.g., 'wireless|bluetooth')\",\n  \"confidence\": \"high|medium|low\"\n}"
+            },
+            {
+              "role": "user", 
+              "content": "Aspect: {{ $json.aspect_name }}\nCategory: {{ $json.category_name }}\nProduct Title: {{ $json.product_title }}\n\nWhat value should this aspect have, and what keyword pattern would match similar products?"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "name": "AI Infer Pattern",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [850, 200],
+      "credentials": {
+        "openAiApi": { "id": "YOUR_OPENAI_CREDENTIAL_ID", "name": "OpenAI" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json.message.content;\ntry {\n  const parsed = JSON.parse(response);\n  return [{\n    json: {\n      ...items[0].json,\n      suggested_value: parsed.aspect_value,\n      suggested_pattern: parsed.keyword_pattern,\n      confidence: parsed.confidence\n    }\n  }];\n} catch (e) {\n  return [{ json: { ...items[0].json, error: 'Failed to parse AI response' } }];\n}"
+      },
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            { "value1": "={{ $json.confidence }}", "value2": "high", "operation": "equals" }
+          ]
+        }
+      },
+      "name": "High Confidence?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO ebay_aspect_keywords (aspect_name, keyword_pattern, aspect_value, category_id) VALUES ('{{ $json.aspect_name }}', '{{ $json.suggested_pattern }}', '{{ $json.suggested_value }}', '{{ $json.category_id }}') ON CONFLICT DO NOTHING",
+        "additionalFields": {}
+      },
+      "name": "Insert Keyword",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [1450, 100],
+      "credentials": {
+        "postgres": { "id": "YOUR_SUPABASE_CREDENTIAL_ID", "name": "Supabase Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE ebay_aspect_misses SET status = 'processed', suggested_value = '{{ $json.suggested_value }}', suggested_pattern = '{{ $json.suggested_pattern }}', reviewed_at = NOW() WHERE id = {{ $json.id }}",
+        "additionalFields": {}
+      },
+      "name": "Mark Processed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [1650, 100],
+      "credentials": {
+        "postgres": { "id": "YOUR_SUPABASE_CREDENTIAL_ID", "name": "Supabase Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE ebay_aspect_misses SET status = 'review_needed', suggested_value = '{{ $json.suggested_value }}', suggested_pattern = '{{ $json.suggested_pattern }}', notes = 'Low confidence - needs manual review' WHERE id = {{ $json.id }}",
+        "additionalFields": {}
+      },
+      "name": "Flag for Review",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [1450, 300],
+      "credentials": {
+        "postgres": { "id": "YOUR_SUPABASE_CREDENTIAL_ID", "name": "Supabase Postgres" }
+      }
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": { "main": [[{ "node": "Get Pending Misses", "type": "main", "index": 0 }]] },
+    "Get Pending Misses": { "main": [[{ "node": "Has Records?", "type": "main", "index": 0 }]] },
+    "Has Records?": { 
+      "main": [
+        [{ "node": "AI Infer Pattern", "type": "main", "index": 0 }],
+        []
+      ] 
+    },
+    "AI Infer Pattern": { "main": [[{ "node": "Parse AI Response", "type": "main", "index": 0 }]] },
+    "Parse AI Response": { "main": [[{ "node": "High Confidence?", "type": "main", "index": 0 }]] },
+    "High Confidence?": { 
+      "main": [
+        [{ "node": "Insert Keyword", "type": "main", "index": 0 }],
+        [{ "node": "Flag for Review", "type": "main", "index": 0 }]
+      ] 
+    },
+    "Insert Keyword": { "main": [[{ "node": "Mark Processed", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

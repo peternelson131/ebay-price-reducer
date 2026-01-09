@@ -108,8 +108,17 @@ exports.handler = async (event, context) => {
 
     // 6. Get required aspects from database
     console.log('📋 Looking up required aspects...');
-    const requiredAspects = await getRequiredAspects(supabase, category.categoryId, keepaData.product);
+    const { aspects: requiredAspects, missingAspects } = await getRequiredAspects(
+      supabase, 
+      category.categoryId, 
+      category.categoryName,
+      keepaData.product,
+      asin
+    );
     console.log(`   Found ${Object.keys(requiredAspects).length} aspects: ${Object.keys(requiredAspects).join(', ') || 'none'}`);
+    if (missingAspects.length > 0) {
+      console.log(`   ⚠️ Missing aspects (logged for review): ${missingAspects.join(', ')}`);
+    }
 
     // 7. Create inventory item with aspects
     console.log('📦 Creating inventory item...');
@@ -250,57 +259,112 @@ async function fetchKeepaProduct(userId, asin) {
 
 /**
  * Get required aspects from database and match values
+ * Uses: ebay_category_aspects, ebay_aspect_keywords, ebay_aspect_misses
  */
-async function getRequiredAspects(supabase, categoryId, product) {
+async function getRequiredAspects(supabase, categoryId, categoryName, product, asin) {
   const aspects = {};
   const title = (product.title || '').toLowerCase();
   const features = (product.features || []).join(' ').toLowerCase();
   const combined = title + ' ' + features;
+  const missingAspects = [];
 
-  // Get aspect requirements for this category
-  const { data: aspectDefs } = await supabase
-    .from('ebay_aspect_values')
-    .select('*')
-    .eq('ebay_category_id', categoryId);
+  // 1. Get required aspects for this category
+  const { data: categoryData } = await supabase
+    .from('ebay_category_aspects')
+    .select('required_aspects')
+    .eq('category_id', categoryId)
+    .single();
 
-  if (!aspectDefs || aspectDefs.length === 0) {
-    return aspects;
+  const requiredAspectNames = categoryData?.required_aspects || [];
+  
+  if (requiredAspectNames.length === 0) {
+    return { aspects, missingAspects: [] };
   }
 
-  for (const def of aspectDefs) {
+  // 2. Get all keyword patterns
+  const { data: keywordPatterns } = await supabase
+    .from('ebay_aspect_keywords')
+    .select('*');
+
+  const patternsByAspect = {};
+  (keywordPatterns || []).forEach(p => {
+    if (!patternsByAspect[p.aspect_name]) patternsByAspect[p.aspect_name] = [];
+    patternsByAspect[p.aspect_name].push(p);
+  });
+
+  // 3. For each required aspect, try to find a value
+  for (const aspectName of requiredAspectNames) {
     let value = null;
 
-    // First check if we have it from Keepa data
-    if (def.aspect_name === 'Brand' && product.brand) {
+    // Method 1: Check Keepa data for universal aspects
+    if (aspectName === 'Brand' && product.brand) {
       value = product.brand;
-    } else if (def.aspect_name === 'MPN' && product.partNumber) {
+    } else if (aspectName === 'Model' && product.model) {
+      value = product.model;
+    } else if (aspectName === 'MPN' && product.partNumber) {
       value = product.partNumber;
-    } else if (def.aspect_name === 'Game Name' || def.aspect_name === 'Movie/TV Title') {
+    } else if (aspectName === 'Color' && product.color) {
+      value = product.color;
+    } else if (aspectName === 'Manufacturer' && product.manufacturer) {
+      value = product.manufacturer;
+    } else if (aspectName === 'Game Name' || aspectName === 'Movie/TV Title') {
       value = product.title?.substring(0, 65);
     }
 
-    // Try keyword detection if we have keywords defined
-    if (!value && def.detection_keywords && Object.keys(def.detection_keywords).length > 0) {
-      for (const [validValue, keywords] of Object.entries(def.detection_keywords)) {
-        if (keywords.some(kw => combined.includes(kw.toLowerCase()))) {
-          value = validValue;
-          break;
+    // Method 2: Try keyword pattern matching
+    if (!value && patternsByAspect[aspectName]) {
+      for (const pattern of patternsByAspect[aspectName]) {
+        // Skip if pattern is category-specific and doesn't match our category
+        if (pattern.category_id && pattern.category_id !== categoryId) continue;
+        
+        try {
+          const regex = new RegExp(pattern.keyword_pattern, 'i');
+          if (regex.test(combined)) {
+            value = pattern.aspect_value;
+            break;
+          }
+        } catch (e) {
+          console.log(`Invalid regex pattern: ${pattern.keyword_pattern}`);
         }
       }
     }
 
-    // Use default if still no value
-    if (!value && def.default_value) {
-      value = def.default_value;
-    }
-
-    // Only add if we have a value
+    // Record the value or log as missing
     if (value) {
-      aspects[def.aspect_name] = [value];
+      aspects[aspectName] = [value];
+    } else {
+      missingAspects.push(aspectName);
     }
   }
 
-  return aspects;
+  // 4. Log missing aspects to ebay_aspect_misses for n8n review
+  if (missingAspects.length > 0 && asin) {
+    for (const aspectName of missingAspects) {
+      // Check if we already logged this miss
+      const { data: existing } = await supabase
+        .from('ebay_aspect_misses')
+        .select('id')
+        .eq('asin', asin)
+        .eq('aspect_name', aspectName)
+        .single();
+
+      if (!existing) {
+        await supabase.from('ebay_aspect_misses').insert({
+          asin,
+          category_id: categoryId,
+          category_name: categoryName,
+          aspect_name: aspectName,
+          product_title: product.title || '',
+          keepa_brand: product.brand || null,
+          keepa_model: product.model || null,
+          status: 'pending'
+        });
+        console.log(`📝 Logged missing aspect: ${aspectName} for ${asin}`);
+      }
+    }
+  }
+
+  return { aspects, missingAspects };
 }
 
 function buildInventoryItem(keepaData, condition, quantity, requiredAspects = {}) {
