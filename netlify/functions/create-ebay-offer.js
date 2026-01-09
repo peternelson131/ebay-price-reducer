@@ -148,9 +148,8 @@ exports.handler = async (event, context) => {
           currency: 'USD',
           value: parseFloat(price).toFixed(2)
         }
-      },
-      // Include merchant location (required for some categories)
-      merchantLocationKey: 'default'  // Uses the seller's default location
+      }
+      // Note: merchantLocationKey is optional; eBay will use seller's default
     };
 
     // Add listing description if provided
