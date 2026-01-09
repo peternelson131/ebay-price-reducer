@@ -1,27 +1,30 @@
 /**
- * Category Mapper
+ * Category Mapper v2
  * 
- * Maps Amazon product data to eBay categories using the ebay_category_mappings table.
+ * Maps Amazon product data to eBay LEAF categories with required aspects.
  * 
- * Lookup priority:
- * 1. Exact match on product_group + type (highest priority value wins)
- * 2. Match on product_group only
- * 3. Default fallback category
+ * Uses two tables:
+ * - ebay_category_mappings: Amazon → eBay category lookup
+ * - ebay_category_requirements: Leaf validation + required aspects
  */
 
 /**
  * Get eBay category for an Amazon product
  * @param {Object} supabase - Supabase client
  * @param {Object} keepaProduct - Product data from Keepa
- * @returns {Object} - { categoryId, categoryName, requiredAspects, defaultCondition }
+ * @returns {Object} - { categoryId, categoryName, isLeaf, requiredAspects, matchType }
  */
 async function getEbayCategory(supabase, keepaProduct) {
   const productGroup = keepaProduct.productGroup;
   const productType = keepaProduct.type;
 
-  // Try exact match first (product_group + type)
+  // Step 1: Find category mapping
+  let mapping = null;
+  let matchType = 'default';
+
+  // Try exact match (product_group + type)
   if (productGroup && productType) {
-    const { data: exactMatch } = await supabase
+    const { data } = await supabase
       .from('ebay_category_mappings')
       .select('*')
       .eq('amazon_product_group', productGroup)
@@ -29,15 +32,16 @@ async function getEbayCategory(supabase, keepaProduct) {
       .order('priority', { ascending: false })
       .limit(1)
       .single();
-
-    if (exactMatch) {
-      return formatResult(exactMatch, 'exact');
+    
+    if (data) {
+      mapping = data;
+      matchType = 'exact';
     }
   }
 
   // Try product_group only
-  if (productGroup) {
-    const { data: groupMatch } = await supabase
+  if (!mapping && productGroup) {
+    const { data } = await supabase
       .from('ebay_category_mappings')
       .select('*')
       .eq('amazon_product_group', productGroup)
@@ -45,79 +49,117 @@ async function getEbayCategory(supabase, keepaProduct) {
       .order('priority', { ascending: false })
       .limit(1)
       .single();
-
-    if (groupMatch) {
-      return formatResult(groupMatch, 'group');
+    
+    if (data) {
+      mapping = data;
+      matchType = 'group';
     }
   }
 
   // Default fallback
-  const { data: defaultMatch } = await supabase
-    .from('ebay_category_mappings')
-    .select('*')
-    .is('amazon_product_group', null)
-    .is('amazon_type', null)
-    .limit(1)
-    .single();
-
-  if (defaultMatch) {
-    return formatResult(defaultMatch, 'default');
+  if (!mapping) {
+    const { data } = await supabase
+      .from('ebay_category_mappings')
+      .select('*')
+      .is('amazon_product_group', null)
+      .is('amazon_type', null)
+      .limit(1)
+      .single();
+    
+    mapping = data;
+    matchType = 'default';
   }
 
-  // Ultimate fallback if no default in DB
-  return {
-    categoryId: '99',
-    categoryName: 'Everything Else',
-    requiredAspects: {},
-    defaultCondition: 'NEW',
-    matchType: 'hardcoded'
-  };
-}
+  const categoryId = mapping?.ebay_category_id || '99';
+  const categoryName = mapping?.ebay_category_name || 'Everything Else';
 
-function formatResult(mapping, matchType) {
+  // Step 2: Get category requirements (check if leaf, get required aspects)
+  const { data: requirements } = await supabase
+    .from('ebay_category_requirements')
+    .select('*')
+    .eq('ebay_category_id', categoryId)
+    .single();
+
+  // If category is not a leaf, try to find a leaf subcategory
+  if (requirements && !requirements.is_leaf) {
+    // Look for a leaf category with this as parent
+    const { data: leafCategory } = await supabase
+      .from('ebay_category_requirements')
+      .select('*')
+      .eq('parent_category_id', categoryId)
+      .eq('is_leaf', true)
+      .limit(1)
+      .single();
+
+    if (leafCategory) {
+      return {
+        categoryId: leafCategory.ebay_category_id,
+        categoryName: leafCategory.ebay_category_name,
+        isLeaf: true,
+        requiredAspects: leafCategory.required_aspects || [],
+        optionalAspects: leafCategory.optional_aspects || [],
+        matchType: matchType + '+leaf',
+        originalCategoryId: categoryId,
+        notes: leafCategory.notes
+      };
+    }
+  }
+
   return {
-    categoryId: mapping.ebay_category_id,
-    categoryName: mapping.ebay_category_name,
-    requiredAspects: mapping.required_aspects || {},
-    defaultCondition: mapping.default_condition || 'NEW',
-    matchType: matchType
+    categoryId,
+    categoryName,
+    isLeaf: requirements?.is_leaf ?? true,
+    requiredAspects: requirements?.required_aspects || [],
+    optionalAspects: requirements?.optional_aspects || [],
+    matchType,
+    notes: requirements?.notes
   };
 }
 
 /**
- * Get all category mappings (for admin/debugging)
- * @param {Object} supabase - Supabase client
- * @returns {Array} - All mappings
+ * Get category requirements by ID
  */
-async function getAllMappings(supabase) {
+async function getCategoryRequirements(supabase, categoryId) {
   const { data, error } = await supabase
-    .from('ebay_category_mappings')
+    .from('ebay_category_requirements')
     .select('*')
-    .order('amazon_product_group')
-    .order('priority', { ascending: false });
+    .eq('ebay_category_id', categoryId)
+    .single();
 
-  if (error) {
-    throw new Error(`Failed to fetch mappings: ${error.message}`);
+  if (error || !data) {
+    return null;
   }
 
   return data;
 }
 
 /**
- * Add or update a category mapping
- * @param {Object} supabase - Supabase client
- * @param {Object} mapping - Mapping data
- * @returns {Object} - Created/updated mapping
+ * Get all leaf categories
  */
-async function upsertMapping(supabase, mapping) {
+async function getLeafCategories(supabase) {
+  const { data } = await supabase
+    .from('ebay_category_requirements')
+    .select('*')
+    .eq('is_leaf', true)
+    .order('ebay_category_name');
+
+  return data || [];
+}
+
+/**
+ * Add or update a category requirement
+ */
+async function upsertCategoryRequirement(supabase, requirement) {
+  requirement.updated_at = new Date().toISOString();
+  
   const { data, error } = await supabase
-    .from('ebay_category_mappings')
-    .upsert(mapping)
+    .from('ebay_category_requirements')
+    .upsert(requirement, { onConflict: 'ebay_category_id' })
     .select()
     .single();
 
   if (error) {
-    throw new Error(`Failed to upsert mapping: ${error.message}`);
+    throw new Error(`Failed to upsert requirement: ${error.message}`);
   }
 
   return data;
@@ -125,6 +167,7 @@ async function upsertMapping(supabase, mapping) {
 
 module.exports = {
   getEbayCategory,
-  getAllMappings,
-  upsertMapping
+  getCategoryRequirements,
+  getLeafCategories,
+  upsertCategoryRequirement
 };
