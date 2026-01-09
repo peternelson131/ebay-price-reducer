@@ -1,6 +1,17 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
+import { 
+  LayoutList, 
+  Plus, 
+  TrendingDown, 
+  Search, 
+  User, 
+  Key, 
+  LogOut, 
+  Menu, 
+  X 
+} from 'lucide-react'
 
 // Lazy load all page components for code splitting
 const Account = lazy(() => import('./pages/Account'))
@@ -160,19 +171,11 @@ export default function App() {
                 aria-expanded={mobileMenuOpen}
                 aria-label="Toggle navigation menu"
               >
-                <svg
-                  className="h-6 w-6 transform transition-transform duration-200"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  style={{ transform: mobileMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}
-                >
-                  {mobileMenuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </svg>
+                {mobileMenuOpen ? (
+                  <X className="h-5 w-5" strokeWidth={1.5} />
+                ) : (
+                  <Menu className="h-5 w-5" strokeWidth={1.5} />
+                )}
               </button>
             </div>
           </div>
@@ -209,9 +212,7 @@ export default function App() {
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <svg className="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
+                  <LayoutList className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   Listings
                 </Link>
 
@@ -224,9 +225,7 @@ export default function App() {
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <svg className="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
+                  <Plus className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   Auto-List
                 </Link>
 
@@ -239,9 +238,7 @@ export default function App() {
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <svg className="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
+                  <TrendingDown className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   Strategies
                 </Link>
 
@@ -254,9 +251,7 @@ export default function App() {
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <svg className="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                  <Search className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   Influencer Central
                 </Link>
 
@@ -269,9 +264,7 @@ export default function App() {
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <svg className="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  <User className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   Account
                 </Link>
 
@@ -284,9 +277,7 @@ export default function App() {
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <svg className="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                  </svg>
+                  <Key className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   API Keys
                 </Link>
 
@@ -299,9 +290,7 @@ export default function App() {
                     }}
                     className="flex items-center w-full px-3 py-3 rounded-lg text-base font-medium text-text-secondary hover:text-error hover:bg-error/10 transition-colors"
                   >
-                    <svg className="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
+                    <LogOut className="mr-3 h-5 w-5" strokeWidth={1.5} />
                     Logout
                   </button>
                 </div>

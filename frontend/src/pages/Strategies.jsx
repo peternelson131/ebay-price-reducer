@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { strategiesAPI } from '../lib/supabase'
+import { Plus, FileText, Check, X } from 'lucide-react'
 
 export default function Strategies() {
   const queryClient = useQueryClient()
@@ -148,7 +149,7 @@ export default function Strategies() {
           onClick={() => setShowModal(true)}
           className="bg-accent text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-accent-hover font-medium flex items-center justify-center space-x-2 w-full sm:w-auto transition-colors"
         >
-          <span>+</span>
+          <Plus className="h-4 w-4" strokeWidth={2} />
           <span>Add New Rule</span>
         </button>
       </div>
@@ -162,7 +163,7 @@ export default function Strategies() {
         }`}>
           <div className="flex items-center space-x-3">
             <div className={notification.type === 'success' ? 'text-success' : 'text-error'}>
-              {notification.type === 'success' ? '✓' : '✕'}
+              {notification.type === 'success' ? <Check className="h-5 w-5" strokeWidth={2} /> : <X className="h-5 w-5" strokeWidth={2} />}
             </div>
             <p className={`text-sm font-medium ${
               notification.type === 'success' ? 'text-success' : 'text-error'
@@ -176,7 +177,7 @@ export default function Strategies() {
               notification.type === 'success' ? 'text-success hover:text-success' : 'text-error hover:text-error'
             }`}
           >
-            ✕
+            <X className="h-4 w-4" strokeWidth={2} />
           </button>
         </div>
       )}
@@ -189,7 +190,7 @@ export default function Strategies() {
 
         {rules.length === 0 ? (
           <div className="px-4 sm:px-6 py-8 sm:py-12 text-center">
-            <div className="text-text-tertiary text-6xl mb-4">📋</div>
+            <FileText className="h-16 w-16 text-text-tertiary mx-auto mb-4" strokeWidth={1} />
             <h3 className="text-lg font-medium text-text-primary mb-2">No rules created yet</h3>
             <p className="text-text-secondary mb-4">Create your first price reduction rule to get started</p>
             <button
@@ -265,9 +266,9 @@ export default function Strategies() {
               <h3 className="text-lg font-medium text-text-primary">Create New Rule</h3>
               <button
                 onClick={resetModal}
-                className="text-text-tertiary hover:text-text-primary text-xl transition-colors"
+                className="text-text-tertiary hover:text-text-primary transition-colors p-1 rounded-lg hover:bg-dark-hover"
               >
-                ✕
+                <X className="h-5 w-5" strokeWidth={1.5} />
               </button>
             </div>
 

@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { listingsAPI, userAPI } from '../lib/supabase'
 import apiService from '../services/api'
 import { getActiveStrategies, getStrategyById, getStrategyDisplayName, getStrategyDisplayInfo } from '../data/strategies'
+import { Search, X, AlertCircle, Plus, Filter } from 'lucide-react'
 
 // Helper functions for localStorage
 const VALID_COLUMNS = [
@@ -800,9 +801,7 @@ export default function Listings() {
       <div className="bg-dark-surface rounded-lg border border-dark-border p-4">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="h-5 w-5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
+            <Search className="h-5 w-5 text-text-tertiary" strokeWidth={1.5} />
           </div>
           <input
             type="text"
@@ -816,9 +815,7 @@ export default function Listings() {
               onClick={() => setSearchTerm('')}
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
-              <svg className="h-5 w-5 text-text-tertiary hover:text-text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
+              <X className="h-5 w-5 text-text-tertiary hover:text-text-primary transition-colors" strokeWidth={1.5} />
             </button>
           )}
         </div>
@@ -874,11 +871,10 @@ export default function Listings() {
           {/* Add Filter Button */}
           <button
             onClick={addFilter}
-            className="bg-success/10 text-success border border-success/30 px-3 py-2 rounded-lg text-sm hover:bg-success/20 flex items-center space-x-1 flex-shrink-0 transition-colors"
+            className="bg-success/10 text-success border border-success/30 px-3 py-2 rounded-lg text-sm hover:bg-success/20 flex items-center space-x-1.5 flex-shrink-0 transition-colors"
           >
-            <span>+</span>
+            <Filter className="h-4 w-4" strokeWidth={1.5} />
             <span className="hidden sm:inline">Add Filter</span>
-            <span className="sm:hidden">Filter</span>
           </button>
 
           {/* Clear Filters Button */}
