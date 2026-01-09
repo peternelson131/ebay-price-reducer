@@ -148,8 +148,9 @@ exports.handler = async (event, context) => {
           currency: 'USD',
           value: parseFloat(price).toFixed(2)
         }
-      }
-      // Note: merchantLocationKey is optional; eBay will use seller's default
+      },
+      // Use seller's primary warehouse location
+      merchantLocationKey: 'US_53226'
     };
 
     // Add listing description if provided
