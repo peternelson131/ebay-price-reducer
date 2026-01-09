@@ -304,6 +304,11 @@ function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity) {
     item.product.brand = ebayDraft.brand;
   }
 
+  // Add MPN (Manufacturer Part Number) - required for many categories
+  if (keepaProduct.partNumber) {
+    item.product.mpn = keepaProduct.partNumber;
+  }
+
   // Add UPC/EAN/ISBN if available (product identifiers)
   if (keepaProduct.upcList && keepaProduct.upcList.length > 0) {
     item.product.upc = [keepaProduct.upcList[0]];
