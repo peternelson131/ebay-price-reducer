@@ -116,8 +116,24 @@ exports.handler = async (event, context) => {
       asin
     );
     console.log(`   Found ${Object.keys(requiredAspects).length} aspects: ${Object.keys(requiredAspects).join(', ') || 'none'}`);
+    
+    // If missing required aspects, fail gracefully and let n8n learn
     if (missingAspects.length > 0) {
       console.log(`   ⚠️ Missing aspects (logged for review): ${missingAspects.join(', ')}`);
+      return {
+        statusCode: 422,
+        headers,
+        body: JSON.stringify({
+          error: 'Missing required aspects',
+          message: `Unable to process this item - our system is learning. Please try again in 10 minutes.`,
+          details: {
+            asin,
+            category: category.categoryName,
+            missingAspects,
+            logged: true
+          }
+        })
+      };
     }
 
     // 7. Create inventory item with aspects
