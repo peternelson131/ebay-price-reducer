@@ -128,7 +128,6 @@ export default function Login({ onLogin }) {
     setErrors({})
 
     try {
-      // Use real authAPI for login
       const result = await authAPI.signIn(formData.email || formData.username, formData.password)
 
       if (result.error) {
@@ -158,7 +157,6 @@ export default function Login({ onLogin }) {
     setErrors({})
 
     try {
-      // Use existing authAPI for signup
       const result = await authAPI.signUp(formData.email, formData.password, {
         name: formData.name,
         username: formData.username
@@ -185,7 +183,6 @@ export default function Login({ onLogin }) {
     setErrors({})
 
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500))
 
       if (forgotData.email) {
@@ -209,7 +206,6 @@ export default function Login({ onLogin }) {
     setErrors({})
 
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500))
 
       showNotification('success', 'Password reset successful! You can now login.')
@@ -222,20 +218,18 @@ export default function Login({ onLogin }) {
     }
   }
 
-  const handleDemoLogin = () => {
-    const userData = {
-      username: 'demo',
-      name: 'Demo User',
-      email: 'demo@example.com'
-    }
-    showNotification('success', 'Demo login successful! Redirecting...')
-    setTimeout(() => onLogin(userData), 1000)
-  }
+  const inputClasses = (hasError) => `
+    w-full px-3 py-2.5 bg-dark-bg border rounded-lg text-text-primary placeholder-text-tertiary
+    focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-colors
+    ${hasError ? 'border-error' : 'border-dark-border'}
+  `
+
+  const labelClasses = "block text-sm font-medium text-text-secondary mb-1.5"
 
   const renderLoginForm = () => (
-    <form onSubmit={handleLogin} className="space-y-6">
+    <form onSubmit={handleLogin} className="space-y-5">
       <div>
-        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="username" className={labelClasses}>
           Username
         </label>
         <input
@@ -244,16 +238,14 @@ export default function Login({ onLogin }) {
           type="text"
           value={formData.username}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.username ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={inputClasses(errors.username)}
           placeholder="Enter your username"
         />
-        {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
+        {errors.username && <p className="text-error text-sm mt-1">{errors.username}</p>}
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="password" className={labelClasses}>
           Password
         </label>
         <input
@@ -262,17 +254,15 @@ export default function Login({ onLogin }) {
           type="password"
           value={formData.password}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.password ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={inputClasses(errors.password)}
           placeholder="Enter your password"
         />
-        {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+        {errors.password && <p className="text-error text-sm mt-1">{errors.password}</p>}
       </div>
 
       {errors.general && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-red-800 text-sm">{errors.general}</p>
+        <div className="bg-error/10 border border-error/30 rounded-lg p-3">
+          <p className="text-error text-sm">{errors.general}</p>
         </div>
       )}
 
@@ -282,38 +272,36 @@ export default function Login({ onLogin }) {
             id="remember-me"
             name="remember-me"
             type="checkbox"
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="h-4 w-4 bg-dark-bg border-dark-border rounded text-accent focus:ring-accent"
           />
-          <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+          <label htmlFor="remember-me" className="ml-2 block text-sm text-text-secondary">
             Remember me
           </label>
         </div>
 
-        <div className="text-sm">
-          <button
-            type="button"
-            onClick={() => setCurrentView('forgot')}
-            className="font-medium text-blue-600 hover:text-blue-500"
-          >
-            Forgot username or password?
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setCurrentView('forgot')}
+          className="text-sm text-accent hover:text-accent-hover transition-colors"
+        >
+          Forgot password?
+        </button>
       </div>
 
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-dark-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
       >
         {isLoading ? 'Signing In...' : 'Sign In'}
       </button>
 
       <div className="text-center">
-        <span className="text-sm text-gray-600">Don't have an account? </span>
+        <span className="text-sm text-text-tertiary">Don't have an account? </span>
         <button
           type="button"
           onClick={() => setCurrentView('signup')}
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+          className="text-accent hover:text-accent-hover text-sm font-medium transition-colors"
         >
           Sign up
         </button>
@@ -322,9 +310,9 @@ export default function Login({ onLogin }) {
   )
 
   const renderSignupForm = () => (
-    <form onSubmit={handleSignup} className="space-y-6">
+    <form onSubmit={handleSignup} className="space-y-5">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="name" className={labelClasses}>
           Full Name
         </label>
         <input
@@ -333,16 +321,14 @@ export default function Login({ onLogin }) {
           type="text"
           value={formData.name}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.name ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={inputClasses(errors.name)}
           placeholder="Enter your full name"
         />
-        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+        {errors.name && <p className="text-error text-sm mt-1">{errors.name}</p>}
       </div>
 
       <div>
-        <label htmlFor="signup-username" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="signup-username" className={labelClasses}>
           Username
         </label>
         <input
@@ -351,16 +337,14 @@ export default function Login({ onLogin }) {
           type="text"
           value={formData.username}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.username ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={inputClasses(errors.username)}
           placeholder="Choose a username"
         />
-        {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
+        {errors.username && <p className="text-error text-sm mt-1">{errors.username}</p>}
       </div>
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="email" className={labelClasses}>
           Email Address
         </label>
         <input
@@ -369,16 +353,14 @@ export default function Login({ onLogin }) {
           type="email"
           value={formData.email}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.email ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={inputClasses(errors.email)}
           placeholder="Enter your email address"
         />
-        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+        {errors.email && <p className="text-error text-sm mt-1">{errors.email}</p>}
       </div>
 
       <div>
-        <label htmlFor="signup-password" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="signup-password" className={labelClasses}>
           Password
         </label>
         <input
@@ -387,16 +369,14 @@ export default function Login({ onLogin }) {
           type="password"
           value={formData.password}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.password ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={inputClasses(errors.password)}
           placeholder="Create a password"
         />
-        {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+        {errors.password && <p className="text-error text-sm mt-1">{errors.password}</p>}
       </div>
 
       <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="confirmPassword" className={labelClasses}>
           Confirm Password
         </label>
         <input
@@ -405,34 +385,32 @@ export default function Login({ onLogin }) {
           type="password"
           value={formData.confirmPassword}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={inputClasses(errors.confirmPassword)}
           placeholder="Confirm your password"
         />
-        {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+        {errors.confirmPassword && <p className="text-error text-sm mt-1">{errors.confirmPassword}</p>}
       </div>
 
       {errors.general && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-red-800 text-sm">{errors.general}</p>
+        <div className="bg-error/10 border border-error/30 rounded-lg p-3">
+          <p className="text-error text-sm">{errors.general}</p>
         </div>
       )}
 
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-dark-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
       >
         {isLoading ? 'Creating Account...' : 'Create Account'}
       </button>
 
       <div className="text-center">
-        <span className="text-sm text-gray-600">Already have an account? </span>
+        <span className="text-sm text-text-tertiary">Already have an account? </span>
         <button
           type="button"
           onClick={() => setCurrentView('login')}
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+          className="text-accent hover:text-accent-hover text-sm font-medium transition-colors"
         >
           Sign in
         </button>
@@ -441,16 +419,16 @@ export default function Login({ onLogin }) {
   )
 
   const renderForgotForm = () => (
-    <form onSubmit={handleForgotSubmit} className="space-y-6">
+    <form onSubmit={handleForgotSubmit} className="space-y-5">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-medium text-gray-900">Reset Your Credentials</h3>
-        <p className="text-sm text-gray-600 mt-1">
+        <h3 className="text-lg font-medium text-text-primary">Reset Your Credentials</h3>
+        <p className="text-sm text-text-tertiary mt-1">
           Enter your email or username and we'll send you a reset code
         </p>
       </div>
 
       <div>
-        <label htmlFor="forgot-email" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="forgot-email" className={labelClasses}>
           Email Address
         </label>
         <input
@@ -458,20 +436,18 @@ export default function Login({ onLogin }) {
           type="email"
           value={forgotData.email}
           onChange={(e) => setForgotData(prev => ({ ...prev, email: e.target.value }))}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.email ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={inputClasses(errors.email)}
           placeholder="Enter your email address"
         />
-        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+        {errors.email && <p className="text-error text-sm mt-1">{errors.email}</p>}
       </div>
 
-      <div className="text-center text-sm text-gray-500">
+      <div className="text-center text-sm text-text-tertiary">
         — OR —
       </div>
 
       <div>
-        <label htmlFor="forgot-username" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="forgot-username" className={labelClasses}>
           Username
         </label>
         <input
@@ -479,21 +455,21 @@ export default function Login({ onLogin }) {
           type="text"
           value={forgotData.username}
           onChange={(e) => setForgotData(prev => ({ ...prev, username: e.target.value }))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClasses(false)}
           placeholder="Enter your username"
         />
       </div>
 
       {errors.general && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-red-800 text-sm">{errors.general}</p>
+        <div className="bg-error/10 border border-error/30 rounded-lg p-3">
+          <p className="text-error text-sm">{errors.general}</p>
         </div>
       )}
 
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-dark-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
       >
         {isLoading ? 'Sending Reset Code...' : 'Send Reset Code'}
       </button>
@@ -502,7 +478,7 @@ export default function Login({ onLogin }) {
         <button
           type="button"
           onClick={() => setCurrentView('login')}
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="text-accent hover:text-accent-hover text-sm transition-colors"
         >
           Back to Login
         </button>
@@ -511,16 +487,16 @@ export default function Login({ onLogin }) {
   )
 
   const renderResetForm = () => (
-    <form onSubmit={handleResetSubmit} className="space-y-6">
+    <form onSubmit={handleResetSubmit} className="space-y-5">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-medium text-gray-900">Reset Your Password</h3>
-        <p className="text-sm text-gray-600 mt-1">
+        <h3 className="text-lg font-medium text-text-primary">Reset Your Password</h3>
+        <p className="text-sm text-text-tertiary mt-1">
           Enter the reset code sent to your email and create a new password
         </p>
       </div>
 
       <div>
-        <label htmlFor="reset-code" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="reset-code" className={labelClasses}>
           Reset Code
         </label>
         <input
@@ -528,16 +504,14 @@ export default function Login({ onLogin }) {
           type="text"
           value={resetData.code}
           onChange={(e) => setResetData(prev => ({ ...prev, code: e.target.value }))}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.code ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={inputClasses(errors.code)}
           placeholder="Enter reset code"
         />
-        {errors.code && <p className="text-red-500 text-sm mt-1">{errors.code}</p>}
+        {errors.code && <p className="text-error text-sm mt-1">{errors.code}</p>}
       </div>
 
       <div>
-        <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="new-password" className={labelClasses}>
           New Password
         </label>
         <input
@@ -545,16 +519,14 @@ export default function Login({ onLogin }) {
           type="password"
           value={resetData.newPassword}
           onChange={(e) => setResetData(prev => ({ ...prev, newPassword: e.target.value }))}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.newPassword ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={inputClasses(errors.newPassword)}
           placeholder="Enter new password"
         />
-        {errors.newPassword && <p className="text-red-500 text-sm mt-1">{errors.newPassword}</p>}
+        {errors.newPassword && <p className="text-error text-sm mt-1">{errors.newPassword}</p>}
       </div>
 
       <div>
-        <label htmlFor="confirm-new-password" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="confirm-new-password" className={labelClasses}>
           Confirm Password
         </label>
         <input
@@ -562,24 +534,22 @@ export default function Login({ onLogin }) {
           type="password"
           value={resetData.confirmPassword}
           onChange={(e) => setResetData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={inputClasses(errors.confirmPassword)}
           placeholder="Confirm new password"
         />
-        {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+        {errors.confirmPassword && <p className="text-error text-sm mt-1">{errors.confirmPassword}</p>}
       </div>
 
       {errors.general && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-red-800 text-sm">{errors.general}</p>
+        <div className="bg-error/10 border border-error/30 rounded-lg p-3">
+          <p className="text-error text-sm">{errors.general}</p>
         </div>
       )}
 
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-dark-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
       >
         {isLoading ? 'Resetting Password...' : 'Reset Password'}
       </button>
@@ -588,7 +558,7 @@ export default function Login({ onLogin }) {
         <button
           type="button"
           onClick={() => setCurrentView('forgot')}
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="text-accent hover:text-accent-hover text-sm transition-colors"
         >
           Back to Reset
         </button>
@@ -597,13 +567,13 @@ export default function Login({ onLogin }) {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-dark-bg flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">
-            📈 eBay Price Reducer
+          <h2 className="text-3xl font-semibold text-text-primary">
+            eBay Price Reducer
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-text-tertiary">
             {currentView === 'login' && 'Sign in to your account'}
             {currentView === 'signup' && 'Create your account'}
             {currentView === 'forgot' && 'Reset your credentials'}
@@ -613,16 +583,16 @@ export default function Login({ onLogin }) {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-dark-surface py-8 px-4 border border-dark-border rounded-xl sm:px-10">
           {/* Notification Banner */}
           {notification && (
-            <div className={`rounded-md p-3 mb-6 ${
+            <div className={`rounded-lg p-3 mb-6 ${
               notification.type === 'success'
-                ? 'bg-blue-50 border border-blue-200'
-                : 'bg-red-50 border border-red-200'
+                ? 'bg-success/10 border border-success/30'
+                : 'bg-error/10 border border-error/30'
             }`}>
               <div className={`text-sm ${
-                notification.type === 'success' ? 'text-blue-800' : 'text-red-800'
+                notification.type === 'success' ? 'text-success' : 'text-error'
               }`}>
                 {notification.message}
               </div>
@@ -635,17 +605,35 @@ export default function Login({ onLogin }) {
           {currentView === 'reset' && renderResetForm()}
 
           {/* Features List */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">
-              eBay Price Reducer Features:
+          <div className="mt-8 pt-6 border-t border-dark-border">
+            <h3 className="text-sm font-medium text-text-secondary mb-3">
+              Features:
             </h3>
-            <ul className="text-xs text-gray-600 space-y-1">
-              <li>• Automated price reduction strategies</li>
-              <li>• Real-time market analysis</li>
-              <li>• Custom minimum price protection</li>
-              <li>• Multiple pricing algorithms</li>
-              <li>• Detailed price history tracking</li>
-              <li>• Bulk listing management</li>
+            <ul className="text-xs text-text-tertiary space-y-1.5">
+              <li className="flex items-center">
+                <span className="w-1 h-1 bg-accent rounded-full mr-2"></span>
+                Automated price reduction strategies
+              </li>
+              <li className="flex items-center">
+                <span className="w-1 h-1 bg-accent rounded-full mr-2"></span>
+                Real-time market analysis
+              </li>
+              <li className="flex items-center">
+                <span className="w-1 h-1 bg-accent rounded-full mr-2"></span>
+                Custom minimum price protection
+              </li>
+              <li className="flex items-center">
+                <span className="w-1 h-1 bg-accent rounded-full mr-2"></span>
+                Multiple pricing algorithms
+              </li>
+              <li className="flex items-center">
+                <span className="w-1 h-1 bg-accent rounded-full mr-2"></span>
+                Detailed price history tracking
+              </li>
+              <li className="flex items-center">
+                <span className="w-1 h-1 bg-accent rounded-full mr-2"></span>
+                Bulk listing management
+              </li>
             </ul>
           </div>
         </div>

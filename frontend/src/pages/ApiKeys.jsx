@@ -40,7 +40,6 @@ const API_SERVICES = [
   }
 ];
 
-// Individual key input component
 function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
   const [inputValue, setInputValue] = useState(existingKey?.value || '');
   const [showKey, setShowKey] = useState(false);
@@ -50,25 +49,25 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
   }, [existingKey]);
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-dark-surface rounded-lg border border-dark-border p-6">
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-lg font-medium text-gray-900">{service.name}</h3>
-          <p className="mt-1 text-sm text-gray-500">{service.description}</p>
+          <h3 className="text-lg font-medium text-text-primary">{service.name}</h3>
+          <p className="mt-1 text-sm text-text-tertiary">{service.description}</p>
           <a
             href={service.helpUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 text-sm text-blue-600 hover:text-blue-800"
+            className="mt-1 text-sm text-accent hover:text-accent-hover transition-colors inline-block"
           >
             Get API key →
           </a>
         </div>
         {existingKey && (
-          <span className={`px-2 py-1 text-xs rounded-full ${
+          <span className={`px-2 py-1 text-xs rounded-lg ${
             existingKey.isValid 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-red-100 text-red-800'
+              ? 'bg-success/10 text-success' 
+              : 'bg-error/10 text-error'
           }`}>
             {existingKey.isValid ? 'Active' : 'Invalid'}
           </span>
@@ -83,12 +82,12 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={service.placeholder}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
             />
             <button
               type="button"
               onClick={() => setShowKey(!showKey)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary transition-colors"
             >
               {showKey ? '🙈' : '👁️'}
             </button>
@@ -96,21 +95,21 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
           <button
             onClick={() => onSave(service.id, inputValue)}
             disabled={saving || !inputValue.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>
           {existingKey && (
             <button
               onClick={() => onDelete(service.id)}
-              className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
+              className="px-4 py-2.5 bg-error/10 text-error border border-error/30 rounded-lg hover:bg-error/20 transition-colors"
             >
               Delete
             </button>
           )}
         </div>
         {existingKey?.lastUsed && (
-          <p className="mt-2 text-xs text-gray-400">
+          <p className="mt-2 text-xs text-text-tertiary">
             Last used: {new Date(existingKey.lastUsed).toLocaleString()}
           </p>
         )}
@@ -227,29 +226,31 @@ export default function ApiKeys() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">API Keys</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-2xl font-semibold text-text-primary">API Keys</h1>
+        <p className="mt-2 text-text-secondary">
           Manage your API credentials for external services. Keys are encrypted and stored securely.
         </p>
       </div>
 
       {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+        <div className={`mb-6 p-4 rounded-lg border ${
+          message.type === 'success' 
+            ? 'bg-success/10 border-success/30 text-success' 
+            : 'bg-error/10 border-error/30 text-error'
         }`}>
           {message.text}
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {API_SERVICES.map(service => (
           <ApiKeyInput
             key={service.id}
@@ -262,9 +263,9 @@ export default function ApiKeys() {
         ))}
       </div>
 
-      <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-        <h3 className="font-medium text-blue-900">Security Note</h3>
-        <p className="mt-1 text-sm text-blue-700">
+      <div className="mt-8 p-4 bg-accent/10 border border-accent/30 rounded-lg">
+        <h3 className="font-medium text-accent">Security Note</h3>
+        <p className="mt-1 text-sm text-text-secondary">
           Your API keys are encrypted at rest and only used to make requests on your behalf. 
           We never share your keys with third parties.
         </p>
