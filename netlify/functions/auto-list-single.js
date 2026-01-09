@@ -270,7 +270,7 @@ function buildInventoryItem(keepaData, condition, quantity) {
     condition: mapCondition(condition),
     product: {
       title: p.title?.substring(0, 80) || 'Untitled Product',
-      description: p.description || buildDescription(p),
+      description: sanitizeDescription(p.description) || buildDescription(p),
       aspects,
       imageUrls: images.slice(0, 12)
     }
@@ -283,6 +283,17 @@ function buildInventoryItem(keepaData, condition, quantity) {
   if (p.eanList?.length > 0) item.product.ean = [p.eanList[0]];
 
   return item;
+}
+
+function sanitizeDescription(desc) {
+  if (!desc) return null;
+  // Remove problematic characters and limit length
+  return String(desc)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control chars
+    .replace(/<script[^>]*>.*?<\/script>/gi, '')      // Remove scripts
+    .replace(/<style[^>]*>.*?<\/style>/gi, '')        // Remove styles
+    .replace(/&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);)/gi, '&amp;') // Fix bare &
+    .substring(0, 4000);  // eBay description limit
 }
 
 function buildDescription(product) {
