@@ -149,8 +149,8 @@ exports.handler = async (event, context) => {
           value: parseFloat(price).toFixed(2)
         }
       },
-      // Use seller's primary warehouse location
-      merchantLocationKey: 'US_53226'
+      // Use seller's primary warehouse location (has full address)
+      merchantLocationKey: 'loc-94e1f3a0-6e1b-4d23-befc-750fe183'
     };
 
     // Add listing description if provided
