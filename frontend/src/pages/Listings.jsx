@@ -777,15 +777,13 @@ export default function Listings() {
     <div className="space-y-4">
       {/* Notification Banner */}
       {notification && (
-        <div className={`rounded-md p-3 ${
+        <div className={`rounded-lg p-3 border ${
           notification.type === 'success'
-            ? 'bg-blue-50 border border-blue-200'
-            : 'bg-red-50 border border-red-200'
+            ? 'bg-success/10 border-success/30 text-success'
+            : 'bg-error/10 border-error/30 text-error'
         }`}>
           <div className="flex">
-            <div className={`${
-              notification.type === 'success' ? 'text-blue-800' : 'text-red-800'
-            }`}>
+            <div>
               {notification.message}
             </div>
           </div>
@@ -794,15 +792,15 @@ export default function Listings() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Your eBay Listings</h1>
-        <p className="text-gray-600">Manage and monitor your eBay listing prices</p>
+        <h1 className="text-2xl font-semibold text-text-primary">Your eBay Listings</h1>
+        <p className="text-text-secondary">Manage and monitor your eBay listing prices</p>
       </div>
 
       {/* Search Box */}
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="bg-dark-surface rounded-lg border border-dark-border p-4">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
           </div>
@@ -810,7 +808,7 @@ export default function Listings() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            className="block w-full pl-10 pr-3 py-2 border border-dark-border rounded-lg bg-dark-bg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
             placeholder="Search listings by title, SKU, price, quantity, strategy, or any data..."
           />
           {searchTerm && (
@@ -818,14 +816,14 @@ export default function Listings() {
               onClick={() => setSearchTerm('')}
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
-              <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-5 w-5 text-text-tertiary hover:text-text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>
           )}
         </div>
         {searchTerm && (
-          <div className="mt-2 text-sm text-gray-600">
+          <div className="mt-2 text-sm text-text-secondary">
             {totalItems} listing{totalItems !== 1 ? 's' : ''} found
           </div>
         )}
@@ -839,10 +837,10 @@ export default function Listings() {
             <button
               key={statusOption}
               onClick={() => setStatus(statusOption)}
-              className={`px-3 py-2 rounded text-sm font-medium flex-shrink-0 ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium flex-shrink-0 transition-colors ${
                 status === statusOption
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-accent text-white'
+                  : 'bg-dark-surface text-text-secondary border border-dark-border hover:bg-dark-hover hover:text-text-primary'
               }`}
             >
               {statusOption === 'all' ? 'All' : statusOption}
@@ -862,7 +860,7 @@ export default function Listings() {
             return closeableListings.length > 0 && (
               <button
                 onClick={handleBulkCloseSoldOut}
-                className="bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 flex items-center gap-1 flex-shrink-0"
+                className="bg-error/10 text-error border border-error/30 px-3 py-2 rounded-lg text-sm font-medium hover:bg-error/20 flex items-center gap-1 flex-shrink-0 transition-colors"
                 title={status === 'Ended' ? 'Close all ended listings' : 'Close all sold-out listings'}
               >
                 <span>{buttonText}</span>
@@ -876,7 +874,7 @@ export default function Listings() {
           {/* Add Filter Button */}
           <button
             onClick={addFilter}
-            className="bg-green-100 text-green-800 px-3 py-2 rounded text-sm hover:bg-green-200 flex items-center space-x-1 flex-shrink-0"
+            className="bg-success/10 text-success border border-success/30 px-3 py-2 rounded-lg text-sm hover:bg-success/20 flex items-center space-x-1 flex-shrink-0 transition-colors"
           >
             <span>+</span>
             <span className="hidden sm:inline">Add Filter</span>
@@ -887,7 +885,7 @@ export default function Listings() {
           {filters.length > 0 && (
             <button
               onClick={clearAllFilters}
-              className="bg-red-100 text-red-800 px-3 py-2 rounded text-sm hover:bg-red-200 flex-shrink-0"
+              className="bg-error/10 text-error border border-error/30 px-3 py-2 rounded-lg text-sm hover:bg-error/20 flex-shrink-0 transition-colors"
             >
               <span className="hidden sm:inline">Clear All ({filters.length})</span>
               <span className="sm:hidden">Clear ({filters.length})</span>
@@ -897,20 +895,20 @@ export default function Listings() {
           {/* Column Visibility Controls - Hidden on mobile since mobile uses cards */}
           <div className="hidden lg:block relative">
             <details className="relative">
-              <summary className="bg-gray-100 px-3 py-2 rounded text-sm cursor-pointer hover:bg-gray-200">
+              <summary className="bg-dark-surface border border-dark-border text-text-secondary px-3 py-2 rounded-lg text-sm cursor-pointer hover:bg-dark-hover hover:text-text-primary transition-colors">
                 Manage Columns
               </summary>
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
+              <div className="absolute right-0 mt-2 w-48 bg-dark-surface rounded-lg border border-dark-border shadow-xl z-10">
                 <div className="p-2">
                   {Object.entries(visibleColumns).map(([column, visible]) => (
-                    <label key={column} className="flex items-center space-x-2 p-1">
+                    <label key={column} className="flex items-center space-x-2 p-2 rounded hover:bg-dark-hover cursor-pointer">
                       <input
                         type="checkbox"
                         checked={visible}
                         onChange={() => toggleColumnVisibility(column)}
-                        className="rounded"
+                        className="rounded bg-dark-bg border-dark-border text-accent focus:ring-accent"
                       />
-                      <span className="text-sm capitalize">{column.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      <span className="text-sm text-text-primary capitalize">{column.replace(/([A-Z])/g, ' $1').trim()}</span>
                     </label>
                   ))}
                 </div>
@@ -922,8 +920,8 @@ export default function Listings() {
 
       {/* Active Filters */}
       {filters.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Active Filters</h3>
+        <div className="bg-dark-surface rounded-lg border border-dark-border p-4">
+          <h3 className="text-sm font-medium text-text-secondary mb-3">Active Filters</h3>
           <div className="space-y-3">
             {filters.map((filter) => {
               const filterOption = filterOptions.find(opt => opt.key === filter.field)
@@ -931,13 +929,13 @@ export default function Listings() {
               const isSelect = filterOption?.type === 'select'
 
               return (
-                <div key={filter.id} className="p-3 bg-gray-50 rounded">
+                <div key={filter.id} className="p-3 bg-dark-bg rounded-lg border border-dark-border">
                   <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 sm:items-center">
                     {/* Field Selection */}
                     <select
                       value={filter.field}
                       onChange={(e) => updateFilter(filter.id, { field: e.target.value, operator: 'equals', value: '' })}
-                      className="text-sm border border-gray-300 rounded px-2 py-1 bg-white w-full sm:w-auto"
+                      className="text-sm border border-dark-border rounded-lg px-2 py-1.5 bg-dark-surface text-text-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
                     >
                       <option value="">Select Field</option>
                       {filterOptions.map(option => (
@@ -950,7 +948,7 @@ export default function Listings() {
                       <select
                         value={filter.operator}
                         onChange={(e) => updateFilter(filter.id, { operator: e.target.value })}
-                        className="text-sm border border-gray-300 rounded px-2 py-1 bg-white w-full sm:w-auto"
+                        className="text-sm border border-dark-border rounded-lg px-2 py-1.5 bg-dark-surface text-text-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
                       >
                         <option value="equals">=</option>
                         <option value="greater_than">&gt;</option>
@@ -965,7 +963,7 @@ export default function Listings() {
                       <select
                         value={filter.operator}
                         onChange={(e) => updateFilter(filter.id, { operator: e.target.value })}
-                        className="text-sm border border-gray-300 rounded px-2 py-1 bg-white w-full sm:w-auto"
+                        className="text-sm border border-dark-border rounded-lg px-2 py-1.5 bg-dark-surface text-text-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
                       >
                         <option value="equals">Equals</option>
                         <option value="contains">Contains</option>
@@ -979,7 +977,7 @@ export default function Listings() {
                           <select
                             value={filter.value}
                             onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
-                            className="text-sm border border-gray-300 rounded px-2 py-1 bg-white w-full sm:w-auto"
+                            className="text-sm border border-dark-border rounded-lg px-2 py-1.5 bg-dark-surface text-text-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
                           >
                             <option value="">Select Value</option>
                             {filterOption.options?.map(option => (
@@ -992,7 +990,7 @@ export default function Listings() {
                             value={filter.value}
                             onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
                             placeholder={`Enter ${filterOption?.label.toLowerCase()}`}
-                            className="text-sm border border-gray-300 rounded px-2 py-1 bg-white w-full sm:w-auto"
+                            className="text-sm border border-dark-border rounded-lg px-2 py-1.5 bg-dark-surface text-text-primary placeholder-text-tertiary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
                           />
                         )}
                       </>
@@ -1001,7 +999,7 @@ export default function Listings() {
                     {/* Remove Filter Button */}
                     <button
                       onClick={() => removeFilter(filter.id)}
-                      className="text-red-600 hover:text-red-800 text-sm p-2 hover:bg-red-50 rounded flex-shrink-0 self-center sm:self-auto"
+                      className="text-error hover:text-error text-sm p-2 hover:bg-error/10 rounded-lg flex-shrink-0 self-center sm:self-auto transition-colors"
                       aria-label="Remove filter"
                     >
                       ✕
@@ -1016,29 +1014,29 @@ export default function Listings() {
 
       {/* Pagination Controls - Top */}
       {totalItems > 0 && (
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-dark-surface rounded-lg border border-dark-border p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Items per page selector */}
             <div className="flex items-center gap-2">
-              <label htmlFor="items-per-page" className="text-sm text-gray-700">
+              <label htmlFor="items-per-page" className="text-sm text-text-secondary">
                 Show:
               </label>
               <select
                 id="items-per-page"
                 value={itemsPerPage}
                 onChange={(e) => handleItemsPerPageChange(e.target.value)}
-                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+                className="border border-dark-border rounded-lg px-2 py-1 text-sm bg-dark-bg text-text-primary focus:ring-2 focus:ring-accent focus:border-transparent"
               >
                 <option value="10">10</option>
                 <option value="25">25</option>
                 <option value="50">50</option>
                 <option value="100">100</option>
               </select>
-              <span className="text-sm text-gray-700">per page</span>
+              <span className="text-sm text-text-secondary">per page</span>
             </div>
 
             {/* Page info */}
-            <div className="text-sm text-gray-700 text-center sm:text-left">
+            <div className="text-sm text-text-secondary text-center sm:text-left">
               Showing {totalItems === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + paginatedListings.length, totalItems)} of {totalItems} listings
             </div>
 
@@ -1048,10 +1046,10 @@ export default function Listings() {
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className={`px-3 py-1 rounded text-sm ${
+                  className={`px-3 py-1 rounded-lg text-sm transition-colors ${
                     currentPage === 1
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                      ? 'bg-dark-bg text-text-tertiary cursor-not-allowed'
+                      : 'bg-accent text-white hover:bg-accent-hover'
                   }`}
                 >
                   Previous
@@ -1059,17 +1057,17 @@ export default function Listings() {
 
                 {getPageNumbers().map((page, index) => (
                   page === '...' ? (
-                    <span key={`ellipsis-${index}`} className="px-2 text-gray-500">
+                    <span key={`ellipsis-${index}`} className="px-2 text-text-tertiary">
                       ...
                     </span>
                   ) : (
                     <button
                       key={page}
                       onClick={() => handlePageChange(page)}
-                      className={`px-3 py-1 rounded text-sm ${
+                      className={`px-3 py-1 rounded-lg text-sm transition-colors ${
                         currentPage === page
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? 'bg-accent text-white'
+                          : 'bg-dark-bg text-text-secondary hover:bg-dark-hover hover:text-text-primary'
                       }`}
                     >
                       {page}
@@ -1080,10 +1078,10 @@ export default function Listings() {
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className={`px-3 py-1 rounded text-sm ${
+                  className={`px-3 py-1 rounded-lg text-sm transition-colors ${
                     currentPage === totalPages
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                      ? 'bg-dark-bg text-text-tertiary cursor-not-allowed'
+                      : 'bg-accent text-white hover:bg-accent-hover'
                   }`}
                 >
                   Next
@@ -1097,7 +1095,7 @@ export default function Listings() {
       {/* Mobile Card View (visible on small screens) */}
       <div className="lg:hidden space-y-4">
         {paginatedListings.map((listing) => (
-          <div key={listing.id} className="bg-white rounded-lg shadow p-4">
+          <div key={listing.id} className="bg-dark-surface rounded-lg border border-dark-border p-4">
             <div className="flex items-start space-x-4">
               <img
                 src={listing.image_url || '/placeholder-image.jpg'}
@@ -1105,43 +1103,43 @@ export default function Listings() {
                 className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
               />
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-gray-900 truncate">{listing.title}</h3>
+                <h3 className="text-sm font-medium text-text-primary truncate">{listing.title}</h3>
                 {listing.ebay_sku && (
-                  <p className="text-xs text-gray-500 mt-1">SKU: {listing.ebay_sku}</p>
+                  <p className="text-xs text-text-tertiary mt-1">SKU: {listing.ebay_sku}</p>
                 )}
 
                 <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-gray-500">Current Price:</span>
-                    <div className="font-bold text-green-600">${listing.current_price}</div>
+                    <span className="text-text-tertiary">Current Price:</span>
+                    <div className="font-bold text-success">${listing.current_price}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">Quantity:</span>
-                    <div className="font-medium">{listing.listing_status === 'Ended' ? 0 : (listing.quantity_available ?? 0)}</div>
+                    <span className="text-text-tertiary">Quantity:</span>
+                    <div className="font-medium text-text-primary">{listing.listing_status === 'Ended' ? 0 : (listing.quantity_available ?? 0)}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">Age:</span>
-                    <div className="font-medium">{calculateListingAge(listing.created_at || new Date())}</div>
+                    <span className="text-text-tertiary">Age:</span>
+                    <div className="font-medium text-text-primary">{calculateListingAge(listing.created_at || new Date())}</div>
                   </div>
                 </div>
 
 
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Minimum Price:</span>
+                    <span className="text-sm text-text-tertiary">Minimum Price:</span>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       defaultValue={listing.minimum_price || ''}
                       onBlur={(e) => handleMinimumPriceUpdate(listing.id, e.target.value)}
-                      className="w-24 px-2 py-1 text-sm border border-gray-300 rounded"
+                      className="w-24 px-2 py-1 text-sm border border-dark-border rounded-lg bg-dark-bg text-text-primary placeholder-text-tertiary"
                       placeholder="Set min"
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Price Reduction:</span>
+                    <span className="text-sm text-text-tertiary">Price Reduction:</span>
                     <div className="flex items-center">
                       <label
                         className={`relative inline-flex items-center ${
@@ -1161,7 +1159,7 @@ export default function Listings() {
                           className="sr-only"
                         />
                         <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
-                          listing.enable_auto_reduction ? 'bg-blue-600' : 'bg-gray-200'
+                          listing.enable_auto_reduction ? 'bg-accent' : 'bg-dark-border'
                         }`}>
                           <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out ${
                             listing.enable_auto_reduction ? 'translate-x-5' : 'translate-x-0'
@@ -1169,7 +1167,7 @@ export default function Listings() {
                         </div>
                       </label>
                       <span className={`ml-2 text-xs ${
-                        listing.enable_auto_reduction ? 'text-green-600 font-medium' : 'text-gray-500'
+                        listing.enable_auto_reduction ? 'text-success font-medium' : 'text-text-tertiary'
                       }`}>
                         {listing.enable_auto_reduction ? 'Active' : 'Paused'}
                       </span>
@@ -1177,11 +1175,11 @@ export default function Listings() {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Strategy:</span>
+                    <span className="text-sm text-text-tertiary">Strategy:</span>
                     <select
                       value={listing.strategy_id || listing.reduction_strategy || ''}
                       onChange={(e) => handleStrategyUpdate(listing.id, e.target.value)}
-                      className="text-sm border border-gray-300 rounded px-2 py-1 max-w-32"
+                      className="text-sm border border-dark-border rounded-lg px-2 py-1 max-w-32 bg-dark-bg text-text-primary"
                     >
                       <option value="">No Strategy</option>
                       {strategies.map((strategy) => (
@@ -1198,7 +1196,7 @@ export default function Listings() {
                     href={listing.ebay_url || `https://www.ebay.com/itm/${listing.ebay_item_id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 inline-block text-center"
+                    className="bg-accent/10 text-accent border border-accent/30 px-3 py-1 rounded-lg text-xs hover:bg-accent/20 inline-block text-center transition-colors"
                     title="Open this listing on eBay in a new tab"
                   >
                     View on eBay
@@ -1206,7 +1204,7 @@ export default function Listings() {
                   <button
                     onClick={() => handleDeleteListing(listing.id)}
                     disabled={endListingMutation.isLoading}
-                    className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
+                    className="bg-error/10 text-error border border-error/30 px-3 py-1 rounded-lg text-xs hover:bg-error/20 disabled:opacity-50 transition-colors"
                     title="Close this listing"
                   >
                     Close
@@ -1218,8 +1216,8 @@ export default function Listings() {
         ))}
 
         {totalItems === 0 && (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <div className="text-gray-500">
+          <div className="text-center py-12 bg-dark-surface rounded-lg border border-dark-border">
+            <div className="text-text-tertiary">
               No listings found.
             </div>
           </div>
@@ -1227,10 +1225,10 @@ export default function Listings() {
       </div>
 
       {/* Desktop Table View (visible on large screens) */}
-      <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
+      <div className="hidden lg:block bg-dark-surface rounded-lg border border-dark-border overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full table-auto divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="w-full table-auto divide-y divide-dark-border">
+            <thead className="bg-dark-bg">
               <tr>
                 {columnOrder.map((column) => {
                   if (!visibleColumns[column]) return null
@@ -1244,16 +1242,16 @@ export default function Listings() {
                       onDragOver={handleDragOver}
                       onDrop={(e) => handleDrop(e, column)}
                       onDragEnd={handleDragEnd}
-                      className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase ${
-                        config.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
-                      } ${draggedColumn === column ? 'opacity-50' : ''} ${config.width || ''} select-none`}
+                      className={`px-2 py-3 text-left text-xs font-medium text-text-tertiary uppercase tracking-wider ${
+                        config.sortable ? 'cursor-pointer hover:bg-dark-hover hover:text-text-secondary' : ''
+                      } ${draggedColumn === column ? 'opacity-50' : ''} ${config.width || ''} select-none transition-colors`}
                       onClick={config.sortable ? () => handleSort(config.sortKey) : undefined}
                     >
                       <div className="flex items-center space-x-1 min-w-0">
-                        <span className="flex-shrink-0">⋮⋮</span>
+                        <span className="flex-shrink-0 text-text-tertiary">⋮⋮</span>
                         <span className="break-words leading-tight">{config.label}</span>
                         {config.sortable && sortConfig.key === config.sortKey && (
-                          <span className="flex-shrink-0">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                          <span className="flex-shrink-0 text-accent">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                         )}
                       </div>
                     </th>
@@ -1261,9 +1259,9 @@ export default function Listings() {
                 })}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-dark-surface divide-y divide-dark-border">
               {paginatedListings.map((listing) => (
-                <tr key={listing.id} className="hover:bg-gray-50">
+                <tr key={listing.id} className="hover:bg-dark-hover transition-colors">
                   {columnOrder.map((column) => {
                     if (!visibleColumns[column]) return null
 
@@ -1280,11 +1278,11 @@ export default function Listings() {
                         case 'title':
                           return (
                             <div className="max-w-xs">
-                              <div className="text-sm font-medium text-gray-900 truncate">
+                              <div className="text-sm font-medium text-text-primary truncate">
                                 {listing.title}
                               </div>
                               {listing.ebay_sku && (
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="text-xs text-text-tertiary mt-1">
                                   SKU: {listing.ebay_sku}
                                 </div>
                               )}
@@ -1308,7 +1306,7 @@ export default function Listings() {
                               min="0"
                               defaultValue={listing.minimum_price || ''}
                               onBlur={(e) => handleMinimumPriceUpdate(listing.id, e.target.value)}
-                              className="w-20 px-2 py-1 text-sm border border-gray-300 rounded"
+                              className="w-20 px-2 py-1 text-sm border border-dark-border rounded-lg bg-dark-bg text-text-primary placeholder-text-tertiary"
                               placeholder="Set min"
                             />
                           )
@@ -1333,7 +1331,7 @@ export default function Listings() {
                                   className="sr-only"
                                 />
                                 <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
-                                  listing.enable_auto_reduction ? 'bg-blue-600' : 'bg-gray-200'
+                                  listing.enable_auto_reduction ? 'bg-accent' : 'bg-dark-border'
                                 }`}>
                                   <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out ${
                                     listing.enable_auto_reduction ? 'translate-x-5' : 'translate-x-0'
@@ -1341,7 +1339,7 @@ export default function Listings() {
                                 </div>
                               </label>
                               <span className={`ml-2 text-xs ${
-                                listing.enable_auto_reduction ? 'text-green-600 font-medium' : 'text-gray-500'
+                                listing.enable_auto_reduction ? 'text-success font-medium' : 'text-text-tertiary'
                               }`}>
                                 {listing.enable_auto_reduction ? 'Active' : 'Paused'}
                               </span>
@@ -1353,7 +1351,7 @@ export default function Listings() {
                             <select
                               value={listing.strategy_id || listing.reduction_strategy || ''}
                               onChange={(e) => handleStrategyUpdate(listing.id, e.target.value)}
-                              className="text-sm border border-gray-300 rounded px-2 py-1 min-w-40"
+                              className="text-sm border border-dark-border rounded-lg px-2 py-1 min-w-40 bg-dark-bg text-text-primary"
                             >
                               <option value="">No Strategy</option>
                               {strategies.map((strategy) => (
@@ -1365,7 +1363,7 @@ export default function Listings() {
                           )
                         case 'listingAge':
                           return (
-                            <div className="text-sm text-gray-900">
+                            <div className="text-sm text-text-primary">
                               {calculateListingAge(listing.created_at || new Date())}
                             </div>
                           )
@@ -1376,7 +1374,7 @@ export default function Listings() {
                                 href={listing.ebay_url || `https://www.ebay.com/itm/${listing.ebay_item_id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                                className="bg-accent/10 text-accent border border-accent/30 px-2 py-1 rounded-lg text-xs hover:bg-accent/20 transition-colors"
                                 title="Open this listing on eBay in a new tab"
                               >
                                 View
@@ -1384,7 +1382,7 @@ export default function Listings() {
                               <button
                                 onClick={() => handleDeleteListing(listing.id)}
                                 disabled={endListingMutation.isLoading}
-                                className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
+                                className="bg-error/10 text-error border border-error/30 px-2 py-1 rounded-lg text-xs hover:bg-error/20 disabled:opacity-50 transition-colors"
                                 title="Close this listing"
                               >
                                 Close
