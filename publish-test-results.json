@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-01-09T16:41:09.501Z",
+  "summary": {
+    "total": 5,
+    "successes": 3,
+    "failures": 2
+  },
+  "successes": [
+    {
+      "asin": "B01KJEOCDW",
+      "name": "LEGO Dinosaur",
+      "category": "Toys/Building",
+      "ebayCategoryId": "19006",
+      "ebayCategoryName": "Building Toys",
+      "listingId": "187933120620",
+      "listingUrl": "https://www.ebay.com/itm/187933120620"
+    },
+    {
+      "asin": "B09V3KXJPB",
+      "name": "iPad Air",
+      "category": "Tablet",
+      "ebayCategoryId": "171485",
+      "ebayCategoryName": "Tablets & eBook Readers",
+      "listingId": "187933120816",
+      "listingUrl": "https://www.ebay.com/itm/187933120816"
+    },
+    {
+      "asin": "B07VGRJDFY",
+      "name": "Nintendo Switch",
+      "category": "Video Game Console",
+      "ebayCategoryId": "139971",
+      "ebayCategoryName": "Video Game Consoles",
+      "listingId": "187933121214",
+      "listingUrl": "https://www.ebay.com/itm/187933121214"
+    }
+  ],
+  "failures": [
+    {
+      "asin": "B0C8PSMPTH",
+      "name": "Beats Headphones",
+      "category": "Electronics",
+      "error": "eBay API error: The eBay listing associated with the inventory item, or the unpublished offer has an invalid category ID. The category selected is not a leaf category.",
+      "fullResponse": {
+        "error": "Failed to create listing",
+        "message": "eBay API error: The eBay listing associated with the inventory item, or the unpublished offer has an invalid category ID. The category selected is not a leaf category."
+      }
+    },
+    {
+      "asin": "B00005JNOG",
+      "name": "Lost DVD",
+      "category": "DVD",
+      "error": "eBay API error: A system error has occurred. Core Inventory Service internal error",
+      "fullResponse": {
+        "error": "Failed to create listing",
+        "message": "eBay API error: A system error has occurred. Core Inventory Service internal error"
+      }
+    }
+  ]
+}

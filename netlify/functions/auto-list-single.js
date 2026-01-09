@@ -103,7 +103,7 @@ exports.handler = async (event, context) => {
 
     // 5. Auto-detect category
     console.log('🏷️ Auto-detecting category...');
-    const category = await getEbayCategory(supabase, keepaData.product);
+    const category = await getEbayCategory(supabase, keepaData.product, user.id);
     console.log(`✅ Category: ${category.categoryName} (${category.categoryId}) [${category.matchType}]`);
 
     // 6. Get required aspects from database

@@ -1,0 +1,124 @@
+{
+  "timestamp": "2026-01-09T16:55:38.212Z",
+  "summary": {
+    "total": 20,
+    "success": 3,
+    "failed": 17
+  },
+  "successes": [
+    {
+      "asin": "B00FLYWNYQ",
+      "expectedCategory": "Home & Kitchen",
+      "ebayCategory": "Kitchen, Dining & Bar",
+      "ebayCategoryId": "20625",
+      "matchType": "group",
+      "listingId": "187933163049",
+      "url": "https://www.ebay.com/itm/187933163049"
+    },
+    {
+      "asin": "B0BSHGHGXR",
+      "expectedCategory": "Computers",
+      "ebayCategory": "Computers/Tablets & Networking",
+      "ebayCategoryId": "58058",
+      "matchType": "group",
+      "listingId": "187933163951",
+      "url": "https://www.ebay.com/itm/187933163951"
+    },
+    {
+      "asin": "B09JZT6YK5",
+      "expectedCategory": "Camera",
+      "ebayCategory": "Everything Else",
+      "ebayCategoryId": "99",
+      "matchType": "default",
+      "listingId": "187933164729",
+      "url": "https://www.ebay.com/itm/187933164729"
+    }
+  ],
+  "failures": [
+    {
+      "asin": "B0BSHF7WHW",
+      "expectedCategory": "Electronics",
+      "error": "eBay API error: The eBay listing associated with the inventory item, or the unpublished offer has an invalid category ID. The category selected is not a leaf category."
+    },
+    {
+      "asin": "0735219095",
+      "expectedCategory": "Books",
+      "error": "Valid ASIN required"
+    },
+    {
+      "asin": "B08CRSM9FR",
+      "expectedCategory": "Toys & Games",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    },
+    {
+      "asin": "B07PDHSJ3N",
+      "expectedCategory": "Sports & Outdoors",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    },
+    {
+      "asin": "B07BKLMWRP",
+      "expectedCategory": "Clothing",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    },
+    {
+      "asin": "B00U2UYWA0",
+      "expectedCategory": "Beauty",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    },
+    {
+      "asin": "B0002AQCXM",
+      "expectedCategory": "Pet Supplies",
+      "error": "eBay API error: The eBay listing associated with the inventory item, or the unpublished offer has an invalid category ID. The category selected is not a leaf category."
+    },
+    {
+      "asin": "B00004UDUS",
+      "expectedCategory": "Tools",
+      "error": "eBay API error: A user error has occurred. The item specific Format is missing. Add Format to this listing, enter a valid value, and then try again."
+    },
+    {
+      "asin": "B082PRL21R",
+      "expectedCategory": "Garden",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    },
+    {
+      "asin": "B07MV3DWMK",
+      "expectedCategory": "Office Products",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    },
+    {
+      "asin": "B078YCRQB8",
+      "expectedCategory": "Grocery",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    },
+    {
+      "asin": "B00A1FXQRK",
+      "expectedCategory": "Health",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    },
+    {
+      "asin": "B01M4NQDM5",
+      "expectedCategory": "Baby",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    },
+    {
+      "asin": "B071JK9BKZ",
+      "expectedCategory": "Automotive",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    },
+    {
+      "asin": "B0CQYHY3QV",
+      "expectedCategory": "Video Games",
+      "error": "eBay API error: The eBay listing associated with the inventory item, or the unpublished offer has an invalid category ID. The category selected is not a leaf category."
+    },
+    {
+      "asin": "B0D5F2C746",
+      "expectedCategory": "Music",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    },
+    {
+      "asin": "B09QJWCBV8",
+      "expectedCategory": "Movies",
+      "error": "eBay API error: imageUrls cannot be null or empty."
+    }
+  ]
+}

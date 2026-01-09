@@ -1,173 +1,129 @@
 /**
- * Category Mapper v2
+ * Category Mapper v3
  * 
- * Maps Amazon product data to eBay LEAF categories with required aspects.
- * 
- * Uses two tables:
- * - ebay_category_mappings: Amazon → eBay category lookup
- * - ebay_category_requirements: Leaf validation + required aspects
+ * Uses eBay Taxonomy API for category detection.
+ * No more custom mapping tables - eBay tells us the right category.
  */
 
+const fetch = require('node-fetch');
+const { decrypt } = require('./encryption');
+
 /**
- * Get eBay category for an Amazon product
+ * Get eBay category for a product using Taxonomy API
  * @param {Object} supabase - Supabase client
  * @param {Object} keepaProduct - Product data from Keepa
- * @returns {Object} - { categoryId, categoryName, isLeaf, requiredAspects, matchType }
+ * @param {string} userId - User ID for getting eBay token
+ * @returns {Object} - { categoryId, categoryName, matchType }
  */
-async function getEbayCategory(supabase, keepaProduct) {
-  const productGroup = keepaProduct.productGroup;
-  const productType = keepaProduct.type;
-
-  // Step 1: Find category mapping
-  let mapping = null;
-  let matchType = 'default';
-
-  // Try exact match (product_group + type)
-  if (productGroup && productType) {
-    const { data } = await supabase
-      .from('ebay_category_mappings')
-      .select('*')
-      .eq('amazon_product_group', productGroup)
-      .eq('amazon_type', productType)
-      .order('priority', { ascending: false })
-      .limit(1)
-      .single();
-    
-    if (data) {
-      mapping = data;
-      matchType = 'exact';
-    }
+async function getEbayCategory(supabase, keepaProduct, userId) {
+  const title = keepaProduct.title || '';
+  
+  if (!title) {
+    return {
+      categoryId: '99',
+      categoryName: 'Everything Else',
+      matchType: 'default'
+    };
   }
 
-  // Try product_group only
-  if (!mapping && productGroup) {
-    const { data } = await supabase
-      .from('ebay_category_mappings')
-      .select('*')
-      .eq('amazon_product_group', productGroup)
-      .is('amazon_type', null)
-      .order('priority', { ascending: false })
-      .limit(1)
-      .single();
+  try {
+    // Get eBay access token
+    const accessToken = await getAccessToken(supabase, userId);
     
-    if (data) {
-      mapping = data;
-      matchType = 'group';
-    }
-  }
-
-  // Default fallback
-  if (!mapping) {
-    const { data } = await supabase
-      .from('ebay_category_mappings')
-      .select('*')
-      .is('amazon_product_group', null)
-      .is('amazon_type', null)
-      .limit(1)
-      .single();
+    // Call Taxonomy API
+    const query = title.substring(0, 100); // Max 100 chars
+    const url = `https://api.ebay.com/commerce/taxonomy/v1/category_tree/0/get_category_suggestions?q=${encodeURIComponent(query)}`;
     
-    mapping = data;
-    matchType = 'default';
-  }
+    const response = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
 
-  const categoryId = mapping?.ebay_category_id || '99';
-  const categoryName = mapping?.ebay_category_name || 'Everything Else';
-
-  // Step 2: Get category requirements (check if leaf, get required aspects)
-  const { data: requirements } = await supabase
-    .from('ebay_category_requirements')
-    .select('*')
-    .eq('ebay_category_id', categoryId)
-    .single();
-
-  // If category is not a leaf, try to find a leaf subcategory
-  if (requirements && !requirements.is_leaf) {
-    // Look for a leaf category with this as parent
-    const { data: leafCategory } = await supabase
-      .from('ebay_category_requirements')
-      .select('*')
-      .eq('parent_category_id', categoryId)
-      .eq('is_leaf', true)
-      .limit(1)
-      .single();
-
-    if (leafCategory) {
+    if (!response.ok) {
+      console.log('Taxonomy API error:', response.status);
       return {
-        categoryId: leafCategory.ebay_category_id,
-        categoryName: leafCategory.ebay_category_name,
-        isLeaf: true,
-        requiredAspects: leafCategory.required_aspects || [],
-        optionalAspects: leafCategory.optional_aspects || [],
-        matchType: matchType + '+leaf',
-        originalCategoryId: categoryId,
-        notes: leafCategory.notes
+        categoryId: '99',
+        categoryName: 'Everything Else',
+        matchType: 'api_error'
       };
     }
-  }
 
-  return {
-    categoryId,
-    categoryName,
-    isLeaf: requirements?.is_leaf ?? true,
-    requiredAspects: requirements?.required_aspects || [],
-    optionalAspects: requirements?.optional_aspects || [],
-    matchType,
-    notes: requirements?.notes
-  };
+    const data = await response.json();
+    
+    if (data.categorySuggestions && data.categorySuggestions.length > 0) {
+      const suggestion = data.categorySuggestions[0];
+      return {
+        categoryId: suggestion.category.categoryId,
+        categoryName: suggestion.category.categoryName,
+        matchType: 'exact',
+        confidence: suggestion.categoryTreeNodeLevel
+      };
+    }
+
+    return {
+      categoryId: '99',
+      categoryName: 'Everything Else',
+      matchType: 'no_match'
+    };
+
+  } catch (error) {
+    console.error('Category detection error:', error.message);
+    return {
+      categoryId: '99',
+      categoryName: 'Everything Else',
+      matchType: 'error'
+    };
+  }
 }
 
 /**
- * Get category requirements by ID
+ * Get valid eBay access token (with refresh if needed)
  */
-async function getCategoryRequirements(supabase, categoryId) {
-  const { data, error } = await supabase
-    .from('ebay_category_requirements')
-    .select('*')
-    .eq('ebay_category_id', categoryId)
+async function getAccessToken(supabase, userId) {
+  const { data: user } = await supabase
+    .from('users')
+    .select('ebay_client_id, ebay_client_secret, ebay_access_token, ebay_refresh_token, ebay_token_expires_at')
+    .eq('id', userId)
     .single();
 
-  if (error || !data) {
-    return null;
+  if (!user?.ebay_refresh_token) {
+    throw new Error('eBay not connected');
   }
 
-  return data;
-}
+  const clientId = decrypt(user.ebay_client_id);
+  const clientSecret = decrypt(user.ebay_client_secret);
+  const refreshToken = decrypt(user.ebay_refresh_token);
+  let accessToken = decrypt(user.ebay_access_token);
 
-/**
- * Get all leaf categories
- */
-async function getLeafCategories(supabase) {
-  const { data } = await supabase
-    .from('ebay_category_requirements')
-    .select('*')
-    .eq('is_leaf', true)
-    .order('ebay_category_name');
+  // Check if token expired
+  const expiresAt = user.ebay_token_expires_at ? new Date(user.ebay_token_expires_at) : new Date(0);
+  const now = new Date();
 
-  return data || [];
-}
+  if (!accessToken || expiresAt.getTime() - 300000 < now.getTime()) {
+    // Refresh token
+    const creds = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const response = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${creds}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        scope: 'https://api.ebay.com/oauth/api_scope'
+      })
+    });
 
-/**
- * Add or update a category requirement
- */
-async function upsertCategoryRequirement(supabase, requirement) {
-  requirement.updated_at = new Date().toISOString();
-  
-  const { data, error } = await supabase
-    .from('ebay_category_requirements')
-    .upsert(requirement, { onConflict: 'ebay_category_id' })
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to upsert requirement: ${error.message}`);
+    const tokens = await response.json();
+    if (tokens.access_token) {
+      accessToken = tokens.access_token;
+      // Note: Could store updated token here, but getValidAccessToken in ebay-oauth.js handles this
+    }
   }
 
-  return data;
+  return accessToken;
 }
 
 module.exports = {
-  getEbayCategory,
-  getCategoryRequirements,
-  getLeafCategories,
-  upsertCategoryRequirement
+  getEbayCategory
 };
