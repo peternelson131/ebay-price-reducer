@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { Eye, EyeOff } from 'lucide-react';
 
 const API_SERVICES = [
   {
@@ -89,7 +90,7 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
               onClick={() => setShowKey(!showKey)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary transition-colors"
             >
-              {showKey ? '🙈' : '👁️'}
+              {showKey ? <EyeOff className="h-4 w-4" strokeWidth={1.5} /> : <Eye className="h-4 w-4" strokeWidth={1.5} />}
             </button>
           </div>
           <button
