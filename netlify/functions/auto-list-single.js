@@ -106,9 +106,9 @@ exports.handler = async (event, context) => {
     const category = await getEbayCategory(supabase, keepaData.product);
     console.log(`✅ Category: ${category.categoryName} (${category.categoryId}) [${category.matchType}]`);
 
-    // 6. Create inventory item
+    // 6. Create inventory item with category-specific aspects
     console.log('📦 Creating inventory item...');
-    const inventoryItem = buildInventoryItem(keepaData, condition, quantity);
+    const inventoryItem = buildInventoryItem(keepaData, condition, quantity, category);
     await ebayApiRequest(
       accessToken,
       `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`,
@@ -243,7 +243,76 @@ async function fetchKeepaProduct(userId, asin) {
   return { success: true, product: data.products[0] };
 }
 
-function buildInventoryItem(keepaData, condition, quantity) {
+/**
+ * Infer category-specific aspects from product data
+ */
+function inferAspects(product, category) {
+  const aspects = {};
+  const title = (product.title || '').toLowerCase();
+  const features = (product.features || []).join(' ').toLowerCase();
+  const combined = title + ' ' + features;
+
+  // Connectivity (for headphones, speakers, etc.)
+  if (category.requiredAspects?.includes('Connectivity') || 
+      category.categoryId === '112529') {
+    if (combined.includes('wireless') || combined.includes('bluetooth')) {
+      aspects.Connectivity = ['Wireless'];
+    } else if (combined.includes('wired') || combined.includes('cable')) {
+      aspects.Connectivity = ['Wired'];
+    } else {
+      aspects.Connectivity = ['Wireless'];  // Default assumption for modern electronics
+    }
+  }
+
+  // Type (generic - try to infer from title)
+  if (category.requiredAspects?.includes('Type')) {
+    // Try to find type in title
+    const typeMatch = product.type || product.productGroup;
+    if (typeMatch) {
+      aspects.Type = [typeMatch.replace(/_/g, ' ')];
+    }
+  }
+
+  // Platform (for video games)
+  if (category.requiredAspects?.includes('Platform')) {
+    if (combined.includes('playstation') || combined.includes('ps5') || combined.includes('ps4')) {
+      aspects.Platform = ['Sony PlayStation'];
+    } else if (combined.includes('xbox')) {
+      aspects.Platform = ['Microsoft Xbox'];
+    } else if (combined.includes('nintendo') || combined.includes('switch')) {
+      aspects.Platform = ['Nintendo Switch'];
+    } else if (combined.includes('pc') || combined.includes('windows')) {
+      aspects.Platform = ['PC'];
+    }
+  }
+
+  // Game Name (for video games)
+  if (category.requiredAspects?.includes('Game Name')) {
+    aspects['Game Name'] = [product.title?.substring(0, 65) || 'Video Game'];
+  }
+
+  // Format (for media - DVD, Blu-ray)
+  if (category.requiredAspects?.includes('Format')) {
+    if (combined.includes('blu-ray') || combined.includes('bluray')) {
+      aspects.Format = ['Blu-ray'];
+    } else if (combined.includes('4k') || combined.includes('uhd')) {
+      aspects.Format = ['4K Ultra HD'];
+    } else if (combined.includes('dvd')) {
+      aspects.Format = ['DVD'];
+    } else {
+      aspects.Format = ['DVD'];  // Default
+    }
+  }
+
+  // Movie/TV Title (for media)
+  if (category.requiredAspects?.includes('Movie/TV Title')) {
+    aspects['Movie/TV Title'] = [product.title?.substring(0, 65) || 'Movie'];
+  }
+
+  return aspects;
+}
+
+function buildInventoryItem(keepaData, condition, quantity, category = {}) {
   const p = keepaData.product;
 
   // Extract images
@@ -255,13 +324,17 @@ function buildInventoryItem(keepaData, condition, quantity) {
     });
   }
 
-  // Build aspects
+  // Build aspects - start with standard ones
   const aspects = {};
   if (p.brand) aspects.Brand = [p.brand];
   if (p.model) aspects.Model = [p.model];
   if (p.partNumber) aspects.MPN = [p.partNumber];
   if (p.manufacturer) aspects.Manufacturer = [p.manufacturer];
   if (p.color) aspects.Color = [p.color];
+
+  // Infer category-specific aspects from product data
+  const inferredAspects = inferAspects(p, category);
+  Object.assign(aspects, inferredAspects);
 
   const item = {
     availability: {
