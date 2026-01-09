@@ -106,9 +106,14 @@ exports.handler = async (event, context) => {
     const category = await getEbayCategory(supabase, keepaData.product);
     console.log(`✅ Category: ${category.categoryName} (${category.categoryId}) [${category.matchType}]`);
 
-    // 6. Create inventory item with category-specific aspects
+    // 6. Get required aspects from database
+    console.log('📋 Looking up required aspects...');
+    const requiredAspects = await getRequiredAspects(supabase, category.categoryId, keepaData.product);
+    console.log(`   Found ${Object.keys(requiredAspects).length} aspects: ${Object.keys(requiredAspects).join(', ') || 'none'}`);
+
+    // 7. Create inventory item with aspects
     console.log('📦 Creating inventory item...');
-    const inventoryItem = buildInventoryItem(keepaData, condition, quantity, category);
+    const inventoryItem = buildInventoryItem(keepaData, condition, quantity, requiredAspects);
     await ebayApiRequest(
       accessToken,
       `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`,
@@ -116,7 +121,7 @@ exports.handler = async (event, context) => {
     );
     console.log('✅ Inventory item created');
 
-    // 7. Create offer
+    // 8. Create offer
     console.log('📋 Creating offer...');
     const offerPayload = {
       sku,
@@ -139,7 +144,7 @@ exports.handler = async (event, context) => {
     offerId = offerResult.offerId;
     console.log(`✅ Offer created: ${offerId}`);
 
-    // 8. Publish (if requested)
+    // 9. Publish (if requested)
     let listingId = null;
     let listingUrl = null;
 
@@ -244,75 +249,61 @@ async function fetchKeepaProduct(userId, asin) {
 }
 
 /**
- * Infer category-specific aspects from product data
+ * Get required aspects from database and match values
  */
-function inferAspects(product, category) {
+async function getRequiredAspects(supabase, categoryId, product) {
   const aspects = {};
   const title = (product.title || '').toLowerCase();
   const features = (product.features || []).join(' ').toLowerCase();
   const combined = title + ' ' + features;
 
-  // Connectivity (for headphones, speakers, etc.)
-  if (category.requiredAspects?.includes('Connectivity') || 
-      category.categoryId === '112529') {
-    if (combined.includes('wireless') || combined.includes('bluetooth')) {
-      aspects.Connectivity = ['Wireless'];
-    } else if (combined.includes('wired') || combined.includes('cable')) {
-      aspects.Connectivity = ['Wired'];
-    } else {
-      aspects.Connectivity = ['Wireless'];  // Default assumption for modern electronics
+  // Get aspect requirements for this category
+  const { data: aspectDefs } = await supabase
+    .from('ebay_aspect_values')
+    .select('*')
+    .eq('ebay_category_id', categoryId);
+
+  if (!aspectDefs || aspectDefs.length === 0) {
+    return aspects;
+  }
+
+  for (const def of aspectDefs) {
+    let value = null;
+
+    // First check if we have it from Keepa data
+    if (def.aspect_name === 'Brand' && product.brand) {
+      value = product.brand;
+    } else if (def.aspect_name === 'MPN' && product.partNumber) {
+      value = product.partNumber;
+    } else if (def.aspect_name === 'Game Name' || def.aspect_name === 'Movie/TV Title') {
+      value = product.title?.substring(0, 65);
     }
-  }
 
-  // Type (generic - try to infer from title)
-  if (category.requiredAspects?.includes('Type')) {
-    // Try to find type in title
-    const typeMatch = product.type || product.productGroup;
-    if (typeMatch) {
-      aspects.Type = [typeMatch.replace(/_/g, ' ')];
+    // Try keyword detection if we have keywords defined
+    if (!value && def.detection_keywords && Object.keys(def.detection_keywords).length > 0) {
+      for (const [validValue, keywords] of Object.entries(def.detection_keywords)) {
+        if (keywords.some(kw => combined.includes(kw.toLowerCase()))) {
+          value = validValue;
+          break;
+        }
+      }
     }
-  }
 
-  // Platform (for video games)
-  if (category.requiredAspects?.includes('Platform')) {
-    if (combined.includes('playstation') || combined.includes('ps5') || combined.includes('ps4')) {
-      aspects.Platform = ['Sony PlayStation'];
-    } else if (combined.includes('xbox')) {
-      aspects.Platform = ['Microsoft Xbox'];
-    } else if (combined.includes('nintendo') || combined.includes('switch')) {
-      aspects.Platform = ['Nintendo Switch'];
-    } else if (combined.includes('pc') || combined.includes('windows')) {
-      aspects.Platform = ['PC'];
+    // Use default if still no value
+    if (!value && def.default_value) {
+      value = def.default_value;
     }
-  }
 
-  // Game Name (for video games)
-  if (category.requiredAspects?.includes('Game Name')) {
-    aspects['Game Name'] = [product.title?.substring(0, 65) || 'Video Game'];
-  }
-
-  // Format (for media - DVD, Blu-ray)
-  if (category.requiredAspects?.includes('Format')) {
-    if (combined.includes('blu-ray') || combined.includes('bluray')) {
-      aspects.Format = ['Blu-ray'];
-    } else if (combined.includes('4k') || combined.includes('uhd')) {
-      aspects.Format = ['4K Ultra HD'];
-    } else if (combined.includes('dvd')) {
-      aspects.Format = ['DVD'];
-    } else {
-      aspects.Format = ['DVD'];  // Default
+    // Only add if we have a value
+    if (value) {
+      aspects[def.aspect_name] = [value];
     }
-  }
-
-  // Movie/TV Title (for media)
-  if (category.requiredAspects?.includes('Movie/TV Title')) {
-    aspects['Movie/TV Title'] = [product.title?.substring(0, 65) || 'Movie'];
   }
 
   return aspects;
 }
 
-function buildInventoryItem(keepaData, condition, quantity, category = {}) {
+function buildInventoryItem(keepaData, condition, quantity, requiredAspects = {}) {
   const p = keepaData.product;
 
   // Extract images
@@ -324,7 +315,7 @@ function buildInventoryItem(keepaData, condition, quantity, category = {}) {
     });
   }
 
-  // Build aspects - start with standard ones
+  // Build aspects - start with standard ones from Keepa
   const aspects = {};
   if (p.brand) aspects.Brand = [p.brand];
   if (p.model) aspects.Model = [p.model];
@@ -332,9 +323,8 @@ function buildInventoryItem(keepaData, condition, quantity, category = {}) {
   if (p.manufacturer) aspects.Manufacturer = [p.manufacturer];
   if (p.color) aspects.Color = [p.color];
 
-  // Infer category-specific aspects from product data
-  const inferredAspects = inferAspects(p, category);
-  Object.assign(aspects, inferredAspects);
+  // Merge in required aspects from database lookup
+  Object.assign(aspects, requiredAspects);
 
   const item = {
     availability: {
