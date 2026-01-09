@@ -19,6 +19,7 @@ const Strategies = lazy(() => import('./pages/Strategies'))
 const Listings = lazy(() => import('./pages/Listings'))
 const Login = lazy(() => import('./pages/Login'))
 const AutoList = lazy(() => import('./pages/AutoList'))
+const CreateListing = lazy(() => import('./pages/CreateListing'))
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
 const ListingSettings = lazy(() => import('./pages/ListingSettings'))
 const InfluencerAsinCorrelation = lazy(() => import('./pages/InfluencerAsinCorrelation'))
@@ -104,6 +105,16 @@ export default function App() {
                 }`}
               >
                 Listings
+              </Link>
+              <Link
+                to="/create"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === '/create'
+                    ? 'bg-accent text-white'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-dark-hover'
+                }`}
+              >
+                Create
               </Link>
               <Link
                 to="/auto-list"
@@ -217,6 +228,19 @@ export default function App() {
                 </Link>
 
                 <Link
+                  to="/create"
+                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                    location.pathname === '/create'
+                      ? 'bg-accent text-white'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-dark-hover'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Plus className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  Create
+                </Link>
+
+                <Link
                   to="/auto-list"
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                     location.pathname === '/auto-list'
@@ -225,7 +249,7 @@ export default function App() {
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <Plus className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  <LayoutList className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   Auto-List
                 </Link>
 
@@ -313,6 +337,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Listings />} />
               <Route path="/listings" element={<Listings />} />
+              <Route path="/create" element={<CreateListing />} />
               <Route path="/auto-list" element={<AutoList />} />
               <Route path="/strategies" element={<Strategies />} />
               <Route path="/account" element={<Account />} />

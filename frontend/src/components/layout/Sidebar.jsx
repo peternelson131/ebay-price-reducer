@@ -4,11 +4,13 @@ import {
   ListBulletIcon,
   CogIcon,
   XMarkIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  PlusCircleIcon
 } from '@heroicons/react/24/outline'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
+  { name: 'Create Listing', href: '/create', icon: PlusCircleIcon },
   { name: 'Listings', href: '/listings', icon: ListBulletIcon },
   { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
