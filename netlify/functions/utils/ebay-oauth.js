@@ -21,16 +21,11 @@ const EBAY_TOKEN_URL = 'https://api.ebay.com/identity/v1/oauth2/token';
 const EBAY_API_BASE = 'https://api.ebay.com';
 
 // Required OAuth scopes for selling
+// Note: These must be enabled in the eBay Developer Console for your app
+// Start minimal - only request what's needed for Inventory API listing creation
 const EBAY_SCOPES = [
-  'https://api.ebay.com/oauth/api_scope',
-  'https://api.ebay.com/oauth/api_scope/sell.inventory',
-  'https://api.ebay.com/oauth/api_scope/sell.inventory.readonly',
-  'https://api.ebay.com/oauth/api_scope/sell.account',
-  'https://api.ebay.com/oauth/api_scope/sell.account.readonly',
-  'https://api.ebay.com/oauth/api_scope/sell.fulfillment',
-  'https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly',
-  'https://api.ebay.com/oauth/api_scope/sell.marketing',
-  'https://api.ebay.com/oauth/api_scope/commerce.catalog.readonly'
+  'https://api.ebay.com/oauth/api_scope',                    // Base scope (always required)
+  'https://api.ebay.com/oauth/api_scope/sell.inventory'      // Create/manage inventory items & offers
 ].join(' ');
 
 /**
