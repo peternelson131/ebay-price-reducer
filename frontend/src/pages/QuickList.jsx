@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 /**
  * Story 7A & 7B: Simplified Single-ASIN Listing Component
+ * Story 10: Dynamic condition validation by category
  * 
  * Simple UI for creating eBay listings from Amazon ASINs.
  * Uses the auto-list-single endpoint that handles the full pipeline.
@@ -19,12 +20,28 @@ const STEPS = [
   { id: 'publish', label: 'Publishing listing' }
 ]
 
+// Default conditions (fallback if validation fails)
+const DEFAULT_CONDITIONS = [
+  { value: 'NEW', label: 'Brand New' },
+  { value: 'NEW_OTHER', label: 'New (Open Box)' },
+  { value: 'LIKE_NEW', label: 'Like New' },
+  { value: 'VERY_GOOD', label: 'Very Good' },
+  { value: 'GOOD', label: 'Good' },
+  { value: 'ACCEPTABLE', label: 'Acceptable' },
+  { value: 'USED', label: 'Used' }
+]
+
 export default function QuickList() {
   // Form state
   const [asin, setAsin] = useState('')
   const [price, setPrice] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [condition, setCondition] = useState('NEW')
+  
+  // Product validation state (Story 10)
+  const [productInfo, setProductInfo] = useState(null)
+  const [validConditions, setValidConditions] = useState(DEFAULT_CONDITIONS)
+  const [isValidating, setIsValidating] = useState(false)
   
   // UI state
   const [isLoading, setIsLoading] = useState(false)
@@ -35,7 +52,70 @@ export default function QuickList() {
   // Validation
   const isValidAsin = /^B[0-9A-Z]{9}$/.test(asin)
   const isValidPrice = price && !isNaN(parseFloat(price)) && parseFloat(price) > 0
-  const canSubmit = isValidAsin && isValidPrice && !isLoading
+  const canSubmit = isValidAsin && isValidPrice && !isLoading && !isValidating
+
+  // Validate ASIN and get category info (Story 10)
+  const validateAsin = useCallback(async (asinToValidate) => {
+    if (!asinToValidate || !/^B[0-9A-Z]{9}$/.test(asinToValidate)) {
+      setProductInfo(null)
+      setValidConditions(DEFAULT_CONDITIONS)
+      return
+    }
+
+    setIsValidating(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const response = await fetch('/.netlify/functions/validate-asin', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ asin: asinToValidate })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setProductInfo({
+          title: data.title,
+          imageUrl: data.imageUrl,
+          categoryId: data.categoryId,
+          categoryName: data.categoryName
+        })
+        setValidConditions(data.validConditions || DEFAULT_CONDITIONS)
+        // Reset condition to first valid option if current is invalid
+        const validValues = (data.validConditions || DEFAULT_CONDITIONS).map(c => c.value)
+        if (!validValues.includes(condition)) {
+          setCondition(data.defaultCondition || validValues[0])
+        }
+      } else {
+        setProductInfo(null)
+        setValidConditions(DEFAULT_CONDITIONS)
+      }
+    } catch (err) {
+      console.error('ASIN validation error:', err)
+      setValidConditions(DEFAULT_CONDITIONS)
+    } finally {
+      setIsValidating(false)
+    }
+  }, [condition])
+
+  // Debounced ASIN validation
+  useEffect(() => {
+    if (!isValidAsin) {
+      setProductInfo(null)
+      return
+    }
+
+    const timer = setTimeout(() => {
+      validateAsin(asin)
+    }, 500) // 500ms debounce
+
+    return () => clearTimeout(timer)
+  }, [asin, isValidAsin, validateAsin])
 
   // Simulate progress through steps (since backend doesn't stream updates)
   const simulateProgress = async () => {
@@ -108,6 +188,8 @@ export default function QuickList() {
     setPrice('')
     setQuantity(1)
     setCondition('NEW')
+    setProductInfo(null)
+    setValidConditions(DEFAULT_CONDITIONS)
     setResult(null)
     setError(null)
     setCurrentStep(null)
@@ -228,23 +310,53 @@ export default function QuickList() {
               <label className="block text-sm font-medium text-text-secondary mb-1">
                 Amazon ASIN
               </label>
-              <input
-                type="text"
-                value={asin}
-                onChange={(e) => setAsin(e.target.value.toUpperCase())}
-                placeholder="B01KJEOCDW"
-                maxLength={10}
-                className={`w-full px-4 py-3 bg-dark-bg border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors ${
-                  asin && !isValidAsin ? 'border-error' : 'border-dark-border'
-                }`}
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={asin}
+                  onChange={(e) => setAsin(e.target.value.toUpperCase())}
+                  placeholder="B01KJEOCDW"
+                  maxLength={10}
+                  className={`w-full px-4 py-3 bg-dark-bg border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors ${
+                    asin && !isValidAsin ? 'border-error' : 'border-dark-border'
+                  }`}
+                  disabled={isLoading}
+                />
+                {isValidating && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
               {asin && !isValidAsin && (
                 <p className="mt-1 text-sm text-error">
                   ASIN must start with B followed by 9 alphanumeric characters
                 </p>
               )}
             </div>
+
+            {/* Product Preview (Story 10) */}
+            {productInfo && (
+              <div className="p-3 bg-dark-bg rounded-lg border border-dark-border">
+                <div className="flex gap-3">
+                  {productInfo.imageUrl && (
+                    <img 
+                      src={productInfo.imageUrl} 
+                      alt={productInfo.title}
+                      className="w-16 h-16 object-contain rounded"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-text-primary font-medium truncate">
+                      {productInfo.title}
+                    </p>
+                    <p className="text-xs text-text-tertiary mt-1">
+                      Category: {productInfo.categoryName}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Price Input */}
             <div>
@@ -285,19 +397,21 @@ export default function QuickList() {
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
                   Condition
+                  {productInfo && (
+                    <span className="ml-2 text-xs text-text-tertiary font-normal">
+                      ({validConditions.length} options for this category)
+                    </span>
+                  )}
                 </label>
                 <select
                   value={condition}
                   onChange={(e) => setCondition(e.target.value)}
                   className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
-                  disabled={isLoading}
+                  disabled={isLoading || isValidating}
                 >
-                  <option value="NEW">Brand New</option>
-                  <option value="NEW_OTHER">New - Open Box</option>
-                  <option value="LIKE_NEW">Like New</option>
-                  <option value="VERY_GOOD">Very Good</option>
-                  <option value="GOOD">Good</option>
-                  <option value="ACCEPTABLE">Acceptable</option>
+                  {validConditions.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
                 </select>
               </div>
             </div>
