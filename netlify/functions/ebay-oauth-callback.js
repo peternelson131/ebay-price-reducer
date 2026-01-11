@@ -157,37 +157,31 @@ exports.handler = async (event, context) => {
     }
 
     // Success!
-    const refreshExpiry = new Date(Date.now() + 18 * 30 * 24 * 60 * 60 * 1000); // ~18 months
+    // Redirect back to the app with success indicator
+    const appUrl = 'https://dainty-horse-49c336.netlify.app/api-keys?ebay_connected=true';
     
     return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'text/html' },
-      body: `
-        <html>
-        <body style="font-family: sans-serif; padding: 40px; text-align: center;">
-          <h1>✅ eBay Connected Successfully!</h1>
-          <p style="font-size: 18px; color: #28a745;">Your eBay account is now linked.</p>
-          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px auto; max-width: 400px;">
-            <p><strong>Access Token:</strong> Valid for 2 hours (auto-refreshes)</p>
-            <p><strong>Refresh Token:</strong> Valid until ~${refreshExpiry.toLocaleDateString()}</p>
-          </div>
-          <p>You can close this window.</p>
-        </body>
-        </html>
-      `
+      statusCode: 302,
+      headers: { 
+        'Location': appUrl,
+        'Cache-Control': 'no-cache'
+      },
+      body: ''
     };
 
   } catch (error) {
     console.error('Callback error:', error);
+    // Redirect back to app with error
+    const errorMessage = encodeURIComponent(error.message);
+    const appUrl = `https://dainty-horse-49c336.netlify.app/api-keys?ebay_error=${errorMessage}`;
+    
     return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'text/html' },
-      body: `
-        <html><body style="font-family: sans-serif; padding: 40px; text-align: center;">
-          <h1>❌ Error</h1>
-          <p>${error.message}</p>
-        </body></html>
-      `
+      statusCode: 302,
+      headers: { 
+        'Location': appUrl,
+        'Cache-Control': 'no-cache'
+      },
+      body: ''
     };
   }
 };
