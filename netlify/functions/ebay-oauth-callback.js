@@ -4,11 +4,13 @@
  * GET /ebay-oauth-callback?code=xxx&state=xxx
  * Called by eBay after user authorizes
  * Exchanges code for access_token + refresh_token (18 months)
+ * 
+ * Uses platform-level eBay App credentials from environment variables.
  */
 
 const fetch = require('node-fetch');
 const { createClient } = require('@supabase/supabase-js');
-const { encrypt, decrypt } = require('./utils/encryption');
+const { encrypt } = require('./utils/encryption');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -66,10 +68,10 @@ exports.handler = async (event, context) => {
 
     const { userId } = stateData;
 
-    // Get user's eBay credentials
+    // Verify user exists
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('ebay_client_id, ebay_client_secret')
+      .select('id')
       .eq('id', userId)
       .single();
 
@@ -81,8 +83,18 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const clientId = decrypt(user.ebay_client_id);
-    const clientSecret = decrypt(user.ebay_client_secret);
+    // Use platform-level eBay App credentials from environment
+    const clientId = process.env.EBAY_CLIENT_ID;
+    const clientSecret = process.env.EBAY_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+      console.error('EBAY_CLIENT_ID or EBAY_CLIENT_SECRET not configured');
+      return {
+        statusCode: 500,
+        headers: { 'Content-Type': 'text/html' },
+        body: '<html><body><h1>eBay integration not configured</h1></body></html>'
+      };
+    }
 
     // Exchange code for tokens
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
@@ -119,13 +131,14 @@ exports.handler = async (event, context) => {
     // Calculate expiry time
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 
-    // Store tokens (encrypted)
+    // Store tokens (encrypted) and update connection status
     const { error: updateError } = await supabase
       .from('users')
       .update({
         ebay_access_token: encrypt(tokenData.access_token),
         ebay_refresh_token: encrypt(tokenData.refresh_token),
-        ebay_token_expires_at: expiresAt.toISOString()
+        ebay_token_expires_at: expiresAt.toISOString(),
+        ebay_connection_status: 'connected'
       })
       .eq('id', userId);
 

@@ -1,10 +1,11 @@
 /**
  * eBay OAuth Start
  * 
- * Step 1 of OAuth flow:
- * - User submits their eBay Client ID and Client Secret
- * - We store them encrypted
- * - Return the eBay authorization URL for them to visit
+ * Initiates OAuth flow using platform-level eBay App credentials.
+ * Users do NOT need to provide their own Client ID/Secret.
+ * 
+ * GET or POST /ebay-auth-start
+ * Returns the eBay authorization URL for user to visit
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -32,7 +33,8 @@ exports.handler = async (event, context) => {
     return { statusCode: 200, headers, body: '' };
   }
 
-  if (event.httpMethod !== 'POST') {
+  // Accept both GET and POST for flexibility
+  if (event.httpMethod !== 'GET' && event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
       headers,
@@ -62,51 +64,34 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 2. Parse request body
-    const { clientId, clientSecret } = JSON.parse(event.body);
-
-    if (!clientId || !clientSecret) {
+    // 2. Use platform-level eBay App credentials from environment
+    const clientId = process.env.EBAY_CLIENT_ID;
+    
+    if (!clientId) {
+      console.error('EBAY_CLIENT_ID not configured in environment');
       return {
-        statusCode: 400,
+        statusCode: 500,
         headers,
-        body: JSON.stringify({ error: 'Client ID and Client Secret are required' })
+        body: JSON.stringify({ error: 'eBay integration not configured. Contact support.' })
       };
     }
 
-    // Validate format (basic check)
-    if (clientId.length < 10 || clientSecret.length < 10) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Invalid Client ID or Client Secret format' })
-      };
-    }
-
-    // 3. Store encrypted credentials
-    const encryptedClientId = encrypt(clientId);
-    const encryptedClientSecret = encrypt(clientSecret);
-
-    // Generate a random state for CSRF protection
+    // 3. Generate a random state for CSRF protection
     const state = crypto.randomBytes(16).toString('hex') + ':' + user.id;
     const encryptedState = encrypt(state);
 
+    // Update user's connection status to pending
     const { error: updateError } = await supabase
       .from('users')
       .update({
-        ebay_client_id: encryptedClientId,
-        ebay_client_secret: encryptedClientSecret,
-        ebay_oauth_state: encryptedState, // Store state for verification
+        ebay_oauth_state: encryptedState,
         ebay_connection_status: 'pending'
       })
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('Failed to store eBay credentials:', updateError);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'Failed to store credentials' })
-      };
+      console.error('Failed to update user state:', updateError);
+      // Non-fatal, continue with OAuth
     }
 
     // 4. Generate eBay authorization URL
@@ -114,7 +99,6 @@ exports.handler = async (event, context) => {
     const authUrl = generateAuthUrl(clientId, redirectUri, state);
 
     console.log(`eBay auth started for user ${user.id}`);
-    // Never log credentials!
 
     return {
       statusCode: 200,

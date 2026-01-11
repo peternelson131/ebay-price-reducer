@@ -79,9 +79,17 @@ async function getEbayCategory(supabase, keepaProduct, userId) {
  * Get valid eBay access token (with refresh if needed)
  */
 async function getAccessToken(supabase, userId) {
+  // Use platform-level eBay App credentials from environment
+  const clientId = process.env.EBAY_CLIENT_ID;
+  const clientSecret = process.env.EBAY_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('eBay platform credentials not configured');
+  }
+
   const { data: user } = await supabase
     .from('users')
-    .select('ebay_client_id, ebay_client_secret, ebay_access_token, ebay_refresh_token, ebay_token_expires_at')
+    .select('ebay_access_token, ebay_refresh_token, ebay_token_expires_at')
     .eq('id', userId)
     .single();
 
@@ -89,8 +97,6 @@ async function getAccessToken(supabase, userId) {
     throw new Error('eBay not connected');
   }
 
-  const clientId = decrypt(user.ebay_client_id);
-  const clientSecret = decrypt(user.ebay_client_secret);
   const refreshToken = decrypt(user.ebay_refresh_token);
   let accessToken = decrypt(user.ebay_access_token);
 

@@ -91,11 +91,7 @@ function EbayConnectionCard() {
   const { user } = useAuth();
   const [status, setStatus] = useState('loading'); // loading, not_connected, pending, connected, error
   const [message, setMessage] = useState('');
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
-  const [showSecret, setShowSecret] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [showCredentialsForm, setShowCredentialsForm] = useState(false);
 
   // Check URL params for OAuth callback results
   useEffect(() => {
@@ -144,11 +140,6 @@ function EbayConnectionCard() {
   };
 
   const startOAuthFlow = async () => {
-    if (!clientId.trim() || !clientSecret.trim()) {
-      setMessage('Please enter both Client ID and Client Secret');
-      return;
-    }
-
     setConnecting(true);
     setMessage('');
 
@@ -156,13 +147,11 @@ function EbayConnectionCard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await fetch('/.netlify/functions/ebay-auth-start', {
-        method: 'POST',
+      // Call OAuth start - no credentials needed, uses platform app credentials
+      const response = await fetch('/.netlify/functions/ebay-oauth-start', {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ clientId, clientSecret })
+          'Authorization': `Bearer ${session.access_token}`
+        }
       });
 
       const data = await response.json();
@@ -201,9 +190,6 @@ function EbayConnectionCard() {
 
       setStatus('not_connected');
       setMessage('eBay account disconnected');
-      setClientId('');
-      setClientSecret('');
-      setShowCredentialsForm(false);
     } catch (error) {
       console.error('Disconnect error:', error);
       setMessage(error.message);
@@ -273,109 +259,27 @@ function EbayConnectionCard() {
           </button>
         </div>
       ) : (
-        <div className="mt-4 space-y-4">
-          {!showCredentialsForm ? (
-            <div>
-              <p className="text-sm text-text-secondary mb-4">
-                To connect your eBay account, you'll need your eBay Developer credentials.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowCredentialsForm(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors font-medium"
-                >
-                  <Link2 className="h-4 w-4" />
-                  Connect eBay Account
-                </button>
-                <a
-                  href="https://developer.ebay.com/my/keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2.5 text-text-secondary border border-dark-border rounded-lg hover:bg-dark-hover transition-colors"
-                >
-                  Get Credentials <ExternalLink className="h-4 w-4" />
-                </a>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4 border-t border-dark-border pt-4">
-              <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
-                <h4 className="font-medium text-accent mb-2">Setup Instructions</h4>
-                <ol className="text-sm text-text-secondary space-y-1 list-decimal list-inside">
-                  <li>Go to <a href="https://developer.ebay.com/my/keys" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">eBay Developer Console</a></li>
-                  <li>Create or select your Production application</li>
-                  <li>Copy your App ID (Client ID) and Cert ID (Client Secret)</li>
-                  <li>Add this redirect URL to your app's OAuth settings:
-                    <code className="block mt-1 p-2 bg-dark-bg rounded text-xs text-text-primary break-all">
-                      {window.location.origin}/.netlify/functions/ebay-oauth-callback
-                    </code>
-                  </li>
-                  <li>Enter your credentials below and click Connect</li>
-                </ol>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  App ID (Client ID)
-                </label>
-                <input
-                  type="text"
-                  value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
-                  placeholder="Your eBay App ID"
-                  className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Cert ID (Client Secret)
-                </label>
-                <div className="relative">
-                  <input
-                    type={showSecret ? 'text' : 'password'}
-                    value={clientSecret}
-                    onChange={(e) => setClientSecret(e.target.value)}
-                    placeholder="Your eBay Cert ID"
-                    className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSecret(!showSecret)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
-                  >
-                    {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={startOAuthFlow}
-                  disabled={connecting || !clientId.trim() || !clientSecret.trim()}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-                >
-                  {connecting ? (
-                    <>
-                      <Loader className="h-4 w-4 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <Link2 className="h-4 w-4" />
-                      Connect to eBay
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={() => setShowCredentialsForm(false)}
-                  className="px-4 py-2.5 text-text-secondary border border-dark-border rounded-lg hover:bg-dark-hover transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
+        <div className="mt-4">
+          <p className="text-sm text-text-secondary mb-4">
+            Click below to securely connect your eBay seller account via OAuth.
+          </p>
+          <button
+            onClick={startOAuthFlow}
+            disabled={connecting}
+            className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+          >
+            {connecting ? (
+              <>
+                <Loader className="h-4 w-4 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <Link2 className="h-4 w-4" />
+                Connect eBay Account
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>

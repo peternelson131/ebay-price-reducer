@@ -50,12 +50,10 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Clear all eBay credentials
+    // Clear user's eBay tokens (app credentials are platform-level, not cleared)
     const { error: updateError } = await supabase
       .from('users')
       .update({
-        ebay_client_id: null,
-        ebay_client_secret: null,
         ebay_access_token: null,
         ebay_refresh_token: null,
         ebay_token_expires_at: null,

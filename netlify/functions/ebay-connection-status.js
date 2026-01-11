@@ -52,10 +52,10 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get user's eBay connection status
+    // Get user's eBay connection status (tokens only - app credentials are platform-level)
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('ebay_client_id, ebay_refresh_token, ebay_connection_status, ebay_token_expires_at')
+      .select('ebay_refresh_token, ebay_connection_status, ebay_token_expires_at')
       .eq('id', user.id)
       .single();
 
@@ -68,19 +68,17 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Determine connection status
-    const hasClientId = !!userData?.ebay_client_id;
+    // Determine connection status based on refresh token presence
     const hasRefreshToken = !!userData?.ebay_refresh_token;
     
     let status = 'not_connected';
     let message = 'eBay account not connected';
 
-    if (hasClientId && hasRefreshToken) {
+    if (hasRefreshToken) {
       status = 'connected';
       message = 'eBay account connected';
       
-      // Optionally verify the token is still valid
-      // by checking expiry (don't refresh here, just check)
+      // Check if token is expired (will auto-refresh on next API call)
       if (userData.ebay_token_expires_at) {
         const expiresAt = new Date(userData.ebay_token_expires_at);
         const now = new Date();
@@ -89,9 +87,6 @@ exports.handler = async (event, context) => {
           message = 'eBay token expired - will refresh on next API call';
         }
       }
-    } else if (hasClientId) {
-      status = 'pending';
-      message = 'eBay credentials saved - authorization pending';
     }
 
     return {

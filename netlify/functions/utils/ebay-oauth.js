@@ -134,10 +134,18 @@ async function refreshAccessToken(refreshToken, clientId, clientSecret) {
  * @returns {Promise<string>} - Valid access token
  */
 async function getValidAccessToken(supabase, userId) {
-  // Get user's eBay credentials
+  // Use platform-level eBay App credentials from environment
+  const clientId = process.env.EBAY_CLIENT_ID;
+  const clientSecret = process.env.EBAY_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('eBay platform credentials not configured. Contact support.');
+  }
+
+  // Get user's eBay tokens (per-user, stored in database)
   const { data: user, error } = await supabase
     .from('users')
-    .select('ebay_client_id, ebay_client_secret, ebay_access_token, ebay_refresh_token, ebay_token_expires_at')
+    .select('ebay_access_token, ebay_refresh_token, ebay_token_expires_at')
     .eq('id', userId)
     .single();
 
@@ -149,14 +157,12 @@ async function getValidAccessToken(supabase, userId) {
     throw new Error('eBay account not connected. Please connect your eBay account in API Keys.');
   }
 
-  // Decrypt credentials
-  const clientId = decrypt(user.ebay_client_id);
-  const clientSecret = decrypt(user.ebay_client_secret);
+  // Decrypt user tokens
   const refreshToken = decrypt(user.ebay_refresh_token);
   let accessToken = decrypt(user.ebay_access_token);
 
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error('eBay credentials corrupted. Please reconnect your eBay account.');
+  if (!refreshToken) {
+    throw new Error('eBay connection expired. Please reconnect your eBay account.');
   }
 
   // Check if access token is expired (with 5 minute buffer)

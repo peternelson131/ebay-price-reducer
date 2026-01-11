@@ -1,13 +1,15 @@
 /**
  * eBay OAuth Start - Generate authorization URL
  * 
- * GET /ebay-oauth-start?userId=xxx
+ * GET /ebay-oauth-start
  * Returns URL for user to visit to authorize eBay access
+ * 
+ * Uses platform-level eBay App credentials from environment variables.
+ * Users only need to OAuth to connect their seller account.
  */
 
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders } = require('./utils/cors');
-const { decrypt } = require('./utils/encryption');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -32,34 +34,28 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Get user from auth header or query param
-    let userId = event.queryStringParameters?.userId;
+    // Authenticate user from auth header
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+    if (!authHeader) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Authorization required' }) };
+    }
+
+    const token = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
-    if (!userId) {
-      const authHeader = event.headers.authorization || event.headers.Authorization;
-      if (authHeader) {
-        const token = authHeader.substring(7);
-        const { data: { user } } = await supabase.auth.getUser(token);
-        userId = user?.id;
-      }
+    if (authError || !user) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Invalid token' }) };
     }
 
-    if (!userId) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'userId required' }) };
+    const userId = user.id;
+
+    // Use platform-level eBay App credentials from environment
+    const clientId = process.env.EBAY_CLIENT_ID;
+    
+    if (!clientId) {
+      console.error('EBAY_CLIENT_ID not configured in environment');
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'eBay integration not configured. Contact support.' }) };
     }
-
-    // Get user's eBay app credentials
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('ebay_client_id')
-      .eq('id', userId)
-      .single();
-
-    if (error || !user?.ebay_client_id) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'eBay client credentials not configured' }) };
-    }
-
-    const clientId = decrypt(user.ebay_client_id);
 
     // Generate state (userId + random for CSRF protection)
     const state = Buffer.from(JSON.stringify({

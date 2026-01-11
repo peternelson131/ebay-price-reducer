@@ -6,43 +6,15 @@ import { userAPI } from '../lib/supabase'
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('general')
   const [saving, setSaving] = useState(false)
-  const [credentials, setCredentials] = useState(null)
-  const [loadingCredentials, setLoadingCredentials] = useState(true)
   const [connectionStatus, setConnectionStatus] = useState(null)
   const [loadingStatus, setLoadingStatus] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
-  const { register, handleSubmit, setValue } = useForm()
+  const { register, handleSubmit } = useForm()
 
   const onSaveGeneral = (data) => {
     console.log('General settings:', data)
     toast.success('General settings saved')
-  }
-
-  const fetchCredentials = async () => {
-    try {
-      setLoadingCredentials(true)
-      const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/ebay-oauth?action=get-credentials', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      const data = await response.json()
-      setCredentials(data)
-
-      // Pre-fill form if credentials exist
-      if (data.appId) setValue('ebayAppId', data.appId)
-      if (data.devId) setValue('ebayDevId', data.devId)
-      // Note: Don't pre-fill cert_id (it's encrypted, only show if exists)
-
-    } catch (error) {
-      console.error('Error fetching credentials:', error)
-      toast.error('Failed to load eBay credentials. Please refresh the page.')
-    } finally {
-      setLoadingCredentials(false)
-    }
   }
 
   const fetchConnectionStatus = async () => {
@@ -76,15 +48,19 @@ export default function Settings() {
 
       setConnecting(true)
 
-      // Get OAuth authorization URL from backend
+      // Get OAuth authorization URL from backend (uses platform credentials)
       const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/ebay-oauth?action=initiate', {
+      const response = await fetch('/.netlify/functions/ebay-oauth-start', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
       const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get authorization URL')
+      }
 
       if (data.authUrl) {
         // Open eBay OAuth in new window
@@ -138,7 +114,6 @@ export default function Settings() {
 
             // Refresh status
             fetchConnectionStatus()
-            fetchCredentials()
 
             toast.success(`Successfully connected to eBay${event.data.ebayUser ? ` as ${event.data.ebayUser}` : ''}!`)
             setConnecting(false)
@@ -235,50 +210,6 @@ export default function Settings() {
     }
   }
 
-  const onSaveEbay = async (data) => {
-    setSaving(true)
-    try {
-      const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/save-ebay-credentials', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          app_id: data.ebayAppId,
-          cert_id: data.ebayCertId,
-          dev_id: data.ebayDevId || null
-        })
-      })
-
-      const result = await response.json()
-
-      if (response.ok && result.success) {
-        toast.success('eBay credentials saved successfully')
-        // Refresh credentials
-        await fetchCredentials()
-      } else {
-        throw new Error(result.error || 'Failed to save credentials')
-      }
-    } catch (error) {
-      console.error('Error saving credentials:', error)
-
-      let errorMessage = 'Failed to save credentials'
-      if (error.message.includes('Unauthorized')) {
-        errorMessage = 'Session expired. Please refresh the page and try again.'
-      } else if (error.message.includes('required')) {
-        errorMessage = 'App ID and Cert ID are required'
-      } else if (error.message) {
-        errorMessage = error.message
-      }
-
-      toast.error(errorMessage)
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const onSaveNotifications = (data) => {
     console.log('Notification settings:', data)
     toast.success('Notification settings saved')
@@ -286,7 +217,6 @@ export default function Settings() {
 
   useEffect(() => {
     if (activeTab === 'ebay') {
-      fetchCredentials()
       fetchConnectionStatus()
     }
   }, [activeTab])
@@ -446,21 +376,8 @@ export default function Settings() {
           {/* eBay Integration */}
           {activeTab === 'ebay' && (
             <div className="space-y-6">
-              {/* Help text for new users */}
-              {!credentials?.hasAppId && !loadingCredentials && (
-                <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-900 mb-2">Getting Started with eBay Integration</h4>
-                  <ol className="text-sm text-accent space-y-2 list-decimal list-inside">
-                    <li>Get your eBay developer credentials from <a href="https://developer.ebay.com" target="_blank" rel="noopener noreferrer" className="underline">eBay Developers Program</a></li>
-                    <li>Enter your App ID and Cert ID below and click "Save Credentials"</li>
-                    <li>Click "Connect eBay Account" to authorize access to your listings</li>
-                    <li>Once connected, you can manage your listings and automate price reductions</li>
-                  </ol>
-                </div>
-              )}
-
               {/* Loading State */}
-              {(loadingCredentials || loadingStatus) && (
+              {loadingStatus && (
                 <div className="bg-dark-bg border border-dark-border rounded-lg p-4">
                   <div className="animate-pulse flex space-x-4">
                     <div className="h-4 bg-gray-300 rounded w-1/4"></div>
@@ -468,60 +385,37 @@ export default function Settings() {
                 </div>
               )}
 
-              {/* Credentials Status */}
-              {!loadingCredentials && credentials && (
-                <div className={`border rounded-lg p-4 ${
-                  credentials.hasAppId && credentials.hasCertId
-                    ? 'bg-success/10 border-success/30'
-                    : 'bg-yellow-50 border-yellow-200'
-                }`}>
-                  <h4 className={`font-medium mb-2 ${
-                    credentials.hasAppId && credentials.hasCertId
-                      ? 'text-green-900'
-                      : 'text-yellow-900'
-                  }`}>
-                    Developer Credentials {credentials.hasAppId && credentials.hasCertId ? 'Configured' : 'Required'}
-                  </h4>
-                  <div className="text-sm space-y-1">
-                    <p className={credentials.hasAppId ? 'text-green-700' : 'text-yellow-700'}>
-                      {credentials.hasAppId ? '✓' : '○'} App ID: {credentials.hasAppId ? 'Configured' : 'Not set'}
-                    </p>
-                    <p className={credentials.hasCertId ? 'text-green-700' : 'text-yellow-700'}>
-                      {credentials.hasCertId ? '✓' : '○'} Cert ID: {credentials.hasCertId ? 'Configured' : 'Not set'}
-                    </p>
-                    {credentials.hasDevId && (
-                      <p className="text-green-700">✓ Dev ID: Configured</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {/* Connection Status */}
-              {!loadingStatus && connectionStatus && (
+              {!loadingStatus && (
                 <div className={`border rounded-lg p-4 ${
-                  connectionStatus.connected
+                  connectionStatus?.connected
                     ? 'bg-success/10 border-success/30'
                     : 'bg-dark-bg border-dark-border'
                 }`}>
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className={`font-medium ${
-                        connectionStatus.connected ? 'text-green-900' : 'text-text-primary'
+                        connectionStatus?.connected ? 'text-green-900' : 'text-text-primary'
                       }`}>
-                        eBay Account {connectionStatus.connected ? 'Connected' : 'Not Connected'}
+                        eBay Account {connectionStatus?.connected ? 'Connected' : 'Not Connected'}
                       </h4>
-                      {connectionStatus.connected && connectionStatus.userId && (
+                      {connectionStatus?.connected && connectionStatus.userId && (
                         <p className="text-sm text-green-700 mt-1">
                           Connected as: {connectionStatus.userId}
                         </p>
                       )}
-                      {connectionStatus.connected && connectionStatus.refreshTokenExpiresAt && (
+                      {connectionStatus?.connected && connectionStatus.refreshTokenExpiresAt && (
                         <p className="text-xs text-success mt-1">
                           Token expires: {new Date(connectionStatus.refreshTokenExpiresAt).toLocaleDateString()}
                         </p>
                       )}
+                      {!connectionStatus?.connected && (
+                        <p className="text-sm text-text-secondary mt-1">
+                          Click below to securely connect your eBay seller account via OAuth.
+                        </p>
+                      )}
                     </div>
-                    {connectionStatus.connected && (
+                    {connectionStatus?.connected && (
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-success/100 rounded-full animate-pulse"></div>
                         <span className="text-sm font-medium text-green-700">Active</span>
@@ -531,95 +425,40 @@ export default function Settings() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit(onSaveEbay)} className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium text-text-primary mb-4">
-                    eBay API Credentials
-                  </h3>
-                  <p className="text-sm text-text-secondary mb-6">
-                    Configure your eBay developer credentials to enable API access.
-                    <a href="https://developer.ebay.com" target="_blank" rel="noopener noreferrer" className="text-ebay-blue hover:text-blue-700 ml-1">
-                      Get your credentials here
-                    </a>
-                  </p>
+              <div className="flex justify-start space-x-3">
+                {/* Show Connect button if not connected */}
+                {!connectionStatus?.connected && (
+                  <button
+                    type="button"
+                    onClick={connectEbay}
+                    disabled={connecting}
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    {connecting ? 'Connecting...' : 'Connect eBay Account'}
+                  </button>
+                )}
 
-                  <div className="space-y-4">
-                    <div className="form-group">
-                      <label className="form-label">App ID (Client ID) *</label>
-                      <input
-                        type="text"
-                        placeholder="Your eBay App ID"
-                        {...register('ebayAppId', { required: true })}
-                        className="form-input"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Cert ID (Client Secret) *</label>
-                      <input
-                        type="password"
-                        placeholder="Your eBay Cert ID"
-                        {...register('ebayCertId', { required: true })}
-                        className="form-input"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Dev ID (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="Your eBay Dev ID (optional)"
-                        {...register('ebayDevId')}
-                        className="form-input"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3">
-                  {/* Show Connect button only if credentials are saved but not connected */}
-                  {credentials?.hasAppId && credentials?.hasCertId && !connectionStatus?.connected && (
+                {/* Show Test/Disconnect buttons if connected */}
+                {connectionStatus?.connected && (
+                  <>
                     <button
                       type="button"
-                      onClick={connectEbay}
-                      disabled={connecting}
-                      className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                      onClick={testConnection}
+                      className="bg-accent text-white px-6 py-2 rounded-lg hover:bg-accent-hover transition-colors"
                     >
-                      {connecting ? 'Connecting...' : 'Connect eBay Account'}
+                      Test Connection
                     </button>
-                  )}
-
-                  {/* Show Disconnect button if connected */}
-                  {connectionStatus?.connected && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={testConnection}
-                        className="bg-accent text-white px-6 py-2 rounded-lg hover:bg-accent-hover transition-colors"
-                      >
-                        Test Connection
-                      </button>
-                      <button
-                        type="button"
-                        onClick={disconnectEbay}
-                        disabled={disconnecting}
-                        className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                      >
-                        {disconnecting ? 'Disconnecting...' : 'Disconnect'}
-                      </button>
-                    </>
-                  )}
-
-                  {/* Always show Save Credentials button */}
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="btn-primary disabled:opacity-50"
-                  >
-                    {saving ? 'Saving...' : 'Save Credentials'}
-                  </button>
-                </div>
-              </form>
+                    <button
+                      type="button"
+                      onClick={disconnectEbay}
+                      disabled={disconnecting}
+                      className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                    </button>
+                  </>
+                )}
+              </div>
 
               {/* Only show sync settings if connected */}
               {connectionStatus?.connected && (
