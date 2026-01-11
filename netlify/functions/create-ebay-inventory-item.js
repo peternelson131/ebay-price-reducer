@@ -2,13 +2,18 @@
  * Create eBay Inventory Item
  * 
  * Story 1: Create eBay Inventory Item from ASIN
+ * Story 4C: Integrate Category & Aspects
+ * Story 5B: AI-Generated Title & Description
  * 
  * Flow:
  * 1. Authenticate user
  * 2. Fetch product data from Keepa
- * 3. Transform to eBay inventory item format
- * 4. Create inventory item via eBay API
- * 5. Return SKU and details
+ * 3. Get eBay category suggestion for product title
+ * 4. Get required aspects for the category
+ * 5. Generate AI-optimized title & description
+ * 6. Transform to eBay inventory item format (with category aspects)
+ * 7. Create inventory item via eBay API
+ * 8. Return SKU and details (including categoryId for offer creation)
  */
 
 const fetch = require('node-fetch');
@@ -16,6 +21,9 @@ const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders } = require('./utils/cors');
 const { getValidAccessToken, ebayApiRequest } = require('./utils/ebay-oauth');
 const { decrypt } = require('./utils/encryption');
+const { getCategorySuggestion } = require('./get-ebay-category-suggestion');
+const { getCategoryAspects } = require('./get-ebay-category-aspects');
+const { generateListingContent } = require('./generate-ebay-listing-content');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -105,15 +113,80 @@ exports.handler = async (event, context) => {
     const { ebayDraft, keepaData: rawKeepa } = keepaData;
     console.log(`✅ Got Keepa data: ${ebayDraft.title}`);
 
-    // 4. Get valid eBay access token
+    // 4. Get eBay category suggestion
+    console.log('🏷️ Getting eBay category suggestion...');
+    const categoryResult = await getCategorySuggestion(ebayDraft.title);
+    
+    if (!categoryResult.categoryId) {
+      console.error('❌ Failed to get category suggestion:', categoryResult.error);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Failed to determine eBay category',
+          message: categoryResult.error || 'No category suggestion returned for this product',
+          title: ebayDraft.title
+        })
+      };
+    }
+    
+    console.log(`✅ Got category: ${categoryResult.categoryId} - ${categoryResult.categoryName}`);
+
+    // 5. Get required aspects for the category (non-blocking)
+    console.log('📋 Getting required aspects for category...');
+    let categoryAspects = [];
+    try {
+      const aspectsResult = await getCategoryAspects(categoryResult.categoryId);
+      if (aspectsResult.aspects && aspectsResult.aspects.length > 0) {
+        categoryAspects = aspectsResult.aspects;
+        console.log(`✅ Got ${categoryAspects.length} required aspects`);
+      } else {
+        console.log('ℹ️ No required aspects for this category');
+      }
+    } catch (aspectError) {
+      console.warn('⚠️ Failed to fetch category aspects (non-blocking):', aspectError.message);
+      // Continue with empty aspects - this is non-blocking per requirements
+    }
+
+    // 6. Generate AI-optimized title & description
+    console.log('🤖 Generating AI-optimized listing content...');
+    const originalTitle = ebayDraft.title;
+    let aiContentResult = null;
+    
+    try {
+      aiContentResult = await generateListingContent({
+        title: ebayDraft.title,
+        description: ebayDraft.description,
+        features: rawKeepa.features || [],
+        brand: ebayDraft.brand,
+        model: ebayDraft.model,
+        color: rawKeepa.color || '',
+        category: categoryResult.categoryName
+      });
+      
+      // Use AI-generated content
+      ebayDraft.title = aiContentResult.title;
+      ebayDraft.description = aiContentResult.description;
+      console.log(`✅ AI optimized title: "${aiContentResult.title}" (${aiContentResult.generatedTitleLength} chars)`);
+    } catch (aiError) {
+      console.warn('⚠️ AI generation failed, using Keepa data:', aiError.message);
+      // Continue with original Keepa data - this is non-blocking
+      aiContentResult = { 
+        title: ebayDraft.title, 
+        description: ebayDraft.description,
+        aiModel: 'fallback-keepa'
+      };
+    }
+
+    // 7. Get valid eBay access token
     console.log('🔑 Getting eBay access token...');
     const accessToken = await getValidAccessToken(supabase, user.id);
 
-    // 5. Build eBay Inventory Item payload
-    const inventoryItem = buildInventoryItem(ebayDraft, rawKeepa, condition, quantity);
+    // 8. Build eBay Inventory Item payload (with category aspects merged)
+    const inventoryItem = buildInventoryItem(ebayDraft, rawKeepa, condition, quantity, categoryAspects);
     console.log('📋 Built inventory item payload');
 
-    // 6. Create inventory item via eBay API
+    // 9. Create inventory item via eBay API
     console.log(`📤 Creating inventory item with SKU: ${sku}`);
     
     const result = await ebayApiRequest(
@@ -135,8 +208,14 @@ exports.handler = async (event, context) => {
         sku: sku,
         asin: asin,
         title: ebayDraft.title,
+        originalTitle: originalTitle,
+        titleOptimized: originalTitle !== ebayDraft.title,
+        aiModel: aiContentResult?.aiModel || 'none',
         condition: condition,
         quantity: quantity,
+        categoryId: categoryResult.categoryId,
+        categoryName: categoryResult.categoryName,
+        aspectsIncluded: Object.keys(inventoryItem.product.aspects || {}),
         message: 'Inventory item created successfully'
       })
     };
@@ -283,7 +362,36 @@ function escapeHtml(text) {
  * Build eBay Inventory Item payload
  * @see https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/createOrReplaceInventoryItem
  */
-function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity) {
+function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity, categoryAspects = []) {
+  // Start with aspects from Keepa data
+  const aspects = { ...ebayDraft.aspects };
+  
+  // Merge in required category aspects
+  // For required aspects where we have matching Keepa data, it's already included
+  // For required aspects where we don't have data, we note them but can't populate
+  if (categoryAspects.length > 0) {
+    console.log(`📝 Processing ${categoryAspects.length} required aspects from category`);
+    
+    for (const aspect of categoryAspects) {
+      const aspectName = aspect.name;
+      
+      // Skip if we already have this aspect from Keepa
+      if (aspects[aspectName]) {
+        console.log(`  ✓ ${aspectName}: already have value from Keepa`);
+        continue;
+      }
+      
+      // Try to map common aspect names to Keepa data
+      const mappedValue = mapAspectFromKeepa(aspectName, keepaProduct, ebayDraft);
+      if (mappedValue) {
+        aspects[aspectName] = Array.isArray(mappedValue) ? mappedValue : [mappedValue];
+        console.log(`  ✓ ${aspectName}: mapped from Keepa data`);
+      } else {
+        console.log(`  ⚠ ${aspectName}: required but no data available`);
+      }
+    }
+  }
+  
   const item = {
     availability: {
       shipToLocationAvailability: {
@@ -294,7 +402,7 @@ function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity) {
     product: {
       title: ebayDraft.title,
       description: ebayDraft.description,
-      aspects: ebayDraft.aspects,
+      aspects: aspects,
       imageUrls: ebayDraft.images
     }
   };
@@ -318,6 +426,45 @@ function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity) {
   }
 
   return item;
+}
+
+/**
+ * Map eBay aspect names to available Keepa data
+ * Handles common alternative names for aspects
+ */
+function mapAspectFromKeepa(aspectName, keepaProduct, ebayDraft) {
+  const lowerAspect = aspectName.toLowerCase();
+  
+  // Common mappings
+  if (lowerAspect === 'brand' && keepaProduct.brand) {
+    return keepaProduct.brand;
+  }
+  if (lowerAspect === 'model' && keepaProduct.model) {
+    return keepaProduct.model;
+  }
+  if ((lowerAspect === 'mpn' || lowerAspect === 'manufacturer part number') && keepaProduct.partNumber) {
+    return keepaProduct.partNumber;
+  }
+  if (lowerAspect === 'manufacturer' && keepaProduct.manufacturer) {
+    return keepaProduct.manufacturer;
+  }
+  if (lowerAspect === 'color' && keepaProduct.color) {
+    return keepaProduct.color;
+  }
+  if (lowerAspect === 'upc' && keepaProduct.upcList && keepaProduct.upcList.length > 0) {
+    return keepaProduct.upcList[0];
+  }
+  if (lowerAspect === 'ean' && keepaProduct.eanList && keepaProduct.eanList.length > 0) {
+    return keepaProduct.eanList[0];
+  }
+  if ((lowerAspect === 'size' || lowerAspect === 'item size') && keepaProduct.size) {
+    return keepaProduct.size;
+  }
+  if ((lowerAspect === 'material' || lowerAspect === 'material type') && keepaProduct.material) {
+    return keepaProduct.material;
+  }
+  
+  return null;
 }
 
 /**

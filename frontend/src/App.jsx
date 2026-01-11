@@ -18,7 +18,8 @@ const Account = lazy(() => import('./pages/Account'))
 const Strategies = lazy(() => import('./pages/Strategies'))
 const Listings = lazy(() => import('./pages/Listings'))
 const Login = lazy(() => import('./pages/Login'))
-const AutoList = lazy(() => import('./pages/AutoList'))
+const QuickList = lazy(() => import('./pages/QuickList'))
+const AutoListBulk = lazy(() => import('./pages/AutoList')) // Renamed: bulk upload option
 const CreateListing = lazy(() => import('./pages/CreateListing'))
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
 const ListingSettings = lazy(() => import('./pages/ListingSettings'))
@@ -124,7 +125,7 @@ export default function App() {
                     : 'text-text-secondary hover:text-text-primary hover:bg-dark-hover'
                 }`}
               >
-                Auto-List
+                Quick List
               </Link>
               <Link
                 to="/strategies"
@@ -249,8 +250,8 @@ export default function App() {
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <LayoutList className="mr-3 h-5 w-5" strokeWidth={1.5} />
-                  Auto-List
+                  <Plus className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  Quick List
                 </Link>
 
                 <Link
@@ -338,7 +339,8 @@ export default function App() {
               <Route path="/" element={<Listings />} />
               <Route path="/listings" element={<Listings />} />
               <Route path="/create" element={<CreateListing />} />
-              <Route path="/auto-list" element={<AutoList />} />
+              <Route path="/auto-list" element={<QuickList />} />
+              <Route path="/bulk-list" element={<AutoListBulk />} />
               <Route path="/strategies" element={<Strategies />} />
               <Route path="/account" element={<Account />} />
               <Route path="/listing-settings" element={<ListingSettings />} />
