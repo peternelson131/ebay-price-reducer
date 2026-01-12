@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { debounce } from 'lodash';
+import { supabase } from '../lib/supabase';
 
 // =============================================
 // GRAPHQL QUERIES
@@ -97,11 +98,18 @@ const UPDATE_LISTING_MUTATION = `
 // =============================================
 
 const graphqlFetch = async (query, variables = {}) => {
+  // Get the current session token properly
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
   const response = await fetch('/.netlify/functions/graphql-api', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`
+      'Authorization': `Bearer ${session.access_token}`
     },
     body: JSON.stringify({ query, variables })
   });
