@@ -36,3 +36,12 @@
 
 # Scheduled function to refresh popular category aspects daily
 # Configured in Netlify UI: scheduled-aspect-refresh runs daily at 2 AM UTC
+
+# Scheduled function to sync eBay listings hourly
+[functions."sync-ebay-listings-scheduled"]
+schedule = "0 * * * *"
+
+# F-BG001: Scheduled price reduction - runs every 4 hours
+# Checks all listings due for reduction based on their strategy frequency
+[functions."scheduled-price-reduction"]
+schedule = "0 */4 * * *"
