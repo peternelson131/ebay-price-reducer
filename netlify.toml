@@ -43,5 +43,5 @@ schedule = "0 * * * *"
 
 # F-BG001: Scheduled price reduction - runs every 4 hours
 # Checks all listings due for reduction based on their strategy frequency
-[functions."scheduled-price-reduction"]
-schedule = "0 */4 * * *"
+# [functions."scheduled-price-reduction"]
+# schedule = "0 */4 * * *"
