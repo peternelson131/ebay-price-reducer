@@ -317,16 +317,23 @@ exports.handler = async (event, context) => {
     let userId = null;
     
     // Check for scheduled job trigger or dry-run test mode
-    const { scheduled, userId: requestedUserId, dryRun, testSecret } = event.body ? JSON.parse(event.body) : {};
+    const { scheduled, userId: requestedUserId, dryRun, testSecret, internalScheduled } = event.body ? JSON.parse(event.body) : {};
     
     // Allow dry-run testing with a simple secret (for UAT verification)
     const isDryRunTest = dryRun && testSecret === 'uat-test-2026';
+    
+    // F-BG001: Internal scheduled call from scheduled-price-reduction.js
+    const isInternalScheduled = internalScheduled === 'netlify-scheduled-function';
     
     if (isDryRunTest) {
       console.log('🧪 DRY RUN TEST MODE - will calculate but not call eBay API');
       if (requestedUserId) {
         userId = requestedUserId;
       }
+    } else if (isInternalScheduled) {
+      // Internal call from Netlify scheduled function - trusted
+      console.log('⏰ SCHEDULED MODE - processing all users');
+      // userId stays null to process all users
     } else if (scheduled && process.env.SCHEDULED_JOB_SECRET) {
       // Scheduled job mode - process specific user or all users
       if (requestedUserId) {

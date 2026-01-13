@@ -67,4 +67,4 @@ Desktop.ini
 backend/src/server-demo.js
 
 # Legacy backend - archived, not in use
-legacy-backend/node_modules/
+legacy-backend/node_modules/.env.uat
