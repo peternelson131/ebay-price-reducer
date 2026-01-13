@@ -53,3 +53,12 @@ schedule = "0 * * * *"
 # NOTE: Scheduled functions cannot be invoked via HTTP - Netlify triggers them automatically
 [functions."scheduled-price-reduction"]
 schedule = "0 */4 * * *"
+
+# Sync eBay listings - runs every hour
+# Imports new listings, updates status/qty, marks ended
+[functions."sync-ebay-listings"]
+timeout = 60
+
+# Can also be scheduled:
+# [functions."sync-ebay-listings-scheduled"]
+# schedule = "0 * * * *"
