@@ -46,9 +46,10 @@ exports.handler = async (event, context) => {
     console.log(`📡 Calling ${functionUrl}`);
     
     // Call sync function - limit to prevent timeout
+    // ~50 listings/user takes ~17s, so 50 * 2 users = ~35s, safe for 60s timeout
     const response = await httpsPost(functionUrl, {
       internalScheduled: 'netlify-scheduled-function',
-      maxListings: 200  // Process 200 per run to stay within timeout
+      maxListings: 50  // Process 50/user to stay within 60s timeout
     });
     
     let result;
