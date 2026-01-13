@@ -618,6 +618,7 @@ exports.handler = async (event, context) => {
           dueForReduction: dueListings.length,
           processed: results.processed,
           skipped: results.skipped,
+          vacationSkipped: results.vacationSkipped || 0,
           errors: results.errors.length
         },
         details: results.details, // Included in dry run mode
