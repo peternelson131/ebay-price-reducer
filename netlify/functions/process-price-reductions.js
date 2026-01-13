@@ -533,9 +533,28 @@ exports.handler = async (event, context) => {
       userListings[listing.user_id].push(listing);
     }
 
+    // Check for vacation mode - skip users who have it enabled
+    const userIds = Object.keys(userListings);
+    const { data: usersData } = await supabase
+      .from('users')
+      .select('id, vacation_mode')
+      .in('id', userIds);
+    
+    const vacationUsers = new Set(
+      (usersData || []).filter(u => u.vacation_mode).map(u => u.id)
+    );
+    
+    if (vacationUsers.size > 0) {
+      console.log(`🏖️ Skipping ${vacationUsers.size} user(s) in vacation mode`);
+      for (const uid of vacationUsers) {
+        delete userListings[uid];
+      }
+    }
+
     const results = {
       processed: 0,
       skipped: 0,
+      vacationSkipped: vacationUsers.size,
       errors: []
     };
 
