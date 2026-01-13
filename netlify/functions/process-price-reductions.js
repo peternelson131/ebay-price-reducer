@@ -65,7 +65,7 @@ async function updatePriceInventoryApi(accessToken, listing, newPrice) {
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Inventory API error:', response.status, errorText);
-    throw new Error(`Inventory API error: ${response.status}`);
+    throw new Error(`Inventory API error: ${response.status} - ${errorText.substring(0, 200)}`);
   }
   
   const result = await response.json();
@@ -240,11 +240,14 @@ async function processListing(accessToken, listing, dryRun = false) {
   
   if (!dryRun) {
     // Route based on source - only call eBay if not dry run
-    if (listing.source === 'trading_api') {
+    // Most listings use Trading API (XML), Inventory API only for newer listings with SKU
+    if (listing.source === 'inventory_api' && listing.ebay_sku && listing.offer_id) {
+      await updatePriceInventoryApi(accessToken, listing, newPrice);
+    } else if (listing.ebay_listing_id) {
+      // Default to Trading API for all listings with ebay_listing_id
       await updatePriceTradingApi(accessToken, listing, newPrice);
     } else {
-      // Default to Inventory API
-      await updatePriceInventoryApi(accessToken, listing, newPrice);
+      throw new Error('Listing has no ebay_listing_id or inventory API credentials');
     }
     
     // Update database
