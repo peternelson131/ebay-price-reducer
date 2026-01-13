@@ -214,12 +214,14 @@ export default function Strategies() {
                         <div className="flex items-center space-x-2">
                           <span className="text-text-tertiary">Reduction:</span>
                           <div className="font-medium text-accent">
-                            {rule.reduction_type === 'percentage' ? `${rule.reduction_amount}%` : `$${rule.reduction_amount}`}
+                            {(rule.strategy_type || rule.reduction_type) === 'percentage' 
+                              ? `${rule.reduction_percentage || rule.reduction_amount}%` 
+                              : `$${rule.reduction_amount}`}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className="text-text-tertiary">Frequency:</span>
-                          <div className="font-medium text-text-primary">Every {rule.frequency_days} day{rule.frequency_days !== 1 ? 's' : ''}</div>
+                          <div className="font-medium text-text-primary">Every {rule.interval_days || rule.frequency_days || '?'} day{(rule.interval_days || rule.frequency_days) !== 1 ? 's' : ''}</div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className="text-text-tertiary">Created:</span>
