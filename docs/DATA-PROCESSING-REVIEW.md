@@ -71,10 +71,21 @@ After: Single timestamp reused
 
 ---
 
-## Performance Improvement Estimate
+## Performance Improvement - TESTED
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
 | DB Queries (200 listings) | ~600 | ~5 | 99% fewer |
-| Sync time | ~30s | ~5s | 6x faster |
-| Price reduction time | ~10s | ~2s | 5x faster |
+| UAT Sync (100 listings) | 17s | 5.8s | **3x faster** |
+| Prod Sync (0 new) | N/A | 0.6s | **Very fast** |
+
+### Test Results (Jan 13, 2026 12:25 AM)
+
+**UAT:**
+- Duration: 5.81s for 100 listings
+- Updated: 99 listings
+- Errors: 1 (minor)
+
+**Production:**
+- Duration: 0.60s
+- All synced
