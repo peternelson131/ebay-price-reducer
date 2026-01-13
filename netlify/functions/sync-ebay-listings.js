@@ -331,7 +331,7 @@ async function upsertListings(userId, listings) {
             // Update identifiers if they were missing
             ebay_item_id: listing.ebay_item_id || existing.ebay_item_id,
             offer_id: listing.offer_id,
-            last_sync: new Date().toISOString(),
+            last_synced: new Date().toISOString(),
             updated_at: new Date().toISOString()
             // ❌ NOT updating: current_price, original_price, minimum_price
             // ❌ NOT updating: enable_auto_reduction, strategy_id
@@ -366,7 +366,7 @@ async function upsertListings(userId, listings) {
             ebay_url: listing.ebay_url,
             source: listing.source,
             enable_auto_reduction: false,  // User must enable
-            last_sync: new Date().toISOString(),
+            last_synced: new Date().toISOString(),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
