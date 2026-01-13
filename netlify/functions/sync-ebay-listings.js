@@ -86,11 +86,17 @@ function parseGetMyeBaySellingResponse(xmlText) {
       return m ? m[1] : null;
     };
     
+    // Parse price - must be > 0 for DB constraint
+    let price = parseFloat(getValue('CurrentPrice')) || 0;
+    if (price <= 0) {
+      price = parseFloat(getValue('BuyItNowPrice')) || parseFloat(getValue('StartPrice')) || 0.01;
+    }
+    
     const listing = {
       ebay_item_id: getValue('ItemID'),
       ebay_sku: getValue('SKU'),
       title: getValue('Title'),
-      current_price: parseFloat(getValue('CurrentPrice')) || 0,
+      current_price: price > 0 ? price : 0.01,  // Ensure always > 0
       quantity_available: parseInt(getValue('QuantityAvailable')) || 0,
       quantity_sold: parseInt(getValue('QuantitySold')) || 0,
       listing_status: getValue('ListingStatus') || 'Active',
@@ -389,10 +395,12 @@ async function upsertListings(userId, listings) {
 
 /**
  * Derive listing status from eBay data
+ * Must match constraint: 'Active', 'Inactive', 'Ended', 'Sold Out', 'Out of Stock'
  */
 function deriveStatus(listing) {
   if (listing.listing_status === 'Ended') return 'Ended';
-  if (listing.quantity_available === 0) return 'SoldOut';
+  if (listing.quantity_available === 0) return 'Sold Out';  // Note: space required
+  if (listing.listing_status === 'Inactive') return 'Inactive';
   return 'Active';
 }
 
