@@ -243,11 +243,11 @@ async function processListing(accessToken, listing, dryRun = false) {
     // Most listings use Trading API (XML), Inventory API only for newer listings with SKU
     if (listing.source === 'inventory_api' && listing.ebay_sku && listing.offer_id) {
       await updatePriceInventoryApi(accessToken, listing, newPrice);
-    } else if (listing.ebay_listing_id) {
-      // Default to Trading API for all listings with ebay_listing_id
+    } else if (listing.ebay_item_id) {
+      // Default to Trading API for all listings with ebay_item_id
       await updatePriceTradingApi(accessToken, listing, newPrice);
     } else {
-      throw new Error('Listing has no ebay_listing_id or inventory API credentials');
+      throw new Error('Listing has no ebay_item_id or inventory API credentials');
     }
     
     // Update database
