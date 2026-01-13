@@ -331,8 +331,12 @@ exports.handler = async (event, context) => {
         userId = requestedUserId;
       }
     } else if (isInternalScheduled) {
-      // Internal call from Netlify scheduled function - trusted
-      console.log('⏰ SCHEDULED MODE - processing all users');
+      // Internal call from Netlify scheduled function or manual trigger - trusted
+      if (dryRun) {
+        console.log('🧪 INTERNAL DRY RUN MODE - will calculate but not call eBay API');
+      } else {
+        console.log('⏰ SCHEDULED MODE - processing all users');
+      }
       // userId stays null to process all users
     } else if (scheduled && process.env.SCHEDULED_JOB_SECRET) {
       // Scheduled job mode - process specific user or all users
@@ -404,18 +408,21 @@ exports.handler = async (event, context) => {
     // Process each user's listings
     for (const [uid, userDueListings] of Object.entries(userListings)) {
       try {
+        // Combined dry run check: test mode OR internal scheduled with dryRun flag
+        const shouldDryRun = isDryRunTest || (isInternalScheduled && dryRun);
+        
         // Skip token fetch for dry run mode
-        const accessToken = isDryRunTest ? null : await getValidAccessToken(supabase, uid);
+        const accessToken = shouldDryRun ? null : await getValidAccessToken(supabase, uid);
         
         for (const listing of userDueListings) {
           try {
-            const result = await processListing(accessToken, listing, isDryRunTest);
+            const result = await processListing(accessToken, listing, shouldDryRun);
             if (result.skipped) {
               results.skipped++;
             } else if (result.success) {
               results.processed++;
               // Include details in dry run mode
-              if (isDryRunTest) {
+              if (shouldDryRun) {
                 results.details = results.details || [];
                 results.details.push({
                   listingId: listing.id,
@@ -451,7 +458,7 @@ exports.handler = async (event, context) => {
       headers,
       body: JSON.stringify({
         success: true,
-        dryRun: isDryRunTest || false,
+        dryRun: isDryRunTest || (isInternalScheduled && dryRun) || false,
         environment: IS_SANDBOX ? 'sandbox' : 'production',
         stats: {
           totalEnabled: listings?.length || 0,
