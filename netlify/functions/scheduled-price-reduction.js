@@ -5,49 +5,69 @@
  * Runs every 4 hours via Netlify scheduled functions
  * 
  * Calls the process-price-reductions endpoint via HTTP
- * to ensure proper environment variable loading.
  */
 
-const fetch = require('node-fetch');
+const https = require('https');
+
+function httpsPost(url, data) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const postData = JSON.stringify(data);
+    
+    const options = {
+      hostname: urlObj.hostname,
+      port: 443,
+      path: urlObj.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+    
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => resolve({ status: res.statusCode, body }));
+    });
+    
+    req.on('error', reject);
+    req.write(postData);
+    req.end();
+  });
+}
 
 exports.handler = async (event, context) => {
   const startTime = Date.now();
   console.log('⏰ Scheduled price reduction triggered at', new Date().toISOString());
   
   try {
-    // Get the site URL from environment or construct it
+    // Get the site URL from environment
     const siteUrl = process.env.URL || 'https://dainty-horse-49c336.netlify.app';
     const functionUrl = `${siteUrl}/.netlify/functions/process-price-reductions`;
     
     console.log(`📡 Calling ${functionUrl}`);
     
     // Call the process-price-reductions function via HTTP
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        internalScheduled: 'netlify-scheduled-function'
-      })
+    const response = await httpsPost(functionUrl, {
+      internalScheduled: 'netlify-scheduled-function'
     });
     
-    const responseText = await response.text();
     let result;
     try {
-      result = JSON.parse(responseText);
+      result = JSON.parse(response.body);
     } catch (e) {
-      result = { raw: responseText };
+      result = { raw: response.body };
     }
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     
-    if (response.ok) {
+    if (response.status === 200) {
       console.log(`✅ Scheduled price reduction completed in ${duration}s`);
-      console.log(`📊 Stats:`, JSON.stringify(result.stats || result, null, 2));
+      console.log(`📊 Stats:`, JSON.stringify(result.stats || {}, null, 2));
     } else {
       console.error(`❌ Price reduction failed with status ${response.status}`);
-      console.error(`Response:`, responseText);
+      console.error(`Response:`, response.body.substring(0, 500));
     }
     
     return {
@@ -66,8 +86,7 @@ exports.handler = async (event, context) => {
       statusCode: 500,
       body: JSON.stringify({
         success: false,
-        error: error.message,
-        stack: error.stack
+        error: error.message
       })
     };
   }
