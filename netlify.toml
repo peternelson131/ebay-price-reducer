@@ -43,5 +43,6 @@ schedule = "0 * * * *"
 
 # F-BG001: Scheduled price reduction - runs every 4 hours
 # Checks all listings due for reduction based on their strategy frequency
-# [functions."scheduled-price-reduction"]
-# schedule = "0 */4 * * *"
+# NOTE: Scheduled functions cannot be invoked via HTTP - Netlify triggers them automatically
+[functions."scheduled-price-reduction"]
+schedule = "0 */4 * * *"
