@@ -7,6 +7,7 @@ import {
   TrendingDown, 
   Search, 
   User, 
+  Key, 
   LogOut, 
   Menu, 
   X 
@@ -22,7 +23,7 @@ const AutoListBulk = lazy(() => import('./pages/AutoList')) // Renamed: bulk upl
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
 const ListingSettings = lazy(() => import('./pages/ListingSettings'))
 const InfluencerAsinCorrelation = lazy(() => import('./pages/InfluencerAsinCorrelation'))
-// DEPRECATED: ApiKeys page removed - use Account > Integrations instead
+const ApiKeys = lazy(() => import('./pages/ApiKeys'))
 
 export default function App() {
   const { user, isAuthenticated, signOut } = useAuth()
@@ -145,7 +146,16 @@ export default function App() {
               >
                 Account
               </Link>
-
+              <Link
+                to="/api-keys"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === '/api-keys'
+                    ? 'bg-accent text-white'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-dark-hover'
+                }`}
+              >
+                API Keys
+              </Link>
               <button
                 onClick={handleLogout}
                 className="ml-2 bg-dark-hover hover:bg-dark-border text-text-secondary hover:text-text-primary px-3 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -259,6 +269,19 @@ export default function App() {
                   Account
                 </Link>
 
+                <Link
+                  to="/api-keys"
+                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                    location.pathname === '/api-keys'
+                      ? 'bg-accent text-white'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-dark-hover'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Key className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  API Keys
+                </Link>
+
                 {/* Logout Button */}
                 <div className="pt-2 mt-2 border-t border-dark-border">
                   <button
@@ -299,6 +322,7 @@ export default function App() {
               <Route path="/listing-settings" element={<ListingSettings />} />
               <Route path="/admin-settings" element={<AdminSettings />} />
               <Route path="/asin-lookup" element={<InfluencerAsinCorrelation />} />
+              <Route path="/api-keys" element={<ApiKeys />} />
             </Routes>
           </Suspense>
         </div>

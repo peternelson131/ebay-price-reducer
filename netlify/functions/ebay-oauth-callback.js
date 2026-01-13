@@ -170,7 +170,7 @@ exports.handler = async (event, context) => {
 
     // Success!
     // Redirect back to the app with success indicator
-    const successUrl = `${APP_URL}/account?ebay_connected=true`;
+    const successUrl = `${APP_URL}/api-keys?ebay_connected=true`;
     
     return {
       statusCode: 302,
@@ -185,7 +185,7 @@ exports.handler = async (event, context) => {
     console.error('Callback error:', error);
     // Redirect back to app with error
     const errorMessage = encodeURIComponent(error.message);
-    const errorUrl = `${APP_URL}/account?ebay_error=${errorMessage}`;
+    const errorUrl = `${APP_URL}/api-keys?ebay_error=${errorMessage}`;
     
     return {
       statusCode: 302,
