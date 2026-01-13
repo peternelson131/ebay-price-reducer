@@ -5,6 +5,13 @@
 [functions]
   directory = "netlify/functions"
 
+# Increase timeout for price reduction functions (26s max on Pro plan)
+[functions."trigger-price-reduction"]
+  timeout = 26
+
+[functions."process-price-reductions"]
+  timeout = 26
+
 # Increase timeout for correlation function (26s max on Pro)
 [functions."trigger-asin-correlation-v2"]
   external_node_modules = ["axios"]
