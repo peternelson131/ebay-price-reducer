@@ -74,6 +74,7 @@ exports.handler = async (event, context) => {
     }
     
     const dryRun = body.dryRun !== false; // Default to dry run for safety
+    const limit = body.limit || null; // Optional limit for testing
     
     // Get the site URL from environment
     const siteUrl = process.env.URL || 'https://dainty-horse-49c336.netlify.app';
@@ -84,7 +85,8 @@ exports.handler = async (event, context) => {
     // Call process-price-reductions
     const response = await httpsPost(functionUrl, {
       internalScheduled: 'netlify-scheduled-function',
-      dryRun: dryRun
+      dryRun: dryRun,
+      limit: limit
     });
     
     let result;

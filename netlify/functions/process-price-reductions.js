@@ -317,7 +317,7 @@ exports.handler = async (event, context) => {
     let userId = null;
     
     // Check for scheduled job trigger or dry-run test mode
-    const { scheduled, userId: requestedUserId, dryRun, testSecret, internalScheduled } = event.body ? JSON.parse(event.body) : {};
+    const { scheduled, userId: requestedUserId, dryRun, testSecret, internalScheduled, limit } = event.body ? JSON.parse(event.body) : {};
     
     // Allow dry-run testing with a simple secret (for UAT verification)
     const isDryRunTest = dryRun && testSecret === 'uat-test-2026';
@@ -387,8 +387,16 @@ exports.handler = async (event, context) => {
     console.log(`📊 Found ${listings?.length || 0} listings with auto-reduction enabled`);
 
     // Filter to only listings due for reduction
-    const dueListings = (listings || []).filter(isDueForReduction);
-    console.log(`📊 ${dueListings.length} listings due for reduction`);
+    let dueListings = (listings || []).filter(isDueForReduction);
+    const totalDue = dueListings.length;
+    
+    // Apply limit if specified (for testing/batching)
+    if (limit && limit > 0) {
+      dueListings = dueListings.slice(0, limit);
+      console.log(`📊 ${totalDue} listings due, processing ${dueListings.length} (limit: ${limit})`);
+    } else {
+      console.log(`📊 ${dueListings.length} listings due for reduction`);
+    }
 
     // Group by user to get access tokens efficiently
     const userListings = {};
