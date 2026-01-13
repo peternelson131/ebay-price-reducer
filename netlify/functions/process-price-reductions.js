@@ -34,7 +34,26 @@ async function updatePriceInventoryApi(accessToken, listing, newPrice) {
     throw new Error('Listing has no ebay_sku for Inventory API');
   }
   
-  console.log(`📝 Updating Inventory API listing ${listing.ebay_sku} to $${newPrice}`);
+  console.log(`📝 Updating Inventory API listing SKU:${listing.ebay_sku} to $${newPrice}`);
+  
+  // Build the request - offerId is required for price updates
+  const request = {
+    sku: listing.ebay_sku,
+    shipToLocationAvailability: {
+      quantity: listing.quantity_available || 1
+    }
+  };
+  
+  // Only include offers if we have an offerId
+  if (listing.offer_id) {
+    request.offers = [{
+      offerId: listing.offer_id,
+      price: {
+        value: newPrice.toFixed(2),
+        currency: 'USD'
+      }
+    }];
+  }
   
   const url = `${EBAY_API_BASE}/sell/inventory/v1/bulk_update_price_quantity`;
   
@@ -46,19 +65,7 @@ async function updatePriceInventoryApi(accessToken, listing, newPrice) {
       'Accept': 'application/json'
     },
     body: JSON.stringify({
-      requests: [{
-        sku: listing.ebay_sku,
-        shipToLocationAvailability: {
-          quantity: listing.quantity_available || 1
-        },
-        offers: [{
-          offerId: listing.offer_id, // If we have it
-          price: {
-            value: newPrice.toFixed(2),
-            currency: 'USD'
-          }
-        }]
-      }]
+      requests: [request]
     })
   });
   
@@ -73,7 +80,7 @@ async function updatePriceInventoryApi(accessToken, listing, newPrice) {
   // Check for errors in response
   if (result.responses?.[0]?.statusCode !== 200) {
     const errorMsg = result.responses?.[0]?.errors?.[0]?.message || 'Unknown error';
-    throw new Error(errorMsg);
+    throw new Error(`Inventory API: ${errorMsg}`);
   }
   
   return result;
@@ -239,15 +246,40 @@ async function processListing(accessToken, listing, dryRun = false) {
   console.log(`💰 Processing listing ${listing.id}: $${listing.current_price} → $${newPrice} (${reductionDisplay} ${reductionType}, source: ${listing.source})${dryRun ? ' [DRY RUN]' : ''}`);
   
   if (!dryRun) {
-    // Route based on source - only call eBay if not dry run
-    // Most listings use Trading API (XML), Inventory API only for newer listings with SKU
-    if (listing.source === 'inventory_api' && listing.ebay_sku && listing.offer_id) {
-      await updatePriceInventoryApi(accessToken, listing, newPrice);
-    } else if (listing.ebay_item_id) {
-      // Default to Trading API for all listings with ebay_item_id
-      await updatePriceTradingApi(accessToken, listing, newPrice);
-    } else {
-      throw new Error('Listing has no ebay_item_id or inventory API credentials');
+    // Route based on source and available identifiers
+    // Inventory API listings require SKU and offer_id for price updates
+    // Trading API listings use ItemID
+    
+    let updateError = null;
+    let updated = false;
+    
+    // Try Inventory API if we have SKU and offer_id
+    if (listing.ebay_sku && listing.offer_id) {
+      try {
+        await updatePriceInventoryApi(accessToken, listing, newPrice);
+        updated = true;
+      } catch (invError) {
+        console.warn(`Inventory API failed for ${listing.id}: ${invError.message}`);
+        updateError = invError;
+      }
+    }
+    
+    // Try Trading API if we have ItemID and Inventory API didn't work
+    if (!updated && listing.ebay_item_id) {
+      try {
+        await updatePriceTradingApi(accessToken, listing, newPrice);
+        updated = true;
+      } catch (tradError) {
+        // Check if it's an inventory-based listing error
+        if (tradError.message?.includes('Inventory-based')) {
+          console.warn(`Listing ${listing.id} is Inventory API based but missing offer_id`);
+        }
+        updateError = tradError;
+      }
+    }
+    
+    if (!updated) {
+      throw updateError || new Error('No valid API method available for this listing');
     }
     
     // Update database
