@@ -110,14 +110,14 @@ function parseGetMyeBaySellingResponse(xmlText) {
 /**
  * Import listings from Trading API
  */
-async function importTradingApiListings(accessToken, userId) {
+async function importTradingApiListings(accessToken, userId, maxListings = 0) {
   console.log('📦 Importing Trading API listings...');
   
   const allListings = [];
   let pageNumber = 1;
   let totalPages = 1;
   
-  while (pageNumber <= totalPages) {
+  while (pageNumber <= totalPages && (maxListings === 0 || allListings.length < maxListings)) {
     const requestXml = buildGetMyeBaySellingRequest(pageNumber, 200);
     
     const response = await fetch(TRADING_API_URL, {
@@ -142,7 +142,15 @@ async function importTradingApiListings(accessToken, userId) {
     allListings.push(...result.listings);
     totalPages = result.totalPages;
     
-    console.log(`📄 Page ${pageNumber}/${totalPages}: ${result.listings.length} listings`);
+    console.log(`📄 Page ${pageNumber}/${totalPages}: ${result.listings.length} listings (total: ${allListings.length})`);
+    
+    // Check if we've hit the limit
+    if (maxListings > 0 && allListings.length >= maxListings) {
+      allListings.splice(maxListings); // Trim to exact limit
+      console.log(`📊 Reached maxListings limit: ${maxListings}`);
+      break;
+    }
+    
     pageNumber++;
     
     // Rate limiting
@@ -162,7 +170,7 @@ async function importTradingApiListings(accessToken, userId) {
 /**
  * Import listings from Inventory API
  */
-async function importInventoryApiListings(accessToken, userId) {
+async function importInventoryApiListings(accessToken, userId, maxListings = 0) {
   console.log('📦 Importing Inventory API listings...');
   
   const allItems = [];
@@ -171,6 +179,8 @@ async function importInventoryApiListings(accessToken, userId) {
   let total = 0;
   
   do {
+    // Check max limit
+    if (maxListings > 0 && allItems.length >= maxListings) break;
     const url = `${EBAY_API_BASE}/sell/inventory/v1/inventory_item?limit=${limit}&offset=${offset}`;
     
     const response = await fetch(url, {
@@ -438,7 +448,7 @@ exports.handler = async (event, context) => {
   
   try {
     const body = event.body ? JSON.parse(event.body) : {};
-    const { userId, source, testSecret } = body;
+    const { userId, source, testSecret, limit, maxListings } = body;
     
     // Auth check
     const isTestMode = testSecret === 'uat-test-2026';
@@ -463,6 +473,11 @@ exports.handler = async (event, context) => {
       usersToSync = users?.map(u => u.id) || [];
     }
     
+    // Apply limit if specified (for testing/batching)
+    if (limit && limit > 0) {
+      usersToSync = usersToSync.slice(0, limit);
+    }
+    
     console.log(`👥 Syncing ${usersToSync.length} user(s)`);
     
     const allResults = [];
@@ -478,22 +493,26 @@ exports.handler = async (event, context) => {
         
         // Import Trading API listings
         if (!source || source === 'trading_api') {
-          const tradingListings = await importTradingApiListings(accessToken, uid);
+          const tradingListings = await importTradingApiListings(accessToken, uid, maxListings);
           tradingResults = await upsertListings(uid, tradingListings);
           
-          // Mark ended listings
-          const foundIds = new Set(tradingListings.map(l => l.ebay_item_id));
-          tradingEnded = await markEndedListings(uid, foundIds, 'trading_api');
+          // Mark ended listings (skip if using maxListings to avoid false ended)
+          if (!maxListings) {
+            const foundIds = new Set(tradingListings.map(l => l.ebay_item_id));
+            tradingEnded = await markEndedListings(uid, foundIds, 'trading_api');
+          }
         }
         
         // Import Inventory API listings
         if (!source || source === 'inventory_api') {
-          const inventoryListings = await importInventoryApiListings(accessToken, uid);
+          const inventoryListings = await importInventoryApiListings(accessToken, uid, maxListings);
           inventoryResults = await upsertListings(uid, inventoryListings);
           
-          // Mark ended listings
-          const foundIds = new Set(inventoryListings.map(l => l.ebay_sku));
-          inventoryEnded = await markEndedListings(uid, foundIds, 'inventory_api');
+          // Mark ended listings (skip if using maxListings to avoid false ended)
+          if (!maxListings) {
+            const foundIds = new Set(inventoryListings.map(l => l.ebay_sku));
+            inventoryEnded = await markEndedListings(uid, foundIds, 'inventory_api');
+          }
         }
         
         allResults.push({
