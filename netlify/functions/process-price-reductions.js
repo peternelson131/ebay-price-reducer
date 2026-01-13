@@ -27,6 +27,40 @@ const EBAY_API_BASE = IS_SANDBOX
   : 'https://api.ebay.com';
 
 /**
+ * Fetch offer_id from eBay for a listing with SKU
+ */
+async function fetchOfferId(accessToken, sku) {
+  console.log(`🔍 Fetching offer_id for SKU: ${sku}`);
+  
+  const url = `${EBAY_API_BASE}/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Accept': 'application/json'
+    }
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to fetch offers:', response.status, errorText);
+    return null;
+  }
+  
+  const result = await response.json();
+  
+  // Return the first offer_id if available
+  if (result.offers && result.offers.length > 0) {
+    const offerId = result.offers[0].offerId;
+    console.log(`✅ Found offer_id: ${offerId} for SKU: ${sku}`);
+    return offerId;
+  }
+  
+  return null;
+}
+
+/**
  * Update price via Inventory API (bulkUpdatePriceQuantity)
  */
 async function updatePriceInventoryApi(accessToken, listing, newPrice) {
@@ -253,14 +287,30 @@ async function processListing(accessToken, listing, dryRun = false) {
     let updateError = null;
     let updated = false;
     
-    // Try Inventory API if we have SKU and offer_id
-    if (listing.ebay_sku && listing.offer_id) {
-      try {
-        await updatePriceInventoryApi(accessToken, listing, newPrice);
-        updated = true;
-      } catch (invError) {
-        console.warn(`Inventory API failed for ${listing.id}: ${invError.message}`);
-        updateError = invError;
+    // Try Inventory API if we have SKU
+    if (listing.ebay_sku) {
+      // Fetch offer_id if we don't have it
+      let offerId = listing.offer_id;
+      if (!offerId) {
+        offerId = await fetchOfferId(accessToken, listing.ebay_sku);
+        if (offerId) {
+          // Store it for future use
+          listing.offer_id = offerId;
+          await supabase
+            .from('listings')
+            .update({ offer_id: offerId })
+            .eq('id', listing.id);
+        }
+      }
+      
+      if (offerId) {
+        try {
+          await updatePriceInventoryApi(accessToken, listing, newPrice);
+          updated = true;
+        } catch (invError) {
+          console.warn(`Inventory API failed for ${listing.id}: ${invError.message}`);
+          updateError = invError;
+        }
       }
     }
     
@@ -272,7 +322,7 @@ async function processListing(accessToken, listing, dryRun = false) {
       } catch (tradError) {
         // Check if it's an inventory-based listing error
         if (tradError.message?.includes('Inventory-based')) {
-          console.warn(`Listing ${listing.id} is Inventory API based but missing offer_id`);
+          console.warn(`Listing ${listing.id} is Inventory API based - try fetching offer_id`);
         }
         updateError = tradError;
       }
