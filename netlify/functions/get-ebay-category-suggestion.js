@@ -13,6 +13,10 @@
  * 6. Response time < 2 seconds
  */
 
+// eBay API base URL - switch based on environment
+const IS_SANDBOX = process.env.EBAY_ENVIRONMENT === 'sandbox';
+const EBAY_API_BASE = IS_SANDBOX ? 'https://api.sandbox.ebay.com' : 'https://api.ebay.com';
+
 async function getEbayAccessToken() {
   // Get client credentials token for Taxonomy API (doesn't need user auth)
   const clientId = process.env.EBAY_CLIENT_ID;
@@ -20,7 +24,7 @@ async function getEbayAccessToken() {
   
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
   
-  const response = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+  const response = await fetch(`${EBAY_API_BASE}/identity/v1/oauth2/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -49,7 +53,7 @@ async function getCategorySuggestion(productTitle) {
   const categoryTreeId = '0';
   const encodedQuery = encodeURIComponent(productTitle);
   
-  const url = `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_suggestions?q=${encodedQuery}`;
+  const url = `${EBAY_API_BASE}/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_suggestions?q=${encodedQuery}`;
   
   const response = await fetch(url, {
     method: 'GET',

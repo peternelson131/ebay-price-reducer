@@ -1,13 +1,22 @@
 /**
  * Encryption utilities for secure credential storage
  * Uses AES-256-CBC encryption with the ENCRYPTION_KEY env var
+ * 
+ * NOTE: We read ENCRYPTION_KEY at execution time (not module load time)
+ * to ensure it's available in serverless function cold starts.
  */
 
 const crypto = require('crypto');
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
 const ALGORITHM = 'aes-256-cbc';
 const IV_LENGTH = 16;
+
+/**
+ * Get the encryption key (read at execution time, not module load)
+ */
+function getEncryptionKey() {
+  return process.env.ENCRYPTION_KEY || '';
+}
 
 /**
  * Encrypt a string value
@@ -15,7 +24,9 @@ const IV_LENGTH = 16;
  * @returns {string} - Encrypted string in format "iv:encryptedData" (hex encoded)
  */
 function encrypt(text) {
-  if (!ENCRYPTION_KEY) {
+  const encryptionKey = getEncryptionKey();
+  
+  if (!encryptionKey) {
     throw new Error('ENCRYPTION_KEY environment variable not set');
   }
   
@@ -26,7 +37,7 @@ function encrypt(text) {
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(
     ALGORITHM, 
-    Buffer.from(ENCRYPTION_KEY, 'hex'), 
+    Buffer.from(encryptionKey, 'hex'), 
     iv
   );
   
@@ -43,7 +54,9 @@ function encrypt(text) {
  * @returns {string|null} - Decrypted plain text, or null if decryption fails
  */
 function decrypt(encryptedText) {
-  if (!ENCRYPTION_KEY || !encryptedText) {
+  const encryptionKey = getEncryptionKey();
+  
+  if (!encryptionKey || !encryptedText) {
     return null;
   }
 
@@ -54,7 +67,7 @@ function decrypt(encryptedText) {
     
     const decipher = crypto.createDecipheriv(
       ALGORITHM, 
-      Buffer.from(ENCRYPTION_KEY, 'hex'), 
+      Buffer.from(encryptionKey, 'hex'), 
       iv
     );
     
@@ -73,7 +86,8 @@ function decrypt(encryptedText) {
  * @returns {boolean}
  */
 function isEncryptionConfigured() {
-  return !!ENCRYPTION_KEY && ENCRYPTION_KEY.length === 64; // 32 bytes = 64 hex chars
+  const encryptionKey = getEncryptionKey();
+  return !!encryptionKey && encryptionKey.length === 64; // 32 bytes = 64 hex chars
 }
 
 module.exports = {

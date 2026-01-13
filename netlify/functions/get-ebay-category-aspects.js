@@ -13,13 +13,17 @@
  * 6. Response includes aspect name, data type, and allowed values
  */
 
+// eBay API base URL - switch based on environment
+const IS_SANDBOX = process.env.EBAY_ENVIRONMENT === 'sandbox';
+const EBAY_API_BASE = IS_SANDBOX ? 'https://api.sandbox.ebay.com' : 'https://api.ebay.com';
+
 async function getEbayAccessToken() {
   const clientId = process.env.EBAY_CLIENT_ID;
   const clientSecret = process.env.EBAY_CLIENT_SECRET;
   
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
   
-  const response = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+  const response = await fetch(`${EBAY_API_BASE}/identity/v1/oauth2/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -47,7 +51,7 @@ async function getCategoryAspects(categoryId, requiredOnly = true) {
   // US category tree ID is 0
   const categoryTreeId = '0';
   
-  const url = `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_item_aspects_for_category?category_id=${categoryId}`;
+  const url = `${EBAY_API_BASE}/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_item_aspects_for_category?category_id=${categoryId}`;
   
   const response = await fetch(url, {
     method: 'GET',

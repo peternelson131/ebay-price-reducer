@@ -15,10 +15,17 @@
 const fetch = require('node-fetch');
 const { encrypt, decrypt } = require('./encryption');
 
-// eBay API endpoints
-const EBAY_AUTH_URL = 'https://auth.ebay.com/oauth2/authorize';
-const EBAY_TOKEN_URL = 'https://api.ebay.com/identity/v1/oauth2/token';
-const EBAY_API_BASE = 'https://api.ebay.com';
+// eBay API endpoints - switch based on environment
+const IS_SANDBOX = process.env.EBAY_ENVIRONMENT === 'sandbox';
+const EBAY_AUTH_URL = IS_SANDBOX 
+  ? 'https://auth.sandbox.ebay.com/oauth2/authorize'
+  : 'https://auth.ebay.com/oauth2/authorize';
+const EBAY_TOKEN_URL = IS_SANDBOX
+  ? 'https://api.sandbox.ebay.com/identity/v1/oauth2/token'
+  : 'https://api.ebay.com/identity/v1/oauth2/token';
+const EBAY_API_BASE = IS_SANDBOX
+  ? 'https://api.sandbox.ebay.com'
+  : 'https://api.ebay.com';
 
 // Required OAuth scopes for selling
 // Note: These must be enabled in the eBay Developer Console for your app

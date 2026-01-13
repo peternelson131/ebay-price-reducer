@@ -339,10 +339,13 @@ const realListingsAPI = realSupabaseClient ? {
       // Filter by specific status (e.g., 'Inactive')
       query = query.eq('listing_status', status)
     } else if (status === 'Active') {
-      // Only show active listings
-      query = query.eq('listing_status', 'Active')
+      // Only show active listings with available inventory
+      // Listings with quantity_available = 0 don't need repricing
+      query = query
+        .eq('listing_status', 'Active')
+        .gt('quantity_available', 0)
     }
-    // If status === 'all', show all listings regardless of status
+    // If status === 'all', show all listings regardless of status or quantity
 
     // Add default sort order to ensure consistent ordering
     query = query.order('created_at', { ascending: false })

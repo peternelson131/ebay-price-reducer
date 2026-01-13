@@ -16,8 +16,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const EBAY_AUTH_URL = 'https://auth.ebay.com/oauth2/authorize';
-const REDIRECT_URI = 'https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth-callback';
+// Use sandbox or production based on environment
+const IS_SANDBOX = process.env.EBAY_ENVIRONMENT === 'sandbox';
+const EBAY_AUTH_URL = IS_SANDBOX 
+  ? 'https://auth.sandbox.ebay.com/oauth2/authorize'
+  : 'https://auth.ebay.com/oauth2/authorize';
+
+// eBay uses RuName as redirect_uri parameter (not the actual URL)
+// Get from env or use defaults
+const REDIRECT_URI = process.env.EBAY_RUNAME || (IS_SANDBOX
+  ? 'Peter_Nelson-PeterNel-jcasho-tdjssam'
+  : 'Peter_Nelson-PeterNel-jcasho-pzwkq');
 
 const EBAY_SCOPES = [
   'https://api.ebay.com/oauth/api_scope',

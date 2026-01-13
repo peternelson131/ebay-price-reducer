@@ -8,6 +8,10 @@
 const fetch = require('node-fetch');
 const { decrypt } = require('./encryption');
 
+// eBay API base URL - switch based on environment
+const IS_SANDBOX = process.env.EBAY_ENVIRONMENT === 'sandbox';
+const EBAY_API_BASE = IS_SANDBOX ? 'https://api.sandbox.ebay.com' : 'https://api.ebay.com';
+
 /**
  * Get eBay category for a product using Taxonomy API
  * @param {Object} supabase - Supabase client
@@ -32,7 +36,7 @@ async function getEbayCategory(supabase, keepaProduct, userId) {
     
     // Call Taxonomy API
     const query = title.substring(0, 100); // Max 100 chars
-    const url = `https://api.ebay.com/commerce/taxonomy/v1/category_tree/0/get_category_suggestions?q=${encodeURIComponent(query)}`;
+    const url = `${EBAY_API_BASE}/commerce/taxonomy/v1/category_tree/0/get_category_suggestions?q=${encodeURIComponent(query)}`;
     
     const response = await fetch(url, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -107,7 +111,7 @@ async function getAccessToken(supabase, userId) {
   if (!accessToken || expiresAt.getTime() - 300000 < now.getTime()) {
     // Refresh token
     const creds = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    const response = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+    const response = await fetch(`${EBAY_API_BASE}/identity/v1/oauth2/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',

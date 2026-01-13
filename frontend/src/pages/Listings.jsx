@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { listingsAPI, userAPI } from '../lib/supabase'
+import { listingsAPI, userAPI, supabase } from '../lib/supabase'
 import apiService from '../services/api'
 import { getActiveStrategies, getStrategyById, getStrategyDisplayName, getStrategyDisplayInfo } from '../data/strategies'
-import { Search, X, AlertCircle, Plus, Filter } from 'lucide-react'
+import { Search, X, AlertCircle, Plus, Filter, RefreshCw } from 'lucide-react'
 
 // Helper functions for localStorage
 const VALID_COLUMNS = [
@@ -106,11 +106,52 @@ export default function Listings() {
   const [notification, setNotification] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(getStoredItemsPerPage())
+  const [isSyncing, setIsSyncing] = useState(false)
   const queryClient = useQueryClient()
 
   const showNotification = (type, message) => {
     setNotification({ type, message })
     setTimeout(() => setNotification(null), 5000)
+  }
+
+  const handleSyncEbay = async () => {
+    setIsSyncing(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        showNotification('error', 'Please log in to sync listings')
+        return
+      }
+
+      const response = await fetch('/.netlify/functions/sync-ebay-listings', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Sync failed')
+      }
+
+      if (data.success && data.summary) {
+        const { totalImported, totalUpdated } = data.summary
+        showNotification('success', `Synced ${totalImported} listings (${totalUpdated} updated)`)
+        // Refresh the listings data
+        queryClient.invalidateQueries(['listings'])
+      } else {
+        showNotification('success', 'Sync completed')
+        queryClient.invalidateQueries(['listings'])
+      }
+    } catch (error) {
+      console.error('Sync error:', error)
+      showNotification('error', `Sync failed: ${error.message}`)
+    } finally {
+      setIsSyncing(false)
+    }
   }
 
   // Save column order to localStorage when it changes
@@ -844,6 +885,20 @@ export default function Listings() {
             </button>
           ))}
 
+          {/* Sync eBay Button */}
+          <button
+            onClick={handleSyncEbay}
+            disabled={isSyncing}
+            className={`px-3 py-2 rounded-lg text-sm font-medium flex-shrink-0 transition-colors flex items-center gap-2 ${
+              isSyncing
+                ? 'bg-accent/50 text-white cursor-not-allowed'
+                : 'bg-accent text-white hover:bg-accent-hover'
+            }`}
+          >
+            <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} strokeWidth={2} />
+            <span>{isSyncing ? 'Syncing...' : 'Sync eBay'}</span>
+          </button>
+
           {/* Bulk Close Button - Show when closeable listings exist */}
           {(() => {
             const closeableListings = status === 'Ended'
@@ -1286,7 +1341,7 @@ export default function Listings() {
                           )
                         case 'quantity':
                           return (
-                            <div className="text-sm text-gray-900">
+                            <div className="text-sm text-text-primary">
                               {listing.listing_status === 'Ended' ? 0 : (listing.quantity_available ?? 0)}
                             </div>
                           )

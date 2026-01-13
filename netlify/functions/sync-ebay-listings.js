@@ -303,25 +303,30 @@ async function upsertListings(userId, listings) {
   
   for (const listing of listings) {
     try {
-      // Check if listing exists
-      let existingQuery;
-      if (listing.source === 'inventory_api' && listing.ebay_sku) {
-        existingQuery = await supabase
+      // Check if listing exists - check BOTH ebay_item_id AND ebay_sku
+      let existing = null;
+      
+      // First try by ebay_item_id (most reliable)
+      if (listing.ebay_item_id) {
+        const { data } = await supabase
           .from('listings')
-          .select('id, current_price, original_price, minimum_price')
-          .eq('user_id', userId)
-          .eq('ebay_sku', listing.ebay_sku)
-          .single();
-      } else if (listing.ebay_item_id) {
-        existingQuery = await supabase
-          .from('listings')
-          .select('id, current_price, original_price, minimum_price')
+          .select('id, current_price, original_price, minimum_price, ebay_sku')
           .eq('user_id', userId)
           .eq('ebay_item_id', listing.ebay_item_id)
           .single();
+        existing = data;
       }
       
-      const existing = existingQuery?.data;
+      // If not found by item_id, try by SKU
+      if (!existing && listing.ebay_sku) {
+        const { data } = await supabase
+          .from('listings')
+          .select('id, current_price, original_price, minimum_price, ebay_sku')
+          .eq('user_id', userId)
+          .eq('ebay_sku', listing.ebay_sku)
+          .single();
+        existing = data;
+      }
       
       if (existing) {
         // UPDATE: Sync metadata but PRESERVE prices
@@ -336,6 +341,7 @@ async function upsertListings(userId, listings) {
             ebay_url: listing.ebay_url,
             // Update identifiers if they were missing
             ebay_item_id: listing.ebay_item_id || existing.ebay_item_id,
+            ebay_sku: listing.ebay_sku || existing.ebay_sku,
             offer_id: listing.offer_id,
             last_sync: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -456,16 +462,22 @@ exports.handler = async (event, context) => {
   
   try {
     const body = event.body ? JSON.parse(event.body) : {};
-    const { userId, source, testSecret, limit, maxListings } = body;
+    const { userId, source, testSecret, limit, maxListings, internalScheduled } = body;
     
     // Auth check
     const isTestMode = testSecret === 'uat-test-2026';
-    if (!isTestMode && !userId) {
+    const isInternalScheduled = internalScheduled === 'netlify-scheduled-function';
+    
+    if (!isTestMode && !isInternalScheduled && !userId) {
       return {
         statusCode: 401,
         headers,
         body: JSON.stringify({ error: 'Unauthorized' })
       };
+    }
+    
+    if (isInternalScheduled) {
+      console.log('⏰ SCHEDULED MODE - syncing all users');
     }
     
     // Get users to sync

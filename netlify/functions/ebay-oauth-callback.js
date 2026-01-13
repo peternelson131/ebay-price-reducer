@@ -17,8 +17,21 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const EBAY_TOKEN_URL = 'https://api.ebay.com/identity/v1/oauth2/token';
-const REDIRECT_URI = 'https://dainty-horse-49c336.netlify.app/.netlify/functions/ebay-oauth-callback';
+// Use sandbox or production based on environment
+const IS_SANDBOX = process.env.EBAY_ENVIRONMENT === 'sandbox';
+const EBAY_TOKEN_URL = IS_SANDBOX
+  ? 'https://api.sandbox.ebay.com/identity/v1/oauth2/token'
+  : 'https://api.ebay.com/identity/v1/oauth2/token';
+
+// eBay uses RuName as redirect_uri parameter (must match authorize request)
+const REDIRECT_URI = process.env.EBAY_RUNAME || (IS_SANDBOX
+  ? 'Peter_Nelson-PeterNel-jcasho-tdjssam'
+  : 'Peter_Nelson-PeterNel-jcasho-pzwkq');
+
+// App URL for redirects after OAuth (actual browser redirect)
+const APP_URL = IS_SANDBOX
+  ? 'https://ebay-price-reducer-uat.netlify.app'
+  : 'https://dainty-horse-49c336.netlify.app';
 
 const EBAY_SCOPES = [
   'https://api.ebay.com/oauth/api_scope',
@@ -131,14 +144,13 @@ exports.handler = async (event, context) => {
     // Calculate expiry time
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 
-    // Store tokens (encrypted) and update connection status
+    // Store tokens (encrypted)
     const { error: updateError } = await supabase
       .from('users')
       .update({
         ebay_access_token: encrypt(tokenData.access_token),
         ebay_refresh_token: encrypt(tokenData.refresh_token),
-        ebay_token_expires_at: expiresAt.toISOString(),
-        ebay_connection_status: 'connected'
+        ebay_token_expires_at: expiresAt.toISOString()
       })
       .eq('id', userId);
 
@@ -158,12 +170,12 @@ exports.handler = async (event, context) => {
 
     // Success!
     // Redirect back to the app with success indicator
-    const appUrl = 'https://dainty-horse-49c336.netlify.app/api-keys?ebay_connected=true';
+    const successUrl = `${APP_URL}/api-keys?ebay_connected=true`;
     
     return {
       statusCode: 302,
       headers: { 
-        'Location': appUrl,
+        'Location': successUrl,
         'Cache-Control': 'no-cache'
       },
       body: ''
@@ -173,12 +185,12 @@ exports.handler = async (event, context) => {
     console.error('Callback error:', error);
     // Redirect back to app with error
     const errorMessage = encodeURIComponent(error.message);
-    const appUrl = `https://dainty-horse-49c336.netlify.app/api-keys?ebay_error=${errorMessage}`;
+    const errorUrl = `${APP_URL}/api-keys?ebay_error=${errorMessage}`;
     
     return {
       statusCode: 302,
       headers: { 
-        'Location': appUrl,
+        'Location': errorUrl,
         'Cache-Control': 'no-cache'
       },
       body: ''
