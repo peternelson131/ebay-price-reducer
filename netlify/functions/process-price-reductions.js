@@ -280,21 +280,24 @@ async function processListing(accessToken, listing, dryRun = false) {
   console.log(`💰 Processing listing ${listing.id}: $${listing.current_price} → $${newPrice} (${reductionDisplay} ${reductionType}, source: ${listing.source})${dryRun ? ' [DRY RUN]' : ''}`);
   
   if (!dryRun) {
-    // Route based on source and available identifiers
-    // Inventory API listings require SKU and offer_id for price updates
-    // Trading API listings use ItemID
+    // Route based on source column FIRST, then fall back to field detection
+    // IMPORTANT: Import process must set source = 'inventory_api' or 'trading_api'
     
     let updateError = null;
     let updated = false;
     
-    // Try Inventory API if we have SKU
-    if (listing.ebay_sku) {
+    // PRIORITY 1: Check source column explicitly
+    if (listing.source === 'inventory_api') {
+      // Inventory API - requires SKU and offer_id
+      if (!listing.ebay_sku) {
+        throw new Error('Inventory API listing missing ebay_sku');
+      }
+      
       // Fetch offer_id if we don't have it
       let offerId = listing.offer_id;
       if (!offerId) {
         offerId = await fetchOfferId(accessToken, listing.ebay_sku);
         if (offerId) {
-          // Store it for future use
           listing.offer_id = offerId;
           await supabase
             .from('listings')
@@ -303,28 +306,66 @@ async function processListing(accessToken, listing, dryRun = false) {
         }
       }
       
-      if (offerId) {
-        try {
-          await updatePriceInventoryApi(accessToken, listing, newPrice);
-          updated = true;
-        } catch (invError) {
-          console.warn(`Inventory API failed for ${listing.id}: ${invError.message}`);
-          updateError = invError;
+      if (!offerId) {
+        throw new Error('Could not get offer_id for Inventory API listing');
+      }
+      
+      await updatePriceInventoryApi(accessToken, listing, newPrice);
+      updated = true;
+      
+    } else if (listing.source === 'trading_api') {
+      // Trading API (XML) - requires ebay_item_id
+      if (!listing.ebay_item_id) {
+        throw new Error('Trading API listing missing ebay_item_id');
+      }
+      await updatePriceTradingApi(accessToken, listing, newPrice);
+      updated = true;
+      
+    } else {
+      // FALLBACK: source not set - detect from available fields
+      console.warn(`Listing ${listing.id} has no source set - detecting from fields`);
+      
+      // Try Inventory API if we have SKU
+      if (listing.ebay_sku) {
+        let offerId = listing.offer_id;
+        if (!offerId) {
+          offerId = await fetchOfferId(accessToken, listing.ebay_sku);
+          if (offerId) {
+            listing.offer_id = offerId;
+            await supabase
+              .from('listings')
+              .update({ offer_id: offerId, source: 'inventory_api' })
+              .eq('id', listing.id);
+          }
+        }
+        
+        if (offerId) {
+          try {
+            await updatePriceInventoryApi(accessToken, listing, newPrice);
+            updated = true;
+          } catch (invError) {
+            console.warn(`Inventory API failed: ${invError.message}`);
+            updateError = invError;
+          }
         }
       }
-    }
-    
-    // Try Trading API if we have ItemID and Inventory API didn't work
-    if (!updated && listing.ebay_item_id) {
-      try {
-        await updatePriceTradingApi(accessToken, listing, newPrice);
-        updated = true;
-      } catch (tradError) {
-        // Check if it's an inventory-based listing error
-        if (tradError.message?.includes('Inventory-based')) {
-          console.warn(`Listing ${listing.id} is Inventory API based - try fetching offer_id`);
+      
+      // Try Trading API if we have ItemID
+      if (!updated && listing.ebay_item_id) {
+        try {
+          await updatePriceTradingApi(accessToken, listing, newPrice);
+          updated = true;
+          // Auto-set source for future
+          await supabase
+            .from('listings')
+            .update({ source: 'trading_api' })
+            .eq('id', listing.id);
+        } catch (tradError) {
+          if (tradError.message?.includes('Inventory-based')) {
+            console.warn(`Listing ${listing.id} is actually Inventory API based`);
+          }
+          updateError = tradError;
         }
-        updateError = tradError;
       }
     }
     
