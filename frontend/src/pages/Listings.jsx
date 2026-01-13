@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { listingsAPI, userAPI, supabase } from '../lib/supabase'
 import apiService from '../services/api'
 import { getActiveStrategies, getStrategyById, getStrategyDisplayName, getStrategyDisplayInfo } from '../data/strategies'
-import { Search, X, AlertCircle, Plus, Filter, RefreshCw } from 'lucide-react'
+import { Search, X, AlertCircle, Plus, Filter, RefreshCw, Palmtree } from 'lucide-react'
 
 // Helper functions for localStorage
 const VALID_COLUMNS = [
@@ -220,6 +220,55 @@ export default function Listings() {
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
       cacheTime: 30 * 60 * 1000 // Keep cached data for 30 minutes
+    }
+  )
+
+  // Fetch vacation mode status
+  const { data: vacationMode, isLoading: isVacationLoading } = useQuery(
+    ['vacationMode'],
+    async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return false
+      const { data } = await supabase
+        .from('users')
+        .select('vacation_mode')
+        .eq('id', user.id)
+        .single()
+      return data?.vacation_mode || false
+    },
+    {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 60 * 1000
+    }
+  )
+
+  // Toggle vacation mode mutation
+  const toggleVacationMutation = useMutation(
+    async (newValue) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not logged in')
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          vacation_mode: newValue,
+          vacation_mode_since: newValue ? new Date().toISOString() : null
+        })
+        .eq('id', user.id)
+      if (error) throw error
+      return newValue
+    },
+    {
+      onSuccess: (newValue) => {
+        queryClient.setQueryData(['vacationMode'], newValue)
+        showNotification('success', newValue 
+          ? '🏖️ Vacation mode ON - price reductions paused'
+          : '✅ Vacation mode OFF - price reductions will resume'
+        )
+      },
+      onError: (error) => {
+        showNotification('error', `Failed to toggle vacation mode: ${error.message}`)
+      }
     }
   )
 
@@ -897,6 +946,21 @@ export default function Listings() {
           >
             <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} strokeWidth={2} />
             <span>{isSyncing ? 'Syncing...' : 'Sync eBay'}</span>
+          </button>
+
+          {/* Vacation Mode Toggle */}
+          <button
+            onClick={() => toggleVacationMutation.mutate(!vacationMode)}
+            disabled={toggleVacationMutation.isLoading || isVacationLoading}
+            className={`px-3 py-2 rounded-lg text-sm font-medium flex-shrink-0 transition-colors flex items-center gap-2 ${
+              vacationMode
+                ? 'bg-warning/20 text-warning border border-warning/30 hover:bg-warning/30'
+                : 'bg-dark-surface text-text-secondary border border-dark-border hover:bg-dark-hover hover:text-text-primary'
+            }`}
+            title={vacationMode ? 'Click to resume price reductions' : 'Click to pause price reductions'}
+          >
+            <Palmtree className="h-4 w-4" strokeWidth={2} />
+            <span>{vacationMode ? 'Vacation: ON' : 'Vacation: OFF'}</span>
           </button>
 
           {/* Bulk Close Button - Show when closeable listings exist */}
