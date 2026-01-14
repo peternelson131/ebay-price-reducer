@@ -3,8 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI } from '../lib/supabase'
 
-// Default AI matching prompt - this is the base template that always runs
-// Custom criteria learned from user feedback are injected into the {custom_criteria} section
+// Default AI matching prompt - the MATCHING CRITERIA section gets replaced when user has custom criteria
 const DEFAULT_MATCHING_PROMPT = `PRIMARY PRODUCT:
 Title: {primary_title}
 Brand: {primary_brand}
@@ -17,8 +16,12 @@ Brand: {candidate_brand}
 Question: Should the CANDIDATE be shown as a similar product to the PRIMARY?
 
 === MATCHING CRITERIA ===
+{matching_criteria}
 
-Answer YES if:
+Answer with ONLY: YES or NO`
+
+// Default matching criteria - used when user has no custom criteria
+const DEFAULT_MATCHING_CRITERIA = `Answer YES if:
 - Same or highly similar product type/category
 - Same brand family or compatible brands
 - Would reasonably substitute for or complement the primary product
@@ -28,11 +31,7 @@ Answer NO if:
 - Different product category entirely
 - Accessory when primary is main product (or vice versa)
 - Competing brand that user doesn't sell
-- Quality tier mismatch (premium vs budget)
-
-{custom_criteria}
-
-Answer with ONLY: YES or NO`
+- Quality tier mismatch (premium vs budget)`
 
 export default function Account() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -537,54 +536,88 @@ export default function Account() {
                   </button>
                 </div>
 
-                {/* Default Prompt Display */}
+                {/* Prompt Template */}
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-text-primary mb-2">
-                    Default Matching Prompt
-                    <span className="ml-2 text-xs font-normal text-text-tertiary">(always active)</span>
+                    Prompt Template
+                    <span className="ml-2 text-xs font-normal text-text-tertiary">(product info auto-injected)</span>
                   </label>
                   <p className="text-sm text-text-secondary mb-2">
-                    This is the base AI prompt used to evaluate product matches. Product information is automatically injected.
+                    This template is used for all matching. The <code className="bg-dark-hover px-1 rounded">{'{matching_criteria}'}</code> section is what gets customized.
                   </p>
-                  <div className="bg-dark-hover rounded-lg p-3 text-sm text-text-secondary whitespace-pre-wrap font-mono text-xs max-h-[200px] overflow-y-auto border border-dark-border">
+                  <div className="bg-dark-hover rounded-lg p-3 text-sm text-text-secondary whitespace-pre-wrap font-mono text-xs max-h-[150px] overflow-y-auto border border-dark-border">
                     {DEFAULT_MATCHING_PROMPT}
                   </div>
                 </div>
 
-                {/* Custom Criteria Section */}
+                {/* Matching Criteria Section - this is what gets replaced */}
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-text-primary mb-2">
-                    Your Custom Criteria
-                    <span className="ml-2 text-xs font-normal text-text-tertiary">(injected into {'{custom_criteria}'} above)</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-text-primary">
+                      Matching Criteria
+                      <span className="ml-2 text-xs font-normal text-text-tertiary">
+                        ({profile?.custom_matching_enabled && profile?.custom_matching_prompt ? 'using custom' : 'using default'})
+                      </span>
+                    </label>
+                    {profile?.custom_matching_prompt && (
+                      <span className={`text-xs px-2 py-1 rounded ${profile?.custom_matching_enabled ? 'bg-accent/20 text-accent' : 'bg-gray-600/20 text-gray-400'}`}>
+                        {profile?.custom_matching_enabled ? '✓ Custom Active' : 'Custom Available'}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-text-secondary mb-2">
-                    These additional rules are learned from your Accept/Decline feedback and personalize how products are matched for you.
+                    When custom matching is <strong>enabled</strong>, your personalized criteria <strong>replaces</strong> the default. 
+                    The format stays the same (Answer YES if / Answer NO if), but the rules are tailored to your preferences.
                   </p>
-                  {isEditingAiMatching ? (
-                    <textarea
-                      value={aiMatchingData.custom_matching_prompt || ''}
-                      onChange={(e) => setAiMatchingData(prev => ({ ...prev, custom_matching_prompt: e.target.value }))}
-                      rows={6}
-                      className="w-full border border-dark-border rounded-lg px-3 py-2 text-sm font-mono"
-                      placeholder="Answer YES if:
+                  
+                  {/* Show default OR custom based on toggle state */}
+                  <div className="space-y-3">
+                    {/* Default Criteria */}
+                    <div className={`rounded-lg border ${!profile?.custom_matching_enabled || !profile?.custom_matching_prompt ? 'border-accent' : 'border-dark-border opacity-50'}`}>
+                      <div className="px-3 py-2 border-b border-dark-border bg-dark-hover/50 flex justify-between items-center">
+                        <span className="text-xs font-medium text-text-secondary">Default Criteria</span>
+                        {(!profile?.custom_matching_enabled || !profile?.custom_matching_prompt) && (
+                          <span className="text-xs text-accent">● Active</span>
+                        )}
+                      </div>
+                      <div className="p-3 text-xs font-mono whitespace-pre-wrap text-text-secondary">
+                        {DEFAULT_MATCHING_CRITERIA}
+                      </div>
+                    </div>
+
+                    {/* Custom Criteria */}
+                    <div className={`rounded-lg border ${profile?.custom_matching_enabled && profile?.custom_matching_prompt ? 'border-accent' : 'border-dark-border'}`}>
+                      <div className="px-3 py-2 border-b border-dark-border bg-dark-hover/50 flex justify-between items-center">
+                        <span className="text-xs font-medium text-text-secondary">Your Custom Criteria</span>
+                        {profile?.custom_matching_enabled && profile?.custom_matching_prompt && (
+                          <span className="text-xs text-accent">● Active</span>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        {isEditingAiMatching ? (
+                          <textarea
+                            value={aiMatchingData.custom_matching_prompt || ''}
+                            onChange={(e) => setAiMatchingData(prev => ({ ...prev, custom_matching_prompt: e.target.value }))}
+                            rows={8}
+                            className="w-full border border-dark-border rounded-lg px-3 py-2 text-xs font-mono"
+                            placeholder="Answer YES if:
 - [your custom criteria will appear here]
 
 Answer NO if:
 - [your custom criteria will appear here]"
-                    />
-                  ) : (
-                    <div className="bg-dark-hover rounded-lg p-3 text-sm whitespace-pre-wrap min-h-[100px] border border-dark-border">
-                      {profile?.custom_matching_prompt ? (
-                        <span className="text-text-primary font-mono text-xs">{profile.custom_matching_prompt}</span>
-                      ) : (
-                        <span className="text-text-tertiary italic">
-                          No custom criteria yet. Your personalized rules will appear here after you:
-                          {'\n'}1. Rate 5+ product matches in Influencer Central
-                          {'\n'}2. Click "Generate from Feedback" below
-                        </span>
-                      )}
+                          />
+                        ) : profile?.custom_matching_prompt ? (
+                          <div className="text-xs font-mono whitespace-pre-wrap text-text-primary">
+                            {profile.custom_matching_prompt}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-text-tertiary italic py-4 text-center">
+                            No custom criteria yet. Rate 5+ product matches, then click "Generate from Feedback"
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
