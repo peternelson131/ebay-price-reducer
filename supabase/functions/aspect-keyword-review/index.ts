@@ -16,7 +16,7 @@ async function callClaude(prompt: string, anthropicKey: string): Promise<string>
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 500,
       messages: [{
         role: 'user',
@@ -137,17 +137,19 @@ Respond with JSON only.`
 
         if (parsed.confidence === 'high') {
           // High confidence - auto-insert keyword pattern
-          await supabase
+          // Insert keyword pattern (skip if duplicate)
+          const { error: insertError } = await supabase
             .from('ebay_aspect_keywords')
-            .upsert({
+            .insert({
               aspect_name: miss.aspect_name,
               keyword_pattern: parsed.keyword_pattern,
               aspect_value: parsed.aspect_value,
               category_id: miss.category_id
-            }, { 
-              onConflict: 'aspect_name,category_id,aspect_value',
-              ignoreDuplicates: true 
             })
+          
+          if (insertError) {
+            console.log(`Insert warning for ${miss.aspect_name}: ${insertError.message}`)
+          }
 
           // Mark as processed
           await supabase
