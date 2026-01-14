@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import apiService, { handleApiError } from '../services/api';
+import { userAPI } from '../lib/supabase';
 
 // Decline reason options
 const DECLINE_REASONS = [
@@ -35,7 +36,7 @@ export default function InfluencerAsinCorrelation() {
     setSavingFeedback(prev => ({ ...prev, [candidateAsin]: true }));
     
     try {
-      const token = localStorage.getItem('supabase_token');
+      const token = await userAPI.getAuthToken();
       const response = await fetch('/.netlify/functions/correlation-feedback', {
         method: 'POST',
         headers: {
