@@ -116,16 +116,16 @@ Brand: ${candidate.brand || 'Unknown'}
 Question: Is the CANDIDATE a similar product that a shopper might also consider?
 
 Answer YES if:
-- Same brand AND same product type (e.g., both JBL speakers, both Nike shoes)
+- Same brand (include ALL products from the same brand)
 - Candidate is a variant (different color, size, model number)
 - Candidate is a different model in the same product line
 - Candidate is a bundle or multi-pack of the same product
+- Candidate is an accessory for the primary product (charger, cable, case, adapter, stand)
 - Both serve the same primary purpose
 
 Answer NO if:
-- Candidate is a completely different product category (speaker vs headphones, shoes vs socks)
-- Candidate is an accessory (charger, cable, case, adapter, stand)
 - Different brand entirely
+- Completely unrelated product category with different brand
 
 Answer with ONLY: YES or NO`;
   }
