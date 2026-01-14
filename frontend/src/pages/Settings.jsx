@@ -219,13 +219,108 @@ export default function Settings() {
     if (activeTab === 'ebay') {
       fetchConnectionStatus()
     }
+    if (activeTab === 'ai-matching') {
+      fetchAiSettings()
+    }
   }, [activeTab])
 
   const tabs = [
     { id: 'general', name: 'General' },
     { id: 'ebay', name: 'eBay Integration' },
     { id: 'notifications', name: 'Notifications' },
+    { id: 'ai-matching', name: 'AI Matching' },
   ]
+  
+  // AI Matching state
+  const [customMatchingEnabled, setCustomMatchingEnabled] = useState(false)
+  const [generatingPrompt, setGeneratingPrompt] = useState(false)
+  const [feedbackStats, setFeedbackStats] = useState(null)
+  const [loadingAiSettings, setLoadingAiSettings] = useState(false)
+  
+  // Fetch AI matching settings
+  const fetchAiSettings = async () => {
+    try {
+      setLoadingAiSettings(true)
+      const token = await userAPI.getAuthToken()
+      
+      // Get user settings
+      const { data: userData } = await userAPI.supabase
+        .from('users')
+        .select('custom_matching_enabled')
+        .single()
+      
+      if (userData) {
+        setCustomMatchingEnabled(userData.custom_matching_enabled || false)
+      }
+      
+      // Get feedback stats
+      const statsResponse = await fetch('/.netlify/functions/correlation-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'stats' })
+      })
+      
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json()
+        setFeedbackStats(statsData.stats)
+      }
+    } catch (error) {
+      console.error('Error fetching AI settings:', error)
+    } finally {
+      setLoadingAiSettings(false)
+    }
+  }
+  
+  const toggleCustomMatching = async () => {
+    try {
+      const newValue = !customMatchingEnabled
+      const { error } = await userAPI.supabase
+        .from('users')
+        .update({ custom_matching_enabled: newValue })
+        .eq('id', (await userAPI.supabase.auth.getUser()).data.user.id)
+      
+      if (error) throw error
+      
+      setCustomMatchingEnabled(newValue)
+      toast.success(newValue ? 'Custom matching enabled' : 'Custom matching disabled')
+    } catch (error) {
+      console.error('Error toggling custom matching:', error)
+      toast.error('Failed to update setting')
+    }
+  }
+  
+  const generateCustomPrompt = async () => {
+    try {
+      setGeneratingPrompt(true)
+      const token = await userAPI.getAuthToken()
+      
+      const response = await fetch('/.netlify/functions/generate-custom-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Custom matching criteria generated!')
+        setCustomMatchingEnabled(true)
+        fetchAiSettings()
+      } else {
+        toast.warning(data.message || 'Could not generate custom prompt')
+      }
+    } catch (error) {
+      console.error('Error generating prompt:', error)
+      toast.error('Failed to generate custom prompt')
+    } finally {
+      setGeneratingPrompt(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -616,6 +711,102 @@ export default function Settings() {
                 </button>
               </div>
             </form>
+          )}
+
+          {/* AI Matching */}
+          {activeTab === 'ai-matching' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-text-primary mb-4">
+                  AI Product Matching
+                </h3>
+                <p className="text-sm text-text-tertiary mb-6">
+                  Train the AI to match products based on your preferences. Accept or decline suggested matches in Influencer Central to teach the AI what you're looking for.
+                </p>
+              </div>
+
+              {loadingAiSettings ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ebay-blue"></div>
+                </div>
+              ) : (
+                <>
+                  {/* Feedback Stats */}
+                  {feedbackStats && (
+                    <div className="bg-dark-bg rounded-lg p-4 mb-6">
+                      <h4 className="text-sm font-medium text-text-primary mb-3">Your Training Data</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-text-primary">{feedbackStats.total || 0}</div>
+                          <div className="text-xs text-text-tertiary">Total Decisions</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-success">{feedbackStats.accepted || 0}</div>
+                          <div className="text-xs text-text-tertiary">Accepted</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-error">{feedbackStats.declined || 0}</div>
+                          <div className="text-xs text-text-tertiary">Declined</div>
+                        </div>
+                      </div>
+                      {feedbackStats.total < 5 && (
+                        <p className="text-xs text-accent mt-3 text-center">
+                          Need at least 5 decisions to generate custom matching criteria
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Custom Matching Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-dark-bg rounded-lg">
+                    <div>
+                      <h4 className="text-sm font-medium text-text-primary">Custom Matching Based on My Preferences</h4>
+                      <p className="text-xs text-text-tertiary mt-1">
+                        Use AI-generated criteria based on your accept/decline history
+                      </p>
+                    </div>
+                    <button
+                      onClick={toggleCustomMatching}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        customMatchingEnabled ? 'bg-ebay-blue' : 'bg-dark-border'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          customMatchingEnabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Generate Custom Prompt Button */}
+                  <div className="mt-6">
+                    <button
+                      onClick={generateCustomPrompt}
+                      disabled={generatingPrompt || (feedbackStats?.total || 0) < 5}
+                      className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {generatingPrompt ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Analyzing your preferences...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Generate Custom Matching Criteria
+                        </>
+                      )}
+                    </button>
+                    <p className="text-xs text-text-tertiary mt-2 text-center">
+                      The AI will analyze your accept/decline history and create personalized matching rules
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>

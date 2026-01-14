@@ -1,6 +1,16 @@
 import { useState, useRef, useCallback } from 'react';
 import apiService, { handleApiError } from '../services/api';
 
+// Decline reason options
+const DECLINE_REASONS = [
+  { value: 'wrong_category', label: 'Wrong product category' },
+  { value: 'accessory', label: 'This is an accessory' },
+  { value: 'wrong_brand', label: 'Wrong brand' },
+  { value: 'not_similar', label: 'Not similar enough' },
+  { value: 'competitor', label: 'Competitor product' },
+  { value: 'other', label: 'Other' }
+];
+
 export default function InfluencerAsinCorrelation() {
   const [asin, setAsin] = useState('');
   const [loading, setLoading] = useState(false);
@@ -12,6 +22,61 @@ export default function InfluencerAsinCorrelation() {
   const [pendingAsin, setPendingAsin] = useState(null);
   const pollingRef = useRef(null);
   const pollCountRef = useRef(0);
+  
+  // Feedback state
+  const [feedback, setFeedback] = useState({}); // { [candidateAsin]: { decision, decline_reason } }
+  const [showDeclineDropdown, setShowDeclineDropdown] = useState(null); // candidateAsin or null
+  const [savingFeedback, setSavingFeedback] = useState({});
+
+  // Save feedback to API
+  const saveFeedback = async (candidateAsin, candidateTitle, decision, declineReason = null) => {
+    if (!results?.asin) return;
+    
+    setSavingFeedback(prev => ({ ...prev, [candidateAsin]: true }));
+    
+    try {
+      const token = localStorage.getItem('supabase_token');
+      const response = await fetch('/.netlify/functions/correlation-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'save',
+          search_asin: results.asin,
+          candidate_asin: candidateAsin,
+          candidate_title: candidateTitle,
+          decision,
+          decline_reason: declineReason
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to save feedback');
+      
+      setFeedback(prev => ({
+        ...prev,
+        [candidateAsin]: { decision, decline_reason: declineReason }
+      }));
+      setShowDeclineDropdown(null);
+    } catch (err) {
+      console.error('Failed to save feedback:', err);
+    } finally {
+      setSavingFeedback(prev => ({ ...prev, [candidateAsin]: false }));
+    }
+  };
+
+  const handleAccept = (item) => {
+    saveFeedback(item.asin, item.title, 'accepted');
+  };
+
+  const handleDeclineClick = (candidateAsin) => {
+    setShowDeclineDropdown(showDeclineDropdown === candidateAsin ? null : candidateAsin);
+  };
+
+  const handleDeclineSelect = (item, reason) => {
+    saveFeedback(item.asin, item.title, 'declined', reason);
+  };
 
   // Validate ASIN format (client-side)
   const isValidAsin = (value) => {
@@ -64,19 +129,26 @@ export default function InfluencerAsinCorrelation() {
     pollCountRef.current = 0;
   }, []);
 
-  // Poll for results after triggering sync
+  // Poll for results after triggering sync (1-second timer, polls API every 5s)
   const startPolling = useCallback((targetAsin) => {
     stopPolling();
     pollCountRef.current = 0;
-    const maxPolls = 120; // 10 minutes max (120 * 5 seconds = 600 seconds)
+    const maxSeconds = 600; // 10 minutes max
+    const startTime = Date.now();
+    let lastApiCheck = 0;
 
     pollingRef.current = setInterval(async () => {
-      pollCountRef.current++;
-      const elapsed = pollCountRef.current * 5;
+      // Use actual elapsed time (works even when tab is backgrounded)
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      pollCountRef.current = elapsed;
       const minutes = Math.floor(elapsed / 60);
       const seconds = elapsed % 60;
       const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
       setSyncProgress(`Checking for results... (${timeStr})`);
+      
+      // Only call API every 5 seconds
+      if (elapsed - lastApiCheck < 5) return;
+      lastApiCheck = elapsed;
 
       try {
         const data = await apiService.checkAsinCorrelation(targetAsin);
@@ -87,7 +159,7 @@ export default function InfluencerAsinCorrelation() {
           setResults(data);
           setSyncing(false);
           setSyncProgress('');
-        } else if (pollCountRef.current >= maxPolls) {
+        } else if (elapsed >= maxSeconds) {
           // Timeout - stop polling
           stopPolling();
           setSyncing(false);
@@ -97,14 +169,14 @@ export default function InfluencerAsinCorrelation() {
       } catch (err) {
         // Don't stop on errors, just log and continue polling
         console.error('Polling error:', err);
-        if (pollCountRef.current >= maxPolls) {
+        if (elapsed >= maxSeconds) {
           stopPolling();
           setSyncing(false);
           setSyncProgress('');
           setError('Failed to check sync status. Please try again.');
         }
       }
-    }, 5000);
+    }, 1000); // 1-second interval for smooth timer display
   }, [stopPolling]);
 
   const handleConfirmSync = async () => {
@@ -376,7 +448,7 @@ export default function InfluencerAsinCorrelation() {
                     </div>
 
                     {/* ASIN */}
-                    <div className="flex-shrink-0 text-right">
+                    <div className="flex-shrink-0 text-right mr-4">
                       <p className="text-sm font-mono text-text-secondary">{item.asin || 'N/A'}</p>
                       {item.url && (
                         <a
@@ -387,6 +459,56 @@ export default function InfluencerAsinCorrelation() {
                         >
                           View
                         </a>
+                      )}
+                    </div>
+
+                    {/* Feedback Buttons */}
+                    <div className="flex-shrink-0 relative">
+                      {feedback[item.asin] ? (
+                        // Show feedback status
+                        <span className={`text-xs px-3 py-1.5 rounded-full ${
+                          feedback[item.asin].decision === 'accepted'
+                            ? 'bg-success/20 text-success'
+                            : 'bg-error/20 text-error'
+                        }`}>
+                          {feedback[item.asin].decision === 'accepted' ? '✓ Accepted' : '✗ Declined'}
+                        </span>
+                      ) : (
+                        // Show Accept/Decline buttons
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleAccept(item)}
+                            disabled={savingFeedback[item.asin]}
+                            className="text-xs px-3 py-1.5 bg-success/20 text-success rounded-full hover:bg-success/30 transition-colors disabled:opacity-50"
+                          >
+                            {savingFeedback[item.asin] ? '...' : '✓ Accept'}
+                          </button>
+                          <button
+                            onClick={() => handleDeclineClick(item.asin)}
+                            disabled={savingFeedback[item.asin]}
+                            className="text-xs px-3 py-1.5 bg-error/20 text-error rounded-full hover:bg-error/30 transition-colors disabled:opacity-50"
+                          >
+                            ✗ Decline
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* Decline Reason Dropdown */}
+                      {showDeclineDropdown === item.asin && !feedback[item.asin] && (
+                        <div className="absolute right-0 top-full mt-2 bg-dark-surface border border-dark-border rounded-lg shadow-xl z-10 w-48">
+                          <div className="p-2 border-b border-dark-border">
+                            <span className="text-xs text-text-tertiary">Select reason:</span>
+                          </div>
+                          {DECLINE_REASONS.map(reason => (
+                            <button
+                              key={reason.value}
+                              onClick={() => handleDeclineSelect(item, reason.value)}
+                              className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-dark-hover transition-colors"
+                            >
+                              {reason.label}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
