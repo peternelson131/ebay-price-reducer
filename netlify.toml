@@ -69,6 +69,8 @@ schedule = "0 */4 * * *"
 [functions."sync-ebay-listings"]
 timeout = 60
 
-# Can also be scheduled:
-# [functions."sync-ebay-listings-scheduled"]
-# schedule = "0 * * * *"
+# eBay Aspect Keyword Review - runs every 5 minutes
+# Uses AI to analyze pending aspect misses and suggest values
+[functions."scheduled-aspect-review"]
+schedule = "*/5 * * * *"
+timeout = 120
