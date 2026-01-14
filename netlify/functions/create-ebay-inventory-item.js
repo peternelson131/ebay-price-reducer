@@ -335,16 +335,36 @@ async function getAspectValueFromAI(aspectName, productTitle, categoryName, cate
 async function fillAllRequiredAspects({ categoryAspects, categoryResult, ebayDraft, keepaProduct, learnedPatterns, asin, supabase }) {
   const filledAspects = {};
   
+  // Map of alternative aspect names (eBay uses different names in different categories)
+  // e.g., "Backpacks" uses "Exterior Material" but "Bags" uses "Material"
+  const aspectAliases = {
+    'Exterior Material': ['Material', 'Fabric', 'Material Type'],
+    'Exterior Color': ['Color', 'Main Color', 'Primary Color'],
+    'Material': ['Exterior Material', 'Fabric'],
+    'Color': ['Exterior Color', 'Main Color']
+  };
+  
   for (const aspect of categoryAspects) {
     if (!aspect.required) continue;
     
     const aspectName = aspect.name;
     
-    // Skip if already have from Keepa
+    // Skip if already have this exact aspect from Keepa
     if (ebayDraft.aspects[aspectName]) {
       console.log(`  ✓ ${aspectName}: from Keepa`);
       continue;
     }
+    
+    // Check if Keepa has data under an alternative name
+    const aliases = aspectAliases[aspectName] || [];
+    for (const alias of aliases) {
+      if (ebayDraft.aspects[alias]) {
+        filledAspects[aspectName] = ebayDraft.aspects[alias];
+        console.log(`  ✓ ${aspectName}: mapped from Keepa's "${alias}"`);
+        break;
+      }
+    }
+    if (filledAspects[aspectName]) continue;
     
     // Try Keepa mapping
     const mappedValue = mapAspectFromKeepa(aspectName, keepaProduct, ebayDraft);
