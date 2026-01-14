@@ -158,19 +158,55 @@ exports.handler = async (event, context) => {
       offerPayload.listingDescription = listingDescription;
     }
 
-    console.log('📤 Creating offer via eBay API...');
-
-    // 5. Create offer
-    const result = await ebayApiRequest(
-      accessToken,
-      '/sell/inventory/v1/offer',
-      {
-        method: 'POST',
-        body: JSON.stringify(offerPayload)
+    // 5. Check if offer already exists for this SKU
+    console.log('🔍 Checking if offer already exists...');
+    let existingOfferId = null;
+    
+    try {
+      const existingOffers = await ebayApiRequest(
+        accessToken,
+        `/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}`,
+        { method: 'GET' }
+      );
+      
+      if (existingOffers.offers && existingOffers.offers.length > 0) {
+        existingOfferId = existingOffers.offers[0].offerId;
+        console.log(`   Found existing offer: ${existingOfferId}`);
       }
-    );
+    } catch (e) {
+      // No existing offers, that's fine
+      console.log('   No existing offer found');
+    }
 
-    console.log('✅ Offer created successfully');
+    let result;
+    
+    if (existingOfferId) {
+      // UPDATE existing offer
+      console.log('📤 Updating existing offer via eBay API...');
+      result = await ebayApiRequest(
+        accessToken,
+        `/sell/inventory/v1/offer/${existingOfferId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(offerPayload)
+        }
+      );
+      result.offerId = existingOfferId; // PUT doesn't return offerId
+      console.log('✅ Offer UPDATED successfully');
+    } else {
+      // CREATE new offer
+      console.log('📤 Creating new offer via eBay API...');
+      result = await ebayApiRequest(
+        accessToken,
+        '/sell/inventory/v1/offer',
+        {
+          method: 'POST',
+          body: JSON.stringify(offerPayload)
+        }
+      );
+      console.log('✅ Offer CREATED successfully');
+    }
+    
     console.log(`   Offer ID: ${result.offerId}`);
 
     return {
@@ -183,7 +219,10 @@ exports.handler = async (event, context) => {
         price: price,
         quantity: quantity,
         categoryId: finalCategoryId,
-        message: 'Offer created successfully. Use publish-ebay-offer to make it live.'
+        updated: !!existingOfferId,
+        message: existingOfferId 
+          ? 'Offer updated successfully. Use publish-ebay-offer to make it live.'
+          : 'Offer created successfully. Use publish-ebay-offer to make it live.'
       })
     };
 
