@@ -68,9 +68,3 @@ schedule = "0 */4 * * *"
 # Imports new listings, updates status/qty, marks ended
 [functions."sync-ebay-listings"]
 timeout = 60
-
-# eBay Aspect Keyword Review - runs every 5 minutes
-# Uses AI to analyze pending aspect misses and suggest values
-[functions."scheduled-aspect-review"]
-schedule = "*/5 * * * *"
-timeout = 120
