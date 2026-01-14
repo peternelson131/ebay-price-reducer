@@ -83,7 +83,8 @@ Respond with JSON only (no markdown):
 
 Rules:
 - keyword_pattern should be a regex that would match this pattern in other product titles
-- confidence is "high" if you're confident, "low" only if uncertain`
+- confidence should be "high" when picking from a provided list of valid values (eBay will accept any of them)
+- confidence is "low" ONLY if no valid_values provided AND you're truly guessing`
 
   if (validValues && validValues.length > 0 && aspectMode === 'SELECTION_ONLY') {
     systemPrompt += `
@@ -91,14 +92,17 @@ Rules:
 CRITICAL: This aspect is SELECTION_ONLY. You MUST pick from these exact values:
 ${validValues.map(v => `  - "${v}"`).join('\n')}
 
-Do NOT invent new values. Pick the best match from the list above.
-If the product is generic/unisex, pick the most general option (e.g., "Unisex Adults" for bags without gender).`
+Since you're picking from eBay's accepted values, confidence should be "high".
+Pick the best match. For generic products, pick the most general option (e.g., "Unisex Adults" for bags).`
   } else if (validValues && validValues.length > 0) {
     systemPrompt += `
 
-RECOMMENDED VALUES (pick from these when possible):
+VALID VALUES to pick from (any of these will be accepted by eBay):
 ${validValues.slice(0, 50).map(v => `  - "${v}"`).join('\n')}
-${validValues.length > 50 ? `  ... and ${validValues.length - 50} more` : ''}`
+${validValues.length > 50 ? `  ... and ${validValues.length - 50} more` : ''}
+
+Since you're picking from eBay's accepted values, confidence should be "high".
+Pick the most appropriate match for the product.`
   }
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -230,23 +234,35 @@ keepa_model: ${miss.keepa_model || 'N/A'}`
           continue
         }
 
-        // Validate that the value is in the valid list (for SELECTION_ONLY)
+        // Validate that the value is in the valid list
         let valueValid = true
-        if (aspectMode === 'SELECTION_ONLY' && validValues) {
-          valueValid = validValues.includes(parsed.aspect_value)
-          if (!valueValid) {
-            console.log(`AI suggested "${parsed.aspect_value}" but it's not in valid values`)
-            // Try to find closest match
+        let valueFromValidList = false
+        
+        if (validValues && validValues.length > 0) {
+          // Check if AI picked from valid list
+          valueFromValidList = validValues.includes(parsed.aspect_value)
+          if (!valueFromValidList) {
+            // Try case-insensitive match
             const lowerValue = parsed.aspect_value.toLowerCase()
             const match = validValues.find(v => v.toLowerCase() === lowerValue)
             if (match) {
               parsed.aspect_value = match
-              valueValid = true
+              valueFromValidList = true
             }
+          }
+          
+          // For SELECTION_ONLY, value MUST be from list
+          if (aspectMode === 'SELECTION_ONLY' && !valueFromValidList) {
+            valueValid = false
+            console.log(`AI suggested "${parsed.aspect_value}" but it's not in valid values`)
           }
         }
 
-        if (parsed.confidence === 'high' && valueValid) {
+        // Auto-approve if: value is from valid list OR (high confidence AND valid)
+        // Key insight: if we gave AI a list and it picked from it, always approve!
+        const shouldAutoApprove = valueFromValidList || (parsed.confidence === 'high' && valueValid)
+
+        if (shouldAutoApprove) {
           // High confidence - auto-insert keyword pattern
           const { error: insertError } = await supabase
             .from('ebay_aspect_keywords')
