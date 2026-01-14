@@ -3,6 +3,37 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI } from '../lib/supabase'
 
+// Default AI matching prompt - this is the base template that always runs
+// Custom criteria learned from user feedback are injected into the {custom_criteria} section
+const DEFAULT_MATCHING_PROMPT = `PRIMARY PRODUCT:
+Title: {primary_title}
+Brand: {primary_brand}
+
+CANDIDATE PRODUCT:
+ASIN: {candidate_asin}
+Title: {candidate_title}
+Brand: {candidate_brand}
+
+Question: Should the CANDIDATE be shown as a similar product to the PRIMARY?
+
+=== MATCHING CRITERIA ===
+
+Answer YES if:
+- Same or highly similar product type/category
+- Same brand family or compatible brands
+- Would reasonably substitute for or complement the primary product
+- Customer searching for primary would likely want to see this
+
+Answer NO if:
+- Different product category entirely
+- Accessory when primary is main product (or vice versa)
+- Competing brand that user doesn't sell
+- Quality tier mismatch (premium vs budget)
+
+{custom_criteria}
+
+Answer with ONLY: YES or NO`
+
 export default function Account() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
@@ -506,23 +537,52 @@ export default function Account() {
                   </button>
                 </div>
 
-                {/* Custom Prompt */}
+                {/* Default Prompt Display */}
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-text-primary mb-2">Custom Matching Criteria</label>
+                  <label className="block text-sm font-medium text-text-primary mb-2">
+                    Default Matching Prompt
+                    <span className="ml-2 text-xs font-normal text-text-tertiary">(always active)</span>
+                  </label>
                   <p className="text-sm text-text-secondary mb-2">
-                    This prompt is generated from your Accept/Decline feedback and tells the AI what products to match.
+                    This is the base AI prompt used to evaluate product matches. Product information is automatically injected.
+                  </p>
+                  <div className="bg-dark-hover rounded-lg p-3 text-sm text-text-secondary whitespace-pre-wrap font-mono text-xs max-h-[200px] overflow-y-auto border border-dark-border">
+                    {DEFAULT_MATCHING_PROMPT}
+                  </div>
+                </div>
+
+                {/* Custom Criteria Section */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-text-primary mb-2">
+                    Your Custom Criteria
+                    <span className="ml-2 text-xs font-normal text-text-tertiary">(injected into {'{custom_criteria}'} above)</span>
+                  </label>
+                  <p className="text-sm text-text-secondary mb-2">
+                    These additional rules are learned from your Accept/Decline feedback and personalize how products are matched for you.
                   </p>
                   {isEditingAiMatching ? (
                     <textarea
                       value={aiMatchingData.custom_matching_prompt || ''}
                       onChange={(e) => setAiMatchingData(prev => ({ ...prev, custom_matching_prompt: e.target.value }))}
                       rows={6}
-                      className="w-full border border-dark-border rounded-lg px-3 py-2 text-sm"
-                      placeholder="No custom prompt generated yet. Click 'Generate from Feedback' to create one based on your decisions."
+                      className="w-full border border-dark-border rounded-lg px-3 py-2 text-sm font-mono"
+                      placeholder="Answer YES if:
+- [your custom criteria will appear here]
+
+Answer NO if:
+- [your custom criteria will appear here]"
                     />
                   ) : (
-                    <div className="bg-dark-hover rounded-lg p-3 text-sm text-text-secondary whitespace-pre-wrap min-h-[100px]">
-                      {profile?.custom_matching_prompt || 'No custom prompt generated yet. Rate some product matches in Influencer Central, then come back here to generate your personalized matching criteria.'}
+                    <div className="bg-dark-hover rounded-lg p-3 text-sm whitespace-pre-wrap min-h-[100px] border border-dark-border">
+                      {profile?.custom_matching_prompt ? (
+                        <span className="text-text-primary font-mono text-xs">{profile.custom_matching_prompt}</span>
+                      ) : (
+                        <span className="text-text-tertiary italic">
+                          No custom criteria yet. Your personalized rules will appear here after you:
+                          {'\n'}1. Rate 5+ product matches in Influencer Central
+                          {'\n'}2. Click "Generate from Feedback" below
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

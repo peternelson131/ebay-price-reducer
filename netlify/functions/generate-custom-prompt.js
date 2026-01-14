@@ -117,27 +117,18 @@ Be specific based on the patterns you see. If they consistently decline accessor
 
     const customCriteria = response.content[0].text;
 
-    // Build the full custom prompt
-    const customPrompt = `PRIMARY PRODUCT:
-Title: {primary_title}
-Brand: {primary_brand}
+    // Save ONLY the custom criteria - the base prompt template is handled separately
+    // This gets injected into {custom_criteria} in the default prompt
+    const formattedCriteria = `=== YOUR PERSONALIZED CRITERIA ===
+(Based on ${feedbackData.length} product decisions)
 
-CANDIDATE PRODUCT:
-ASIN: {candidate_asin}
-Title: {candidate_title}
-Brand: {candidate_brand}
+${customCriteria}`;
 
-Question: Based on this user's preferences, should the CANDIDATE be shown as a similar product?
-
-${customCriteria}
-
-Answer with ONLY: YES or NO`;
-
-    // Save custom prompt to user record
+    // Save custom criteria to user record (not the full prompt)
     const { error: updateError } = await supabaseAdmin
       .from('users')
       .update({ 
-        custom_matching_prompt: customPrompt,
+        custom_matching_prompt: formattedCriteria,
         custom_matching_enabled: true 
       })
       .eq('id', user.id);
