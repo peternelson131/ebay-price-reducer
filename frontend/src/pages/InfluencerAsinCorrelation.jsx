@@ -26,6 +26,7 @@ export default function InfluencerAsinCorrelation() {
   
   // Feedback state
   const [feedback, setFeedback] = useState({}); // { [candidateAsin]: { decision, decline_reason } }
+  const [feedbackLoading, setFeedbackLoading] = useState(false); // Loading existing feedback
   const [showDeclineDropdown, setShowDeclineDropdown] = useState(null); // candidateAsin or null
   const [savingFeedback, setSavingFeedback] = useState({});
 
@@ -123,6 +124,7 @@ export default function InfluencerAsinCorrelation() {
 
   // Load existing feedback decisions when results are displayed
   const loadExistingFeedback = async (searchAsin) => {
+    setFeedbackLoading(true);
     try {
       const token = await userAPI.getAuthToken();
       const response = await fetch('/.netlify/functions/correlation-feedback', {
@@ -151,6 +153,8 @@ export default function InfluencerAsinCorrelation() {
       }
     } catch (err) {
       console.error('Failed to load existing feedback:', err);
+    } finally {
+      setFeedbackLoading(false);
     }
   };
 
@@ -543,8 +547,13 @@ export default function InfluencerAsinCorrelation() {
                     </div>
 
                     {/* Feedback Buttons */}
-                    <div className="flex-shrink-0 relative">
-                      {feedback[item.asin] ? (
+                    <div className="flex-shrink-0 relative min-w-[140px]">
+                      {feedbackLoading ? (
+                        // Show loading state while fetching existing decisions
+                        <div className="flex items-center gap-2 text-text-tertiary">
+                          <span className="text-xs">Loading...</span>
+                        </div>
+                      ) : feedback[item.asin] ? (
                         // Show feedback status with undo button
                         <div className="flex items-center gap-2">
                           <span className={`text-xs px-3 py-1.5 rounded-full ${
