@@ -637,14 +637,19 @@ function buildInventoryItemSimple(ebayDraft, keepaProduct, condition, quantity) 
     }
   };
 
-  // Add brand if available
+  // Add brand - required for most categories
   if (ebayDraft.brand) {
     item.product.brand = ebayDraft.brand;
+  } else if (keepaProduct.brand) {
+    item.product.brand = keepaProduct.brand;
   }
 
   // Add MPN (Manufacturer Part Number) - required for many categories
+  // Use "Does Not Apply" if not available (eBay accepts this)
   if (keepaProduct.partNumber) {
     item.product.mpn = keepaProduct.partNumber;
+  } else {
+    item.product.mpn = "Does Not Apply";
   }
 
   // Add UPC/EAN/ISBN if available (product identifiers)
