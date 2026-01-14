@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import apiService, { handleApiError } from '../services/api';
+import { userAPI } from '../lib/supabase';
 
 export default function InfluencerAsinCorrelation() {
   const [asin, setAsin] = useState('');
@@ -12,6 +13,119 @@ export default function InfluencerAsinCorrelation() {
   const [pendingAsin, setPendingAsin] = useState(null);
   const pollingRef = useRef(null);
   const pollCountRef = useRef(0);
+  
+  // Feedback state
+  const [feedback, setFeedback] = useState({}); // { [candidateAsin]: { decision } }
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [savingFeedback, setSavingFeedback] = useState({});
+
+  // Save feedback to database
+  const saveFeedback = async (candidateAsin, decision) => {
+    if (!results?.asin) return;
+    
+    setSavingFeedback(prev => ({ ...prev, [candidateAsin]: true }));
+    
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/correlation-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'save',
+          search_asin: results.asin,
+          candidate_asin: candidateAsin,
+          decision
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setFeedback(prev => ({
+          ...prev,
+          [candidateAsin]: { decision }
+        }));
+      } else {
+        throw new Error(data.error || 'Failed to save');
+      }
+    } catch (err) {
+      console.error('Failed to save feedback:', err);
+      alert('Failed to save feedback. Please try again.');
+    } finally {
+      setSavingFeedback(prev => ({ ...prev, [candidateAsin]: false }));
+    }
+  };
+
+  // Load existing feedback for search ASIN
+  const loadExistingFeedback = async (searchAsin) => {
+    setFeedbackLoading(true);
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch(`/.netlify/functions/correlation-feedback?action=get&search_asin=${searchAsin}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.feedback) {
+        const feedbackMap = {};
+        data.feedback.forEach(f => {
+          feedbackMap[f.similar_asin] = { decision: f.decision };
+        });
+        setFeedback(feedbackMap);
+      }
+    } catch (err) {
+      console.error('Failed to load feedback:', err);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
+  const handleAccept = (item) => {
+    saveFeedback(item.asin, 'accepted');
+  };
+
+  const handleDecline = (item) => {
+    saveFeedback(item.asin, 'declined');
+  };
+
+  const handleUndo = async (item) => {
+    if (!results?.asin) return;
+    
+    setSavingFeedback(prev => ({ ...prev, [item.asin]: true }));
+    
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/correlation-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'undo',
+          search_asin: results.asin,
+          candidate_asin: item.asin
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setFeedback(prev => {
+          const updated = { ...prev };
+          delete updated[item.asin];
+          return updated;
+        });
+      } else {
+        throw new Error(data.error || 'Failed to undo');
+      }
+    } catch (err) {
+      console.error('Failed to undo:', err);
+      alert('Failed to undo. Please try again.');
+    } finally {
+      setSavingFeedback(prev => ({ ...prev, [item.asin]: false }));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +136,6 @@ export default function InfluencerAsinCorrelation() {
       return;
     }
 
-    // Basic ASIN validation (B + 9 alphanumeric chars)
     if (!/^B[0-9A-Z]{9}$/i.test(trimmedAsin)) {
       setError('Invalid ASIN format. Should be B followed by 9 characters (e.g., B08N5WRWNW)');
       return;
@@ -31,14 +144,15 @@ export default function InfluencerAsinCorrelation() {
     setLoading(true);
     setError(null);
     setResults(null);
+    setFeedback({});
 
     try {
       const data = await apiService.checkAsinCorrelation(trimmedAsin);
 
       if (data.exists && data.correlations && data.correlations.length > 0) {
         setResults(data);
+        loadExistingFeedback(trimmedAsin);
       } else {
-        // ASIN not found - show confirmation dialog
         setPendingAsin(trimmedAsin);
         setShowConfirmDialog(true);
       }
@@ -49,7 +163,6 @@ export default function InfluencerAsinCorrelation() {
     }
   };
 
-  // Stop any active polling
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
@@ -58,11 +171,10 @@ export default function InfluencerAsinCorrelation() {
     pollCountRef.current = 0;
   }, []);
 
-  // Poll for results after triggering sync
   const startPolling = useCallback((targetAsin) => {
     stopPolling();
     pollCountRef.current = 0;
-    const maxSeconds = 600; // 10 minutes max
+    const maxSeconds = 600;
     const startTime = Date.now();
     let lastApiCheck = 0;
 
@@ -74,7 +186,6 @@ export default function InfluencerAsinCorrelation() {
       const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
       setSyncProgress(`Checking for results... (${timeStr})`);
       
-      // Only call API every 5 seconds
       if (elapsed - lastApiCheck < 5) return;
       lastApiCheck = elapsed;
 
@@ -84,6 +195,7 @@ export default function InfluencerAsinCorrelation() {
         if (data.exists && data.correlations && data.correlations.length > 0) {
           stopPolling();
           setResults(data);
+          loadExistingFeedback(targetAsin);
           setSyncing(false);
           setSyncProgress('');
         } else if (elapsed >= maxSeconds) {
@@ -318,7 +430,7 @@ export default function InfluencerAsinCorrelation() {
                     </div>
 
                     {/* ASIN & Link */}
-                    <div className="flex-shrink-0 text-right">
+                    <div className="flex-shrink-0 text-right mr-4">
                       <p className="text-sm font-mono text-text-secondary">{item.asin || 'N/A'}</p>
                       {item.url && (
                         <a
@@ -327,8 +439,52 @@ export default function InfluencerAsinCorrelation() {
                           rel="noopener noreferrer"
                           className="text-xs text-accent hover:underline"
                         >
-                          View on Amazon
+                          View
                         </a>
+                      )}
+                    </div>
+
+                    {/* Feedback Buttons */}
+                    <div className="flex-shrink-0 min-w-[140px]">
+                      {feedbackLoading ? (
+                        <div className="flex items-center gap-2 text-text-tertiary">
+                          <span className="text-xs">Loading...</span>
+                        </div>
+                      ) : feedback[item.asin] ? (
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-3 py-1.5 rounded-full ${
+                            feedback[item.asin].decision === 'accepted'
+                              ? 'bg-success/20 text-success'
+                              : 'bg-error/20 text-error'
+                          }`}>
+                            {feedback[item.asin].decision === 'accepted' ? '✓ Accepted' : '✗ Declined'}
+                          </span>
+                          <button
+                            onClick={() => handleUndo(item)}
+                            disabled={savingFeedback[item.asin]}
+                            className="text-xs px-2 py-1 text-text-tertiary hover:text-text-secondary hover:bg-dark-hover rounded transition-colors disabled:opacity-50"
+                            title="Undo decision"
+                          >
+                            {savingFeedback[item.asin] ? '...' : '↩'}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleAccept(item)}
+                            disabled={savingFeedback[item.asin]}
+                            className="text-xs px-3 py-1.5 bg-success/20 text-success rounded-full hover:bg-success/30 transition-colors disabled:opacity-50"
+                          >
+                            {savingFeedback[item.asin] ? '...' : '✓ Accept'}
+                          </button>
+                          <button
+                            onClick={() => handleDecline(item)}
+                            disabled={savingFeedback[item.asin]}
+                            className="text-xs px-3 py-1.5 bg-error/20 text-error rounded-full hover:bg-error/30 transition-colors disabled:opacity-50"
+                          >
+                            {savingFeedback[item.asin] ? '...' : '✗ Decline'}
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
