@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI } from '../lib/supabase'
 
-// Default AI matching prompt - the MATCHING CRITERIA section gets replaced when user has custom criteria
-const DEFAULT_MATCHING_PROMPT = `PRIMARY PRODUCT:
+// AI matching prompt template - criteria is customizable, examples are generated from feedback
+const MATCHING_PROMPT_TEMPLATE = `PRIMARY PRODUCT:
 Title: {primary_title}
 Brand: {primary_brand}
 
@@ -18,9 +18,11 @@ Question: Should the CANDIDATE be shown as a similar product to the PRIMARY?
 === MATCHING CRITERIA ===
 {matching_criteria}
 
+{user_examples}
+
 Answer with ONLY: YES or NO`
 
-// Default matching criteria - used when user has no custom criteria
+// Default matching criteria - user can edit these rules
 const DEFAULT_MATCHING_CRITERIA = `Answer YES if:
 - Same or highly similar product type/category
 - Same brand family or compatible brands
@@ -48,7 +50,8 @@ export default function Account() {
   // AI Matching state
   const [aiMatchingData, setAiMatchingData] = useState({
     custom_matching_enabled: false,
-    custom_matching_prompt: ''
+    custom_matching_prompt: '',
+    custom_matching_criteria: ''
   })
   const [isEditingAiMatching, setIsEditingAiMatching] = useState(false)
   const [generatingPrompt, setGeneratingPrompt] = useState(false)
@@ -89,7 +92,8 @@ export default function Account() {
     if (profile && !isEditingAiMatching) {
       setAiMatchingData({
         custom_matching_enabled: profile.custom_matching_enabled ?? false,
-        custom_matching_prompt: profile.custom_matching_prompt ?? ''
+        custom_matching_prompt: profile.custom_matching_prompt ?? '',
+        custom_matching_criteria: profile.custom_matching_criteria ?? ''
       })
     }
   }, [profile, isEditingAiMatching])
@@ -536,87 +540,56 @@ export default function Account() {
                   </button>
                 </div>
 
-                {/* Prompt Template */}
+                {/* Prompt Template - collapsed by default */}
+                <details className="mt-4 border border-dark-border rounded-lg">
+                  <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-text-primary hover:bg-dark-hover">
+                    📄 View Prompt Template <span className="text-text-tertiary text-xs ml-2">(how products are evaluated)</span>
+                  </summary>
+                  <div className="p-3 border-t border-dark-border bg-dark-hover/30 text-xs font-mono whitespace-pre-wrap text-text-secondary max-h-[200px] overflow-y-auto">
+                    {MATCHING_PROMPT_TEMPLATE}
+                  </div>
+                </details>
+
+                {/* Matching Criteria - editable by user */}
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-text-primary mb-2">
-                    Prompt Template
-                    <span className="ml-2 text-xs font-normal text-text-tertiary">(product info auto-injected)</span>
+                    Matching Criteria
+                    <span className="ml-2 text-xs font-normal text-text-tertiary">(editable rules)</span>
                   </label>
                   <p className="text-sm text-text-secondary mb-2">
-                    This template is used for all matching. The <code className="bg-dark-hover px-1 rounded">{'{matching_criteria}'}</code> section is what gets customized.
+                    These are the rules the AI follows. You can edit them to match your preferences.
                   </p>
-                  <div className="bg-dark-hover rounded-lg p-3 text-sm text-text-secondary whitespace-pre-wrap font-mono text-xs max-h-[150px] overflow-y-auto border border-dark-border">
-                    {DEFAULT_MATCHING_PROMPT}
-                  </div>
+                  {isEditingAiMatching ? (
+                    <textarea
+                      value={aiMatchingData.custom_matching_criteria || DEFAULT_MATCHING_CRITERIA}
+                      onChange={(e) => setAiMatchingData(prev => ({ ...prev, custom_matching_criteria: e.target.value }))}
+                      rows={10}
+                      className="w-full border border-dark-border rounded-lg px-3 py-2 text-xs font-mono"
+                    />
+                  ) : (
+                    <div className="bg-dark-hover rounded-lg p-3 text-xs font-mono whitespace-pre-wrap text-text-primary border border-dark-border">
+                      {profile?.custom_matching_criteria || DEFAULT_MATCHING_CRITERIA}
+                    </div>
+                  )}
                 </div>
 
-                {/* Matching Criteria Section - this is what gets replaced */}
+                {/* User Examples - generated from feedback */}
                 <div className="mt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-text-primary">
-                      Matching Criteria
-                      <span className="ml-2 text-xs font-normal text-text-tertiary">
-                        ({profile?.custom_matching_enabled && profile?.custom_matching_prompt ? 'using custom' : 'using default'})
-                      </span>
-                    </label>
-                    {profile?.custom_matching_prompt && (
-                      <span className={`text-xs px-2 py-1 rounded ${profile?.custom_matching_enabled ? 'bg-accent/20 text-accent' : 'bg-gray-600/20 text-gray-400'}`}>
-                        {profile?.custom_matching_enabled ? '✓ Custom Active' : 'Custom Available'}
+                  <label className="block text-sm font-medium text-text-primary mb-2">
+                    Your Preference Examples
+                    <span className="ml-2 text-xs font-normal text-text-tertiary">(auto-generated from feedback)</span>
+                  </label>
+                  <p className="text-sm text-text-secondary mb-2">
+                    A summary of patterns from your Accept/Decline decisions. This gives the AI extra context about your preferences.
+                  </p>
+                  <div className="bg-dark-hover rounded-lg p-3 text-xs whitespace-pre-wrap border border-dark-border min-h-[80px]">
+                    {profile?.custom_matching_prompt ? (
+                      <span className="text-text-primary">{profile.custom_matching_prompt}</span>
+                    ) : (
+                      <span className="text-text-tertiary italic">
+                        No examples yet. Rate 5+ product matches in Influencer Central, then click "Generate from Feedback" to create a preference summary.
                       </span>
                     )}
-                  </div>
-                  <p className="text-sm text-text-secondary mb-2">
-                    When custom matching is <strong>enabled</strong>, your personalized criteria <strong>replaces</strong> the default. 
-                    The format stays the same (Answer YES if / Answer NO if), but the rules are tailored to your preferences.
-                  </p>
-                  
-                  {/* Show default OR custom based on toggle state */}
-                  <div className="space-y-3">
-                    {/* Default Criteria */}
-                    <div className={`rounded-lg border ${!profile?.custom_matching_enabled || !profile?.custom_matching_prompt ? 'border-accent' : 'border-dark-border opacity-50'}`}>
-                      <div className="px-3 py-2 border-b border-dark-border bg-dark-hover/50 flex justify-between items-center">
-                        <span className="text-xs font-medium text-text-secondary">Default Criteria</span>
-                        {(!profile?.custom_matching_enabled || !profile?.custom_matching_prompt) && (
-                          <span className="text-xs text-accent">● Active</span>
-                        )}
-                      </div>
-                      <div className="p-3 text-xs font-mono whitespace-pre-wrap text-text-secondary">
-                        {DEFAULT_MATCHING_CRITERIA}
-                      </div>
-                    </div>
-
-                    {/* Custom Criteria */}
-                    <div className={`rounded-lg border ${profile?.custom_matching_enabled && profile?.custom_matching_prompt ? 'border-accent' : 'border-dark-border'}`}>
-                      <div className="px-3 py-2 border-b border-dark-border bg-dark-hover/50 flex justify-between items-center">
-                        <span className="text-xs font-medium text-text-secondary">Your Custom Criteria</span>
-                        {profile?.custom_matching_enabled && profile?.custom_matching_prompt && (
-                          <span className="text-xs text-accent">● Active</span>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        {isEditingAiMatching ? (
-                          <textarea
-                            value={aiMatchingData.custom_matching_prompt || ''}
-                            onChange={(e) => setAiMatchingData(prev => ({ ...prev, custom_matching_prompt: e.target.value }))}
-                            rows={8}
-                            className="w-full border border-dark-border rounded-lg px-3 py-2 text-xs font-mono"
-                            placeholder="Answer YES if:
-- [your custom criteria will appear here]
-
-Answer NO if:
-- [your custom criteria will appear here]"
-                          />
-                        ) : profile?.custom_matching_prompt ? (
-                          <div className="text-xs font-mono whitespace-pre-wrap text-text-primary">
-                            {profile.custom_matching_prompt}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-text-tertiary italic py-4 text-center">
-                            No custom criteria yet. Rate 5+ product matches, then click "Generate from Feedback"
-                          </div>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 </div>
 

@@ -81,53 +81,35 @@ exports.handler = async (event) => {
     // Generate custom prompt using Claude
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    // Default criteria that gets customized
-    const defaultCriteria = `Answer YES if:
-- Same or highly similar product type/category
-- Same brand family or compatible brands
-- Would reasonably substitute for or complement the primary product
-- Customer searching for primary would likely want to see this
-
-Answer NO if:
-- Different product category entirely
-- Accessory when primary is main product (or vice versa)
-- Competing brand that user doesn't sell
-- Quality tier mismatch (premium vs budget)`;
-
-    const analysisPrompt = `You are analyzing a user's product matching preferences to customize their matching criteria.
-
-CURRENT DEFAULT CRITERIA:
-${defaultCriteria}
+    const analysisPrompt = `Analyze this user's product matching preferences and create a brief summary of their patterns.
 
 USER'S FEEDBACK DATA:
 - Total decisions: ${feedbackData.length}
-- Accepted: ${accepted.length}
+- Accepted: ${accepted.length}  
 - Declined: ${declined.length}
-- Decline reasons breakdown: ${JSON.stringify(declineReasons)}
+- Decline reasons: ${JSON.stringify(declineReasons)}
 
-ACCEPTED MATCHES (user wants these types):
-${acceptedExamples || 'No examples yet'}
+ACCEPTED MATCHES (user wants these):
+${acceptedExamples || 'None yet'}
 
-DECLINED MATCHES (user doesn't want these):
-${declinedExamples || 'No examples yet'}
+DECLINED MATCHES (user rejected these):
+${declinedExamples || 'None yet'}
 
-Based on this user's feedback, create a CUSTOMIZED version of the matching criteria. Keep the same format but ADD, REMOVE, or MODIFY bullet points based on what you learned from their decisions.
+Create a concise summary for the AI to use as additional context. Format it exactly like this:
 
-Rules:
-1. Keep the exact format: "Answer YES if:" followed by bullet points, then "Answer NO if:" followed by bullet points
-2. Start with the default criteria as a base
-3. ADD specific criteria based on patterns you see in their accepts/declines
-4. REMOVE any default criteria that conflicts with their behavior
-5. Be specific - if they decline "accessories", say that explicitly
-6. If they accept same-brand variations, note that pattern
+=== USER PREFERENCES ===
+This user tends to ACCEPT:
+- [pattern 1 from their accepts]
+- [pattern 2]
 
-Output ONLY the criteria section, nothing else:
+This user tends to DECLINE:
+- [pattern 1 from their declines]  
+- [pattern 2]
 
-Answer YES if:
-- [criteria]
+Sample accepted: [1-2 brief examples]
+Sample declined: [1-2 brief examples]
 
-Answer NO if:
-- [criteria]`;
+Keep it brief - this is context to help the AI make better decisions, not a complete rule rewrite.`;
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
@@ -135,14 +117,13 @@ Answer NO if:
       messages: [{ role: 'user', content: analysisPrompt }]
     });
 
-    const customCriteria = response.content[0].text;
+    const userExamples = response.content[0].text;
 
-    // Save the custom criteria - this REPLACES the {matching_criteria} section in the prompt
-    // Save custom criteria to user record
+    // Save the user examples summary - this gets injected as {user_examples} in the prompt
     const { error: updateError } = await supabaseAdmin
       .from('users')
       .update({ 
-        custom_matching_prompt: customCriteria,
+        custom_matching_prompt: userExamples,
         custom_matching_enabled: true 
       })
       .eq('id', user.id);
