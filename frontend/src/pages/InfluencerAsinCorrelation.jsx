@@ -121,6 +121,39 @@ export default function InfluencerAsinCorrelation() {
     undoFeedback(item.asin);
   };
 
+  // Load existing feedback decisions when results are displayed
+  const loadExistingFeedback = async (searchAsin) => {
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/correlation-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'get',
+          search_asin: searchAsin
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success && data.feedback) {
+        // Convert feedback array to object keyed by candidate_asin
+        const feedbackMap = {};
+        data.feedback.forEach(f => {
+          feedbackMap[f.candidate_asin] = {
+            decision: f.decision,
+            decline_reason: f.decline_reason
+          };
+        });
+        setFeedback(feedbackMap);
+      }
+    } catch (err) {
+      console.error('Failed to load existing feedback:', err);
+    }
+  };
+
   // Validate ASIN format (client-side)
   const isValidAsin = (value) => {
     return /^B[0-9A-Z]{9}$/i.test(value);
@@ -142,6 +175,7 @@ export default function InfluencerAsinCorrelation() {
     setLoading(true);
     setError(null);
     setResults(null);
+    setFeedback({}); // Clear previous feedback when searching new ASIN
     setShowConfirmDialog(false);
 
     try {
@@ -151,6 +185,8 @@ export default function InfluencerAsinCorrelation() {
       if (data.exists && data.correlations && data.correlations.length > 0) {
         // ASIN exists - display the data
         setResults(data);
+        // Load any existing feedback decisions for this ASIN
+        loadExistingFeedback(asin.toUpperCase());
       } else {
         // ASIN not found - show confirmation dialog
         setPendingAsin(asin.toUpperCase());
@@ -200,6 +236,7 @@ export default function InfluencerAsinCorrelation() {
           // Results found!
           stopPolling();
           setResults(data);
+          loadExistingFeedback(targetAsin);
           setSyncing(false);
           setSyncProgress('');
         } else if (elapsed >= maxSeconds) {
