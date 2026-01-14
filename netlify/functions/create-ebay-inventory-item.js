@@ -263,97 +263,69 @@ exports.handler = async (event, context) => {
 };
 
 /**
- * Get valid aspect values from eBay API
+ * Call Supabase edge function to determine aspect value
+ * The edge function has the AI keys and eBay API access
  */
-async function getValidAspectValues(categoryId, aspectName) {
+async function getAspectValueFromAI(aspectName, productTitle, categoryName, categoryId, brand, supabaseClient) {
   try {
-    const clientId = process.env.EBAY_CLIENT_ID;
-    const clientSecret = process.env.EBAY_CLIENT_SECRET;
-    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    // Insert a pending record and let the trigger process it
+    const { data: insertData, error: insertError } = await supabaseClient
+      .from('ebay_aspect_misses')
+      .insert({
+        asin: `TEMP_${Date.now()}`,
+        aspect_name: aspectName,
+        product_title: productTitle,
+        category_id: categoryId,
+        category_name: categoryName,
+        keepa_brand: brand,
+        status: 'pending'
+      })
+      .select()
+      .single();
     
-    // Get eBay token
-    const tokenResponse = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+    if (insertError) {
+      console.warn(`⚠️ Failed to insert aspect miss: ${insertError.message}`);
+      return null;
+    }
+    
+    // Call the edge function directly to process it now
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/aspect-keyword-review`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${credentials}`
+        'Authorization': `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json'
       },
-      body: 'grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope'
+      body: JSON.stringify({})
     });
-    const tokenData = await tokenResponse.json();
     
-    // Get aspects for category
-    const aspectsResponse = await fetch(
-      `https://api.ebay.com/commerce/taxonomy/v1/category_tree/0/get_item_aspects_for_category?category_id=${categoryId}`,
-      { headers: { 'Authorization': `Bearer ${tokenData.access_token}` } }
-    );
-    const aspectsData = await aspectsResponse.json();
+    // Wait a moment for processing
+    await new Promise(r => setTimeout(r, 2000));
     
-    // Find the specific aspect
-    for (const aspect of (aspectsData.aspects || [])) {
-      if (aspect.localizedAspectName === aspectName) {
-        return {
-          values: (aspect.aspectValues || []).map(v => v.localizedValue),
-          mode: aspect.aspectConstraint?.aspectMode || 'FREE_TEXT'
-        };
-      }
+    // Fetch the result
+    const { data: result, error: fetchError } = await supabaseClient
+      .from('ebay_aspect_misses')
+      .select('suggested_value, suggested_pattern, status')
+      .eq('id', insertData.id)
+      .single();
+    
+    if (fetchError || !result || result.status !== 'processed') {
+      console.warn(`⚠️ Aspect not processed: ${fetchError?.message || result?.status}`);
+      // Clean up
+      await supabaseClient.from('ebay_aspect_misses').delete().eq('id', insertData.id);
+      return null;
     }
-    return null;
+    
+    // Clean up the temp record
+    await supabaseClient.from('ebay_aspect_misses').delete().eq('id', insertData.id);
+    
+    return { value: result.suggested_value, pattern: result.suggested_pattern };
   } catch (e) {
-    console.warn(`⚠️ Failed to get valid values for ${aspectName}:`, e.message);
+    console.warn(`⚠️ AI aspect lookup failed: ${e.message}`);
     return null;
   }
-}
-
-/**
- * Call AI to determine aspect value
- */
-async function getAspectValueFromAI(aspectName, productTitle, categoryName, brand, validValues) {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (!anthropicKey) {
-    console.warn('⚠️ No Anthropic API key, cannot call AI');
-    return null;
-  }
-  
-  let systemPrompt = `You pick the best eBay aspect value for a product.
-Respond with JSON only: {"value": "exact value", "pattern": "regex pattern"}`;
-  
-  if (validValues && validValues.length > 0) {
-    systemPrompt += `\n\nYou MUST pick from these valid values:\n${validValues.slice(0, 50).map(v => `- "${v}"`).join('\n')}`;
-  }
-  
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': anthropicKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 200,
-      messages: [{
-        role: 'user',
-        content: `Aspect: ${aspectName}\nProduct: ${productTitle}\nCategory: ${categoryName}\nBrand: ${brand || 'N/A'}\n\nPick the best value.`
-      }],
-      system: systemPrompt
-    })
-  });
-  
-  if (!response.ok) return null;
-  
-  const data = await response.json();
-  const text = data.content?.[0]?.text || '';
-  
-  try {
-    const match = text.match(/\{[^}]+\}/);
-    if (match) {
-      const parsed = JSON.parse(match[0]);
-      return { value: parsed.value, pattern: parsed.pattern };
-    }
-  } catch (e) {}
-  
-  return null;
 }
 
 /**
@@ -391,19 +363,16 @@ async function fillAllRequiredAspects({ categoryAspects, categoryResult, ebayDra
     }
     
     // No pattern found - call AI NOW to get value
-    console.log(`  🤖 ${aspectName}: calling AI...`);
+    console.log(`  🤖 ${aspectName}: calling AI via edge function...`);
     
-    // Get valid values from eBay
-    const validInfo = await getValidAspectValues(categoryResult.categoryId, aspectName);
-    const validValues = validInfo?.values || [];
-    
-    // Call AI
+    // Call AI via Supabase edge function (it handles eBay valid values internally)
     const aiResult = await getAspectValueFromAI(
       aspectName,
       ebayDraft.title,
       categoryResult.categoryName,
+      categoryResult.categoryId,
       keepaProduct.brand,
-      validValues
+      supabase
     );
     
     if (aiResult && aiResult.value) {
