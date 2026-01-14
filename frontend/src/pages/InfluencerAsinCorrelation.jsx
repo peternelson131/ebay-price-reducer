@@ -68,12 +68,15 @@ export default function InfluencerAsinCorrelation() {
   const startPolling = useCallback((targetAsin) => {
     stopPolling();
     pollCountRef.current = 0;
-    const maxPolls = 24; // 2 minutes max (24 * 5 seconds)
+    const maxPolls = 120; // 10 minutes max (120 * 5 seconds = 600 seconds)
 
     pollingRef.current = setInterval(async () => {
       pollCountRef.current++;
       const elapsed = pollCountRef.current * 5;
-      setSyncProgress(`Checking for results... (${elapsed}s)`);
+      const minutes = Math.floor(elapsed / 60);
+      const seconds = elapsed % 60;
+      const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+      setSyncProgress(`Checking for results... (${timeStr})`);
 
       try {
         const data = await apiService.checkAsinCorrelation(targetAsin);
@@ -89,7 +92,7 @@ export default function InfluencerAsinCorrelation() {
           stopPolling();
           setSyncing(false);
           setSyncProgress('');
-          setError('Sync is taking longer than expected. Please try searching again in a minute.');
+          setError('Sync timed out after 10 minutes. The workflow may still be running - try searching again in a few minutes.');
         }
       } catch (err) {
         // Don't stop on errors, just log and continue polling
@@ -196,7 +199,7 @@ export default function InfluencerAsinCorrelation() {
                 value={asin}
                 onChange={(e) => setAsin(e.target.value.toUpperCase())}
                 placeholder="e.g., B07XJ8C8F5"
-                className="flex-1 px-4 py-2 border border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 px-4 py-2 border border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-black placeholder-gray-400"
                 maxLength={10}
                 disabled={loading || syncing}
               />

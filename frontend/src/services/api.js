@@ -151,9 +151,9 @@ class ApiService {
     });
   }
 
-  // Sync ASIN via n8n webhook
+  // Sync ASIN via n8n webhook (uses v1 which calls n8n for long-running process)
   async syncAsinCorrelation(asin) {
-    return this.request('/trigger-asin-correlation-v2', {
+    return this.request('/trigger-asin-correlation', {
       method: 'POST',
       body: JSON.stringify({ asin, action: 'sync' })
     });
