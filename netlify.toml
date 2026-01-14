@@ -15,6 +15,7 @@
 # Increase timeout for correlation function (26s max on Pro)
 [functions."trigger-asin-correlation-v2"]
   external_node_modules = ["axios"]
+  timeout = 26
   
 # Keep original function for fallback
 [functions."trigger-asin-correlation"]

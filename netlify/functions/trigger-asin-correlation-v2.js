@@ -250,10 +250,41 @@ async function writeCorrelationsToDB(asin, primaryData, correlations, userId) {
   console.log(`✅ Wrote ${records.length} correlations to database`);
 }
 
+// Helper to write a single correlation (for progressive saving)
+async function writeSingleCorrelation(asin, primaryData, item, userId) {
+  const record = {
+    user_id: userId,
+    search_asin: asin,
+    similar_asin: item.asin,
+    correlated_title: item.title,
+    image_url: item.image,
+    search_image_url: primaryData.image,
+    suggested_type: item.type,
+    source: 'serverless-v2',
+    correlated_amazon_url: item.url
+  };
+  
+  const { error } = await getSupabase()
+    .from('asin_correlations')
+    .upsert([record], { 
+      onConflict: 'user_id,search_asin,similar_asin',
+      ignoreDuplicates: false 
+    });
+  
+  if (error) {
+    console.error(`❌ Failed to save ${item.asin}:`, error.message);
+  } else {
+    console.log(`💾 Saved: ${item.asin} (${item.type})`);
+  }
+}
+
 // ==================== MAIN PROCESSING ====================
 
 async function processAsin(asin, userId, keepaKey) {
   console.log(`🔄 Processing ASIN: ${asin}`);
+  
+  let variationCount = 0;
+  let similarCount = 0;
   
   // 1. Get primary product
   console.log('📦 Fetching primary product...');
@@ -272,27 +303,32 @@ async function processAsin(asin, userId, keepaKey) {
     url: getAmazonUrl(primary.asin)
   };
   
-  // 2. Get variations
+  // 2. Get variations and SAVE IMMEDIATELY (progressive saving)
   const variationAsins = (primary.variations || [])
     .map(v => v.asin)
     .filter(a => a !== asin);
   
-  let variations = [];
   if (variationAsins.length > 0) {
+    console.log(`📦 Fetching ${Math.min(variationAsins.length, 20)} variations...`);
     const variationProducts = await keepaProductLookup(variationAsins.slice(0, 20), keepaKey);
-    variations = variationProducts.map(p => ({
-      asin: p.asin,
-      title: p.title || 'Unknown',
-      brand: p.brand || 'Unknown',
-      image: getImageUrl(p),
-      url: getAmazonUrl(p.asin),
-      type: 'variation'
-    }));
+    
+    // Save each variation immediately (don't wait until end)
+    for (const p of variationProducts) {
+      const variation = {
+        asin: p.asin,
+        title: p.title || 'Unknown',
+        brand: p.brand || 'Unknown',
+        image: getImageUrl(p),
+        url: getAmazonUrl(p.asin),
+        type: 'variation'
+      };
+      await writeSingleCorrelation(asin, primaryData, variation, userId);
+      variationCount++;
+    }
+    console.log(`✅ Saved ${variationCount} variations`);
   }
   
   // 3. Search for similar products (same brand + category)
-  let similarProducts = [];
-  
   if (primary.brand && primary.rootCategory) {
     console.log('🔍 Searching for similar products...');
     try {
@@ -308,50 +344,41 @@ async function processAsin(asin, userId, keepaKey) {
         
         console.log(`🤖 AI evaluating ${candidateProducts.length} candidates...`);
         
-        // Parallel AI evaluation
-        const results = await Promise.all(
-          candidateProducts.map(async (candidate) => {
-            const candidateData = {
-              asin: candidate.asin,
-              title: candidate.title || 'Unknown',
-              brand: candidate.brand || 'Unknown',
-              image: getImageUrl(candidate),
-              url: getAmazonUrl(candidate.asin)
-            };
-            
-            try {
-              const isApproved = await evaluateSimilarity(primaryData, candidateData);
-              return isApproved ? { ...candidateData, type: 'similar' } : null;
-            } catch (e) {
-              console.error(`AI eval failed for ${candidate.asin}:`, e.message);
-              return null;
+        // Evaluate and save each approved product immediately (progressive saving)
+        for (const candidate of candidateProducts) {
+          const candidateData = {
+            asin: candidate.asin,
+            title: candidate.title || 'Unknown',
+            brand: candidate.brand || 'Unknown',
+            image: getImageUrl(candidate),
+            url: getAmazonUrl(candidate.asin)
+          };
+          
+          try {
+            const isApproved = await evaluateSimilarity(primaryData, candidateData);
+            if (isApproved) {
+              await writeSingleCorrelation(asin, primaryData, { ...candidateData, type: 'similar' }, userId);
+              similarCount++;
             }
-          })
-        );
-        
-        similarProducts = results.filter(Boolean);
-        console.log(`✅ ${similarProducts.length}/${candidateProducts.length} candidates approved`);
+          } catch (e) {
+            console.error(`AI eval failed for ${candidate.asin}:`, e.message);
+          }
+        }
+        console.log(`✅ Approved and saved ${similarCount} similar products`);
       }
     } catch (searchError) {
       console.error('Similar search failed:', searchError.message);
-      // Continue without similar products
+      // Continue - variations may have been saved
     }
   } else {
     console.log('⏭️ Skipping similar search (no brand or category)');
   }
   
-  
-  // 5. Combine and write to DB
-  const allCorrelations = [...variations, ...similarProducts];
-  
-  await writeCorrelationsToDB(asin, primaryData, allCorrelations, userId);
-  
   return {
     primaryAsin: asin,
     primaryTitle: primaryData.title,
-    correlations: allCorrelations,
-    variationCount: variations.length,
-    similarCount: similarProducts.length
+    variationCount,
+    similarCount
   };
 }
 
