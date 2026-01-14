@@ -166,10 +166,52 @@ exports.handler = async (event) => {
       };
     }
 
+    // UNDO feedback - clear decision from correlation record
+    if (action === 'undo') {
+      const { search_asin, candidate_asin } = body;
+      
+      if (!search_asin || !candidate_asin) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'search_asin and candidate_asin required' })
+        };
+      }
+
+      // Clear the decision fields
+      const { data, error } = await supabaseAdmin
+        .from('asin_correlations')
+        .update({
+          decision: null,
+          decline_reason: null,
+          decision_at: null
+        })
+        .eq('user_id', user.id)
+        .eq('search_asin', search_asin.toUpperCase())
+        .eq('similar_asin', candidate_asin.toUpperCase())
+        .select();
+
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: 'Correlation not found' })
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, undone: data })
+      };
+    }
+
     return {
       statusCode: 400,
       headers,
-      body: JSON.stringify({ error: 'Invalid action. Use: save, get, or stats' })
+      body: JSON.stringify({ error: 'Invalid action. Use: save, get, stats, or undo' })
     };
 
   } catch (error) {

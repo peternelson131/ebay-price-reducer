@@ -68,6 +68,43 @@ export default function InfluencerAsinCorrelation() {
     }
   };
 
+  // Undo feedback
+  const undoFeedback = async (candidateAsin) => {
+    if (!results?.asin) return;
+    
+    setSavingFeedback(prev => ({ ...prev, [candidateAsin]: true }));
+    
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/correlation-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'undo',
+          search_asin: results.asin,
+          candidate_asin: candidateAsin
+        })
+      });
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to undo');
+      
+      // Remove from feedback state
+      setFeedback(prev => {
+        const next = { ...prev };
+        delete next[candidateAsin];
+        return next;
+      });
+    } catch (err) {
+      console.error('Failed to undo feedback:', err);
+    } finally {
+      setSavingFeedback(prev => ({ ...prev, [candidateAsin]: false }));
+    }
+  };
+
   const handleAccept = (item) => {
     saveFeedback(item.asin, item.title, 'accepted');
   };
@@ -78,6 +115,10 @@ export default function InfluencerAsinCorrelation() {
 
   const handleDeclineSelect = (item, reason) => {
     saveFeedback(item.asin, item.title, 'declined', reason);
+  };
+
+  const handleUndo = (item) => {
+    undoFeedback(item.asin);
   };
 
   // Validate ASIN format (client-side)
@@ -467,14 +508,24 @@ export default function InfluencerAsinCorrelation() {
                     {/* Feedback Buttons */}
                     <div className="flex-shrink-0 relative">
                       {feedback[item.asin] ? (
-                        // Show feedback status
-                        <span className={`text-xs px-3 py-1.5 rounded-full ${
-                          feedback[item.asin].decision === 'accepted'
-                            ? 'bg-success/20 text-success'
-                            : 'bg-error/20 text-error'
-                        }`}>
-                          {feedback[item.asin].decision === 'accepted' ? '✓ Accepted' : '✗ Declined'}
-                        </span>
+                        // Show feedback status with undo button
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-3 py-1.5 rounded-full ${
+                            feedback[item.asin].decision === 'accepted'
+                              ? 'bg-success/20 text-success'
+                              : 'bg-error/20 text-error'
+                          }`}>
+                            {feedback[item.asin].decision === 'accepted' ? '✓ Accepted' : '✗ Declined'}
+                          </span>
+                          <button
+                            onClick={() => handleUndo(item)}
+                            disabled={savingFeedback[item.asin]}
+                            className="text-xs px-2 py-1 text-text-tertiary hover:text-text-secondary hover:bg-dark-hover rounded transition-colors disabled:opacity-50"
+                            title="Undo decision"
+                          >
+                            {savingFeedback[item.asin] ? '...' : '↩ Undo'}
+                          </button>
+                        </div>
                       ) : (
                         // Show Accept/Decline buttons
                         <div className="flex gap-2">
