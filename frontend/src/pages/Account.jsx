@@ -15,6 +15,14 @@ export default function Account() {
     newPassword: '',
     confirmPassword: ''
   })
+  // AI Matching state
+  const [aiMatchingData, setAiMatchingData] = useState({
+    custom_matching_enabled: false,
+    custom_matching_prompt: ''
+  })
+  const [isEditingAiMatching, setIsEditingAiMatching] = useState(false)
+  const [generatingPrompt, setGeneratingPrompt] = useState(false)
+  const [feedbackStats, setFeedbackStats] = useState(null)
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading } = useQuery(
@@ -46,10 +54,47 @@ export default function Account() {
     }
   }, [profile, isEditingPreferences])
 
+  // Load AI matching data from profile
+  useEffect(() => {
+    if (profile && !isEditingAiMatching) {
+      setAiMatchingData({
+        custom_matching_enabled: profile.custom_matching_enabled ?? false,
+        custom_matching_prompt: profile.custom_matching_prompt ?? ''
+      })
+    }
+  }, [profile, isEditingAiMatching])
+
+  // Fetch feedback stats when AI Matching tab is active
+  useEffect(() => {
+    if (activeTab === 'ai_matching') {
+      fetchFeedbackStats()
+    }
+  }, [activeTab])
+
+  const fetchFeedbackStats = async () => {
+    try {
+      const token = await userAPI.getAuthToken()
+      const response = await fetch('/.netlify/functions/correlation-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'stats' })
+      })
+      const data = await response.json()
+      if (data.success) {
+        setFeedbackStats(data.stats)
+      }
+    } catch (err) {
+      console.error('Failed to fetch feedback stats:', err)
+    }
+  }
+
   // Handle tab query parameter
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['profile', 'preferences', 'security'].includes(tab)) {
+    if (tab && ['profile', 'preferences', 'ai_matching', 'security'].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -153,6 +198,7 @@ export default function Account() {
   const tabs = [
     { id: 'profile', name: 'Profile', icon: '👤' },
     { id: 'preferences', name: 'Preferences', icon: '⚙️' },
+    { id: 'ai_matching', name: 'AI Matching', icon: '🤖' },
     { id: 'security', name: 'Security', icon: '🔒' }
   ]
 
@@ -379,6 +425,156 @@ export default function Account() {
                   >
                     Edit Preferences
                   </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'ai_matching' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-text-primary">AI Product Matching</h3>
+                <p className="text-sm text-text-secondary">Train the AI to match products based on your preferences.</p>
+              </div>
+
+              {/* Feedback Stats */}
+              <div className="bg-dark-hover rounded-lg p-4">
+                <h4 className="text-sm font-medium text-text-primary mb-3">Your Feedback History</h4>
+                {feedbackStats ? (
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-text-primary">{feedbackStats.total}</div>
+                      <div className="text-xs text-text-secondary">Total Decisions</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-success">{feedbackStats.accepted}</div>
+                      <div className="text-xs text-text-secondary">Accepted</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-error">{feedbackStats.declined}</div>
+                      <div className="text-xs text-text-secondary">Declined</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-text-secondary text-sm">Loading stats...</div>
+                )}
+                {feedbackStats?.total < 5 && (
+                  <p className="mt-3 text-xs text-warning">
+                    You need at least 5 decisions to generate custom matching criteria. 
+                    Go to Influencer Central to rate more product matches!
+                  </p>
+                )}
+              </div>
+
+              {/* Custom Matching Toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-dark-border">
+                <div>
+                  <label className="text-sm font-medium text-text-primary">Custom Matching Based on My Preferences</label>
+                  <p className="text-sm text-text-secondary">Use your feedback to customize how products are matched</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isEditingAiMatching ? aiMatchingData.custom_matching_enabled : (profile?.custom_matching_enabled ?? false)}
+                  onChange={(e) => {
+                    if (isEditingAiMatching) {
+                      setAiMatchingData(prev => ({ ...prev, custom_matching_enabled: e.target.checked }))
+                    }
+                  }}
+                  disabled={!isEditingAiMatching || !aiMatchingData.custom_matching_prompt}
+                  className="h-4 w-4 text-accent"
+                />
+              </div>
+
+              {/* Custom Prompt */}
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">Custom Matching Criteria</label>
+                <p className="text-sm text-text-secondary mb-2">
+                  This prompt is generated from your Accept/Decline feedback and tells the AI what products to match.
+                </p>
+                {isEditingAiMatching ? (
+                  <textarea
+                    value={aiMatchingData.custom_matching_prompt || ''}
+                    onChange={(e) => setAiMatchingData(prev => ({ ...prev, custom_matching_prompt: e.target.value }))}
+                    rows={6}
+                    className="w-full border border-dark-border rounded-lg px-3 py-2 text-sm"
+                    placeholder="No custom prompt generated yet. Click 'Generate from Feedback' to create one based on your decisions."
+                  />
+                ) : (
+                  <div className="bg-dark-hover rounded-lg p-3 text-sm text-text-secondary whitespace-pre-wrap min-h-[100px]">
+                    {profile?.custom_matching_prompt || 'No custom prompt generated yet. Rate some product matches in Influencer Central, then come back here to generate your personalized matching criteria.'}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                {isEditingAiMatching ? (
+                  <>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await userAPI.updateProfile(aiMatchingData)
+                          queryClient.invalidateQueries(['profile'])
+                          setIsEditingAiMatching(false)
+                          alert('AI Matching settings saved!')
+                        } catch (err) {
+                          alert('Failed to save: ' + err.message)
+                        }
+                      }}
+                      className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={() => setIsEditingAiMatching(false)}
+                      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setIsEditingAiMatching(true)}
+                      className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
+                    >
+                      Edit Settings
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!feedbackStats || feedbackStats.total < 5) {
+                          alert('You need at least 5 decisions to generate custom matching criteria.')
+                          return
+                        }
+                        setGeneratingPrompt(true)
+                        try {
+                          const token = await userAPI.getAuthToken()
+                          const response = await fetch('/.netlify/functions/generate-custom-prompt', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`
+                            }
+                          })
+                          const data = await response.json()
+                          if (data.success) {
+                            queryClient.invalidateQueries(['profile'])
+                            alert('Custom matching criteria generated!')
+                          } else {
+                            throw new Error(data.error || 'Failed to generate')
+                          }
+                        } catch (err) {
+                          alert('Failed to generate: ' + err.message)
+                        } finally {
+                          setGeneratingPrompt(false)
+                        }
+                      }}
+                      disabled={generatingPrompt || !feedbackStats || feedbackStats.total < 5}
+                      className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {generatingPrompt ? 'Generating...' : '🤖 Generate from Feedback'}
+                    </button>
+                  </>
                 )}
               </div>
             </div>
