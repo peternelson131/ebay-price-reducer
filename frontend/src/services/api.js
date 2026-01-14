@@ -163,6 +163,75 @@ class ApiService {
   async triggerAsinCorrelation(asin) {
     return this.checkAsinCorrelation(asin);
   }
+
+  // ==================== BACKGROUND JOB API ====================
+  // For processing large batches (50+ variations) without timeout
+
+  // Start background correlation job (returns immediately, processes in background)
+  async startCorrelationJob(asin) {
+    return this.request('/asin-correlation-job', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'start', asin })
+    });
+  }
+
+  // Check status of a correlation job
+  async getCorrelationJobStatus(jobId) {
+    return this.request(`/asin-correlation-job?action=status&jobId=${jobId}`, {
+      method: 'GET'
+    });
+  }
+
+  // List recent correlation jobs
+  async listCorrelationJobs(limit = 10) {
+    return this.request(`/asin-correlation-job?action=list&limit=${limit}`, {
+      method: 'GET'
+    });
+  }
+
+  // Poll job until complete (with timeout)
+  async waitForCorrelationJob(jobId, { 
+    pollIntervalMs = 2000, 
+    timeoutMs = 300000, // 5 minutes default
+    onProgress = null 
+  } = {}) {
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < timeoutMs) {
+      const result = await this.getCorrelationJobStatus(jobId);
+      
+      // Call progress callback if provided
+      if (onProgress && result.job) {
+        onProgress(result.job);
+      }
+      
+      // Check if complete
+      if (result.isComplete) {
+        return result;
+      }
+      
+      // Wait before next poll
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    }
+    
+    throw new Error('Job timed out');
+  }
+
+  // Convenience method: start job and wait for completion
+  async syncAsinCorrelationBackground(asin, options = {}) {
+    // Start the job
+    const startResult = await this.startCorrelationJob(asin);
+    
+    if (!startResult.success) {
+      throw new Error(startResult.error || 'Failed to start job');
+    }
+    
+    // If already running, just poll that job
+    const jobId = startResult.jobId;
+    
+    // Wait for completion
+    return this.waitForCorrelationJob(jobId, options);
+  }
 }
 
 // Create and export a singleton instance
@@ -179,7 +248,13 @@ export const {
   sendNotification,
   checkAsinCorrelation,
   syncAsinCorrelation,
-  triggerAsinCorrelation
+  triggerAsinCorrelation,
+  // Background job methods
+  startCorrelationJob,
+  getCorrelationJobStatus,
+  listCorrelationJobs,
+  waitForCorrelationJob,
+  syncAsinCorrelationBackground
 } = apiService;
 
 // Export the full service as default

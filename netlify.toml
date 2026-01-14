@@ -21,6 +21,14 @@
 [functions."trigger-asin-correlation"]
   external_node_modules = ["axios"]
 
+# Background function for ASIN correlation (15 min timeout)
+[functions."trigger-asin-correlation-background"]
+  external_node_modules = ["axios"]
+
+# Job manager for ASIN correlation
+[functions."asin-correlation-job"]
+  external_node_modules = ["axios"]
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
