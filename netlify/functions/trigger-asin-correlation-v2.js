@@ -318,8 +318,8 @@ async function processAsin(asin, userId, keepaKey) {
     .filter(a => a !== asin);
   
   if (variationAsins.length > 0) {
-    console.log(`📦 Fetching ${Math.min(variationAsins.length, 20)} variations...`);
-    const variationProducts = await keepaProductLookup(variationAsins.slice(0, 20), keepaKey);
+    console.log(`📦 Fetching ${variationAsins.length} variations...`);
+    const variationProducts = await keepaProductLookup(variationAsins, keepaKey);
     
     // Save each variation immediately (don't wait until end)
     for (const p of variationProducts) {
@@ -345,8 +345,8 @@ async function processAsin(asin, userId, keepaKey) {
       
       const excludeSet = new Set([asin, ...variationAsins]);
       const candidateAsins = similarAsins
-        .filter(a => !excludeSet.has(a))
-        .slice(0, 5);  // Limit to 5 for speed
+        .filter(a => !excludeSet.has(a));
+      // No limit - evaluate ALL candidates for maximum coverage
       
       if (candidateAsins.length > 0) {
         const candidateProducts = await keepaProductLookup(candidateAsins, keepaKey);
