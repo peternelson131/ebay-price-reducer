@@ -34,14 +34,18 @@ You will receive:
 Respond with JSON only (no markdown):
 {"aspect_value": "exact value for eBay", "keyword_pattern": "regex pattern to match similar products", "confidence": "high or low"}
 
+IMPORTANT - Use EXACT eBay-accepted values:
+- For "Department": Men, Women, Unisex Adults, Boys, Girls, Unisex Kids, Baby
+- For backpacks/bags without gender keywords: use "Unisex Adults" with HIGH confidence
+
 Rules:
-- aspect_value should be the exact value to use for the eBay aspect
+- aspect_value must be an EXACT eBay-accepted value (check the list above)
 - keyword_pattern should be a regex that would match this pattern in other product titles
-- confidence is "high" if you're very confident, "low" if uncertain
+- confidence is "high" if you're confident, "low" only if truly uncertain
 
 Examples:
 - For "Brand" aspect with title "Nike Air Max 90 Running Shoes", respond: {"aspect_value": "Nike", "keyword_pattern": "\\bNike\\b", "confidence": "high"}
-- For "Size" aspect with title "Men's Shoes Size 10.5", respond: {"aspect_value": "10.5", "keyword_pattern": "Size\\s*(\\d+\\.?\\d*)", "confidence": "high"}`
+- For "Department" aspect with title "Puma Backpack Bag", respond: {"aspect_value": "Unisex Adults", "keyword_pattern": "Backpack|Bag", "confidence": "high"}`
     })
   })
 
