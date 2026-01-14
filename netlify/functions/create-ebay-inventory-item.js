@@ -203,11 +203,36 @@ exports.handler = async (event, context) => {
     ebayDraft.aspects = { ...ebayDraft.aspects, ...filledAspects };
     console.log(`✅ Filled ${Object.keys(filledAspects).length} aspects proactively`);
 
-    // 10. Build eBay Inventory Item payload
+    // 10. VALIDATE: Check if ALL required aspects are filled
+    const missingAspects = [];
+    for (const aspect of categoryAspects) {
+      if (aspect.required && !ebayDraft.aspects[aspect.name]) {
+        missingAspects.push(aspect.name);
+      }
+    }
+    
+    if (missingAspects.length > 0) {
+      console.error(`❌ Missing required aspects: ${missingAspects.join(', ')}`);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Missing required aspects',
+          message: `Could not determine values for: ${missingAspects.join(', ')}. Please try again or contact support.`,
+          missingAspects: missingAspects,
+          categoryId: categoryResult.categoryId,
+          categoryName: categoryResult.categoryName
+        })
+      };
+    }
+    
+    console.log('✅ All required aspects filled!');
+
+    // 11. Build eBay Inventory Item payload
     const inventoryItem = buildInventoryItemSimple(ebayDraft, rawKeepa, condition, quantity);
     console.log('📋 Built inventory item payload');
 
-    // 9. Create inventory item via eBay API
+    // 12. Create inventory item via eBay API
     console.log(`📤 Creating inventory item with SKU: ${sku}`);
     
     const result = await ebayApiRequest(
