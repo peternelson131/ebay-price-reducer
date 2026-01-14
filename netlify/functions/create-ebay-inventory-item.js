@@ -182,8 +182,13 @@ exports.handler = async (event, context) => {
     console.log('🔑 Getting eBay access token...');
     const accessToken = await getValidAccessToken(supabase, user.id);
 
-    // 8. Build eBay Inventory Item payload (with category aspects merged)
-    const inventoryItem = buildInventoryItem(ebayDraft, rawKeepa, condition, quantity, categoryAspects, categoryResult, asin, supabase);
+    // 8. Get learned patterns from database
+    console.log('🧠 Fetching learned aspect patterns...');
+    const learnedPatterns = await getLearnedPatterns(supabase, categoryResult.categoryId);
+    console.log(`   Found ${learnedPatterns.length} learned patterns`);
+
+    // 9. Build eBay Inventory Item payload (with category aspects + learned patterns)
+    const inventoryItem = buildInventoryItem(ebayDraft, rawKeepa, condition, quantity, categoryAspects, categoryResult, asin, supabase, learnedPatterns);
     console.log('📋 Built inventory item payload');
 
     // 9. Create inventory item via eBay API
@@ -240,6 +245,62 @@ exports.handler = async (event, context) => {
     };
   }
 };
+
+/**
+ * Get learned aspect patterns from database
+ * These are patterns learned from previous aspect misses via AI
+ */
+async function getLearnedPatterns(supabaseClient, categoryId) {
+  try {
+    // Get patterns for this category OR universal patterns (null category)
+    const { data: patterns, error } = await supabaseClient
+      .from('ebay_aspect_keywords')
+      .select('aspect_name, aspect_value, keyword_pattern, category_id')
+      .or(`category_id.eq.${categoryId},category_id.is.null`);
+    
+    if (error) {
+      console.warn('⚠️ Failed to fetch learned patterns:', error.message);
+      return [];
+    }
+    
+    return patterns || [];
+  } catch (e) {
+    console.warn('⚠️ Error fetching learned patterns:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Try to match a product title against learned patterns
+ * Returns the aspect value if a pattern matches, null otherwise
+ */
+function matchLearnedPattern(aspectName, productTitle, learnedPatterns, categoryId) {
+  // Filter patterns for this aspect
+  const relevantPatterns = learnedPatterns.filter(p => p.aspect_name === aspectName);
+  
+  // Sort: category-specific patterns first, then universal
+  relevantPatterns.sort((a, b) => {
+    if (a.category_id === categoryId && b.category_id !== categoryId) return -1;
+    if (b.category_id === categoryId && a.category_id !== categoryId) return 1;
+    return 0;
+  });
+  
+  // Try each pattern
+  for (const pattern of relevantPatterns) {
+    try {
+      const regex = new RegExp(pattern.keyword_pattern, 'i');
+      if (regex.test(productTitle)) {
+        console.log(`  🧠 ${aspectName}: matched learned pattern "${pattern.keyword_pattern}" → ${pattern.aspect_value}`);
+        return pattern.aspect_value;
+      }
+    } catch (e) {
+      // Invalid regex, skip
+      console.warn(`  ⚠️ Invalid pattern for ${aspectName}: ${pattern.keyword_pattern}`);
+    }
+  }
+  
+  return null;
+}
 
 /**
  * Fetch product data from Keepa API
@@ -362,7 +423,7 @@ function escapeHtml(text) {
  * Build eBay Inventory Item payload
  * @see https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/createOrReplaceInventoryItem
  */
-function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity, categoryAspects = [], categoryResult = {}, asin = '', supabaseClient = null) {
+function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity, categoryAspects = [], categoryResult = {}, asin = '', supabaseClient = null, learnedPatterns = []) {
   // Start with aspects from Keepa data
   const aspects = { ...ebayDraft.aspects };
   
@@ -386,30 +447,39 @@ function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity, catego
       if (mappedValue) {
         aspects[aspectName] = Array.isArray(mappedValue) ? mappedValue : [mappedValue];
         console.log(`  ✓ ${aspectName}: mapped from Keepa data`);
-      } else {
-        console.log(`  ⚠ ${aspectName}: required but no data available`);
-        
-        // Log this as an aspect miss for AI learning (in background, non-blocking)
-        if (aspect.required && asin && supabaseClient) {
-          supabaseClient
-            .from('ebay_aspect_misses')
-            .insert({
-              asin: asin,
-              aspect_name: aspectName,
-              product_title: ebayDraft.title,
-              category_id: String(categoryResult.categoryId || ''),
-              category_name: categoryResult.categoryName || '',
-              keepa_brand: keepaProduct.brand || null,
-              keepa_model: keepaProduct.model || null,
-              status: 'pending'
-            })
-            .then(({ error }) => {
-              if (!error) {
-                console.log(`  📝 Logged aspect miss for AI learning: ${aspectName}`);
-              }
-            })
-            .catch(() => {}); // Non-blocking, ignore errors
-        }
+        continue;
+      }
+      
+      // Try learned patterns (from previous AI learning)
+      const learnedValue = matchLearnedPattern(aspectName, ebayDraft.title, learnedPatterns, categoryResult.categoryId);
+      if (learnedValue) {
+        aspects[aspectName] = [learnedValue];
+        // Pattern match found - no need to log as miss
+        continue;
+      }
+      
+      // No value found - log as aspect miss for AI learning
+      console.log(`  ⚠ ${aspectName}: required but no data available`);
+      
+      if (aspect.required && asin && supabaseClient) {
+        supabaseClient
+          .from('ebay_aspect_misses')
+          .insert({
+            asin: asin,
+            aspect_name: aspectName,
+            product_title: ebayDraft.title,
+            category_id: String(categoryResult.categoryId || ''),
+            category_name: categoryResult.categoryName || '',
+            keepa_brand: keepaProduct.brand || null,
+            keepa_model: keepaProduct.model || null,
+            status: 'pending'
+          })
+          .then(({ error }) => {
+            if (!error) {
+              console.log(`  📝 Logged aspect miss for AI learning: ${aspectName}`);
+            }
+          })
+          .catch(() => {}); // Non-blocking, ignore errors
       }
     }
   }
