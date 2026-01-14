@@ -187,8 +187,24 @@ exports.handler = async (event, context) => {
     const learnedPatterns = await getLearnedPatterns(supabase, categoryResult.categoryId);
     console.log(`   Found ${learnedPatterns.length} learned patterns`);
 
-    // 9. Build eBay Inventory Item payload (with category aspects + learned patterns)
-    const inventoryItem = buildInventoryItem(ebayDraft, rawKeepa, condition, quantity, categoryAspects, categoryResult, asin, supabase, learnedPatterns);
+    // 9. PROACTIVELY fill ALL missing required aspects (Keepa → Patterns → AI)
+    console.log('🔍 Proactively filling all required aspects...');
+    const filledAspects = await fillAllRequiredAspects({
+      categoryAspects,
+      categoryResult,
+      ebayDraft,
+      keepaProduct: rawKeepa,
+      learnedPatterns,
+      asin,
+      supabase
+    });
+    
+    // Merge filled aspects into ebayDraft
+    ebayDraft.aspects = { ...ebayDraft.aspects, ...filledAspects };
+    console.log(`✅ Filled ${Object.keys(filledAspects).length} aspects proactively`);
+
+    // 10. Build eBay Inventory Item payload
+    const inventoryItem = buildInventoryItemSimple(ebayDraft, rawKeepa, condition, quantity);
     console.log('📋 Built inventory item payload');
 
     // 9. Create inventory item via eBay API
@@ -245,6 +261,175 @@ exports.handler = async (event, context) => {
     };
   }
 };
+
+/**
+ * Get valid aspect values from eBay API
+ */
+async function getValidAspectValues(categoryId, aspectName) {
+  try {
+    const clientId = process.env.EBAY_CLIENT_ID;
+    const clientSecret = process.env.EBAY_CLIENT_SECRET;
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    
+    // Get eBay token
+    const tokenResponse = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${credentials}`
+      },
+      body: 'grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope'
+    });
+    const tokenData = await tokenResponse.json();
+    
+    // Get aspects for category
+    const aspectsResponse = await fetch(
+      `https://api.ebay.com/commerce/taxonomy/v1/category_tree/0/get_item_aspects_for_category?category_id=${categoryId}`,
+      { headers: { 'Authorization': `Bearer ${tokenData.access_token}` } }
+    );
+    const aspectsData = await aspectsResponse.json();
+    
+    // Find the specific aspect
+    for (const aspect of (aspectsData.aspects || [])) {
+      if (aspect.localizedAspectName === aspectName) {
+        return {
+          values: (aspect.aspectValues || []).map(v => v.localizedValue),
+          mode: aspect.aspectConstraint?.aspectMode || 'FREE_TEXT'
+        };
+      }
+    }
+    return null;
+  } catch (e) {
+    console.warn(`⚠️ Failed to get valid values for ${aspectName}:`, e.message);
+    return null;
+  }
+}
+
+/**
+ * Call AI to determine aspect value
+ */
+async function getAspectValueFromAI(aspectName, productTitle, categoryName, brand, validValues) {
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (!anthropicKey) {
+    console.warn('⚠️ No Anthropic API key, cannot call AI');
+    return null;
+  }
+  
+  let systemPrompt = `You pick the best eBay aspect value for a product.
+Respond with JSON only: {"value": "exact value", "pattern": "regex pattern"}`;
+  
+  if (validValues && validValues.length > 0) {
+    systemPrompt += `\n\nYou MUST pick from these valid values:\n${validValues.slice(0, 50).map(v => `- "${v}"`).join('\n')}`;
+  }
+  
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': anthropicKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 200,
+      messages: [{
+        role: 'user',
+        content: `Aspect: ${aspectName}\nProduct: ${productTitle}\nCategory: ${categoryName}\nBrand: ${brand || 'N/A'}\n\nPick the best value.`
+      }],
+      system: systemPrompt
+    })
+  });
+  
+  if (!response.ok) return null;
+  
+  const data = await response.json();
+  const text = data.content?.[0]?.text || '';
+  
+  try {
+    const match = text.match(/\{[^}]+\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      return { value: parsed.value, pattern: parsed.pattern };
+    }
+  } catch (e) {}
+  
+  return null;
+}
+
+/**
+ * PROACTIVELY fill ALL missing required aspects
+ * Order: Keepa → Learned Patterns → AI (with valid values from eBay)
+ */
+async function fillAllRequiredAspects({ categoryAspects, categoryResult, ebayDraft, keepaProduct, learnedPatterns, asin, supabase }) {
+  const filledAspects = {};
+  
+  for (const aspect of categoryAspects) {
+    if (!aspect.required) continue;
+    
+    const aspectName = aspect.name;
+    
+    // Skip if already have from Keepa
+    if (ebayDraft.aspects[aspectName]) {
+      console.log(`  ✓ ${aspectName}: from Keepa`);
+      continue;
+    }
+    
+    // Try Keepa mapping
+    const mappedValue = mapAspectFromKeepa(aspectName, keepaProduct, ebayDraft);
+    if (mappedValue) {
+      filledAspects[aspectName] = Array.isArray(mappedValue) ? mappedValue : [mappedValue];
+      console.log(`  ✓ ${aspectName}: mapped from Keepa`);
+      continue;
+    }
+    
+    // Try learned patterns
+    const learnedValue = matchLearnedPattern(aspectName, ebayDraft.title, learnedPatterns, categoryResult.categoryId);
+    if (learnedValue) {
+      filledAspects[aspectName] = [learnedValue];
+      console.log(`  🧠 ${aspectName}: from learned pattern → ${learnedValue}`);
+      continue;
+    }
+    
+    // No pattern found - call AI NOW to get value
+    console.log(`  🤖 ${aspectName}: calling AI...`);
+    
+    // Get valid values from eBay
+    const validInfo = await getValidAspectValues(categoryResult.categoryId, aspectName);
+    const validValues = validInfo?.values || [];
+    
+    // Call AI
+    const aiResult = await getAspectValueFromAI(
+      aspectName,
+      ebayDraft.title,
+      categoryResult.categoryName,
+      keepaProduct.brand,
+      validValues
+    );
+    
+    if (aiResult && aiResult.value) {
+      filledAspects[aspectName] = [aiResult.value];
+      console.log(`  ✓ ${aspectName}: AI determined → ${aiResult.value}`);
+      
+      // Save pattern for future use (non-blocking)
+      if (aiResult.pattern && supabase) {
+        supabase
+          .from('ebay_aspect_keywords')
+          .insert({
+            aspect_name: aspectName,
+            aspect_value: aiResult.value,
+            keyword_pattern: aiResult.pattern,
+            category_id: categoryResult.categoryId
+          })
+          .then(() => console.log(`  📝 Saved pattern for ${aspectName}`))
+          .catch(() => {});
+      }
+    } else {
+      console.log(`  ⚠️ ${aspectName}: could not determine value`);
+    }
+  }
+  
+  return filledAspects;
+}
 
 /**
  * Get learned aspect patterns from database
@@ -420,70 +605,9 @@ function escapeHtml(text) {
 }
 
 /**
- * Build eBay Inventory Item payload
- * @see https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/createOrReplaceInventoryItem
+ * Build eBay Inventory Item payload (simplified - aspects already filled)
  */
-function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity, categoryAspects = [], categoryResult = {}, asin = '', supabaseClient = null, learnedPatterns = []) {
-  // Start with aspects from Keepa data
-  const aspects = { ...ebayDraft.aspects };
-  
-  // Merge in required category aspects
-  // For required aspects where we have matching Keepa data, it's already included
-  // For required aspects where we don't have data, we note them but can't populate
-  if (categoryAspects.length > 0) {
-    console.log(`📝 Processing ${categoryAspects.length} required aspects from category`);
-    
-    for (const aspect of categoryAspects) {
-      const aspectName = aspect.name;
-      
-      // Skip if we already have this aspect from Keepa
-      if (aspects[aspectName]) {
-        console.log(`  ✓ ${aspectName}: already have value from Keepa`);
-        continue;
-      }
-      
-      // Try to map common aspect names to Keepa data
-      const mappedValue = mapAspectFromKeepa(aspectName, keepaProduct, ebayDraft);
-      if (mappedValue) {
-        aspects[aspectName] = Array.isArray(mappedValue) ? mappedValue : [mappedValue];
-        console.log(`  ✓ ${aspectName}: mapped from Keepa data`);
-        continue;
-      }
-      
-      // Try learned patterns (from previous AI learning)
-      const learnedValue = matchLearnedPattern(aspectName, ebayDraft.title, learnedPatterns, categoryResult.categoryId);
-      if (learnedValue) {
-        aspects[aspectName] = [learnedValue];
-        // Pattern match found - no need to log as miss
-        continue;
-      }
-      
-      // No value found - log as aspect miss for AI learning
-      console.log(`  ⚠ ${aspectName}: required but no data available`);
-      
-      if (aspect.required && asin && supabaseClient) {
-        supabaseClient
-          .from('ebay_aspect_misses')
-          .insert({
-            asin: asin,
-            aspect_name: aspectName,
-            product_title: ebayDraft.title,
-            category_id: String(categoryResult.categoryId || ''),
-            category_name: categoryResult.categoryName || '',
-            keepa_brand: keepaProduct.brand || null,
-            keepa_model: keepaProduct.model || null,
-            status: 'pending'
-          })
-          .then(({ error }) => {
-            if (!error) {
-              console.log(`  📝 Logged aspect miss for AI learning: ${aspectName}`);
-            }
-          })
-          .catch(() => {}); // Non-blocking, ignore errors
-      }
-    }
-  }
-  
+function buildInventoryItemSimple(ebayDraft, keepaProduct, condition, quantity) {
   const item = {
     availability: {
       shipToLocationAvailability: {
@@ -494,7 +618,7 @@ function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity, catego
     product: {
       title: ebayDraft.title,
       description: ebayDraft.description,
-      aspects: aspects,
+      aspects: ebayDraft.aspects,
       imageUrls: ebayDraft.images
     }
   };
