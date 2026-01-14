@@ -1,16 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
 import apiService, { handleApiError } from '../services/api';
-import { userAPI } from '../lib/supabase';
-
-// Decline reason options
-const DECLINE_REASONS = [
-  { value: 'wrong_category', label: 'Wrong product category' },
-  { value: 'accessory', label: 'This is an accessory' },
-  { value: 'wrong_brand', label: 'Wrong brand' },
-  { value: 'not_similar', label: 'Not similar enough' },
-  { value: 'competitor', label: 'Competitor product' },
-  { value: 'other', label: 'Other' }
-];
 
 export default function InfluencerAsinCorrelation() {
   const [asin, setAsin] = useState('');
@@ -23,177 +12,34 @@ export default function InfluencerAsinCorrelation() {
   const [pendingAsin, setPendingAsin] = useState(null);
   const pollingRef = useRef(null);
   const pollCountRef = useRef(0);
-  
-  // Feedback state
-  const [feedback, setFeedback] = useState({}); // { [candidateAsin]: { decision, decline_reason } }
-  const [feedbackLoading, setFeedbackLoading] = useState(false); // Loading existing feedback
-  const [showDeclineDropdown, setShowDeclineDropdown] = useState(null); // candidateAsin or null
-  const [savingFeedback, setSavingFeedback] = useState({});
 
-  // Save feedback to API
-  const saveFeedback = async (candidateAsin, candidateTitle, decision, declineReason = null) => {
-    if (!results?.asin) return;
-    
-    setSavingFeedback(prev => ({ ...prev, [candidateAsin]: true }));
-    
-    try {
-      const token = await userAPI.getAuthToken();
-      const response = await fetch('/.netlify/functions/correlation-feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          action: 'save',
-          search_asin: results.asin,
-          candidate_asin: candidateAsin,
-          candidate_title: candidateTitle,
-          decision,
-          decline_reason: declineReason
-        })
-      });
-      
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to save feedback');
-      
-      setFeedback(prev => ({
-        ...prev,
-        [candidateAsin]: { decision, decline_reason: declineReason }
-      }));
-      setShowDeclineDropdown(null);
-    } catch (err) {
-      console.error('Failed to save feedback:', err);
-    } finally {
-      setSavingFeedback(prev => ({ ...prev, [candidateAsin]: false }));
-    }
-  };
-
-  // Undo feedback
-  const undoFeedback = async (candidateAsin) => {
-    if (!results?.asin) return;
-    
-    setSavingFeedback(prev => ({ ...prev, [candidateAsin]: true }));
-    
-    try {
-      const token = await userAPI.getAuthToken();
-      const response = await fetch('/.netlify/functions/correlation-feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          action: 'undo',
-          search_asin: results.asin,
-          candidate_asin: candidateAsin
-        })
-      });
-      
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to undo');
-      
-      // Remove from feedback state
-      setFeedback(prev => {
-        const next = { ...prev };
-        delete next[candidateAsin];
-        return next;
-      });
-    } catch (err) {
-      console.error('Failed to undo feedback:', err);
-    } finally {
-      setSavingFeedback(prev => ({ ...prev, [candidateAsin]: false }));
-    }
-  };
-
-  const handleAccept = (item) => {
-    saveFeedback(item.asin, item.title, 'accepted');
-  };
-
-  const handleDeclineClick = (candidateAsin) => {
-    setShowDeclineDropdown(showDeclineDropdown === candidateAsin ? null : candidateAsin);
-  };
-
-  const handleDeclineSelect = (item, reason) => {
-    saveFeedback(item.asin, item.title, 'declined', reason);
-  };
-
-  const handleUndo = (item) => {
-    undoFeedback(item.asin);
-  };
-
-  // Load existing feedback decisions when results are displayed
-  const loadExistingFeedback = async (searchAsin) => {
-    setFeedbackLoading(true);
-    try {
-      const token = await userAPI.getAuthToken();
-      const response = await fetch('/.netlify/functions/correlation-feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          action: 'get',
-          search_asin: searchAsin
-        })
-      });
-      
-      const data = await response.json();
-      if (data.success && data.feedback) {
-        // Convert feedback array to object keyed by candidate_asin
-        const feedbackMap = {};
-        data.feedback.forEach(f => {
-          feedbackMap[f.candidate_asin] = {
-            decision: f.decision,
-            decline_reason: f.decline_reason
-          };
-        });
-        setFeedback(feedbackMap);
-      }
-    } catch (err) {
-      console.error('Failed to load existing feedback:', err);
-    } finally {
-      setFeedbackLoading(false);
-    }
-  };
-
-  // Validate ASIN format (client-side)
-  const isValidAsin = (value) => {
-    return /^B[0-9A-Z]{9}$/i.test(value);
-  };
-
-  const handleSearch = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const trimmedAsin = asin.trim().toUpperCase();
 
-    if (!asin.trim()) {
+    if (!trimmedAsin) {
       setError('Please enter an ASIN');
       return;
     }
 
-    if (!isValidAsin(asin)) {
-      setError('Invalid ASIN format. Must be B followed by 9 alphanumeric characters (e.g., B07XJ8C8F5)');
+    // Basic ASIN validation (B + 9 alphanumeric chars)
+    if (!/^B[0-9A-Z]{9}$/i.test(trimmedAsin)) {
+      setError('Invalid ASIN format. Should be B followed by 9 characters (e.g., B08N5WRWNW)');
       return;
     }
 
     setLoading(true);
     setError(null);
     setResults(null);
-    setFeedback({}); // Clear previous feedback when searching new ASIN
-    setShowConfirmDialog(false);
 
     try {
-      // First, check if ASIN exists in database
-      const data = await apiService.checkAsinCorrelation(asin.toUpperCase());
+      const data = await apiService.checkAsinCorrelation(trimmedAsin);
 
       if (data.exists && data.correlations && data.correlations.length > 0) {
-        // ASIN exists - display the data
         setResults(data);
-        // Load any existing feedback decisions for this ASIN
-        loadExistingFeedback(asin.toUpperCase());
       } else {
         // ASIN not found - show confirmation dialog
-        setPendingAsin(asin.toUpperCase());
+        setPendingAsin(trimmedAsin);
         setShowConfirmDialog(true);
       }
     } catch (err) {
@@ -212,7 +58,7 @@ export default function InfluencerAsinCorrelation() {
     pollCountRef.current = 0;
   }, []);
 
-  // Poll for results after triggering sync (1-second timer, polls API every 5s)
+  // Poll for results after triggering sync
   const startPolling = useCallback((targetAsin) => {
     stopPolling();
     pollCountRef.current = 0;
@@ -221,7 +67,6 @@ export default function InfluencerAsinCorrelation() {
     let lastApiCheck = 0;
 
     pollingRef.current = setInterval(async () => {
-      // Use actual elapsed time (works even when tab is backgrounded)
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       pollCountRef.current = elapsed;
       const minutes = Math.floor(elapsed / 60);
@@ -237,21 +82,17 @@ export default function InfluencerAsinCorrelation() {
         const data = await apiService.checkAsinCorrelation(targetAsin);
 
         if (data.exists && data.correlations && data.correlations.length > 0) {
-          // Results found!
           stopPolling();
           setResults(data);
-          loadExistingFeedback(targetAsin);
           setSyncing(false);
           setSyncProgress('');
         } else if (elapsed >= maxSeconds) {
-          // Timeout - stop polling
           stopPolling();
           setSyncing(false);
           setSyncProgress('');
           setError('Sync timed out after 10 minutes. The workflow may still be running - try searching again in a few minutes.');
         }
       } catch (err) {
-        // Don't stop on errors, just log and continue polling
         console.error('Polling error:', err);
         if (elapsed >= maxSeconds) {
           stopPolling();
@@ -260,7 +101,7 @@ export default function InfluencerAsinCorrelation() {
           setError('Failed to check sync status. Please try again.');
         }
       }
-    }, 1000); // 1-second interval for smooth timer display
+    }, 1000);
   }, [stopPolling]);
 
   const handleConfirmSync = async () => {
@@ -272,13 +113,10 @@ export default function InfluencerAsinCorrelation() {
     setSyncProgress('Starting sync...');
 
     try {
-      // Fire off sync request - don't wait for it to complete
       apiService.syncAsinCorrelation(pendingAsin).catch(err => {
-        // Log but don't fail - the workflow may timeout but still complete
         console.log('Sync request completed or timed out:', err?.message || 'ok');
       });
 
-      // Start polling for results
       setSyncProgress('Sync started. Checking for results...');
       startPolling(pendingAsin);
     } catch (err) {
@@ -298,22 +136,18 @@ export default function InfluencerAsinCorrelation() {
 
   const handleResync = async () => {
     if (!results?.asin) return;
-
+    
     setSyncing(true);
     setError(null);
     setSyncProgress('Starting re-sync...');
 
     try {
-      const targetAsin = results.asin;
-
-      // Fire off sync request - don't wait for it to complete
-      apiService.syncAsinCorrelation(targetAsin).catch(err => {
+      apiService.syncAsinCorrelation(results.asin).catch(err => {
         console.log('Re-sync request completed or timed out:', err?.message || 'ok');
       });
 
-      // Start polling for results
       setSyncProgress('Re-sync started. Checking for results...');
-      startPolling(targetAsin);
+      startPolling(results.asin);
     } catch (err) {
       setError(handleApiError(err, 'Failed to start re-sync'));
       setSyncing(false);
@@ -321,82 +155,37 @@ export default function InfluencerAsinCorrelation() {
     }
   };
 
-  const handleClear = () => {
-    setAsin('');
-    setResults(null);
-    setError(null);
-    setShowConfirmDialog(false);
-    setPendingAsin(null);
-    setSyncProgress('');
-    stopPolling();
-  };
-
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-      {/* Header */}
+    <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-primary">Influencer Central</h1>
-        <p className="text-text-secondary mt-1">
-          Search for an Amazon ASIN to find similar and correlated products
-        </p>
+        <h1 className="text-2xl font-bold text-text-primary">ASIN Correlation Finder</h1>
+        <p className="text-text-secondary mt-1">Find similar and related Amazon products</p>
       </div>
 
       {/* Search Form */}
-      <div className="bg-dark-surface rounded-lg border border-dark-border p-6 mb-6">
-        <form onSubmit={handleSearch} className="space-y-4">
-          <div>
-            <label htmlFor="asin" className="block text-sm font-medium text-text-secondary mb-1">
-              Amazon ASIN
-            </label>
-            <div className="flex gap-3">
-              <input
-                type="text"
-                id="asin"
-                value={asin}
-                onChange={(e) => setAsin(e.target.value.toUpperCase())}
-                placeholder="e.g., B07XJ8C8F5"
-                className="flex-1 px-4 py-2 border border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-black placeholder-gray-400"
-                maxLength={10}
-                disabled={loading || syncing}
-              />
-              <button
-                type="submit"
-                disabled={loading || syncing || !asin.trim()}
-                className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Checking...
-                  </span>
-                ) : (
-                  'Search'
-                )}
-              </button>
-              {(results || error) && (
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  disabled={loading || syncing}
-                  className="px-4 py-2 text-text-secondary border border-dark-border rounded-lg hover:bg-dark-bg transition-colors disabled:opacity-50"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            <p className="mt-1 text-xs text-text-tertiary">
-              Enter a 10-character Amazon ASIN starting with B
-            </p>
-          </div>
-        </form>
-      </div>
+      <form onSubmit={handleSubmit} className="mb-6">
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={asin}
+            onChange={(e) => setAsin(e.target.value.toUpperCase())}
+            placeholder="Enter ASIN (e.g., B08N5WRWNW)"
+            className="flex-1 px-4 py-2 bg-dark-surface border border-dark-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-accent"
+            disabled={loading || syncing}
+          />
+          <button
+            type="submit"
+            disabled={loading || syncing}
+            className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Checking...' : 'Search'}
+          </button>
+        </div>
+      </form>
 
       {/* Confirmation Dialog */}
       {showConfirmDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-dark-surface rounded-lg border border-dark-border-xl p-6 max-w-md mx-4">
             <div className="flex items-center mb-4">
               <svg className="w-6 h-6 text-accent mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -479,10 +268,8 @@ export default function InfluencerAsinCorrelation() {
             </button>
           </div>
           <div className="p-6">
-            {/* Render correlation results as list */}
             {results.correlations && Array.isArray(results.correlations) && results.correlations.length > 0 ? (
               <div className="divide-y divide-gray-200">
-                {/* Sort: variations first, then similar ASINs */}
                 {[...results.correlations]
                   .sort((a, b) => {
                     if (a.suggestedType === 'variation' && b.suggestedType !== 'variation') return -1;
@@ -490,7 +277,6 @@ export default function InfluencerAsinCorrelation() {
                     return 0;
                   })
                   .map((item, index) => {
-                  // Use imageUrl for the product image
                   const productImage = item.imageUrl || null;
 
                   return (
@@ -515,7 +301,7 @@ export default function InfluencerAsinCorrelation() {
                       )}
                     </div>
 
-                    {/* Title */}
+                    {/* Title & Type */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-text-primary truncate">
                         {item.title || 'Untitled Product'}
@@ -531,8 +317,8 @@ export default function InfluencerAsinCorrelation() {
                       )}
                     </div>
 
-                    {/* ASIN */}
-                    <div className="flex-shrink-0 text-right mr-4">
+                    {/* ASIN & Link */}
+                    <div className="flex-shrink-0 text-right">
                       <p className="text-sm font-mono text-text-secondary">{item.asin || 'N/A'}</p>
                       {item.url && (
                         <a
@@ -541,73 +327,8 @@ export default function InfluencerAsinCorrelation() {
                           rel="noopener noreferrer"
                           className="text-xs text-accent hover:underline"
                         >
-                          View
+                          View on Amazon
                         </a>
-                      )}
-                    </div>
-
-                    {/* Feedback Buttons */}
-                    <div className="flex-shrink-0 relative min-w-[140px]">
-                      {feedbackLoading ? (
-                        // Show loading state while fetching existing decisions
-                        <div className="flex items-center gap-2 text-text-tertiary">
-                          <span className="text-xs">Loading...</span>
-                        </div>
-                      ) : feedback[item.asin] ? (
-                        // Show feedback status with undo button
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs px-3 py-1.5 rounded-full ${
-                            feedback[item.asin].decision === 'accepted'
-                              ? 'bg-success/20 text-success'
-                              : 'bg-error/20 text-error'
-                          }`}>
-                            {feedback[item.asin].decision === 'accepted' ? '✓ Accepted' : '✗ Declined'}
-                          </span>
-                          <button
-                            onClick={() => handleUndo(item)}
-                            disabled={savingFeedback[item.asin]}
-                            className="text-xs px-2 py-1 text-text-tertiary hover:text-text-secondary hover:bg-dark-hover rounded transition-colors disabled:opacity-50"
-                            title="Undo decision"
-                          >
-                            {savingFeedback[item.asin] ? '...' : '↩ Undo'}
-                          </button>
-                        </div>
-                      ) : (
-                        // Show Accept/Decline buttons
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleAccept(item)}
-                            disabled={savingFeedback[item.asin]}
-                            className="text-xs px-3 py-1.5 bg-success/20 text-success rounded-full hover:bg-success/30 transition-colors disabled:opacity-50"
-                          >
-                            {savingFeedback[item.asin] ? '...' : '✓ Accept'}
-                          </button>
-                          <button
-                            onClick={() => handleDeclineClick(item.asin)}
-                            disabled={savingFeedback[item.asin]}
-                            className="text-xs px-3 py-1.5 bg-error/20 text-error rounded-full hover:bg-error/30 transition-colors disabled:opacity-50"
-                          >
-                            ✗ Decline
-                          </button>
-                        </div>
-                      )}
-                      
-                      {/* Decline Reason Dropdown */}
-                      {showDeclineDropdown === item.asin && !feedback[item.asin] && (
-                        <div className="absolute right-0 top-full mt-2 bg-dark-surface border border-dark-border rounded-lg shadow-xl z-10 w-48">
-                          <div className="p-2 border-b border-dark-border">
-                            <span className="text-xs text-text-tertiary">Select reason:</span>
-                          </div>
-                          {DECLINE_REASONS.map(reason => (
-                            <button
-                              key={reason.value}
-                              onClick={() => handleDeclineSelect(item, reason.value)}
-                              className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-dark-hover transition-colors"
-                            >
-                              {reason.label}
-                            </button>
-                          ))}
-                        </div>
                       )}
                     </div>
                   </div>
@@ -627,7 +348,7 @@ export default function InfluencerAsinCorrelation() {
         </div>
       )}
 
-      {/* Empty State - Before Search */}
+      {/* Empty State */}
       {!results && !loading && !syncing && !error && !showConfirmDialog && (
         <div className="bg-dark-bg rounded-lg p-8 text-center">
           <svg className="w-16 h-16 text-text-tertiary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

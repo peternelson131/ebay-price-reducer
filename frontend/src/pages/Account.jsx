@@ -3,38 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI } from '../lib/supabase'
 
-// AI matching prompt template - criteria is customizable, examples are generated from feedback
-const MATCHING_PROMPT_TEMPLATE = `PRIMARY PRODUCT:
-Title: {primary_title}
-Brand: {primary_brand}
-
-CANDIDATE PRODUCT:
-ASIN: {candidate_asin}
-Title: {candidate_title}
-Brand: {candidate_brand}
-
-Question: Should the CANDIDATE be shown as a similar product to the PRIMARY?
-
-=== MATCHING CRITERIA ===
-{matching_criteria}
-
-{user_examples}
-
-Answer with ONLY: YES or NO`
-
-// Default matching criteria - user can edit these rules
-const DEFAULT_MATCHING_CRITERIA = `Answer YES if:
-- Same or highly similar product type/category
-- Same brand family or compatible brands
-- Would reasonably substitute for or complement the primary product
-- Customer searching for primary would likely want to see this
-
-Answer NO if:
-- Different product category entirely
-- Accessory when primary is main product (or vice versa)
-- Competing brand that user doesn't sell
-- Quality tier mismatch (premium vs budget)`
-
 export default function Account() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
@@ -47,15 +15,6 @@ export default function Account() {
     newPassword: '',
     confirmPassword: ''
   })
-  // AI Matching state
-  const [aiMatchingData, setAiMatchingData] = useState({
-    custom_matching_enabled: false,
-    custom_matching_prompt: '',
-    custom_matching_criteria: ''
-  })
-  const [isEditingAiMatching, setIsEditingAiMatching] = useState(false)
-  const [generatingPrompt, setGeneratingPrompt] = useState(false)
-  const [feedbackStats, setFeedbackStats] = useState(null)
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading } = useQuery(
@@ -87,115 +46,55 @@ export default function Account() {
     }
   }, [profile, isEditingPreferences])
 
-  // Load AI matching data from profile
-  useEffect(() => {
-    if (profile && !isEditingAiMatching) {
-      setAiMatchingData({
-        custom_matching_enabled: profile.custom_matching_enabled ?? false,
-        custom_matching_prompt: profile.custom_matching_prompt ?? '',
-        custom_matching_criteria: profile.custom_matching_criteria ?? ''
-      })
-    }
-  }, [profile, isEditingAiMatching])
-
-  // Fetch feedback stats when AI Matching tab is active
-  useEffect(() => {
-    if (activeTab === 'ai_matching') {
-      fetchFeedbackStats()
-    }
-  }, [activeTab])
-
-  const fetchFeedbackStats = async () => {
-    try {
-      const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/correlation-feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ action: 'stats' })
-      })
-      const data = await response.json()
-      if (data.success) {
-        setFeedbackStats(data.stats)
-      }
-    } catch (err) {
-      console.error('Failed to fetch feedback stats:', err)
-    }
-  }
-
-  // Handle tab query parameter
+  // Handle URL parameter for tab selection
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['profile', 'preferences', 'ai_matching', 'security'].includes(tab)) {
+    if (tab && ['profile', 'preferences', 'security'].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
 
-  const updateProfileMutation = useMutation(
-    (updates) => userAPI.updateProfile(updates),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['profile'])
-        setIsEditing(false)
-        alert('Profile updated successfully!')
-      },
-      onError: (error) => {
-        alert('Failed to update profile: ' + error.message)
-      }
+  const updateProfileMutation = useMutation({
+    mutationFn: (data) => userAPI.updateProfile(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['profile'])
+      setIsEditing(false)
     }
-  )
+  })
 
-  const updatePreferencesMutation = useMutation(
-    (updates) => userAPI.updateProfile(updates),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['profile'])
-        setIsEditingPreferences(false)
-        alert('Preferences updated successfully!')
-      },
-      onError: (error) => {
-        alert('Failed to update preferences: ' + error.message)
-      }
-    }
-  )
-
-
-  const handleProfileSave = () => {
+  const handleProfileSave = async () => {
     updateProfileMutation.mutate(profileData)
   }
 
-  const handlePreferencesSave = () => {
-    updatePreferencesMutation.mutate(preferencesData)
+  const handlePreferencesSave = async () => {
+    try {
+      await userAPI.updateProfile(preferencesData)
+      queryClient.invalidateQueries(['profile'])
+      setIsEditingPreferences(false)
+    } catch (error) {
+      console.error('Failed to update preferences:', error)
+      alert('Failed to update preferences. Please try again.')
+    }
   }
 
-  const handlePasswordChange = async () => {
+  const handlePasswordChange = async (e) => {
+    e.preventDefault()
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert('New passwords do not match')
       return
     }
-
-    if (passwordData.newPassword.length < 6) {
-      alert('Password must be at least 6 characters long')
+    if (passwordData.newPassword.length < 8) {
+      alert('Password must be at least 8 characters')
       return
     }
 
     try {
-      const { error } = await authAPI.updatePassword(passwordData.newPassword)
-
-      if (error) {
-        throw error
-      }
-
+      await authAPI.updatePassword(passwordData.newPassword)
       alert('Password updated successfully!')
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      })
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (error) {
-      alert('Failed to update password: ' + error.message)
+      console.error('Password update failed:', error)
+      alert('Failed to update password. Please try again.')
     }
   }
 
@@ -208,11 +107,10 @@ export default function Account() {
   }
 
   const handleExportData = () => {
-    // Simulate data export
     const exportData = {
       profile: profile,
       exportDate: new Date().toISOString(),
-      listings: 3, // From our mock data
+      listings: 'Available',
       priceHistory: 'Available'
     }
 
@@ -232,7 +130,6 @@ export default function Account() {
   const tabs = [
     { id: 'profile', name: 'Profile', icon: '👤' },
     { id: 'preferences', name: 'Preferences', icon: '⚙️' },
-    { id: 'ai_matching', name: 'AI Matching', icon: '🤖' },
     { id: 'security', name: 'Security', icon: '🔒' }
   ]
 
@@ -303,65 +200,67 @@ export default function Account() {
                     <div className="text-text-primary">{profile?.name || 'Not set'}</div>
                   )}
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">Email</label>
-                  <div className="text-text-primary">{profile?.email || 'Not available'}</div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">Default Reduction Strategy</label>
-                  {isEditing ? (
-                    <select
-                      value={profileData.default_reduction_strategy || profile?.default_reduction_strategy || ''}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, default_reduction_strategy: e.target.value }))}
-                      className="w-full border border-dark-border rounded-lg px-3 py-2"
-                    >
-                      <option value="fixed_percentage">Fixed Percentage</option>
-                      <option value="market_based">Market Based</option>
-                      <option value="time_based">Time Based</option>
-                    </select>
-                  ) : (
-                    <div className="text-text-primary capitalize">
-                      {profile?.default_reduction_strategy?.replace('_', ' ') || 'Fixed Percentage'}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">Default Reduction Percentage</label>
-                  {isEditing ? (
-                    <input
-                      type="number"
-                      min="1"
-                      max="50"
-                      value={profileData.default_reduction_percentage || profile?.default_reduction_percentage || ''}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, default_reduction_percentage: parseInt(e.target.value) }))}
-                      className="w-full border border-dark-border rounded-lg px-3 py-2"
-                    />
-                  ) : (
-                    <div className="text-text-primary">{profile?.default_reduction_percentage || 5}%</div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">Default Reduction Interval (Days)</label>
-                  {isEditing ? (
-                    <input
-                      type="number"
-                      min="1"
-                      max="30"
-                      value={profileData.default_reduction_interval || profile?.default_reduction_interval || ''}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, default_reduction_interval: parseInt(e.target.value) }))}
-                      className="w-full border border-dark-border rounded-lg px-3 py-2"
-                    />
-                  ) : (
-                    <div className="text-text-primary">{profile?.default_reduction_interval || 7} days</div>
-                  )}
+                  <div className="text-text-primary">{profile?.email || 'Not set'}</div>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="border-t border-dark-border pt-4">
+                <h4 className="text-md font-medium text-text-primary mb-3">Default Reduction Settings</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">Strategy</label>
+                    {isEditing ? (
+                      <select
+                        value={profileData.default_reduction_strategy || 'fixed_percentage'}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, default_reduction_strategy: e.target.value }))}
+                        className="w-full border border-dark-border rounded-lg px-3 py-2"
+                      >
+                        <option value="fixed_percentage">Fixed Percentage</option>
+                        <option value="fixed_amount">Fixed Amount</option>
+                      </select>
+                    ) : (
+                      <div className="text-text-primary capitalize">
+                        {(profile?.default_reduction_strategy || 'fixed_percentage').replace('_', ' ')}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">Reduction %</label>
+                    {isEditing ? (
+                      <input
+                        type="number"
+                        value={profileData.default_reduction_percentage || 5}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, default_reduction_percentage: parseFloat(e.target.value) }))}
+                        className="w-full border border-dark-border rounded-lg px-3 py-2"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                      />
+                    ) : (
+                      <div className="text-text-primary">{profile?.default_reduction_percentage || 5}%</div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">Interval (days)</label>
+                    {isEditing ? (
+                      <input
+                        type="number"
+                        value={profileData.default_reduction_interval || 7}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, default_reduction_interval: parseInt(e.target.value) }))}
+                        className="w-full border border-dark-border rounded-lg px-3 py-2"
+                        min="1"
+                        max="365"
+                      />
+                    ) : (
+                      <div className="text-text-primary">{profile?.default_reduction_interval || 7} days</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
                 {isEditing ? (
                   <>
                     <button
@@ -369,7 +268,7 @@ export default function Account() {
                       disabled={updateProfileMutation.isLoading}
                       className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover disabled:opacity-50"
                     >
-                      Save Changes
+                      {updateProfileMutation.isLoading ? 'Saving...' : 'Save Changes'}
                     </button>
                     <button
                       onClick={() => setIsEditing(false)}
@@ -393,57 +292,48 @@ export default function Account() {
           {activeTab === 'preferences' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-text-primary">Preferences</h3>
-                <p className="text-sm text-text-secondary">Customize your application preferences.</p>
+                <h3 className="text-lg font-medium text-text-primary">Notification Preferences</h3>
+                <p className="text-sm text-text-secondary">Manage how you receive notifications.</p>
               </div>
 
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2 border-b sm:border-0">
+                <div className="flex items-center justify-between">
                   <div>
                     <label className="text-sm font-medium text-text-primary">Email Notifications</label>
-                    <p className="text-sm text-text-secondary">Receive general email notifications</p>
+                    <p className="text-sm text-text-secondary">Receive email updates about your account</p>
                   </div>
                   <input
                     type="checkbox"
-                    checked={isEditingPreferences ? (preferencesData.email_notifications ?? profile?.email_notifications ?? true) : (profile?.email_notifications ?? true)}
-                    onChange={(e) => {
-                      if (isEditingPreferences) {
-                        setPreferencesData(prev => ({ ...prev, email_notifications: e.target.checked }))
-                      }
-                    }}
+                    checked={isEditingPreferences ? preferencesData.email_notifications : (profile?.email_notifications ?? true)}
+                    onChange={(e) => setPreferencesData(prev => ({ ...prev, email_notifications: e.target.checked }))}
                     disabled={!isEditingPreferences}
-                    className="h-4 w-4 text-accent"
+                    className="h-4 w-4 text-accent focus:ring-accent border-dark-border rounded"
                   />
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2 border-b sm:border-0">
+                <div className="flex items-center justify-between">
                   <div>
                     <label className="text-sm font-medium text-text-primary">Price Reduction Alerts</label>
-                    <p className="text-sm text-text-secondary">Receive alerts when prices are automatically reduced</p>
+                    <p className="text-sm text-text-secondary">Get notified when prices are automatically reduced</p>
                   </div>
                   <input
                     type="checkbox"
-                    checked={isEditingPreferences ? (preferencesData.price_reduction_alerts ?? profile?.price_reduction_alerts ?? true) : (profile?.price_reduction_alerts ?? true)}
-                    onChange={(e) => {
-                      if (isEditingPreferences) {
-                        setPreferencesData(prev => ({ ...prev, price_reduction_alerts: e.target.checked }))
-                      }
-                    }}
+                    checked={isEditingPreferences ? preferencesData.price_reduction_alerts : (profile?.price_reduction_alerts ?? true)}
+                    onChange={(e) => setPreferencesData(prev => ({ ...prev, price_reduction_alerts: e.target.checked }))}
                     disabled={!isEditingPreferences}
-                    className="h-4 w-4 text-accent"
+                    className="h-4 w-4 text-accent focus:ring-accent border-dark-border rounded"
                   />
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex gap-3">
                 {isEditingPreferences ? (
                   <>
                     <button
                       onClick={handlePreferencesSave}
-                      disabled={updatePreferencesMutation.isLoading}
-                      className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover disabled:opacity-50"
+                      className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
                     >
-                      Save Changes
+                      Save Preferences
                     </button>
                     <button
                       onClick={() => setIsEditingPreferences(false)}
@@ -464,233 +354,14 @@ export default function Account() {
             </div>
           )}
 
-          {activeTab === 'ai_matching' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-text-primary">AI Product Matching</h3>
-                <p className="text-sm text-text-secondary">Train the AI to match products based on your preferences.</p>
-              </div>
-
-              {/* Feedback Stats */}
-              <div className="bg-dark-hover rounded-lg p-4">
-                <h4 className="text-sm font-medium text-text-primary mb-3">Your Feedback History</h4>
-                {feedbackStats ? (
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <div className="text-2xl font-bold text-text-primary">{feedbackStats.total}</div>
-                      <div className="text-xs text-text-secondary">Total Decisions</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-success">{feedbackStats.accepted}</div>
-                      <div className="text-xs text-text-secondary">Accepted</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-error">{feedbackStats.declined}</div>
-                      <div className="text-xs text-text-secondary">Declined</div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-text-secondary text-sm">Loading stats...</div>
-                )}
-              </div>
-
-              {/* Locked state message */}
-              {feedbackStats && feedbackStats.total < 5 && (
-                <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
-                  <p className="text-sm text-warning">
-                    ⚠️ You need at least <strong>5 product decisions</strong> to customize AI matching. 
-                    You have {feedbackStats.total} so far. Go to <a href="/asin-lookup" className="underline">Influencer Central</a> to rate more product matches!
-                  </p>
-                </div>
-              )}
-
-              {/* Content - disabled until 5+ decisions */}
-              <div className={feedbackStats && feedbackStats.total < 5 ? 'opacity-50 pointer-events-none' : ''}>
-                {/* Custom Matching Toggle */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-dark-border">
-                  <div>
-                    <label className="text-sm font-medium text-text-primary">Custom Matching Based on My Preferences</label>
-                    <p className="text-sm text-text-secondary">Use your feedback to customize how products are matched</p>
-                  </div>
-                  {/* Toggle Switch */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newValue = !(isEditingAiMatching ? aiMatchingData.custom_matching_enabled : (profile?.custom_matching_enabled ?? false))
-                      setAiMatchingData(prev => ({ ...prev, custom_matching_enabled: newValue }))
-                      // Auto-save toggle changes
-                      userAPI.updateProfile({ custom_matching_enabled: newValue })
-                        .then(() => queryClient.invalidateQueries(['profile']))
-                        .catch(err => console.error('Failed to save toggle:', err))
-                    }}
-                    disabled={!aiMatchingData.custom_matching_prompt && !profile?.custom_matching_prompt}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      (isEditingAiMatching ? aiMatchingData.custom_matching_enabled : (profile?.custom_matching_enabled ?? false))
-                        ? 'bg-accent'
-                        : 'bg-gray-600'
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        (isEditingAiMatching ? aiMatchingData.custom_matching_enabled : (profile?.custom_matching_enabled ?? false))
-                          ? 'translate-x-5'
-                          : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* Prompt Template - collapsed by default */}
-                <details className="mt-4 border border-dark-border rounded-lg">
-                  <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-text-primary hover:bg-dark-hover">
-                    📄 View Prompt Template <span className="text-text-tertiary text-xs ml-2">(how products are evaluated)</span>
-                  </summary>
-                  <div className="p-3 border-t border-dark-border bg-dark-hover/30 text-xs font-mono whitespace-pre-wrap text-text-secondary max-h-[200px] overflow-y-auto">
-                    {MATCHING_PROMPT_TEMPLATE}
-                  </div>
-                </details>
-
-                {/* Matching Criteria - editable by user */}
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-text-primary mb-2">
-                    Matching Criteria
-                    <span className="ml-2 text-xs font-normal text-text-tertiary">(editable rules)</span>
-                  </label>
-                  <p className="text-sm text-text-secondary mb-2">
-                    These are the rules the AI follows. You can edit them to match your preferences.
-                  </p>
-                  {isEditingAiMatching ? (
-                    <textarea
-                      value={aiMatchingData.custom_matching_criteria || DEFAULT_MATCHING_CRITERIA}
-                      onChange={(e) => setAiMatchingData(prev => ({ ...prev, custom_matching_criteria: e.target.value }))}
-                      rows={10}
-                      className="w-full border border-dark-border rounded-lg px-3 py-2 text-xs font-mono"
-                    />
-                  ) : (
-                    <div className="bg-dark-hover rounded-lg p-3 text-xs font-mono whitespace-pre-wrap text-text-primary border border-dark-border">
-                      {profile?.custom_matching_criteria || DEFAULT_MATCHING_CRITERIA}
-                    </div>
-                  )}
-                </div>
-
-                {/* User Examples - generated from feedback */}
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-text-primary mb-2">
-                    Your Preference Examples
-                    <span className="ml-2 text-xs font-normal text-text-tertiary">(auto-generated from feedback)</span>
-                  </label>
-                  <p className="text-sm text-text-secondary mb-2">
-                    A summary of patterns from your Accept/Decline decisions. This gives the AI extra context about your preferences.
-                  </p>
-                  <div className="bg-dark-hover rounded-lg p-3 text-xs whitespace-pre-wrap border border-dark-border min-h-[80px]">
-                    {profile?.custom_matching_prompt ? (
-                      <span className="text-text-primary">{profile.custom_matching_prompt}</span>
-                    ) : (
-                      <span className="text-text-tertiary italic">
-                        No examples yet. Rate 5+ product matches in Influencer Central, then click "Generate from Feedback" to create a preference summary.
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                  {isEditingAiMatching ? (
-                    <>
-                      <button
-                        onClick={async () => {
-                          try {
-                            await userAPI.updateProfile(aiMatchingData)
-                            queryClient.invalidateQueries(['profile'])
-                            setIsEditingAiMatching(false)
-                            alert('AI Matching settings saved!')
-                          } catch (err) {
-                            alert('Failed to save: ' + err.message)
-                          }
-                        }}
-                        className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
-                      >
-                        Save Changes
-                      </button>
-                      <button
-                        onClick={() => setIsEditingAiMatching(false)}
-                        className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => setIsEditingAiMatching(true)}
-                        className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
-                      >
-                        Edit Settings
-                      </button>
-                      <button
-                        onClick={async () => {
-                          setGeneratingPrompt(true)
-                          try {
-                            const token = await userAPI.getAuthToken()
-                            const response = await fetch('/.netlify/functions/generate-custom-prompt', {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                              }
-                            })
-                            const data = await response.json()
-                            if (data.success) {
-                              queryClient.invalidateQueries(['profile'])
-                              alert('Custom matching criteria generated!')
-                            } else {
-                              throw new Error(data.error || 'Failed to generate')
-                            }
-                          } catch (err) {
-                            alert('Failed to generate: ' + err.message)
-                          } finally {
-                            setGeneratingPrompt(false)
-                          }
-                        }}
-                        disabled={generatingPrompt}
-                        className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {generatingPrompt ? 'Generating...' : '🤖 Generate from Feedback'}
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (!confirm('This will clear your custom prompt and use the default AI matching. Continue?')) return
-                          try {
-                            await userAPI.updateProfile({
-                              custom_matching_enabled: false,
-                              custom_matching_prompt: null
-                            })
-                            queryClient.invalidateQueries(['profile'])
-                            setAiMatchingData({ custom_matching_enabled: false, custom_matching_prompt: '' })
-                            alert('Restored to default AI matching!')
-                          } catch (err) {
-                            alert('Failed to restore: ' + err.message)
-                          }
-                        }}
-                        className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-                      >
-                        ↩ Restore Default
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {activeTab === 'security' && (
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-medium text-text-primary">Security Settings</h3>
-                <p className="text-sm text-text-secondary">Manage your account security and password.</p>
+                <p className="text-sm text-text-secondary">Manage your password and security options.</p>
               </div>
 
-              <div className="space-y-4">
+              <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">Current Password</label>
                   <input
@@ -700,7 +371,6 @@ export default function Account() {
                     className="w-full border border-dark-border rounded-lg px-3 py-2"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">New Password</label>
                   <input
@@ -710,7 +380,6 @@ export default function Account() {
                     className="w-full border border-dark-border rounded-lg px-3 py-2"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">Confirm New Password</label>
                   <input
@@ -720,36 +389,36 @@ export default function Account() {
                     className="w-full border border-dark-border rounded-lg px-3 py-2"
                   />
                 </div>
-
                 <button
-                  onClick={handlePasswordChange}
+                  type="submit"
                   className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
                 >
                   Update Password
                 </button>
+              </form>
+
+              <div className="border-t border-dark-border pt-6 space-y-4">
+                <div>
+                  <h4 className="text-md font-medium text-text-primary">Data Management</h4>
+                  <p className="text-sm text-text-secondary">Export or delete your account data.</p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={handleExportData}
+                    className="bg-dark-hover text-text-primary border border-dark-border px-4 py-2 rounded hover:bg-dark-border"
+                  >
+                    Export Data
+                  </button>
+                  <button
+                    onClick={handleDeleteAccount}
+                    className="bg-error/10 text-error border border-error/30 px-4 py-2 rounded hover:bg-error/20"
+                  >
+                    Delete Account
+                  </button>
+                </div>
               </div>
             </div>
           )}
-
-        </div>
-      </div>
-
-      {/* Data & Privacy Section */}
-      <div className="bg-dark-surface rounded-lg border border-dark-border p-4 sm:p-6">
-        <h3 className="text-lg font-medium text-text-primary mb-4">Data & Privacy</h3>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={handleExportData}
-            className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
-          >
-            Export My Data
-          </button>
-          <button
-            onClick={handleDeleteAccount}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-          >
-            Delete Account
-          </button>
         </div>
       </div>
     </div>
