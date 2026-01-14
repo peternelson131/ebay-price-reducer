@@ -183,7 +183,7 @@ exports.handler = async (event, context) => {
     const accessToken = await getValidAccessToken(supabase, user.id);
 
     // 8. Build eBay Inventory Item payload (with category aspects merged)
-    const inventoryItem = buildInventoryItem(ebayDraft, rawKeepa, condition, quantity, categoryAspects);
+    const inventoryItem = buildInventoryItem(ebayDraft, rawKeepa, condition, quantity, categoryAspects, categoryResult, asin, supabase);
     console.log('📋 Built inventory item payload');
 
     // 9. Create inventory item via eBay API
@@ -362,7 +362,7 @@ function escapeHtml(text) {
  * Build eBay Inventory Item payload
  * @see https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/createOrReplaceInventoryItem
  */
-function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity, categoryAspects = []) {
+function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity, categoryAspects = [], categoryResult = {}, asin = '', supabaseClient = null) {
   // Start with aspects from Keepa data
   const aspects = { ...ebayDraft.aspects };
   
@@ -388,6 +388,28 @@ function buildInventoryItem(ebayDraft, keepaProduct, condition, quantity, catego
         console.log(`  ✓ ${aspectName}: mapped from Keepa data`);
       } else {
         console.log(`  ⚠ ${aspectName}: required but no data available`);
+        
+        // Log this as an aspect miss for AI learning (in background, non-blocking)
+        if (aspect.required && asin && supabaseClient) {
+          supabaseClient
+            .from('ebay_aspect_misses')
+            .insert({
+              asin: asin,
+              aspect_name: aspectName,
+              product_title: ebayDraft.title,
+              category_id: String(categoryResult.categoryId || ''),
+              category_name: categoryResult.categoryName || '',
+              keepa_brand: keepaProduct.brand || null,
+              keepa_model: keepaProduct.model || null,
+              status: 'pending'
+            })
+            .then(({ error }) => {
+              if (!error) {
+                console.log(`  📝 Logged aspect miss for AI learning: ${aspectName}`);
+              }
+            })
+            .catch(() => {}); // Non-blocking, ignore errors
+        }
       }
     }
   }
