@@ -115,16 +115,25 @@ async function keepaProductLookup(asins, keepaKey) {
 }
 
 async function keepaProductSearch(brand, rootCategory, keepaKey) {
-  // Keepa Product Finder query format
-  const selection = JSON.stringify({
-    brand: brand || '',
-    rootCategory: rootCategory || 0,
-    perPage: 50
-  });
+  // Keepa Product Finder query format - arrays required for brand/rootCategory
+  const query = {};
   
+  // Brand must be an array of strings
+  if (brand) {
+    query.brand = [brand];
+  }
+  
+  // rootCategory must be an array of numbers
+  if (rootCategory) {
+    query.rootCategory = [rootCategory];
+  }
+  
+  query.perPage = 50;  // Keepa minimum is 50, max is 10000
+  
+  const selection = JSON.stringify(query);
   const url = `https://api.keepa.com/query?key=${keepaKey}&domain=1&selection=${encodeURIComponent(selection)}`;
   
-  console.log(`🔍 Keepa search: brand="${brand}", category=${rootCategory}`);
+  console.log(`🔍 Keepa search: brand="${brand}", category=${rootCategory}, query=${selection}`);
   
   try {
     const response = await axios.get(url, {
@@ -138,7 +147,7 @@ async function keepaProductSearch(brand, rootCategory, keepaKey) {
   } catch (error) {
     if (error.response) {
       console.error('Keepa search error response:', error.response.data);
-      throw new Error(`Keepa search error: ${error.response.status}`);
+      throw new Error(`Keepa search error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
     }
     throw error;
   }
@@ -450,72 +459,46 @@ exports.handler = async (event, context) => {
     
     // ACTION: SYNC
     if (action === 'sync') {
-      // Get Keepa key: request body > user's stored key > env fallback
-      let apiKey = keepaKey;
+      console.log(`🚀 Calling Supabase Edge Function for ASIN: ${normalizedAsin}`);
       
-      if (!apiKey) {
-        // Try to get from user's stored keys
-        apiKey = await getUserApiKey(user.id, 'keepa');
-      }
-      
-      if (!apiKey) {
-        // Fall back to env (admin's key)
-        apiKey = process.env.KEEPA_API_KEY;
-      }
-      
-      if (!apiKey) {
+      try {
+        // Call Supabase Edge Function (150 second timeout, full workflow)
+        const edgeFunctionUrl = `${process.env.SUPABASE_URL}/functions/v1/asin-correlation`;
+        
+        const response = await axios.post(edgeFunctionUrl, {
+          asin: normalizedAsin,
+          userId: user.id,
+          action: 'sync'
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`
+          },
+          timeout: 160000  // 160 seconds (edge function has 150s limit)
+        });
+        
+        console.log(`✅ Edge function returned:`, response.data);
+        
+        // Return the edge function response directly
         return {
-          statusCode: 400,
+          statusCode: 200,
           headers,
-          body: JSON.stringify({ 
-            error: 'Keepa API key required',
-            message: 'Please add your Keepa API key in Settings > API Keys'
-          })
+          body: JSON.stringify(response.data)
         };
-      }
-      
-      // Check for Anthropic key
-      if (!process.env.ANTHROPIC_API_KEY) {
+        
+      } catch (syncError) {
+        console.error('❌ Edge function error:', syncError.message);
+        
+        // If edge function fails, return error
         return {
           statusCode: 500,
           headers,
-          body: JSON.stringify({ error: 'AI service not configured' })
+          body: JSON.stringify({ 
+            error: 'Sync failed',
+            message: syncError.response?.data?.message || syncError.message
+          })
         };
       }
-      
-      // Process immediately (may take 30-60s)
-      console.log('🚀 Starting processAsin with KEEPA_KEY length:', apiKey.length);
-      console.log('🔑 ANTHROPIC_KEY set:', !!process.env.ANTHROPIC_API_KEY);
-      const result = await processAsin(normalizedAsin, user.id, apiKey);
-      
-      if (result.error) {
-        return {
-          statusCode: 404,
-          headers,
-          body: JSON.stringify({ error: result.error })
-        };
-      }
-      
-      // Fetch final results from DB
-      const { correlations } = await getCorrelationsFromDB(normalizedAsin, user.id);
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          success: true,
-          asin: normalizedAsin,
-          exists: true,
-          correlations,
-          count: correlations.length,
-          source: 'serverless',
-          synced: true,
-          stats: {
-            variations: result.variationCount,
-            similar: result.similarCount
-          }
-        })
-      };
     }
     
     return {

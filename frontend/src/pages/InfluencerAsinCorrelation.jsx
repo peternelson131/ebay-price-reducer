@@ -37,8 +37,6 @@ export default function InfluencerAsinCorrelation() {
     
     try {
       const token = await userAPI.getAuthToken();
-      console.log('Saving feedback with token:', token ? 'present' : 'missing');
-      
       const response = await fetch('/.netlify/functions/correlation-feedback', {
         method: 'POST',
         headers: {
@@ -56,8 +54,6 @@ export default function InfluencerAsinCorrelation() {
       });
       
       const data = await response.json();
-      console.log('Feedback API response:', response.status, data);
-      
       if (!response.ok) throw new Error(data.error || 'Failed to save feedback');
       
       setFeedback(prev => ({
@@ -67,7 +63,6 @@ export default function InfluencerAsinCorrelation() {
       setShowDeclineDropdown(null);
     } catch (err) {
       console.error('Failed to save feedback:', err);
-      alert('Failed to save feedback: ' + err.message);
     } finally {
       setSavingFeedback(prev => ({ ...prev, [candidateAsin]: false }));
     }

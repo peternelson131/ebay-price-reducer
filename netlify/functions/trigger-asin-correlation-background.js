@@ -1,25 +1,26 @@
 /**
- * ASIN Correlation Background Function v2
+ * ASIN Correlation Background Function
  * 
- * OPTIMIZED for speed:
- * - Parallel AI evaluations (10 concurrent)
- * - Batch DB writes (all at once)
- * - Minimal status updates
+ * Netlify Background Function (15 min timeout)
+ * Processes ASIN correlations and writes directly to database.
  * 
- * Target: Match n8n's ~2 minute processing time
+ * Called by trigger-asin-correlation-v2.js for sync requests.
  */
 
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let supabase = null;
 
-// Concurrency settings
-const AI_CONCURRENCY = 10;  // Parallel AI calls
-const KEEPA_BATCH_SIZE = 100; // Keepa supports up to 100 ASINs per call
+function getSupabase() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+  }
+  return supabase;
+}
 
 // ==================== KEEPA API ====================
 
@@ -41,18 +42,31 @@ async function keepaProductLookup(asins, keepaKey) {
 }
 
 async function keepaProductSearch(brand, rootCategory, keepaKey) {
-  const selection = JSON.stringify({
-    brand: brand || '',
-    rootCategory: rootCategory || 0,
-    perPage: 50
-  });
+  // Keepa Product Finder requires arrays for brand and rootCategory
+  const query = {};
   
+  if (brand) {
+    query.brand = [brand];
+  }
+  
+  if (rootCategory) {
+    query.rootCategory = [rootCategory];
+  }
+  
+  query.perPage = 50;  // Keepa minimum is 50, max is 10000
+  
+  const selection = JSON.stringify(query);
   console.log(`🔍 Keepa search: brand="${brand}", category=${rootCategory}`);
   
   const response = await axios.get(
     `https://api.keepa.com/query?key=${keepaKey}&domain=1&selection=${encodeURIComponent(selection)}`,
     { decompress: true, timeout: 30000 }
   );
+  
+  if (response.data.error) {
+    console.error('Keepa search error:', response.data.error);
+    return [];
+  }
   
   console.log(`✅ Keepa search returned ${response.data.asinList?.length || 0} ASINs`);
   return response.data.asinList || [];
@@ -77,7 +91,7 @@ async function callClaude(prompt) {
   
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Claude API error: ${response.status} - ${error}`);
+    throw new Error(`Claude API error: ${response.status}`);
   }
   
   const data = await response.json();
@@ -102,7 +116,7 @@ Reply ONLY: YES or NO`;
 }
 
 // Parallel AI evaluation with concurrency limit
-async function evaluateBatch(primary, candidates, concurrency = AI_CONCURRENCY) {
+async function evaluateBatch(primary, candidates, concurrency = 10) {
   const results = [];
   
   for (let i = 0; i < candidates.length; i += concurrency) {
@@ -132,18 +146,8 @@ function getAmazonUrl(asin) {
   return `https://www.amazon.com/dp/${asin}`;
 }
 
-// ==================== JOB MANAGEMENT ====================
+// ==================== DATABASE ====================
 
-async function updateJobStatus(jobId, updates) {
-  const { error } = await supabase
-    .from('import_jobs')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', jobId);
-  
-  if (error) console.error(`Failed to update job ${jobId}:`, error.message);
-}
-
-// Batch write all correlations at once
 async function writeCorrelationsBatch(asin, primaryData, items, userId) {
   if (!items.length) return 0;
   
@@ -155,11 +159,11 @@ async function writeCorrelationsBatch(asin, primaryData, items, userId) {
     image_url: item.image,
     search_image_url: primaryData.image,
     suggested_type: item.type,
-    source: 'background-v2',
+    source: 'netlify-background',
     correlated_amazon_url: item.url
   }));
   
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('asin_correlations')
     .upsert(records, { 
       onConflict: 'user_id,search_asin,similar_asin',
@@ -171,26 +175,24 @@ async function writeCorrelationsBatch(asin, primaryData, items, userId) {
     return 0;
   }
   
-  console.log(`💾 Batch saved ${records.length} correlations`);
+  console.log(`💾 Saved ${records.length} correlations to database`);
   return records.length;
 }
 
 // ==================== MAIN PROCESSING ====================
 
-async function processInBackground(jobId, asin, userId, keepaKey) {
+async function processAsin(asin, userId, keepaKey) {
   const startTime = Date.now();
-  console.log(`🚀 Background processing started for job ${jobId}`);
+  console.log(`🚀 Background processing ASIN: ${asin} for user: ${userId}`);
   
   try {
-    await updateJobStatus(jobId, { status: 'processing' });
-    
     // 1. Get primary product
     console.log('📦 Fetching primary product...');
     const primaryProducts = await keepaProductLookup(asin, keepaKey);
     
     if (!primaryProducts.length) {
-      await updateJobStatus(jobId, { status: 'error', error_message: 'Product not found' });
-      return;
+      console.error('❌ Product not found');
+      return { error: 'Product not found' };
     }
     
     const primary = primaryProducts[0];
@@ -202,19 +204,21 @@ async function processInBackground(jobId, asin, userId, keepaKey) {
       url: getAmazonUrl(primary.asin)
     };
     
-    // 2. Collect ALL variation ASINs
+    console.log(`📦 Primary: "${primaryData.title}" by ${primaryData.brand}`);
+    
+    // 2. Collect variation ASINs
     const variationAsins = (primary.variations || [])
       .map(v => v.asin)
       .filter(a => a !== asin);
     
-    console.log(`📦 Found ${variationAsins.length} variations`);
+    console.log(`📦 Found ${variationAsins.length} variation ASINs`);
     
-    // 3. Fetch ALL variations in ONE Keepa call (up to 100)
+    // 3. Fetch variation details (up to 100 per Keepa call)
     const variations = [];
     if (variationAsins.length > 0) {
-      // Keepa supports up to 100 ASINs per request
-      for (let i = 0; i < variationAsins.length; i += KEEPA_BATCH_SIZE) {
-        const batch = variationAsins.slice(i, i + KEEPA_BATCH_SIZE);
+      const batchSize = 100;
+      for (let i = 0; i < variationAsins.length; i += batchSize) {
+        const batch = variationAsins.slice(i, i + batchSize);
         const products = await keepaProductLookup(batch, keepaKey);
         
         for (const p of products) {
@@ -228,9 +232,10 @@ async function processInBackground(jobId, asin, userId, keepaKey) {
           });
         }
       }
+      console.log(`✅ Fetched ${variations.length} variation details`);
     }
     
-    // 4. Get similar products (if brand exists)
+    // 4. Search for similar products (same brand + category)
     const similarCandidates = [];
     if (primary.brand && primary.rootCategory) {
       console.log('🔍 Searching for similar products...');
@@ -240,6 +245,7 @@ async function processInBackground(jobId, asin, userId, keepaKey) {
         const candidateAsins = similarAsins.filter(a => !excludeSet.has(a)).slice(0, 30);
         
         if (candidateAsins.length > 0) {
+          console.log(`📦 Fetching ${candidateAsins.length} candidate details...`);
           const products = await keepaProductLookup(candidateAsins, keepaKey);
           
           for (const p of products) {
@@ -256,79 +262,84 @@ async function processInBackground(jobId, asin, userId, keepaKey) {
       } catch (err) {
         console.error('Similar search failed:', err.message);
       }
+    } else {
+      console.log('⏭️ Skipping similar search (no brand or category)');
     }
     
-    const totalCount = variations.length + similarCandidates.length;
-    await updateJobStatus(jobId, { total_count: totalCount });
-    console.log(`📊 Total: ${variations.length} variations + ${similarCandidates.length} similar = ${totalCount}`);
+    console.log(`📊 Found: ${variations.length} variations + ${similarCandidates.length} similar candidates`);
     
-    // 5. Variations are AUTO-APPROVED (no AI needed)
-    // 6. Similar products need PARALLEL AI evaluation
+    // 5. Variations are AUTO-APPROVED
+    // 6. Similar products need AI evaluation
     let approvedSimilar = [];
     if (similarCandidates.length > 0) {
-      console.log(`🤖 Evaluating ${similarCandidates.length} similar products (${AI_CONCURRENCY} parallel)...`);
-      const evaluated = await evaluateBatch(primaryData, similarCandidates, AI_CONCURRENCY);
+      console.log(`🤖 AI evaluating ${similarCandidates.length} candidates...`);
+      const evaluated = await evaluateBatch(primaryData, similarCandidates, 10);
       approvedSimilar = evaluated.filter(c => c.approved);
-      console.log(`✅ ${approvedSimilar.length}/${similarCandidates.length} similar products approved`);
+      console.log(`✅ AI approved ${approvedSimilar.length}/${similarCandidates.length}`);
     }
     
-    // 7. BATCH WRITE all approved items at once
+    // 7. Write all approved items to database
     const allApproved = [...variations, ...approvedSimilar];
     const savedCount = await writeCorrelationsBatch(asin, primaryData, allApproved, userId);
     
     // 8. Done!
     const elapsedSec = ((Date.now() - startTime) / 1000).toFixed(1);
-    await updateJobStatus(jobId, {
-      status: 'complete',
-      processed_count: totalCount,
-      approved_count: savedCount,
-      rejected_count: similarCandidates.length - approvedSimilar.length,
-      completed_at: new Date().toISOString()
-    });
+    console.log(`✅ Complete in ${elapsedSec}s: ${savedCount} saved (${variations.length} variations + ${approvedSimilar.length} similar)`);
     
-    console.log(`✅ Job complete in ${elapsedSec}s: ${savedCount} approved, ${similarCandidates.length - approvedSimilar.length} rejected`);
+    return {
+      success: true,
+      asin,
+      variationCount: variations.length,
+      similarCount: approvedSimilar.length,
+      savedCount,
+      elapsedSeconds: parseFloat(elapsedSec)
+    };
     
   } catch (error) {
-    console.error('❌ Background processing error:', error);
-    await updateJobStatus(jobId, { status: 'error', error_message: error.message });
+    console.error('❌ Processing error:', error);
+    return { error: error.message };
   }
 }
 
 // ==================== HANDLER ====================
 
 exports.handler = async (event, context) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
-  }
+  // Background functions don't return responses to clients
+  // They just process and exit
+  
+  console.log('🔔 Background function triggered');
   
   try {
-    const { jobId, asin, userId, keepaKey } = JSON.parse(event.body);
+    const body = JSON.parse(event.body || '{}');
+    const { asin, userId } = body;
     
-    if (!jobId || !asin || !userId || !keepaKey) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
+    if (!asin || !userId) {
+      console.error('❌ Missing asin or userId');
+      return { statusCode: 400 };
     }
     
-    const { data: job, error: jobError } = await supabase
-      .from('import_jobs')
-      .select('*')
-      .eq('id', jobId)
-      .single();
-    
-    if (jobError || !job) {
-      return { statusCode: 404, body: JSON.stringify({ error: 'Job not found' }) };
+    // Get Keepa key from env
+    const keepaKey = process.env.KEEPA_API_KEY;
+    if (!keepaKey) {
+      console.error('❌ KEEPA_API_KEY not configured');
+      return { statusCode: 500 };
     }
     
-    // Start background processing
-    processInBackground(jobId, asin.toUpperCase(), userId, keepaKey)
-      .catch(err => console.error('Background error:', err));
+    // Check for Anthropic key
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('❌ ANTHROPIC_API_KEY not configured');
+      return { statusCode: 500 };
+    }
     
-    return {
-      statusCode: 202,
-      body: JSON.stringify({ success: true, message: 'Processing started', jobId })
-    };
+    // Process the ASIN
+    const result = await processAsin(asin.toUpperCase(), userId, keepaKey);
+    
+    console.log('📋 Result:', JSON.stringify(result));
+    
+    return { statusCode: 200 };
     
   } catch (error) {
     console.error('❌ Handler error:', error);
-    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+    return { statusCode: 500 };
   }
 };
