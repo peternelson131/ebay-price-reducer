@@ -21,8 +21,7 @@ const TEST_USER_ID = '94e1f3a0-6e1b-4d23-befc-750fe1832da8';
 
 // Test ASINs - validated against Keepa with current prices (fresh, not yet listed)
 const TEST_ASINS = [
-  'B09WZBPX7K', // Ring Battery Doorbell Plus - $149.99
-  'B09N6Y5BTL', // Amazon Fire TV 75" Omni QLED - $1099.99
+  'B09G9FPHY6', // Apple iPad 9th Gen - $329.00
 ];
 
 exports.handler = async (event, context) => {
