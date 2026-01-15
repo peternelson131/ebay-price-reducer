@@ -18,10 +18,10 @@ const supabase = createClient(
 // Pete's gmail user ID
 const TEST_USER_ID = '94e1f3a0-6e1b-4d23-befc-750fe1832da8';
 
-// Test ASINs - verified to exist on Keepa (new ones to avoid duplicates)
+// Test ASINs - validated against Keepa with current prices
 const TEST_ASINS = [
-  'B09JQL3NWT', // Echo Show 5 (3rd Gen)
-  'B0C1H26C46', // Fire TV Stick 4K (2023)
+  'B09B8V1LZ3', // Echo Dot (newest) - $49.99
+  'B09JQMJHXY', // AirPods Pro 1st Gen - $249.00
 ];
 
 exports.handler = async (event, context) => {
