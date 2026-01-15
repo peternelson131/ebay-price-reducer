@@ -7,7 +7,6 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders } = require('./utils/cors');
-const { getValidAccessToken, ebayApiRequest } = require('./utils/ebay-oauth');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -61,66 +60,6 @@ async function handleGet(user, headers) {
     .eq('user_id', user.id)
     .single();
 
-  // Fetch available eBay policies for dropdown selection
-  let policies = { fulfillment: [], payment: [], return: [], locations: [] };
-  
-  try {
-    const accessToken = await getValidAccessToken(supabase, user.id);
-    
-    // Fetch fulfillment policies
-    const fulfillmentResult = await ebayApiRequest(
-      accessToken,
-      '/sell/account/v1/fulfillment_policy?marketplace_id=EBAY_US',
-      { method: 'GET' }
-    );
-    policies.fulfillment = (fulfillmentResult.fulfillmentPolicies || []).map(p => ({
-      id: p.fulfillmentPolicyId,
-      name: p.name,
-      description: p.description || ''
-    }));
-
-    // Fetch payment policies
-    const paymentResult = await ebayApiRequest(
-      accessToken,
-      '/sell/account/v1/payment_policy?marketplace_id=EBAY_US',
-      { method: 'GET' }
-    );
-    policies.payment = (paymentResult.paymentPolicies || []).map(p => ({
-      id: p.paymentPolicyId,
-      name: p.name,
-      description: p.description || ''
-    }));
-
-    // Fetch return policies
-    const returnResult = await ebayApiRequest(
-      accessToken,
-      '/sell/account/v1/return_policy?marketplace_id=EBAY_US',
-      { method: 'GET' }
-    );
-    policies.return = (returnResult.returnPolicies || []).map(p => ({
-      id: p.returnPolicyId,
-      name: p.name,
-      description: p.description || ''
-    }));
-
-    // Fetch merchant locations
-    const locationResult = await ebayApiRequest(
-      accessToken,
-      '/sell/inventory/v1/location',
-      { method: 'GET' }
-    );
-    policies.locations = (locationResult.locations || []).map(l => ({
-      key: l.merchantLocationKey,
-      name: l.name || l.merchantLocationKey,
-      city: l.location?.address?.city || '',
-      state: l.location?.address?.stateOrProvince || ''
-    }));
-
-  } catch (ebayError) {
-    console.warn('Failed to fetch eBay policies:', ebayError.message);
-    // Non-blocking - user might not have eBay connected yet
-  }
-
   // Calculate if settings are complete
   const isConfigured = settings && 
     settings.fulfillment_policy_id && 
@@ -135,7 +74,6 @@ async function handleGet(user, headers) {
       success: true,
       settings: settings || null,
       isConfigured,
-      policies,
       requiredFields: ['fulfillment_policy_id', 'payment_policy_id', 'return_policy_id', 'merchant_location_key']
     })
   };

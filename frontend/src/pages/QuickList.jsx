@@ -42,7 +42,6 @@ export default function QuickList() {
   // Settings state
   const [settings, setSettings] = useState(null)
   const [isConfigured, setIsConfigured] = useState(false)
-  const [policies, setPolicies] = useState({ fulfillment: [], payment: [], return: [], locations: [] })
   const [settingsLoading, setSettingsLoading] = useState(true)
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [settingsError, setSettingsError] = useState(null)
@@ -103,7 +102,6 @@ export default function QuickList() {
       if (data.success) {
         setSettings(data.settings)
         setIsConfigured(data.isConfigured)
-        setPolicies(data.policies)
         
         // Populate form with existing settings or defaults
         if (data.settings) {
@@ -323,6 +321,14 @@ export default function QuickList() {
     <div className="space-y-6">
       {/* Settings Form */}
       <form onSubmit={saveSettings} className="space-y-6">
+        {/* Info Box */}
+        <div className="p-4 bg-accent/10 border border-accent/30 rounded-lg">
+          <p className="text-sm text-text-secondary">
+            <strong>Where to find these IDs:</strong> Go to eBay Seller Hub → Account Settings → Business Policies. 
+            Click on each policy to see its ID in the URL or policy details.
+          </p>
+        </div>
+
         {/* Business Policies Section */}
         <div className="space-y-4">
           <h3 className="font-medium text-text-primary flex items-center gap-2">
@@ -330,99 +336,72 @@ export default function QuickList() {
             <span className="text-xs text-error">*Required</span>
           </h3>
           
-          {policies.fulfillment.length === 0 && policies.payment.length === 0 ? (
-            <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
-              <p className="text-sm text-warning">
-                No eBay policies found. Please ensure your eBay account is connected and has business policies configured.
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Fulfillment Policy */}
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Shipping / Fulfillment Policy
-                </label>
-                <select
-                  value={formSettings.fulfillment_policy_id}
-                  onChange={(e) => setFormSettings(s => ({ ...s, fulfillment_policy_id: e.target.value }))}
-                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
-                  required
-                >
-                  <option value="">Select a shipping policy...</option>
-                  {policies.fulfillment.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
+          {/* Fulfillment Policy */}
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1">
+              Shipping / Fulfillment Policy ID
+            </label>
+            <input
+              type="text"
+              value={formSettings.fulfillment_policy_id}
+              onChange={(e) => setFormSettings(s => ({ ...s, fulfillment_policy_id: e.target.value.trim() }))}
+              placeholder="e.g., 107540197026"
+              className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+              required
+            />
+          </div>
 
-              {/* Payment Policy */}
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Payment Policy
-                </label>
-                <select
-                  value={formSettings.payment_policy_id}
-                  onChange={(e) => setFormSettings(s => ({ ...s, payment_policy_id: e.target.value }))}
-                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
-                  required
-                >
-                  <option value="">Select a payment policy...</option>
-                  {policies.payment.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
+          {/* Payment Policy */}
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1">
+              Payment Policy ID
+            </label>
+            <input
+              type="text"
+              value={formSettings.payment_policy_id}
+              onChange={(e) => setFormSettings(s => ({ ...s, payment_policy_id: e.target.value.trim() }))}
+              placeholder="e.g., 243561626026"
+              className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+              required
+            />
+          </div>
 
-              {/* Return Policy */}
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Return Policy
-                </label>
-                <select
-                  value={formSettings.return_policy_id}
-                  onChange={(e) => setFormSettings(s => ({ ...s, return_policy_id: e.target.value }))}
-                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
-                  required
-                >
-                  <option value="">Select a return policy...</option>
-                  {policies.return.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
+          {/* Return Policy */}
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1">
+              Return Policy ID
+            </label>
+            <input
+              type="text"
+              value={formSettings.return_policy_id}
+              onChange={(e) => setFormSettings(s => ({ ...s, return_policy_id: e.target.value.trim() }))}
+              placeholder="e.g., 243561625026"
+              className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+              required
+            />
+          </div>
         </div>
 
         {/* Location Section */}
         <div className="space-y-4">
           <h3 className="font-medium text-text-primary flex items-center gap-2">
-            <span className="text-lg">📍</span> Merchant Location
+            <span className="text-lg">📍</span> Merchant Location Key
             <span className="text-xs text-error">*Required</span>
           </h3>
           
-          {policies.locations.length === 0 ? (
-            <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
-              <p className="text-sm text-warning">
-                No merchant locations found. Please add a location in your eBay Seller Hub first.
-              </p>
-            </div>
-          ) : (
-            <select
+          <div>
+            <input
+              type="text"
               value={formSettings.merchant_location_key}
-              onChange={(e) => setFormSettings(s => ({ ...s, merchant_location_key: e.target.value }))}
+              onChange={(e) => setFormSettings(s => ({ ...s, merchant_location_key: e.target.value.trim() }))}
+              placeholder="e.g., loc-94e1f3a0-6e1b-4d23-befc-750fe183"
               className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               required
-            >
-              <option value="">Select a location...</option>
-              {policies.locations.map(l => (
-                <option key={l.key} value={l.key}>
-                  {l.name}{l.city ? ` - ${l.city}, ${l.state}` : ''}
-                </option>
-              ))}
-            </select>
-          )}
+            />
+            <p className="mt-1 text-xs text-text-tertiary">
+              Find this in Seller Hub → Payments → Manage Locations
+            </p>
+          </div>
         </div>
 
         {/* SKU Settings */}
@@ -488,9 +467,9 @@ export default function QuickList() {
         {/* Save Button */}
         <button
           type="submit"
-          disabled={settingsSaving || policies.fulfillment.length === 0}
+          disabled={settingsSaving}
           className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-            settingsSaving || policies.fulfillment.length === 0
+            settingsSaving
               ? 'bg-dark-border text-text-tertiary cursor-not-allowed'
               : 'bg-accent text-white hover:bg-accent-hover'
           }`}
@@ -737,13 +716,13 @@ export default function QuickList() {
           {isConfigured && settings && (
             <div className="p-3 bg-dark-bg rounded-lg border border-dark-border text-xs text-text-tertiary">
               <span className="font-medium">Using:</span>{' '}
-              SKU prefix "{settings.sku_prefix}" • {policies.fulfillment.find(p => p.id === settings.fulfillment_policy_id)?.name || 'Shipping policy'} • {policies.locations.find(l => l.key === settings.merchant_location_key)?.name || 'Location'}
+              SKU prefix "<span className="font-mono">{settings.sku_prefix}</span>"
               <button
                 type="button"
                 onClick={() => setActiveTab(TAB_SETTINGS)}
                 className="ml-2 text-accent hover:underline"
               >
-                Change
+                View/Change Settings
               </button>
             </div>
           )}
