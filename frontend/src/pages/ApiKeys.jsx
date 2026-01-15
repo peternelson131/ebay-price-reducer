@@ -23,11 +23,11 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
   }, [existingKey]);
 
   return (
-    <div className="bg-dark-surface rounded-lg border border-dark-border p-6">
+    <div className="bg-theme-surface rounded-lg border border-theme p-6">
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-lg font-medium text-text-primary">{service.name}</h3>
-          <p className="mt-1 text-sm text-text-tertiary">{service.description}</p>
+          <h3 className="text-lg font-medium text-theme-primary">{service.name}</h3>
+          <p className="mt-1 text-sm text-theme-tertiary">{service.description}</p>
           <a
             href={service.helpUrl}
             target="_blank"
@@ -56,12 +56,12 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={service.placeholder}
-              className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
+              className="w-full px-3 py-2.5 bg-theme-primary border border-theme rounded-lg text-theme-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
             />
             <button
               type="button"
               onClick={() => setShowKey(!showKey)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-tertiary hover:text-theme-primary transition-colors"
             >
               {showKey ? <EyeOff className="h-4 w-4" strokeWidth={1.5} /> : <Eye className="h-4 w-4" strokeWidth={1.5} />}
             </button>
@@ -199,7 +199,7 @@ function EbayConnectionCard() {
   const getStatusIcon = () => {
     switch (status) {
       case 'loading':
-        return <Loader className="h-5 w-5 animate-spin text-text-tertiary" />;
+        return <Loader className="h-5 w-5 animate-spin text-theme-tertiary" />;
       case 'connected':
         return <CheckCircle className="h-5 w-5 text-success" />;
       case 'pending':
@@ -207,7 +207,7 @@ function EbayConnectionCard() {
       case 'error':
         return <XCircle className="h-5 w-5 text-error" />;
       default:
-        return <XCircle className="h-5 w-5 text-text-tertiary" />;
+        return <XCircle className="h-5 w-5 text-theme-tertiary" />;
     }
   };
 
@@ -218,18 +218,18 @@ function EbayConnectionCard() {
       case 'pending':
         return <span className="px-2 py-1 text-xs rounded-lg bg-warning/10 text-warning">Pending</span>;
       default:
-        return <span className="px-2 py-1 text-xs rounded-lg bg-dark-border text-text-tertiary">Not Connected</span>;
+        return <span className="px-2 py-1 text-xs rounded-lg bg-gray-200 dark:bg-gray-700 text-theme-tertiary">Not Connected</span>;
     }
   };
 
   return (
-    <div className="bg-dark-surface rounded-lg border border-dark-border p-6">
+    <div className="bg-theme-surface rounded-lg border border-theme p-6">
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3">
           {getStatusIcon()}
           <div>
-            <h3 className="text-lg font-medium text-text-primary">eBay Account</h3>
-            <p className="mt-1 text-sm text-text-tertiary">
+            <h3 className="text-lg font-medium text-theme-primary">eBay Account</h3>
+            <p className="mt-1 text-sm text-theme-tertiary">
               Connect your eBay seller account to create and manage listings
             </p>
           </div>
@@ -260,7 +260,7 @@ function EbayConnectionCard() {
         </div>
       ) : (
         <div className="mt-4">
-          <p className="text-sm text-text-secondary mb-4">
+          <p className="text-sm text-theme-secondary mb-4">
             Click below to securely connect your eBay seller account via OAuth.
           </p>
           <button
@@ -402,8 +402,8 @@ export default function ApiKeys() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-text-primary">API Keys</h1>
-        <p className="mt-2 text-text-secondary">
+        <h1 className="text-2xl font-semibold text-theme-primary">API Keys</h1>
+        <p className="mt-2 text-theme-secondary">
           Manage your API credentials for external services. Keys are encrypted and stored securely.
         </p>
       </div>
@@ -437,7 +437,7 @@ export default function ApiKeys() {
 
       <div className="mt-8 p-4 bg-accent/10 border border-accent/30 rounded-lg">
         <h3 className="font-medium text-accent">Security Note</h3>
-        <p className="mt-1 text-sm text-text-secondary">
+        <p className="mt-1 text-sm text-theme-secondary">
           Your API keys are encrypted at rest and only used to make requests on your behalf. 
           We never share your keys with third parties.
         </p>

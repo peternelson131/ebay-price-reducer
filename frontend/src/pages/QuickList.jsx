@@ -332,7 +332,7 @@ export default function QuickList() {
       <form onSubmit={saveSettings} className="space-y-6">
         {/* Info Box */}
         <div className="p-4 bg-accent/10 border border-accent/30 rounded-lg">
-          <p className="text-sm text-text-secondary">
+          <p className="text-sm text-theme-secondary">
             <strong>Where to find these IDs:</strong> Go to eBay Seller Hub → Account Settings → Business Policies. 
             Click on each policy to see its ID in the URL or policy details.
           </p>
@@ -340,14 +340,14 @@ export default function QuickList() {
 
         {/* Business Policies Section */}
         <div className="space-y-4">
-          <h3 className="font-medium text-text-primary flex items-center gap-2">
+          <h3 className="font-medium text-theme-primary flex items-center gap-2">
             <span className="text-lg">📋</span> Business Policies
             <span className="text-xs text-error">*Required</span>
           </h3>
           
           {/* Fulfillment Policy */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">
+            <label className="block text-sm font-medium text-theme-secondary mb-1">
               Shipping / Fulfillment Policy ID
             </label>
             <input
@@ -355,14 +355,14 @@ export default function QuickList() {
               value={formSettings.fulfillment_policy_id}
               onChange={(e) => setFormSettings(s => ({ ...s, fulfillment_policy_id: e.target.value.trim() }))}
               placeholder="e.g., 107540197026"
-              className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+              className="w-full px-4 py-3 bg-theme-primary border border-theme rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               required
             />
           </div>
 
           {/* Payment Policy */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">
+            <label className="block text-sm font-medium text-theme-secondary mb-1">
               Payment Policy ID
             </label>
             <input
@@ -370,14 +370,14 @@ export default function QuickList() {
               value={formSettings.payment_policy_id}
               onChange={(e) => setFormSettings(s => ({ ...s, payment_policy_id: e.target.value.trim() }))}
               placeholder="e.g., 243561626026"
-              className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+              className="w-full px-4 py-3 bg-theme-primary border border-theme rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               required
             />
           </div>
 
           {/* Return Policy */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">
+            <label className="block text-sm font-medium text-theme-secondary mb-1">
               Return Policy ID
             </label>
             <input
@@ -385,7 +385,7 @@ export default function QuickList() {
               value={formSettings.return_policy_id}
               onChange={(e) => setFormSettings(s => ({ ...s, return_policy_id: e.target.value.trim() }))}
               placeholder="e.g., 243561625026"
-              className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+              className="w-full px-4 py-3 bg-theme-primary border border-theme rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               required
             />
           </div>
@@ -393,7 +393,7 @@ export default function QuickList() {
 
         {/* Location Section */}
         <div className="space-y-4">
-          <h3 className="font-medium text-text-primary flex items-center gap-2">
+          <h3 className="font-medium text-theme-primary flex items-center gap-2">
             <span className="text-lg">📍</span> Merchant Location
             <span className="text-xs text-error">*Required</span>
           </h3>
@@ -403,7 +403,7 @@ export default function QuickList() {
               <p className="text-sm text-error">
                 Failed to load locations: {locationError}
               </p>
-              <p className="text-xs text-text-tertiary mt-2">
+              <p className="text-xs text-theme-tertiary mt-2">
                 You can still enter a location key manually below.
               </p>
               <input
@@ -411,7 +411,7 @@ export default function QuickList() {
                 value={formSettings.merchant_location_key}
                 onChange={(e) => setFormSettings(s => ({ ...s, merchant_location_key: e.target.value.trim() }))}
                 placeholder="e.g., loc-94e1f3a0-6e1b-4d23-befc-750fe183"
-                className="w-full mt-2 px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                className="w-full mt-2 px-4 py-3 bg-theme-primary border border-theme rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
                 required
               />
             </div>
@@ -425,7 +425,7 @@ export default function QuickList() {
                 value={formSettings.merchant_location_key}
                 onChange={(e) => setFormSettings(s => ({ ...s, merchant_location_key: e.target.value.trim() }))}
                 placeholder="Enter location key manually"
-                className="w-full mt-2 px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                className="w-full mt-2 px-4 py-3 bg-theme-primary border border-theme rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
                 required
               />
             </div>
@@ -434,7 +434,7 @@ export default function QuickList() {
               <select
                 value={formSettings.merchant_location_key}
                 onChange={(e) => setFormSettings(s => ({ ...s, merchant_location_key: e.target.value }))}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                className="w-full px-4 py-3 bg-theme-primary border border-theme rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
                 required
               >
                 <option value="">Select a location...</option>
@@ -444,7 +444,7 @@ export default function QuickList() {
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-text-tertiary">
+              <p className="mt-1 text-xs text-theme-tertiary">
                 {locations.length} location{locations.length !== 1 ? 's' : ''} found • ⭐ = Primary
               </p>
             </div>
@@ -453,12 +453,12 @@ export default function QuickList() {
 
         {/* SKU Settings */}
         <div className="space-y-4">
-          <h3 className="font-medium text-text-primary flex items-center gap-2">
+          <h3 className="font-medium text-theme-primary flex items-center gap-2">
             <span className="text-lg">🏷️</span> SKU Settings
           </h3>
           
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">
+            <label className="block text-sm font-medium text-theme-secondary mb-1">
               SKU Prefix
             </label>
             <input
@@ -467,9 +467,9 @@ export default function QuickList() {
               onChange={(e) => setFormSettings(s => ({ ...s, sku_prefix: e.target.value.replace(/[^a-zA-Z0-9_]/g, '').substring(0, 10) }))}
               placeholder="ql_"
               maxLength={10}
-              className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+              className="w-full px-4 py-3 bg-theme-primary border border-theme rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
             />
-            <p className="mt-1 text-xs text-text-tertiary">
+            <p className="mt-1 text-xs text-theme-tertiary">
               All SKUs will start with this prefix (e.g., {formSettings.sku_prefix || 'ql_'}B01KJEOCDW)
             </p>
           </div>
@@ -477,12 +477,12 @@ export default function QuickList() {
 
         {/* Description Note */}
         <div className="space-y-4">
-          <h3 className="font-medium text-text-primary flex items-center gap-2">
+          <h3 className="font-medium text-theme-primary flex items-center gap-2">
             <span className="text-lg">📝</span> Custom Description Note
           </h3>
           
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">
+            <label className="block text-sm font-medium text-theme-secondary mb-1">
               Note to append to all listings (optional)
             </label>
             <textarea
@@ -491,9 +491,9 @@ export default function QuickList() {
               placeholder="e.g., Ships from Wisconsin. Contact us with any questions!"
               rows={3}
               maxLength={1000}
-              className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+              className="w-full px-4 py-3 bg-theme-primary border border-theme rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
             />
-            <p className="mt-1 text-xs text-text-tertiary">
+            <p className="mt-1 text-xs text-theme-tertiary">
               {formSettings.description_note.length}/1000 characters
             </p>
           </div>
@@ -517,7 +517,7 @@ export default function QuickList() {
           disabled={settingsSaving}
           className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
             settingsSaving
-              ? 'bg-dark-border text-text-tertiary cursor-not-allowed'
+              ? 'bg-gray-200 dark:bg-gray-700 text-theme-tertiary cursor-not-allowed'
               : 'bg-accent text-white hover:bg-accent-hover'
           }`}
         >
@@ -537,7 +537,7 @@ export default function QuickList() {
             <div className="text-warning text-2xl">⚠️</div>
             <div>
               <h3 className="font-semibold text-warning">Setup Required</h3>
-              <p className="text-sm text-text-secondary mt-1">
+              <p className="text-sm text-theme-secondary mt-1">
                 Please configure your Quick List settings before creating listings.
               </p>
               <button
@@ -558,23 +558,23 @@ export default function QuickList() {
             <div className="text-success text-2xl">✓</div>
             <div className="flex-1">
               <h3 className="font-semibold text-success">Listing Created!</h3>
-              <p className="text-sm text-text-secondary mt-1">{result.title}</p>
+              <p className="text-sm text-theme-secondary mt-1">{result.title}</p>
               
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <span className="text-text-tertiary">SKU:</span>{' '}
+                  <span className="text-theme-tertiary">SKU:</span>{' '}
                   <span className="font-mono">{result.sku}</span>
                 </div>
                 <div>
-                  <span className="text-text-tertiary">Category:</span>{' '}
+                  <span className="text-theme-tertiary">Category:</span>{' '}
                   <span>{result.categoryName}</span>
                 </div>
                 <div>
-                  <span className="text-text-tertiary">Price:</span>{' '}
+                  <span className="text-theme-tertiary">Price:</span>{' '}
                   <span className="text-success font-semibold">${result.price}</span>
                 </div>
                 <div>
-                  <span className="text-text-tertiary">Time:</span>{' '}
+                  <span className="text-theme-tertiary">Time:</span>{' '}
                   <span>{(result.elapsedMs / 1000).toFixed(1)}s</span>
                 </div>
               </div>
@@ -592,7 +592,7 @@ export default function QuickList() {
 
               <button
                 onClick={handleReset}
-                className="mt-4 ml-3 px-4 py-2 text-text-secondary hover:text-text-primary transition-colors"
+                className="mt-4 ml-3 px-4 py-2 text-theme-secondary hover:text-theme-primary transition-colors"
               >
                 Create Another
               </button>
@@ -608,7 +608,7 @@ export default function QuickList() {
             <div className="text-error text-2xl">✗</div>
             <div>
               <h3 className="font-semibold text-error">Failed to Create Listing</h3>
-              <p className="text-sm text-text-secondary mt-1">{error}</p>
+              <p className="text-sm text-theme-secondary mt-1">{error}</p>
               <button
                 onClick={() => setError(null)}
                 className="mt-2 text-sm text-accent hover:underline"
@@ -622,8 +622,8 @@ export default function QuickList() {
 
       {/* Progress Display */}
       {isLoading && currentStep !== null && (
-        <div className="p-4 bg-dark-bg rounded-lg">
-          <h3 className="font-medium text-text-primary mb-3">Creating listing...</h3>
+        <div className="p-4 bg-theme-primary rounded-lg">
+          <h3 className="font-medium text-theme-primary mb-3">Creating listing...</h3>
           <div className="space-y-2">
             {STEPS.map((step, idx) => (
               <div key={step.id} className="flex items-center gap-3">
@@ -632,11 +632,11 @@ export default function QuickList() {
                     ? 'bg-success text-white' 
                     : idx === currentStep 
                       ? 'bg-accent text-white animate-pulse' 
-                      : 'bg-dark-border text-text-tertiary'
+                      : 'bg-gray-200 dark:bg-gray-700 text-theme-tertiary'
                 }`}>
                   {idx < currentStep ? '✓' : idx === currentStep ? '...' : idx + 1}
                 </div>
-                <span className={idx <= currentStep ? 'text-text-primary' : 'text-text-tertiary'}>
+                <span className={idx <= currentStep ? 'text-theme-primary' : 'text-theme-tertiary'}>
                   {step.label}
                 </span>
               </div>
@@ -650,7 +650,7 @@ export default function QuickList() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* ASIN Input */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">
+            <label className="block text-sm font-medium text-theme-secondary mb-1">
               Amazon ASIN
             </label>
             <div className="relative">
@@ -660,8 +660,8 @@ export default function QuickList() {
                 onChange={(e) => setAsin(e.target.value.toUpperCase())}
                 placeholder="B01KJEOCDW"
                 maxLength={10}
-                className={`w-full px-4 py-3 bg-dark-bg border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors ${
-                  asin && !isValidAsin ? 'border-error' : 'border-dark-border'
+                className={`w-full px-4 py-3 bg-theme-primary border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors ${
+                  asin && !isValidAsin ? 'border-error' : 'border-theme'
                 }`}
                 disabled={isLoading || !isConfigured}
               />
@@ -680,7 +680,7 @@ export default function QuickList() {
 
           {/* Product Preview (Story 10) */}
           {productInfo && (
-            <div className="p-3 bg-dark-bg rounded-lg border border-dark-border">
+            <div className="p-3 bg-theme-primary rounded-lg border border-theme">
               <div className="flex gap-3">
                 {productInfo.imageUrl && (
                   <img 
@@ -690,10 +690,10 @@ export default function QuickList() {
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-text-primary font-medium truncate">
+                  <p className="text-sm text-theme-primary font-medium truncate">
                     {productInfo.title}
                   </p>
-                  <p className="text-xs text-text-tertiary mt-1">
+                  <p className="text-xs text-theme-tertiary mt-1">
                     Category: {productInfo.categoryName}
                   </p>
                 </div>
@@ -703,11 +703,11 @@ export default function QuickList() {
 
           {/* Price Input */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">
+            <label className="block text-sm font-medium text-theme-secondary mb-1">
               Listing Price (USD)
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary">$</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-tertiary">$</span>
               <input
                 type="number"
                 step="0.01"
@@ -715,7 +715,7 @@ export default function QuickList() {
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder="24.99"
-                className="w-full pl-8 pr-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
+                className="w-full pl-8 pr-4 py-3 bg-theme-primary border border-theme rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
                 disabled={isLoading || !isConfigured}
               />
             </div>
@@ -724,7 +724,7 @@ export default function QuickList() {
           {/* Quantity & Condition Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">
+              <label className="block text-sm font-medium text-theme-secondary mb-1">
                 Quantity
               </label>
               <input
@@ -733,15 +733,15 @@ export default function QuickList() {
                 max="10000"
                 value={quantity}
                 onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
+                className="w-full px-4 py-3 bg-theme-primary border border-theme rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
                 disabled={isLoading || !isConfigured}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">
+              <label className="block text-sm font-medium text-theme-secondary mb-1">
                 Condition
                 {productInfo && (
-                  <span className="ml-2 text-xs text-text-tertiary font-normal">
+                  <span className="ml-2 text-xs text-theme-tertiary font-normal">
                     ({validConditions.length} options for this category)
                   </span>
                 )}
@@ -749,7 +749,7 @@ export default function QuickList() {
               <select
                 value={condition}
                 onChange={(e) => setCondition(e.target.value)}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
+                className="w-full px-4 py-3 bg-theme-primary border border-theme rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors"
                 disabled={isLoading || isValidating || !isConfigured}
               >
                 {validConditions.map((c) => (
@@ -761,7 +761,7 @@ export default function QuickList() {
 
           {/* Current Settings Preview */}
           {isConfigured && settings && (
-            <div className="p-3 bg-dark-bg rounded-lg border border-dark-border text-xs text-text-tertiary">
+            <div className="p-3 bg-theme-primary rounded-lg border border-theme text-xs text-theme-tertiary">
               <span className="font-medium">Using:</span>{' '}
               SKU prefix "<span className="font-mono">{settings.sku_prefix}</span>"
               <button
@@ -781,7 +781,7 @@ export default function QuickList() {
             className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
               canSubmit
                 ? 'bg-accent text-white hover:bg-accent-hover'
-                : 'bg-dark-border text-text-tertiary cursor-not-allowed'
+                : 'bg-gray-200 dark:bg-gray-700 text-theme-tertiary cursor-not-allowed'
             }`}
           >
             {isLoading ? 'Creating Listing...' : !isConfigured ? 'Configure Settings First' : 'Create eBay Listing'}
@@ -794,10 +794,10 @@ export default function QuickList() {
   if (settingsLoading) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-dark-surface rounded-lg border border-dark-border p-6">
+        <div className="bg-theme-surface rounded-lg border border-theme p-6">
           <div className="flex items-center gap-3">
             <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-text-secondary">Loading settings...</span>
+            <span className="text-theme-secondary">Loading settings...</span>
           </div>
         </div>
       </div>
@@ -808,20 +808,20 @@ export default function QuickList() {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-text-primary">Quick List</h1>
-        <p className="text-text-secondary mt-1">
+        <h1 className="text-2xl font-bold text-theme-primary">Quick List</h1>
+        <p className="text-theme-secondary mt-1">
           Create an eBay listing from an Amazon ASIN in seconds
         </p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-dark-border">
+      <div className="flex border-b border-theme">
         <button
           onClick={() => setActiveTab(TAB_LIST)}
           className={`px-6 py-3 font-medium border-b-2 transition-colors ${
             activeTab === TAB_LIST
               ? 'text-accent border-accent'
-              : 'text-text-tertiary border-transparent hover:text-text-secondary'
+              : 'text-theme-tertiary border-transparent hover:text-theme-secondary'
           }`}
         >
           📦 Create Listing
@@ -831,7 +831,7 @@ export default function QuickList() {
           className={`px-6 py-3 font-medium border-b-2 transition-colors flex items-center gap-2 ${
             activeTab === TAB_SETTINGS
               ? 'text-accent border-accent'
-              : 'text-text-tertiary border-transparent hover:text-text-secondary'
+              : 'text-theme-tertiary border-transparent hover:text-theme-secondary'
           }`}
         >
           ⚙️ Settings
@@ -842,15 +842,15 @@ export default function QuickList() {
       </div>
 
       {/* Main Card */}
-      <div className="bg-dark-surface rounded-lg border border-dark-border p-6">
+      <div className="bg-theme-surface rounded-lg border border-theme p-6">
         {activeTab === TAB_LIST ? renderListingTab() : renderSettingsTab()}
       </div>
 
       {/* Info Box - only show on list tab when configured */}
       {activeTab === TAB_LIST && isConfigured && (
-        <div className="bg-dark-surface rounded-lg border border-dark-border p-4">
-          <h3 className="font-medium text-text-primary mb-2">How it works</h3>
-          <ol className="text-sm text-text-secondary space-y-1 list-decimal list-inside">
+        <div className="bg-theme-surface rounded-lg border border-theme p-4">
+          <h3 className="font-medium text-theme-primary mb-2">How it works</h3>
+          <ol className="text-sm text-theme-secondary space-y-1 list-decimal list-inside">
             <li>Enter an Amazon ASIN and your desired price</li>
             <li>We fetch product data from Keepa</li>
             <li>AI generates an optimized 80-character title</li>

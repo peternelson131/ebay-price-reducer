@@ -125,7 +125,7 @@ export default function Strategies() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-text-secondary">Loading strategies...</div>
+        <div className="text-theme-secondary">Loading strategies...</div>
       </div>
     )
   }
@@ -143,8 +143,8 @@ export default function Strategies() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-text-primary">Price Reduction Rules</h1>
-          <p className="text-text-secondary mt-2 text-sm sm:text-base">Create and manage automated price reduction rules for your listings</p>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-theme-primary">Price Reduction Rules</h1>
+          <p className="text-theme-secondary mt-2 text-sm sm:text-base">Create and manage automated price reduction rules for your listings</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -184,16 +184,16 @@ export default function Strategies() {
       )}
 
       {/* Rules List */}
-      <div className="bg-dark-surface rounded-lg border border-dark-border overflow-hidden">
-        <div className="px-4 sm:px-6 py-4 border-b border-dark-border">
-          <h3 className="text-lg font-medium text-text-primary">Your Rules ({rules.length})</h3>
+      <div className="bg-theme-surface rounded-lg border border-theme overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 border-b border-theme">
+          <h3 className="text-lg font-medium text-theme-primary">Your Rules ({rules.length})</h3>
         </div>
 
         {rules.length === 0 ? (
           <div className="px-4 sm:px-6 py-8 sm:py-12 text-center">
-            <FileText className="h-16 w-16 text-text-tertiary mx-auto mb-4" strokeWidth={1} />
-            <h3 className="text-lg font-medium text-text-primary mb-2">No rules created yet</h3>
-            <p className="text-text-secondary mb-4">Create your first price reduction rule to get started</p>
+            <FileText className="h-16 w-16 text-theme-tertiary mx-auto mb-4" strokeWidth={1} />
+            <h3 className="text-lg font-medium text-theme-primary mb-2">No rules created yet</h3>
+            <p className="text-theme-secondary mb-4">Create your first price reduction rule to get started</p>
             <button
               onClick={() => setShowModal(true)}
               className="bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent-hover transition-colors"
@@ -202,9 +202,9 @@ export default function Strategies() {
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-dark-border">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {rules.map((rule) => (
-              <div key={rule.id} className="px-4 sm:px-6 py-4 sm:py-6 hover:bg-dark-hover transition-colors">
+              <div key={rule.id} className="px-4 sm:px-6 py-4 sm:py-6 hover:bg-theme-hover transition-colors">
                 {editingRule === rule.id ? (
                   <EditRuleForm
                     rule={rule}
@@ -216,12 +216,12 @@ export default function Strategies() {
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
-                        <h4 className="text-lg font-medium text-text-primary">{rule.name}</h4>
+                        <h4 className="text-lg font-medium text-theme-primary">{rule.name}</h4>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-6 text-sm">
                         <div className="flex items-center space-x-2">
-                          <span className="text-text-tertiary">Reduction:</span>
+                          <span className="text-theme-tertiary">Reduction:</span>
                           <div className="font-medium text-accent">
                             {(rule.strategy_type || rule.reduction_type) === 'percentage' 
                               ? `${rule.reduction_percentage || rule.reduction_amount}%` 
@@ -229,12 +229,12 @@ export default function Strategies() {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <span className="text-text-tertiary">Frequency:</span>
-                          <div className="font-medium text-text-primary">Every {rule.interval_days || rule.frequency_days || '?'} day{(rule.interval_days || rule.frequency_days) !== 1 ? 's' : ''}</div>
+                          <span className="text-theme-tertiary">Frequency:</span>
+                          <div className="font-medium text-theme-primary">Every {rule.interval_days || rule.frequency_days || '?'} day{(rule.interval_days || rule.frequency_days) !== 1 ? 's' : ''}</div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <span className="text-text-tertiary">Created:</span>
-                          <div className="font-medium text-text-primary">{new Date(rule.created_at).toLocaleDateString()}</div>
+                          <span className="text-theme-tertiary">Created:</span>
+                          <div className="font-medium text-theme-primary">{new Date(rule.created_at).toLocaleDateString()}</div>
                         </div>
                       </div>
                     </div>
@@ -264,12 +264,12 @@ export default function Strategies() {
       {/* Add New Rule Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-dark-surface border border-dark-border rounded-xl p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-theme-surface border border-theme rounded-xl p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-text-primary">Create New Rule</h3>
+              <h3 className="text-lg font-medium text-theme-primary">Create New Rule</h3>
               <button
                 onClick={resetModal}
-                className="text-text-tertiary hover:text-text-primary transition-colors p-1 rounded-lg hover:bg-dark-hover"
+                className="text-theme-tertiary hover:text-theme-primary transition-colors p-1 rounded-lg hover:bg-theme-hover"
               >
                 <X className="h-5 w-5" strokeWidth={1.5} />
               </button>
@@ -277,18 +277,18 @@ export default function Strategies() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1.5">Rule Name</label>
+                <label className="block text-sm font-medium text-theme-secondary mb-1.5">Rule Name</label>
                 <input
                   type="text"
                   value={newRule.name}
                   onChange={(e) => setNewRule(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g., Quick Sale Rule"
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2.5 text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
+                  className="w-full bg-theme-primary border border-theme rounded-lg px-3 py-2.5 text-theme-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1.5">Reduction Type</label>
+                <label className="block text-sm font-medium text-theme-secondary mb-1.5">Reduction Type</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -296,7 +296,7 @@ export default function Strategies() {
                     className={`px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
                       newRule.reduction_type === 'percentage'
                         ? 'bg-accent/10 border-accent text-accent'
-                        : 'bg-dark-bg border-dark-border text-text-secondary hover:bg-dark-hover'
+                        : 'bg-theme-primary border-theme text-theme-secondary hover:bg-theme-hover'
                     }`}
                   >
                     Percentage (%)
@@ -307,7 +307,7 @@ export default function Strategies() {
                     className={`px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
                       newRule.reduction_type === 'dollar'
                         ? 'bg-accent/10 border-accent text-accent'
-                        : 'bg-dark-bg border-dark-border text-text-secondary hover:bg-dark-hover'
+                        : 'bg-theme-primary border-theme text-theme-secondary hover:bg-theme-hover'
                     }`}
                   >
                     Dollar Amount ($)
@@ -316,7 +316,7 @@ export default function Strategies() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                <label className="block text-sm font-medium text-theme-secondary mb-1.5">
                   Reduction Amount ({newRule.reduction_type === 'percentage' ? '%' : '$'})
                 </label>
                 <input
@@ -325,12 +325,12 @@ export default function Strategies() {
                   max={newRule.reduction_type === 'percentage' ? "50" : "999"}
                   value={newRule.reduction_amount}
                   onChange={(e) => setNewRule(prev => ({ ...prev, reduction_amount: parseInt(e.target.value) || 1 }))}
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2.5 text-text-primary focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
+                  className="w-full bg-theme-primary border border-theme rounded-lg px-3 py-2.5 text-theme-primary focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1.5">Frequency (Days)</label>
+                <label className="block text-sm font-medium text-theme-secondary mb-1.5">Frequency (Days)</label>
                 <input
                   type="number"
                   min="1"
@@ -338,9 +338,9 @@ export default function Strategies() {
                   value={newRule.frequency_days}
                   onChange={(e) => setNewRule(prev => ({ ...prev, frequency_days: parseInt(e.target.value) || 1 }))}
                   placeholder="Enter number of days (e.g., 7)"
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2.5 text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
+                  className="w-full bg-theme-primary border border-theme rounded-lg px-3 py-2.5 text-theme-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
                 />
-                <p className="text-xs text-text-tertiary mt-1">Enter any number from 1 to 365 days</p>
+                <p className="text-xs text-theme-tertiary mt-1">Enter any number from 1 to 365 days</p>
               </div>
             </div>
 
@@ -354,7 +354,7 @@ export default function Strategies() {
               </button>
               <button
                 onClick={resetModal}
-                className="px-4 py-2.5 border border-dark-border text-text-secondary rounded-lg hover:bg-dark-hover transition-colors"
+                className="px-4 py-2.5 border border-theme text-theme-secondary rounded-lg hover:bg-theme-hover transition-colors"
               >
                 Cancel
               </button>
@@ -400,20 +400,20 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1.5">Rule Name</label>
+          <label className="block text-sm font-medium text-theme-secondary mb-1.5">Rule Name</label>
           <input
             type="text"
             value={editData.name}
             onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2.5 text-text-primary focus:ring-2 focus:ring-accent focus:border-transparent"
+            className="w-full bg-theme-primary border border-theme rounded-lg px-3 py-2.5 text-theme-primary focus:ring-2 focus:ring-accent focus:border-transparent"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1.5">Reduction Type</label>
+          <label className="block text-sm font-medium text-theme-secondary mb-1.5">Reduction Type</label>
           <select
             value={editData.reduction_type}
             onChange={(e) => setEditData(prev => ({ ...prev, reduction_type: e.target.value }))}
-            className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2.5 text-text-primary focus:ring-2 focus:ring-accent focus:border-transparent"
+            className="w-full bg-theme-primary border border-theme rounded-lg px-3 py-2.5 text-theme-primary focus:ring-2 focus:ring-accent focus:border-transparent"
           >
             <option value="percentage">Percentage (%)</option>
             <option value="dollar">Dollar Amount ($)</option>
@@ -423,7 +423,7 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1.5">
+          <label className="block text-sm font-medium text-theme-secondary mb-1.5">
             Reduction Amount ({editData.reduction_type === 'percentage' ? '%' : '$'})
           </label>
           <input
@@ -431,11 +431,11 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
             min="1"
             value={editData.reduction_amount}
             onChange={(e) => setEditData(prev => ({ ...prev, reduction_amount: parseInt(e.target.value) || 1 }))}
-            className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2.5 text-text-primary focus:ring-2 focus:ring-accent focus:border-transparent"
+            className="w-full bg-theme-primary border border-theme rounded-lg px-3 py-2.5 text-theme-primary focus:ring-2 focus:ring-accent focus:border-transparent"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1.5">Frequency (Days)</label>
+          <label className="block text-sm font-medium text-theme-secondary mb-1.5">Frequency (Days)</label>
           <input
             type="number"
             min="1"
@@ -443,7 +443,7 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
             value={editData.frequency_days}
             onChange={(e) => setEditData(prev => ({ ...prev, frequency_days: parseInt(e.target.value) || 1 }))}
             placeholder="Enter number of days"
-            className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2.5 text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent"
+            className="w-full bg-theme-primary border border-theme rounded-lg px-3 py-2.5 text-theme-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent"
           />
         </div>
       </div>
@@ -457,7 +457,7 @@ function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
         </button>
         <button
           onClick={onCancel}
-          className="bg-dark-hover text-text-secondary px-4 py-2 rounded-lg hover:bg-dark-border transition-colors"
+          className="bg-theme-hover text-theme-secondary px-4 py-2 rounded-lg hover:bg-gray-200 dark:bg-gray-700 transition-colors"
         >
           Cancel
         </button>

@@ -325,15 +325,15 @@ export default function Settings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-text-primary">Settings</h1>
-        <p className="mt-1 text-sm text-text-tertiary">
+        <h1 className="text-2xl font-bold text-theme-primary">Settings</h1>
+        <p className="mt-1 text-sm text-theme-tertiary">
           Configure your eBay price reduction preferences
         </p>
       </div>
 
       <div className="card">
         {/* Tab Navigation */}
-        <div className="border-b border-dark-border">
+        <div className="border-b border-theme">
           <nav className="-mb-px flex space-x-8 px-6">
             {tabs.map((tab) => (
               <button
@@ -342,7 +342,7 @@ export default function Settings() {
                 className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'border-ebay-blue text-ebay-blue'
-                    : 'border-transparent text-text-tertiary hover:text-text-secondary hover:border-dark-border'
+                    : 'border-transparent text-theme-tertiary hover:text-theme-secondary hover:border-theme'
                 }`}
               >
                 {tab.name}
@@ -356,7 +356,7 @@ export default function Settings() {
           {activeTab === 'general' && (
             <form onSubmit={handleSubmit(onSaveGeneral)} className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-text-primary mb-4">
+                <h3 className="text-lg font-medium text-theme-primary mb-4">
                   Default Price Reduction Settings
                 </h3>
 
@@ -368,7 +368,7 @@ export default function Settings() {
                       <option value="market_based">Market Based</option>
                       <option value="time_based">Time Based</option>
                     </select>
-                    <p className="text-xs text-text-tertiary mt-1">
+                    <p className="text-xs text-theme-tertiary mt-1">
                       Strategy applied to new imported listings
                     </p>
                   </div>
@@ -407,7 +407,7 @@ export default function Settings() {
                       {...register('defaultMinimumPriceRatio')}
                       className="form-input"
                     />
-                    <p className="text-xs text-text-tertiary mt-1">
+                    <p className="text-xs text-theme-tertiary mt-1">
                       Percentage of original price to set as minimum (70% = never go below 70% of original)
                     </p>
                   </div>
@@ -415,7 +415,7 @@ export default function Settings() {
               </div>
 
               <div>
-                <h3 className="text-lg font-medium text-text-primary mb-4">
+                <h3 className="text-lg font-medium text-theme-primary mb-4">
                   Monitoring Preferences
                 </h3>
 
@@ -426,9 +426,9 @@ export default function Settings() {
                       id="autoEnableMonitoring"
                       defaultChecked
                       {...register('autoEnableMonitoring')}
-                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
+                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-theme rounded"
                     />
-                    <label htmlFor="autoEnableMonitoring" className="ml-2 text-sm text-text-secondary">
+                    <label htmlFor="autoEnableMonitoring" className="ml-2 text-sm text-theme-secondary">
                       Automatically enable monitoring for newly imported listings
                     </label>
                   </div>
@@ -438,9 +438,9 @@ export default function Settings() {
                       type="checkbox"
                       id="pauseOnWeekends"
                       {...register('pauseOnWeekends')}
-                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
+                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-theme rounded"
                     />
-                    <label htmlFor="pauseOnWeekends" className="ml-2 text-sm text-text-secondary">
+                    <label htmlFor="pauseOnWeekends" className="ml-2 text-sm text-theme-secondary">
                       Pause price reductions on weekends
                     </label>
                   </div>
@@ -451,9 +451,9 @@ export default function Settings() {
                       id="marketAnalysisBeforeReduction"
                       defaultChecked
                       {...register('marketAnalysisBeforeReduction')}
-                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
+                      className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-theme rounded"
                     />
-                    <label htmlFor="marketAnalysisBeforeReduction" className="ml-2 text-sm text-text-secondary">
+                    <label htmlFor="marketAnalysisBeforeReduction" className="ml-2 text-sm text-theme-secondary">
                       Perform market analysis before each price reduction
                     </label>
                   </div>
@@ -473,7 +473,7 @@ export default function Settings() {
             <div className="space-y-6">
               {/* Loading State */}
               {loadingStatus && (
-                <div className="bg-dark-bg border border-dark-border rounded-lg p-4">
+                <div className="bg-theme-primary border border-theme rounded-lg p-4">
                   <div className="animate-pulse flex space-x-4">
                     <div className="h-4 bg-gray-300 rounded w-1/4"></div>
                   </div>
@@ -485,12 +485,12 @@ export default function Settings() {
                 <div className={`border rounded-lg p-4 ${
                   connectionStatus?.connected
                     ? 'bg-success/10 border-success/30'
-                    : 'bg-dark-bg border-dark-border'
+                    : 'bg-theme-primary border-theme'
                 }`}>
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className={`font-medium ${
-                        connectionStatus?.connected ? 'text-green-900' : 'text-text-primary'
+                        connectionStatus?.connected ? 'text-green-900' : 'text-theme-primary'
                       }`}>
                         eBay Account {connectionStatus?.connected ? 'Connected' : 'Not Connected'}
                       </h4>
@@ -505,7 +505,7 @@ export default function Settings() {
                         </p>
                       )}
                       {!connectionStatus?.connected && (
-                        <p className="text-sm text-text-secondary mt-1">
+                        <p className="text-sm text-theme-secondary mt-1">
                           Click below to securely connect your eBay seller account via OAuth.
                         </p>
                       )}
@@ -558,7 +558,7 @@ export default function Settings() {
               {/* Only show sync settings if connected */}
               {connectionStatus?.connected && (
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-text-primary mb-4">
+                  <h3 className="text-lg font-medium text-theme-primary mb-4">
                     Sync Settings
                   </h3>
 
@@ -571,7 +571,7 @@ export default function Settings() {
                         <option value="12">Every 12 hours</option>
                         <option value="24">Daily</option>
                       </select>
-                      <p className="text-xs text-text-tertiary mt-1">
+                      <p className="text-xs text-theme-tertiary mt-1">
                         How often to automatically sync your eBay listings
                       </p>
                     </div>
@@ -582,9 +582,9 @@ export default function Settings() {
                         id="autoImportNewListings"
                         defaultChecked
                         {...register('autoImportNewListings')}
-                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
+                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-theme rounded"
                       />
-                      <label htmlFor="autoImportNewListings" className="ml-2 text-sm text-text-secondary">
+                      <label htmlFor="autoImportNewListings" className="ml-2 text-sm text-theme-secondary">
                         Automatically import new eBay listings
                       </label>
                     </div>
@@ -598,7 +598,7 @@ export default function Settings() {
           {activeTab === 'notifications' && (
             <form onSubmit={handleSubmit(onSaveNotifications)} className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-text-primary mb-4">
+                <h3 className="text-lg font-medium text-theme-primary mb-4">
                   Email Notifications
                 </h3>
 
@@ -620,9 +620,9 @@ export default function Settings() {
                         id="priceReductionAlerts"
                         defaultChecked
                         {...register('priceReductionAlerts')}
-                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
+                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-theme rounded"
                       />
-                      <label htmlFor="priceReductionAlerts" className="ml-2 text-sm text-text-secondary">
+                      <label htmlFor="priceReductionAlerts" className="ml-2 text-sm text-theme-secondary">
                         Notify when prices are reduced
                       </label>
                     </div>
@@ -633,9 +633,9 @@ export default function Settings() {
                         id="errorAlerts"
                         defaultChecked
                         {...register('errorAlerts')}
-                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
+                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-theme rounded"
                       />
-                      <label htmlFor="errorAlerts" className="ml-2 text-sm text-text-secondary">
+                      <label htmlFor="errorAlerts" className="ml-2 text-sm text-theme-secondary">
                         Notify when errors occur
                       </label>
                     </div>
@@ -645,9 +645,9 @@ export default function Settings() {
                         type="checkbox"
                         id="weeklyReports"
                         {...register('weeklyReports')}
-                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
+                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-theme rounded"
                       />
-                      <label htmlFor="weeklyReports" className="ml-2 text-sm text-text-secondary">
+                      <label htmlFor="weeklyReports" className="ml-2 text-sm text-theme-secondary">
                         Send weekly activity reports
                       </label>
                     </div>
@@ -657,9 +657,9 @@ export default function Settings() {
                         type="checkbox"
                         id="marketInsights"
                         {...register('marketInsights')}
-                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-dark-border rounded"
+                        className="h-4 w-4 text-ebay-blue focus:ring-ebay-blue border-theme rounded"
                       />
-                      <label htmlFor="marketInsights" className="ml-2 text-sm text-text-secondary">
+                      <label htmlFor="marketInsights" className="ml-2 text-sm text-theme-secondary">
                         Send market analysis insights
                       </label>
                     </div>
@@ -668,7 +668,7 @@ export default function Settings() {
               </div>
 
               <div>
-                <h3 className="text-lg font-medium text-text-primary mb-4">
+                <h3 className="text-lg font-medium text-theme-primary mb-4">
                   Alert Thresholds
                 </h3>
 
@@ -683,7 +683,7 @@ export default function Settings() {
                       {...register('priceDropThreshold')}
                       className="form-input"
                     />
-                    <p className="text-xs text-text-tertiary mt-1">
+                    <p className="text-xs text-theme-tertiary mt-1">
                       Get notified when a listing's price drops below this percentage of its original price
                     </p>
                   </div>
@@ -698,7 +698,7 @@ export default function Settings() {
                       {...register('nearMinimumThreshold')}
                       className="form-input"
                     />
-                    <p className="text-xs text-text-tertiary mt-1">
+                    <p className="text-xs text-theme-tertiary mt-1">
                       Get notified when a listing is close to its minimum price
                     </p>
                   </div>
@@ -717,10 +717,10 @@ export default function Settings() {
           {activeTab === 'ai-matching' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-text-primary mb-4">
+                <h3 className="text-lg font-medium text-theme-primary mb-4">
                   AI Product Matching
                 </h3>
-                <p className="text-sm text-text-tertiary mb-6">
+                <p className="text-sm text-theme-tertiary mb-6">
                   Train the AI to match products based on your preferences. Accept or decline suggested matches in Influencer Central to teach the AI what you're looking for.
                 </p>
               </div>
@@ -733,20 +733,20 @@ export default function Settings() {
                 <>
                   {/* Feedback Stats */}
                   {feedbackStats && (
-                    <div className="bg-dark-bg rounded-lg p-4 mb-6">
-                      <h4 className="text-sm font-medium text-text-primary mb-3">Your Training Data</h4>
+                    <div className="bg-theme-primary rounded-lg p-4 mb-6">
+                      <h4 className="text-sm font-medium text-theme-primary mb-3">Your Training Data</h4>
                       <div className="grid grid-cols-3 gap-4">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-text-primary">{feedbackStats.total || 0}</div>
-                          <div className="text-xs text-text-tertiary">Total Decisions</div>
+                          <div className="text-2xl font-bold text-theme-primary">{feedbackStats.total || 0}</div>
+                          <div className="text-xs text-theme-tertiary">Total Decisions</div>
                         </div>
                         <div className="text-center">
                           <div className="text-2xl font-bold text-success">{feedbackStats.accepted || 0}</div>
-                          <div className="text-xs text-text-tertiary">Accepted</div>
+                          <div className="text-xs text-theme-tertiary">Accepted</div>
                         </div>
                         <div className="text-center">
                           <div className="text-2xl font-bold text-error">{feedbackStats.declined || 0}</div>
-                          <div className="text-xs text-text-tertiary">Declined</div>
+                          <div className="text-xs text-theme-tertiary">Declined</div>
                         </div>
                       </div>
                       {feedbackStats.total < 5 && (
@@ -758,17 +758,17 @@ export default function Settings() {
                   )}
 
                   {/* Custom Matching Toggle */}
-                  <div className="flex items-center justify-between p-4 bg-dark-bg rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-theme-primary rounded-lg">
                     <div>
-                      <h4 className="text-sm font-medium text-text-primary">Custom Matching Based on My Preferences</h4>
-                      <p className="text-xs text-text-tertiary mt-1">
+                      <h4 className="text-sm font-medium text-theme-primary">Custom Matching Based on My Preferences</h4>
+                      <p className="text-xs text-theme-tertiary mt-1">
                         Use AI-generated criteria based on your accept/decline history
                       </p>
                     </div>
                     <button
                       onClick={toggleCustomMatching}
                       className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        customMatchingEnabled ? 'bg-ebay-blue' : 'bg-dark-border'
+                        customMatchingEnabled ? 'bg-ebay-blue' : 'bg-gray-200 dark:bg-gray-700'
                       }`}
                     >
                       <span
@@ -800,7 +800,7 @@ export default function Settings() {
                         </>
                       )}
                     </button>
-                    <p className="text-xs text-text-tertiary mt-2 text-center">
+                    <p className="text-xs text-theme-tertiary mt-2 text-center">
                       The AI will analyze your accept/decline history and create personalized matching rules
                     </p>
                   </div>

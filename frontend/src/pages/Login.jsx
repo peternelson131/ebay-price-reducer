@@ -219,12 +219,12 @@ export default function Login({ onLogin }) {
   }
 
   const inputClasses = (hasError) => `
-    w-full px-3 py-2.5 bg-dark-bg border rounded-lg text-text-primary placeholder-text-tertiary
+    w-full px-3 py-2.5 bg-theme-primary border rounded-lg text-theme-primary placeholder-text-tertiary
     focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-colors
-    ${hasError ? 'border-error' : 'border-dark-border'}
+    ${hasError ? 'border-error' : 'border-theme'}
   `
 
-  const labelClasses = "block text-sm font-medium text-text-secondary mb-1.5"
+  const labelClasses = "block text-sm font-medium text-theme-secondary mb-1.5"
 
   const renderLoginForm = () => (
     <form onSubmit={handleLogin} className="space-y-5">
@@ -272,9 +272,9 @@ export default function Login({ onLogin }) {
             id="remember-me"
             name="remember-me"
             type="checkbox"
-            className="h-4 w-4 bg-dark-bg border-dark-border rounded text-accent focus:ring-accent"
+            className="h-4 w-4 bg-theme-primary border-theme rounded text-accent focus:ring-accent"
           />
-          <label htmlFor="remember-me" className="ml-2 block text-sm text-text-secondary">
+          <label htmlFor="remember-me" className="ml-2 block text-sm text-theme-secondary">
             Remember me
           </label>
         </div>
@@ -291,13 +291,13 @@ export default function Login({ onLogin }) {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-dark-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
       >
         {isLoading ? 'Signing In...' : 'Sign In'}
       </button>
 
       <div className="text-center">
-        <span className="text-sm text-text-tertiary">Don't have an account? </span>
+        <span className="text-sm text-theme-tertiary">Don't have an account? </span>
         <button
           type="button"
           onClick={() => setCurrentView('signup')}
@@ -400,13 +400,13 @@ export default function Login({ onLogin }) {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-dark-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
       >
         {isLoading ? 'Creating Account...' : 'Create Account'}
       </button>
 
       <div className="text-center">
-        <span className="text-sm text-text-tertiary">Already have an account? </span>
+        <span className="text-sm text-theme-tertiary">Already have an account? </span>
         <button
           type="button"
           onClick={() => setCurrentView('login')}
@@ -421,8 +421,8 @@ export default function Login({ onLogin }) {
   const renderForgotForm = () => (
     <form onSubmit={handleForgotSubmit} className="space-y-5">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-medium text-text-primary">Reset Your Credentials</h3>
-        <p className="text-sm text-text-tertiary mt-1">
+        <h3 className="text-lg font-medium text-theme-primary">Reset Your Credentials</h3>
+        <p className="text-sm text-theme-tertiary mt-1">
           Enter your email or username and we'll send you a reset code
         </p>
       </div>
@@ -442,7 +442,7 @@ export default function Login({ onLogin }) {
         {errors.email && <p className="text-error text-sm mt-1">{errors.email}</p>}
       </div>
 
-      <div className="text-center text-sm text-text-tertiary">
+      <div className="text-center text-sm text-theme-tertiary">
         — OR —
       </div>
 
@@ -469,7 +469,7 @@ export default function Login({ onLogin }) {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-dark-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
       >
         {isLoading ? 'Sending Reset Code...' : 'Send Reset Code'}
       </button>
@@ -489,8 +489,8 @@ export default function Login({ onLogin }) {
   const renderResetForm = () => (
     <form onSubmit={handleResetSubmit} className="space-y-5">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-medium text-text-primary">Reset Your Password</h3>
-        <p className="text-sm text-text-tertiary mt-1">
+        <h3 className="text-lg font-medium text-theme-primary">Reset Your Password</h3>
+        <p className="text-sm text-theme-tertiary mt-1">
           Enter the reset code sent to your email and create a new password
         </p>
       </div>
@@ -549,7 +549,7 @@ export default function Login({ onLogin }) {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-dark-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+        className="w-full bg-accent text-white py-2.5 px-4 rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
       >
         {isLoading ? 'Resetting Password...' : 'Reset Password'}
       </button>
@@ -567,13 +567,13 @@ export default function Login({ onLogin }) {
   )
 
   return (
-    <div className="min-h-screen bg-dark-bg flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-theme-primary flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <h2 className="text-3xl font-semibold text-text-primary">
+          <h2 className="text-3xl font-semibold text-theme-primary">
             eBay Price Reducer
           </h2>
-          <p className="mt-2 text-sm text-text-tertiary">
+          <p className="mt-2 text-sm text-theme-tertiary">
             {currentView === 'login' && 'Sign in to your account'}
             {currentView === 'signup' && 'Create your account'}
             {currentView === 'forgot' && 'Reset your credentials'}
@@ -583,7 +583,7 @@ export default function Login({ onLogin }) {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-dark-surface py-8 px-4 border border-dark-border rounded-xl sm:px-10">
+        <div className="bg-theme-surface py-8 px-4 border border-theme rounded-xl sm:px-10">
           {/* Notification Banner */}
           {notification && (
             <div className={`rounded-lg p-3 mb-6 ${
@@ -605,11 +605,11 @@ export default function Login({ onLogin }) {
           {currentView === 'reset' && renderResetForm()}
 
           {/* Features List */}
-          <div className="mt-8 pt-6 border-t border-dark-border">
-            <h3 className="text-sm font-medium text-text-secondary mb-3">
+          <div className="mt-8 pt-6 border-t border-theme">
+            <h3 className="text-sm font-medium text-theme-secondary mb-3">
               Features:
             </h3>
-            <ul className="text-xs text-text-tertiary space-y-1.5">
+            <ul className="text-xs text-theme-tertiary space-y-1.5">
               <li className="flex items-center">
                 <span className="w-1 h-1 bg-accent rounded-full mr-2"></span>
                 Automated price reduction strategies

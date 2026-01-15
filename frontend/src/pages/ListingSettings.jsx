@@ -117,7 +117,7 @@ export default function ListingSettings() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-text-secondary">Loading settings...</p>
+            <p className="mt-2 text-theme-secondary">Loading settings...</p>
           </div>
         </div>
       </div>
@@ -183,16 +183,16 @@ export default function ListingSettings() {
             {validationErrors.defaultPaymentPolicyId}
           </p>
         )}
-        <p className="text-xs text-text-tertiary mt-1">
+        <p className="text-xs text-theme-tertiary mt-1">
           Find your policy IDs in eBay Seller Hub → Business Policies → Payment Policies
         </p>
         {availablePolicies.payment.length > 0 && (
           <details className="mt-2">
             <summary className="text-xs text-accent cursor-pointer">Available policies</summary>
-            <ul className="text-xs text-text-secondary mt-1 ml-4 list-disc">
+            <ul className="text-xs text-theme-secondary mt-1 ml-4 list-disc">
               {availablePolicies.payment.map(policy => (
                 <li key={policy.paymentPolicyId}>
-                  {policy.name}: <code className="bg-dark-hover px-1 rounded">{policy.paymentPolicyId}</code>
+                  {policy.name}: <code className="bg-theme-hover px-1 rounded">{policy.paymentPolicyId}</code>
                 </li>
               ))}
             </ul>
@@ -222,16 +222,16 @@ export default function ListingSettings() {
             {validationErrors.defaultFulfillmentPolicyId}
           </p>
         )}
-        <p className="text-xs text-text-tertiary mt-1">
+        <p className="text-xs text-theme-tertiary mt-1">
           Find your policy IDs in eBay Seller Hub → Business Policies → Shipping Policies
         </p>
         {availablePolicies.fulfillment.length > 0 && (
           <details className="mt-2">
             <summary className="text-xs text-accent cursor-pointer">Available policies</summary>
-            <ul className="text-xs text-text-secondary mt-1 ml-4 list-disc">
+            <ul className="text-xs text-theme-secondary mt-1 ml-4 list-disc">
               {availablePolicies.fulfillment.map(policy => (
                 <li key={policy.fulfillmentPolicyId}>
-                  {policy.name}: <code className="bg-dark-hover px-1 rounded">{policy.fulfillmentPolicyId}</code>
+                  {policy.name}: <code className="bg-theme-hover px-1 rounded">{policy.fulfillmentPolicyId}</code>
                 </li>
               ))}
             </ul>
@@ -261,16 +261,16 @@ export default function ListingSettings() {
             {validationErrors.defaultReturnPolicyId}
           </p>
         )}
-        <p className="text-xs text-text-tertiary mt-1">
+        <p className="text-xs text-theme-tertiary mt-1">
           Find your policy IDs in eBay Seller Hub → Business Policies → Return Policies
         </p>
         {availablePolicies.return.length > 0 && (
           <details className="mt-2">
             <summary className="text-xs text-accent cursor-pointer">Available policies</summary>
-            <ul className="text-xs text-text-secondary mt-1 ml-4 list-disc">
+            <ul className="text-xs text-theme-secondary mt-1 ml-4 list-disc">
               {availablePolicies.return.map(policy => (
                 <li key={policy.returnPolicyId}>
-                  {policy.name}: <code className="bg-dark-hover px-1 rounded">{policy.returnPolicyId}</code>
+                  {policy.name}: <code className="bg-theme-hover px-1 rounded">{policy.returnPolicyId}</code>
                 </li>
               ))}
             </ul>
@@ -330,11 +330,11 @@ export default function ListingSettings() {
             {validationErrors.skuPrefix}
           </p>
         )}
-        <p className="text-xs text-text-tertiary mt-1">
+        <p className="text-xs text-theme-tertiary mt-1">
           This prefix will appear at the beginning of all auto-generated SKUs.
           Example: "PETE-a7b3c4d5-3f2a1b4c"
         </p>
-        <p className="text-xs text-text-tertiary mt-1">
+        <p className="text-xs text-theme-tertiary mt-1">
           Leave blank to use default "SKU-" prefix.
         </p>
       </div>

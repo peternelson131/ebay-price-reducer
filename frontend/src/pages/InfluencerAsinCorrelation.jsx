@@ -338,8 +338,8 @@ export default function InfluencerAsinCorrelation() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-primary">ASIN Correlation Finder</h1>
-        <p className="text-text-secondary mt-1">Find similar and related Amazon products</p>
+        <h1 className="text-2xl font-bold text-theme-primary">ASIN Correlation Finder</h1>
+        <p className="text-theme-secondary mt-1">Find similar and related Amazon products</p>
       </div>
 
       {/* Search Form */}
@@ -350,7 +350,7 @@ export default function InfluencerAsinCorrelation() {
             value={asin}
             onChange={(e) => setAsin(e.target.value.toUpperCase())}
             placeholder="Enter ASIN (e.g., B08N5WRWNW)"
-            className="flex-1 px-4 py-2 bg-dark-surface border border-dark-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-accent"
+            className="flex-1 px-4 py-2 bg-theme-surface border border-theme rounded-lg text-theme-primary placeholder-text-tertiary focus:outline-none focus:border-accent"
             disabled={loading || syncing}
           />
           <button
@@ -366,20 +366,20 @@ export default function InfluencerAsinCorrelation() {
       {/* Confirmation Dialog */}
       {showConfirmDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-dark-surface rounded-lg border border-dark-border-xl p-6 max-w-md mx-4">
+          <div className="bg-theme-surface rounded-lg border border-theme-xl p-6 max-w-md mx-4">
             <div className="flex items-center mb-4">
               <svg className="w-6 h-6 text-accent mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <h3 className="text-lg font-semibold text-text-primary">ASIN Not Found</h3>
+              <h3 className="text-lg font-semibold text-theme-primary">ASIN Not Found</h3>
             </div>
-            <p className="text-text-secondary mb-6">
+            <p className="text-theme-secondary mb-6">
               The ASIN <span className="font-mono font-semibold text-accent">{pendingAsin}</span> was not found in our database. Would you like to sync this ASIN?
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={handleCancelSync}
-                className="px-4 py-2 text-text-secondary border border-dark-border rounded-lg hover:bg-dark-bg transition-colors"
+                className="px-4 py-2 text-theme-secondary border border-theme rounded-lg hover:bg-theme-primary transition-colors"
               >
                 No
               </button>
@@ -408,14 +408,14 @@ export default function InfluencerAsinCorrelation() {
 
       {/* Syncing State */}
       {syncing && (
-        <div className="bg-dark-surface rounded-lg border border-dark-border p-8 text-center">
+        <div className="bg-theme-surface rounded-lg border border-theme p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-text-secondary">Syncing ASIN and finding correlations...</p>
+          <p className="mt-4 text-theme-secondary">Syncing ASIN and finding correlations...</p>
           <p className="mt-2 text-sm text-accent font-medium">{syncProgress}</p>
-          <p className="mt-1 text-xs text-text-tertiary">The workflow is running in the background. Results will appear automatically.</p>
+          <p className="mt-1 text-xs text-theme-tertiary">The workflow is running in the background. Results will appear automatically.</p>
           <button
             onClick={() => { stopPolling(); setSyncing(false); setSyncProgress(''); }}
-            className="mt-4 px-4 py-2 text-sm text-text-secondary border border-dark-border rounded-lg hover:bg-dark-bg transition-colors"
+            className="mt-4 px-4 py-2 text-sm text-theme-secondary border border-theme rounded-lg hover:bg-theme-primary transition-colors"
           >
             Cancel
           </button>
@@ -424,14 +424,14 @@ export default function InfluencerAsinCorrelation() {
 
       {/* Results Display */}
       {results && !loading && !syncing && (
-        <div className="bg-dark-surface rounded-lg border border-dark-border">
-          <div className="px-6 py-4 border-b border-dark-border flex flex-wrap justify-between items-center gap-3">
+        <div className="bg-theme-surface rounded-lg border border-theme">
+          <div className="px-6 py-4 border-b border-theme flex flex-wrap justify-between items-center gap-3">
             <div>
               <h2 className="text-lg font-semibold">
                 Results for ASIN: <span className="text-accent">{results.asin}</span>
               </h2>
               {results.correlations && Array.isArray(results.correlations) && (
-                <span className="text-sm text-text-tertiary">
+                <span className="text-sm text-theme-tertiary">
                   {results.correlations.length} result{results.correlations.length !== 1 ? 's' : ''} found
                 </span>
               )}
@@ -439,7 +439,7 @@ export default function InfluencerAsinCorrelation() {
             <button
               onClick={handleResync}
               disabled={syncing}
-              className="px-4 py-2 text-sm bg-dark-hover text-text-secondary border border-dark-border rounded-lg hover:bg-dark-border transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2 text-sm bg-theme-hover text-theme-secondary border border-theme rounded-lg hover:bg-gray-200 dark:bg-gray-700 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -451,7 +451,7 @@ export default function InfluencerAsinCorrelation() {
             {results.correlations && Array.isArray(results.correlations) && results.correlations.length > 0 ? (
               <div>
                 {/* Table Header with Flags */}
-                <div className="flex items-center gap-4 py-2 border-b border-dark-border mb-2 text-xs text-text-tertiary font-medium">
+                <div className="flex items-center gap-4 py-2 border-b border-theme mb-2 text-xs text-theme-tertiary font-medium">
                   <div className="w-16 flex-shrink-0"></div>
                   <div className="flex-1 min-w-0">Product</div>
                   <div className="w-24 flex-shrink-0 text-center">ASIN</div>
@@ -465,7 +465,7 @@ export default function InfluencerAsinCorrelation() {
                   </div>
                 </div>
                 
-                <div className="divide-y divide-dark-border/50">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700/50">
                 {[...results.correlations]
                   .sort((a, b) => {
                     if (a.suggestedType === 'variation' && b.suggestedType !== 'variation') return -1;
@@ -478,21 +478,21 @@ export default function InfluencerAsinCorrelation() {
                   const isCheckingAvail = checkingAvailability[item.asin];
 
                   return (
-                  <div key={item.asin || index} className="flex items-center gap-4 py-3 hover:bg-dark-bg transition-colors">
+                  <div key={item.asin || index} className="flex items-center gap-4 py-3 hover:bg-theme-primary transition-colors">
                     {/* Image */}
                     <div className="flex-shrink-0 w-16 h-16">
                       {productImage ? (
                         <img
                           src={productImage}
                           alt={item.title || 'Product'}
-                          className="w-16 h-16 object-contain bg-dark-bg rounded"
+                          className="w-16 h-16 object-contain bg-theme-primary rounded"
                           onError={(e) => {
                             e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>';
                           }}
                         />
                       ) : (
-                        <div className="w-16 h-16 bg-dark-hover rounded flex items-center justify-center">
-                          <svg className="w-8 h-8 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-16 h-16 bg-theme-hover rounded flex items-center justify-center">
+                          <svg className="w-8 h-8 text-theme-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                         </div>
@@ -501,7 +501,7 @@ export default function InfluencerAsinCorrelation() {
 
                     {/* Title & Type */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-primary truncate">
+                      <p className="text-sm font-medium text-theme-primary truncate">
                         {item.title || 'Untitled Product'}
                       </p>
                       {item.suggestedType && (
@@ -517,7 +517,7 @@ export default function InfluencerAsinCorrelation() {
 
                     {/* ASIN & Link */}
                     <div className="flex-shrink-0 w-24 text-center">
-                      <p className="text-sm font-mono text-text-secondary">{item.asin || 'N/A'}</p>
+                      <p className="text-sm font-mono text-theme-secondary">{item.asin || 'N/A'}</p>
                       {item.url && (
                         <a
                           href={item.url}
@@ -533,7 +533,7 @@ export default function InfluencerAsinCorrelation() {
                     {/* Feedback Buttons */}
                     <div className="flex-shrink-0 w-40 flex items-center justify-center gap-2">
                       {feedbackLoading ? (
-                        <span className="text-xs text-text-tertiary">Loading...</span>
+                        <span className="text-xs text-theme-tertiary">Loading...</span>
                       ) : feedback[item.asin]?.decision ? (
                         <div className="flex items-center gap-1">
                           <span className={`text-xs px-2 py-1 rounded-full ${
@@ -546,7 +546,7 @@ export default function InfluencerAsinCorrelation() {
                           <button
                             onClick={() => handleUndo(item)}
                             disabled={savingFeedback[item.asin]}
-                            className="text-xs px-1 py-1 text-text-tertiary hover:text-text-secondary hover:bg-dark-hover rounded transition-colors disabled:opacity-50"
+                            className="text-xs px-1 py-1 text-theme-tertiary hover:text-theme-secondary hover:bg-theme-hover rounded transition-colors disabled:opacity-50"
                             title="Undo decision"
                           >
                             {savingFeedback[item.asin] ? '...' : '↩'}
@@ -576,10 +576,10 @@ export default function InfluencerAsinCorrelation() {
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {isCheckingAvail ? (
                         <>
-                          <span className="w-8 text-center text-text-tertiary text-xs">...</span>
-                          <span className="w-8 text-center text-text-tertiary text-xs">...</span>
-                          <span className="w-8 text-center text-text-tertiary text-xs">...</span>
-                          <span className="w-8 text-center text-text-tertiary text-xs">...</span>
+                          <span className="w-8 text-center text-theme-tertiary text-xs">...</span>
+                          <span className="w-8 text-center text-theme-tertiary text-xs">...</span>
+                          <span className="w-8 text-center text-theme-tertiary text-xs">...</span>
+                          <span className="w-8 text-center text-theme-tertiary text-xs">...</span>
                         </>
                       ) : itemFeedback.decision === 'accepted' ? (
                         <>
@@ -618,10 +618,10 @@ export default function InfluencerAsinCorrelation() {
                         </>
                       ) : (
                         <>
-                          <span className="w-8 text-center text-text-tertiary">—</span>
-                          <span className="w-8 text-center text-text-tertiary">—</span>
-                          <span className="w-8 text-center text-text-tertiary">—</span>
-                          <span className="w-8 text-center text-text-tertiary">—</span>
+                          <span className="w-8 text-center text-theme-tertiary">—</span>
+                          <span className="w-8 text-center text-theme-tertiary">—</span>
+                          <span className="w-8 text-center text-theme-tertiary">—</span>
+                          <span className="w-8 text-center text-theme-tertiary">—</span>
                         </>
                       )}
                     </div>
@@ -631,8 +631,8 @@ export default function InfluencerAsinCorrelation() {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8 text-text-tertiary">
-                <svg className="w-12 h-12 text-text-tertiary mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="text-center py-8 text-theme-tertiary">
+                <svg className="w-12 h-12 text-theme-tertiary mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p>No correlations found for this ASIN</p>
@@ -645,13 +645,13 @@ export default function InfluencerAsinCorrelation() {
 
       {/* Empty State */}
       {!results && !loading && !syncing && !error && !showConfirmDialog && (
-        <div className="bg-dark-bg rounded-lg p-8 text-center">
-          <svg className="w-16 h-16 text-text-tertiary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-theme-primary rounded-lg p-8 text-center">
+          <svg className="w-16 h-16 text-theme-tertiary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <h3 className="text-lg font-medium text-text-secondary">Enter an ASIN to get started</h3>
-          <p className="text-text-tertiary mt-1">Find products similar to any Amazon listing</p>
-          <div className="mt-4 text-sm text-text-tertiary">
+          <h3 className="text-lg font-medium text-theme-secondary">Enter an ASIN to get started</h3>
+          <p className="text-theme-tertiary mt-1">Find products similar to any Amazon listing</p>
+          <div className="mt-4 text-sm text-theme-tertiary">
             <p>Tip: You can find an ASIN on any Amazon product page</p>
             <p>Look in the product details section or the URL</p>
           </div>

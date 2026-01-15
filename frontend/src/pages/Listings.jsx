@@ -883,21 +883,21 @@ export default function Listings() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Your eBay Listings</h1>
-        <p className="text-text-secondary">Manage and monitor your eBay listing prices</p>
+        <h1 className="text-2xl font-semibold text-theme-primary">Your eBay Listings</h1>
+        <p className="text-theme-secondary">Manage and monitor your eBay listing prices</p>
       </div>
 
       {/* Search Box */}
-      <div className="bg-dark-surface rounded-lg border border-dark-border p-4">
+      <div className="bg-theme-surface rounded-lg border border-theme p-4">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-text-tertiary" strokeWidth={1.5} />
+            <Search className="h-5 w-5 text-theme-tertiary" strokeWidth={1.5} />
           </div>
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-dark-border rounded-lg bg-dark-bg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+            className="block w-full pl-10 pr-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
             placeholder="Search listings by title, SKU, price, quantity, strategy, or any data..."
           />
           {searchTerm && (
@@ -905,12 +905,12 @@ export default function Listings() {
               onClick={() => setSearchTerm('')}
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
-              <X className="h-5 w-5 text-text-tertiary hover:text-text-primary transition-colors" strokeWidth={1.5} />
+              <X className="h-5 w-5 text-theme-tertiary hover:text-theme-primary transition-colors" strokeWidth={1.5} />
             </button>
           )}
         </div>
         {searchTerm && (
-          <div className="mt-2 text-sm text-text-secondary">
+          <div className="mt-2 text-sm text-theme-secondary">
             {totalItems} listing{totalItems !== 1 ? 's' : ''} found
           </div>
         )}
@@ -927,7 +927,7 @@ export default function Listings() {
               className={`px-3 py-2 rounded-lg text-sm font-medium flex-shrink-0 transition-colors ${
                 status === statusOption
                   ? 'bg-accent text-white'
-                  : 'bg-dark-surface text-text-secondary border border-dark-border hover:bg-dark-hover hover:text-text-primary'
+                  : 'bg-theme-surface text-theme-secondary border border-theme hover:bg-theme-hover hover:text-theme-primary'
               }`}
             >
               {statusOption === 'all' ? 'All' : statusOption}
@@ -955,7 +955,7 @@ export default function Listings() {
             className={`px-3 py-2 rounded-lg text-sm font-medium flex-shrink-0 transition-colors flex items-center gap-2 ${
               vacationMode
                 ? 'bg-warning/20 text-warning border border-warning/30 hover:bg-warning/30'
-                : 'bg-dark-surface text-text-secondary border border-dark-border hover:bg-dark-hover hover:text-text-primary'
+                : 'bg-theme-surface text-theme-secondary border border-theme hover:bg-theme-hover hover:text-theme-primary'
             }`}
             title={vacationMode ? 'Click to resume price reductions' : 'Click to pause price reductions'}
           >
@@ -1010,20 +1010,20 @@ export default function Listings() {
           {/* Column Visibility Controls - Hidden on mobile since mobile uses cards */}
           <div className="hidden lg:block relative">
             <details className="relative">
-              <summary className="bg-dark-surface border border-dark-border text-text-secondary px-3 py-2 rounded-lg text-sm cursor-pointer hover:bg-dark-hover hover:text-text-primary transition-colors">
+              <summary className="bg-theme-surface border border-theme text-theme-secondary px-3 py-2 rounded-lg text-sm cursor-pointer hover:bg-theme-hover hover:text-theme-primary transition-colors">
                 Manage Columns
               </summary>
-              <div className="absolute right-0 mt-2 w-48 bg-dark-surface rounded-lg border border-dark-border shadow-xl z-10">
+              <div className="absolute right-0 mt-2 w-48 bg-theme-surface rounded-lg border border-theme shadow-xl z-10">
                 <div className="p-2">
                   {Object.entries(visibleColumns).map(([column, visible]) => (
-                    <label key={column} className="flex items-center space-x-2 p-2 rounded hover:bg-dark-hover cursor-pointer">
+                    <label key={column} className="flex items-center space-x-2 p-2 rounded hover:bg-theme-hover cursor-pointer">
                       <input
                         type="checkbox"
                         checked={visible}
                         onChange={() => toggleColumnVisibility(column)}
-                        className="rounded bg-dark-bg border-dark-border text-accent focus:ring-accent"
+                        className="rounded bg-theme-primary border-theme text-accent focus:ring-accent"
                       />
-                      <span className="text-sm text-text-primary capitalize">{column.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      <span className="text-sm text-theme-primary capitalize">{column.replace(/([A-Z])/g, ' $1').trim()}</span>
                     </label>
                   ))}
                 </div>
@@ -1035,8 +1035,8 @@ export default function Listings() {
 
       {/* Active Filters */}
       {filters.length > 0 && (
-        <div className="bg-dark-surface rounded-lg border border-dark-border p-4">
-          <h3 className="text-sm font-medium text-text-secondary mb-3">Active Filters</h3>
+        <div className="bg-theme-surface rounded-lg border border-theme p-4">
+          <h3 className="text-sm font-medium text-theme-secondary mb-3">Active Filters</h3>
           <div className="space-y-3">
             {filters.map((filter) => {
               const filterOption = filterOptions.find(opt => opt.key === filter.field)
@@ -1044,13 +1044,13 @@ export default function Listings() {
               const isSelect = filterOption?.type === 'select'
 
               return (
-                <div key={filter.id} className="p-3 bg-dark-bg rounded-lg border border-dark-border">
+                <div key={filter.id} className="p-3 bg-theme-primary rounded-lg border border-theme">
                   <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 sm:items-center">
                     {/* Field Selection */}
                     <select
                       value={filter.field}
                       onChange={(e) => updateFilter(filter.id, { field: e.target.value, operator: 'equals', value: '' })}
-                      className="text-sm border border-dark-border rounded-lg px-2 py-1.5 bg-dark-surface text-text-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
+                      className="text-sm border border-theme rounded-lg px-2 py-1.5 bg-theme-surface text-theme-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
                     >
                       <option value="">Select Field</option>
                       {filterOptions.map(option => (
@@ -1063,7 +1063,7 @@ export default function Listings() {
                       <select
                         value={filter.operator}
                         onChange={(e) => updateFilter(filter.id, { operator: e.target.value })}
-                        className="text-sm border border-dark-border rounded-lg px-2 py-1.5 bg-dark-surface text-text-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
+                        className="text-sm border border-theme rounded-lg px-2 py-1.5 bg-theme-surface text-theme-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
                       >
                         <option value="equals">=</option>
                         <option value="greater_than">&gt;</option>
@@ -1078,7 +1078,7 @@ export default function Listings() {
                       <select
                         value={filter.operator}
                         onChange={(e) => updateFilter(filter.id, { operator: e.target.value })}
-                        className="text-sm border border-dark-border rounded-lg px-2 py-1.5 bg-dark-surface text-text-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
+                        className="text-sm border border-theme rounded-lg px-2 py-1.5 bg-theme-surface text-theme-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
                       >
                         <option value="equals">Equals</option>
                         <option value="contains">Contains</option>
@@ -1092,7 +1092,7 @@ export default function Listings() {
                           <select
                             value={filter.value}
                             onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
-                            className="text-sm border border-dark-border rounded-lg px-2 py-1.5 bg-dark-surface text-text-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
+                            className="text-sm border border-theme rounded-lg px-2 py-1.5 bg-theme-surface text-theme-primary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
                           >
                             <option value="">Select Value</option>
                             {filterOption.options?.map(option => (
@@ -1105,7 +1105,7 @@ export default function Listings() {
                             value={filter.value}
                             onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
                             placeholder={`Enter ${filterOption?.label.toLowerCase()}`}
-                            className="text-sm border border-dark-border rounded-lg px-2 py-1.5 bg-dark-surface text-text-primary placeholder-text-tertiary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
+                            className="text-sm border border-theme rounded-lg px-2 py-1.5 bg-theme-surface text-theme-primary placeholder-text-tertiary w-full sm:w-auto focus:ring-2 focus:ring-accent focus:border-transparent"
                           />
                         )}
                       </>
@@ -1129,29 +1129,29 @@ export default function Listings() {
 
       {/* Pagination Controls - Top */}
       {totalItems > 0 && (
-        <div className="bg-dark-surface rounded-lg border border-dark-border p-4">
+        <div className="bg-theme-surface rounded-lg border border-theme p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Items per page selector */}
             <div className="flex items-center gap-2">
-              <label htmlFor="items-per-page" className="text-sm text-text-secondary">
+              <label htmlFor="items-per-page" className="text-sm text-theme-secondary">
                 Show:
               </label>
               <select
                 id="items-per-page"
                 value={itemsPerPage}
                 onChange={(e) => handleItemsPerPageChange(e.target.value)}
-                className="border border-dark-border rounded-lg px-2 py-1 text-sm bg-dark-bg text-text-primary focus:ring-2 focus:ring-accent focus:border-transparent"
+                className="border border-theme rounded-lg px-2 py-1 text-sm bg-theme-primary text-theme-primary focus:ring-2 focus:ring-accent focus:border-transparent"
               >
                 <option value="10">10</option>
                 <option value="25">25</option>
                 <option value="50">50</option>
                 <option value="100">100</option>
               </select>
-              <span className="text-sm text-text-secondary">per page</span>
+              <span className="text-sm text-theme-secondary">per page</span>
             </div>
 
             {/* Page info */}
-            <div className="text-sm text-text-secondary text-center sm:text-left">
+            <div className="text-sm text-theme-secondary text-center sm:text-left">
               Showing {totalItems === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + paginatedListings.length, totalItems)} of {totalItems} listings
             </div>
 
@@ -1163,7 +1163,7 @@ export default function Listings() {
                   disabled={currentPage === 1}
                   className={`px-3 py-1 rounded-lg text-sm transition-colors ${
                     currentPage === 1
-                      ? 'bg-dark-bg text-text-tertiary cursor-not-allowed'
+                      ? 'bg-theme-primary text-theme-tertiary cursor-not-allowed'
                       : 'bg-accent text-white hover:bg-accent-hover'
                   }`}
                 >
@@ -1172,7 +1172,7 @@ export default function Listings() {
 
                 {getPageNumbers().map((page, index) => (
                   page === '...' ? (
-                    <span key={`ellipsis-${index}`} className="px-2 text-text-tertiary">
+                    <span key={`ellipsis-${index}`} className="px-2 text-theme-tertiary">
                       ...
                     </span>
                   ) : (
@@ -1182,7 +1182,7 @@ export default function Listings() {
                       className={`px-3 py-1 rounded-lg text-sm transition-colors ${
                         currentPage === page
                           ? 'bg-accent text-white'
-                          : 'bg-dark-bg text-text-secondary hover:bg-dark-hover hover:text-text-primary'
+                          : 'bg-theme-primary text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
                       }`}
                     >
                       {page}
@@ -1195,7 +1195,7 @@ export default function Listings() {
                   disabled={currentPage === totalPages}
                   className={`px-3 py-1 rounded-lg text-sm transition-colors ${
                     currentPage === totalPages
-                      ? 'bg-dark-bg text-text-tertiary cursor-not-allowed'
+                      ? 'bg-theme-primary text-theme-tertiary cursor-not-allowed'
                       : 'bg-accent text-white hover:bg-accent-hover'
                   }`}
                 >
@@ -1210,7 +1210,7 @@ export default function Listings() {
       {/* Mobile Card View (visible on small screens) */}
       <div className="lg:hidden space-y-4">
         {paginatedListings.map((listing) => (
-          <div key={listing.id} className="bg-dark-surface rounded-lg border border-dark-border p-4">
+          <div key={listing.id} className="bg-theme-surface rounded-lg border border-theme p-4">
             <div className="flex items-start space-x-4">
               <img
                 src={listing.image_url || '/placeholder-image.jpg'}
@@ -1218,43 +1218,43 @@ export default function Listings() {
                 className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
               />
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-text-primary truncate">{listing.title}</h3>
+                <h3 className="text-sm font-medium text-theme-primary truncate">{listing.title}</h3>
                 {listing.ebay_sku && (
-                  <p className="text-xs text-text-tertiary mt-1">SKU: {listing.ebay_sku}</p>
+                  <p className="text-xs text-theme-tertiary mt-1">SKU: {listing.ebay_sku}</p>
                 )}
 
                 <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-text-tertiary">Current Price:</span>
+                    <span className="text-theme-tertiary">Current Price:</span>
                     <div className="font-bold text-success">${listing.current_price}</div>
                   </div>
                   <div>
-                    <span className="text-text-tertiary">Quantity:</span>
-                    <div className="font-medium text-text-primary">{listing.listing_status === 'Ended' ? 0 : (listing.quantity_available ?? 0)}</div>
+                    <span className="text-theme-tertiary">Quantity:</span>
+                    <div className="font-medium text-theme-primary">{listing.listing_status === 'Ended' ? 0 : (listing.quantity_available ?? 0)}</div>
                   </div>
                   <div>
-                    <span className="text-text-tertiary">Age:</span>
-                    <div className="font-medium text-text-primary">{calculateListingAge(listing.created_at || new Date())}</div>
+                    <span className="text-theme-tertiary">Age:</span>
+                    <div className="font-medium text-theme-primary">{calculateListingAge(listing.created_at || new Date())}</div>
                   </div>
                 </div>
 
 
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-text-tertiary">Minimum Price:</span>
+                    <span className="text-sm text-theme-tertiary">Minimum Price:</span>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       defaultValue={listing.minimum_price || ''}
                       onBlur={(e) => handleMinimumPriceUpdate(listing.id, e.target.value)}
-                      className="w-24 px-2 py-1 text-sm border border-dark-border rounded-lg bg-dark-bg text-text-primary placeholder-text-tertiary"
+                      className="w-24 px-2 py-1 text-sm border border-theme rounded-lg bg-theme-primary text-theme-primary placeholder-text-tertiary"
                       placeholder="Set min"
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-text-tertiary">Price Reduction:</span>
+                    <span className="text-sm text-theme-tertiary">Price Reduction:</span>
                     <div className="flex items-center">
                       <label
                         className={`relative inline-flex items-center ${
@@ -1274,7 +1274,7 @@ export default function Listings() {
                           className="sr-only"
                         />
                         <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
-                          listing.enable_auto_reduction ? 'bg-accent' : 'bg-dark-border'
+                          listing.enable_auto_reduction ? 'bg-accent' : 'bg-gray-200 dark:bg-gray-700'
                         }`}>
                           <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out ${
                             listing.enable_auto_reduction ? 'translate-x-5' : 'translate-x-0'
@@ -1282,7 +1282,7 @@ export default function Listings() {
                         </div>
                       </label>
                       <span className={`ml-2 text-xs ${
-                        listing.enable_auto_reduction ? 'text-success font-medium' : 'text-text-tertiary'
+                        listing.enable_auto_reduction ? 'text-success font-medium' : 'text-theme-tertiary'
                       }`}>
                         {listing.enable_auto_reduction ? 'Active' : 'Paused'}
                       </span>
@@ -1290,11 +1290,11 @@ export default function Listings() {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-text-tertiary">Strategy:</span>
+                    <span className="text-sm text-theme-tertiary">Strategy:</span>
                     <select
                       value={listing.strategy_id || listing.reduction_strategy || ''}
                       onChange={(e) => handleStrategyUpdate(listing.id, e.target.value)}
-                      className="text-sm border border-dark-border rounded-lg px-2 py-1 max-w-32 bg-dark-bg text-text-primary"
+                      className="text-sm border border-theme rounded-lg px-2 py-1 max-w-32 bg-theme-primary text-theme-primary"
                     >
                       <option value="">No Strategy</option>
                       {strategies.map((strategy) => (
@@ -1331,8 +1331,8 @@ export default function Listings() {
         ))}
 
         {totalItems === 0 && (
-          <div className="text-center py-12 bg-dark-surface rounded-lg border border-dark-border">
-            <div className="text-text-tertiary">
+          <div className="text-center py-12 bg-theme-surface rounded-lg border border-theme">
+            <div className="text-theme-tertiary">
               No listings found.
             </div>
           </div>
@@ -1340,10 +1340,10 @@ export default function Listings() {
       </div>
 
       {/* Desktop Table View (visible on large screens) */}
-      <div className="hidden lg:block bg-dark-surface rounded-lg border border-dark-border overflow-hidden">
+      <div className="hidden lg:block bg-theme-surface rounded-lg border border-theme overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full table-auto divide-y divide-dark-border">
-            <thead className="bg-dark-bg">
+          <table className="w-full table-auto divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-theme-primary">
               <tr>
                 {columnOrder.map((column) => {
                   if (!visibleColumns[column]) return null
@@ -1357,13 +1357,13 @@ export default function Listings() {
                       onDragOver={handleDragOver}
                       onDrop={(e) => handleDrop(e, column)}
                       onDragEnd={handleDragEnd}
-                      className={`px-2 py-3 text-left text-xs font-medium text-text-tertiary uppercase tracking-wider ${
-                        config.sortable ? 'cursor-pointer hover:bg-dark-hover hover:text-text-secondary' : ''
+                      className={`px-2 py-3 text-left text-xs font-medium text-theme-tertiary uppercase tracking-wider ${
+                        config.sortable ? 'cursor-pointer hover:bg-theme-hover hover:text-theme-secondary' : ''
                       } ${draggedColumn === column ? 'opacity-50' : ''} ${config.width || ''} select-none transition-colors`}
                       onClick={config.sortable ? () => handleSort(config.sortKey) : undefined}
                     >
                       <div className="flex items-center space-x-1 min-w-0">
-                        <span className="flex-shrink-0 text-text-tertiary">⋮⋮</span>
+                        <span className="flex-shrink-0 text-theme-tertiary">⋮⋮</span>
                         <span className="break-words leading-tight">{config.label}</span>
                         {config.sortable && sortConfig.key === config.sortKey && (
                           <span className="flex-shrink-0 text-accent">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
@@ -1374,9 +1374,9 @@ export default function Listings() {
                 })}
               </tr>
             </thead>
-            <tbody className="bg-dark-surface divide-y divide-dark-border">
+            <tbody className="bg-theme-surface divide-y divide-gray-200 dark:divide-gray-700">
               {paginatedListings.map((listing) => (
-                <tr key={listing.id} className="hover:bg-dark-hover transition-colors">
+                <tr key={listing.id} className="hover:bg-theme-hover transition-colors">
                   {columnOrder.map((column) => {
                     if (!visibleColumns[column]) return null
 
@@ -1393,11 +1393,11 @@ export default function Listings() {
                         case 'title':
                           return (
                             <div className="max-w-xs">
-                              <div className="text-sm font-medium text-text-primary truncate">
+                              <div className="text-sm font-medium text-theme-primary truncate">
                                 {listing.title}
                               </div>
                               {listing.ebay_sku && (
-                                <div className="text-xs text-text-tertiary mt-1">
+                                <div className="text-xs text-theme-tertiary mt-1">
                                   SKU: {listing.ebay_sku}
                                 </div>
                               )}
@@ -1405,7 +1405,7 @@ export default function Listings() {
                           )
                         case 'quantity':
                           return (
-                            <div className="text-sm text-text-primary">
+                            <div className="text-sm text-theme-primary">
                               {listing.listing_status === 'Ended' ? 0 : (listing.quantity_available ?? 0)}
                             </div>
                           )
@@ -1421,7 +1421,7 @@ export default function Listings() {
                               min="0"
                               defaultValue={listing.minimum_price || ''}
                               onBlur={(e) => handleMinimumPriceUpdate(listing.id, e.target.value)}
-                              className="w-20 px-2 py-1 text-sm border border-dark-border rounded-lg bg-dark-bg text-text-primary placeholder-text-tertiary"
+                              className="w-20 px-2 py-1 text-sm border border-theme rounded-lg bg-theme-primary text-theme-primary placeholder-text-tertiary"
                               placeholder="Set min"
                             />
                           )
@@ -1446,7 +1446,7 @@ export default function Listings() {
                                   className="sr-only"
                                 />
                                 <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
-                                  listing.enable_auto_reduction ? 'bg-accent' : 'bg-dark-border'
+                                  listing.enable_auto_reduction ? 'bg-accent' : 'bg-gray-200 dark:bg-gray-700'
                                 }`}>
                                   <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out ${
                                     listing.enable_auto_reduction ? 'translate-x-5' : 'translate-x-0'
@@ -1454,7 +1454,7 @@ export default function Listings() {
                                 </div>
                               </label>
                               <span className={`ml-2 text-xs ${
-                                listing.enable_auto_reduction ? 'text-success font-medium' : 'text-text-tertiary'
+                                listing.enable_auto_reduction ? 'text-success font-medium' : 'text-theme-tertiary'
                               }`}>
                                 {listing.enable_auto_reduction ? 'Active' : 'Paused'}
                               </span>
@@ -1466,7 +1466,7 @@ export default function Listings() {
                             <select
                               value={listing.strategy_id || listing.reduction_strategy || ''}
                               onChange={(e) => handleStrategyUpdate(listing.id, e.target.value)}
-                              className="text-sm border border-dark-border rounded-lg px-2 py-1 min-w-40 bg-dark-bg text-text-primary"
+                              className="text-sm border border-theme rounded-lg px-2 py-1 min-w-40 bg-theme-primary text-theme-primary"
                             >
                               <option value="">No Strategy</option>
                               {strategies.map((strategy) => (
@@ -1478,7 +1478,7 @@ export default function Listings() {
                           )
                         case 'listingAge':
                           return (
-                            <div className="text-sm text-text-primary">
+                            <div className="text-sm text-theme-primary">
                               {calculateListingAge(listing.created_at || new Date())}
                             </div>
                           )

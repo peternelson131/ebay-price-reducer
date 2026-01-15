@@ -21,8 +21,8 @@ export default function AdminSettings() {
   return (
     <div className="container mx-auto p-4">
       <div className="max-w-2xl mx-auto">
-        <div className="bg-dark-surface border border-dark-border rounded-lg p-6">
-          <p className="text-text-secondary">Redirecting to Account Settings...</p>
+        <div className="bg-theme-surface border border-theme rounded-lg p-6">
+          <p className="text-theme-secondary">Redirecting to Account Settings...</p>
         </div>
       </div>
     </div>
