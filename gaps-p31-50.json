@@ -1,0 +1,816 @@
+{
+  "gaps": [
+    {
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "aspectName": "Type",
+      "count": 40,
+      "sampleAsins": [
+        "B0CT4WPVM6",
+        "B0CRKWB44D",
+        "B0CW5WQK1P"
+      ]
+    },
+    {
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "aspectName": "Product",
+      "count": 11,
+      "sampleAsins": [
+        "B07W6JG3N1",
+        "B0C6CLVLL6",
+        "B07W8N92FL"
+      ]
+    },
+    {
+      "categoryId": "79630",
+      "categoryName": "Coffee Pods",
+      "aspectName": "Product",
+      "count": 4,
+      "sampleAsins": [
+        "B0F4YMP92T",
+        "B00GWV3558",
+        "B00GWV35DA"
+      ]
+    },
+    {
+      "categoryId": "159889",
+      "categoryName": "Decals, Stickers & Vinyl Art",
+      "aspectName": "Type",
+      "count": 3,
+      "sampleAsins": [
+        "B0F2548J7R",
+        "B0F253M8VW",
+        "B0F252KN94"
+      ]
+    },
+    {
+      "categoryId": "102383",
+      "categoryName": "Wrapping Paper",
+      "aspectName": "Type",
+      "count": 2,
+      "sampleAsins": [
+        "B0DFVK721S",
+        "B0DFVK1YRH"
+      ]
+    },
+    {
+      "categoryId": "58540",
+      "categoryName": "Screen Protectors",
+      "aspectName": "Type",
+      "count": 2,
+      "sampleAsins": [
+        "B0CBKLSH3S",
+        "B0BM9BPQQ8"
+      ]
+    },
+    {
+      "categoryId": "178989",
+      "categoryName": "Grow Light Kits",
+      "aspectName": "Type",
+      "count": 2,
+      "sampleAsins": [
+        "B0FLX4XV81",
+        "B0F6YGCGL3"
+      ]
+    },
+    {
+      "categoryId": "170103",
+      "categoryName": "Party Decorations",
+      "aspectName": "Type",
+      "count": 2,
+      "sampleAsins": [
+        "B0CY23QKPT",
+        "B0CY1YD2B8"
+      ]
+    },
+    {
+      "categoryId": "160718",
+      "categoryName": "Other Kids' Drawing & Painting",
+      "aspectName": "MPN",
+      "count": 1,
+      "sampleAsins": [
+        "B08LP1M9N7"
+      ]
+    },
+    {
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0DR72MKYM"
+      ]
+    },
+    {
+      "categoryId": "11855",
+      "categoryName": "Brushes & Combs",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B094DK6JNF"
+      ]
+    },
+    {
+      "categoryId": "258503",
+      "categoryName": "Crackers & Crispbread",
+      "aspectName": "Product",
+      "count": 1,
+      "sampleAsins": [
+        "B0CCXFSVGC"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "asin": "B0F4YMP92T",
+      "status": "gaps",
+      "categoryId": "79630",
+      "categoryName": "Coffee Pods",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0F252V67K",
+      "status": "ok",
+      "categoryId": "47357",
+      "categoryName": "Stickers & Decals"
+    },
+    {
+      "asin": "B07W6JG3N1",
+      "status": "gaps",
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0196TAJF6",
+      "status": "ok",
+      "categoryId": "31401",
+      "categoryName": "Acrylic Paint"
+    },
+    {
+      "asin": "B0F2548J7R",
+      "status": "gaps",
+      "categoryId": "159889",
+      "categoryName": "Decals, Stickers & Vinyl Art",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0C6CLVLL6",
+      "status": "gaps",
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0DFVK721S",
+      "status": "gaps",
+      "categoryId": "102383",
+      "categoryName": "Wrapping Paper",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B08LP1M9N7",
+      "status": "gaps",
+      "categoryId": "160718",
+      "categoryName": "Other Kids' Drawing & Painting",
+      "missing": [
+        "MPN"
+      ]
+    },
+    {
+      "asin": "B0196T9EHU",
+      "status": "ok",
+      "categoryId": "31401",
+      "categoryName": "Acrylic Paint"
+    },
+    {
+      "asin": "B00GWV3558",
+      "status": "gaps",
+      "categoryId": "79630",
+      "categoryName": "Coffee Pods",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0DL5K9HND",
+      "status": "ok",
+      "categoryId": "20706",
+      "categoryName": "Light Bulbs"
+    },
+    {
+      "asin": "B07W8N92FL",
+      "status": "gaps",
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0DR72MKYM",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B09DZ16X42",
+      "status": "gaps",
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B003Q4TZL2",
+      "status": "gaps",
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0CW7FBGV9",
+      "status": "gaps",
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0DFVK1YRH",
+      "status": "gaps",
+      "categoryId": "102383",
+      "categoryName": "Wrapping Paper",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B00GWV35DA",
+      "status": "gaps",
+      "categoryId": "79630",
+      "categoryName": "Coffee Pods",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0FN4HVLCB",
+      "status": "ok",
+      "categoryId": "163966",
+      "categoryName": "Stickers & Decals"
+    },
+    {
+      "asin": "B0DCG7SFZQ",
+      "status": "ok",
+      "categoryId": "61769",
+      "categoryName": "Copier, Printer & Fax Paper"
+    },
+    {
+      "asin": "B07W6HWQ1Z",
+      "status": "gaps",
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0F253M8VW",
+      "status": "gaps",
+      "categoryId": "159889",
+      "categoryName": "Decals, Stickers & Vinyl Art",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0F252KN94",
+      "status": "gaps",
+      "categoryId": "159889",
+      "categoryName": "Decals, Stickers & Vinyl Art",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0196T9MRC",
+      "status": "ok",
+      "categoryId": "28133",
+      "categoryName": "Other Leather Tools"
+    },
+    {
+      "asin": "B074W8XQBD",
+      "status": "gaps",
+      "categoryId": "79630",
+      "categoryName": "Coffee Pods",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0DFVK7WDG",
+      "status": "ok",
+      "categoryId": "61769",
+      "categoryName": "Copier, Printer & Fax Paper"
+    },
+    {
+      "asin": "B0CBKLSH3S",
+      "status": "gaps",
+      "categoryId": "58540",
+      "categoryName": "Screen Protectors",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B07W6JXXGQ",
+      "status": "gaps",
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0CJMPWTG3",
+      "status": "gaps",
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B07W7K5KY9",
+      "status": "gaps",
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0C6CDY7MZ",
+      "status": "gaps",
+      "categoryId": "179189",
+      "categoryName": "Squash & Syrups",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0BM9BPQQ8",
+      "status": "gaps",
+      "categoryId": "58540",
+      "categoryName": "Screen Protectors",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CT4WPVM6",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FLX4XV81",
+      "status": "gaps",
+      "categoryId": "178989",
+      "categoryName": "Grow Light Kits",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DFVK98DY",
+      "status": "ok",
+      "categoryId": "3633",
+      "categoryName": "Other Vintage Greeting Cards"
+    },
+    {
+      "asin": "B0CRKWB44D",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0F6YGCGL3",
+      "status": "gaps",
+      "categoryId": "178989",
+      "categoryName": "Grow Light Kits",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CW5WQK1P",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRDNCKDG",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CMWW1PW8",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CY24T644",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0F43DP66B",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRDPNGN8",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B09K58B269",
+      "status": "ok",
+      "categoryId": "183125",
+      "categoryName": "Other Adhesives & Tape"
+    },
+    {
+      "asin": "B0CRDNQN2Q",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0F434XLH9",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CMWYG8XH",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CMWXFQXY",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CY23VDKS",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRKVSYY7",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CMWVY7TP",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CY23QKPT",
+      "status": "gaps",
+      "categoryId": "170103",
+      "categoryName": "Party Decorations",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRKVFTDS",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CMH17RTB",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CY24RRVQ",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B094DK6JNF",
+      "status": "gaps",
+      "categoryId": "11855",
+      "categoryName": "Brushes & Combs",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRDMQWN8",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRDP94RD",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CW64W5JD",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0F42S3VHH",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CY2C3Z3P",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRKX3JXB",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CW5SNRXV",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CM99D4MF",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRDP8V1P",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRKWPDNX",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CMGPTX3Q",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRKVLFHF",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRDN2FHN",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRDLQQNC",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DY7M19D5",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRDMHLKN",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CMWSKW5N",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0F42PTSJ6",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CRKWHHBJ",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CCXFSVGC",
+      "status": "gaps",
+      "categoryId": "258503",
+      "categoryName": "Crackers & Crispbread",
+      "missing": [
+        "Product"
+      ]
+    },
+    {
+      "asin": "B0CRDP6LCF",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CY1Z53DN",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CY1YD2B8",
+      "status": "gaps",
+      "categoryId": "170103",
+      "categoryName": "Party Decorations",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CMWWGFGL",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    }
+  ]
+}

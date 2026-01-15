@@ -1,0 +1,219 @@
+{
+  "timestamp": "2026-01-15T02:07:08.140Z",
+  "gaps": [
+    {
+      "categoryId": "261328",
+      "categoryName": "Trading Card Singles",
+      "aspectName": "Sport",
+      "count": 1,
+      "sampleAsins": [
+        "B0FVNV8CK3"
+      ]
+    },
+    {
+      "categoryId": "53548",
+      "categoryName": "Comfort Shoes",
+      "aspectName": "Style",
+      "count": 1,
+      "sampleAsins": [
+        "B09774JQQY"
+      ]
+    },
+    {
+      "categoryId": "53548",
+      "categoryName": "Comfort Shoes",
+      "aspectName": "Department",
+      "count": 1,
+      "sampleAsins": [
+        "B09774JQQY"
+      ]
+    },
+    {
+      "categoryId": "53548",
+      "categoryName": "Comfort Shoes",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B09774JQQY"
+      ]
+    },
+    {
+      "categoryId": "53548",
+      "categoryName": "Comfort Shoes",
+      "aspectName": "Upper Material",
+      "count": 1,
+      "sampleAsins": [
+        "B09774JQQY"
+      ]
+    },
+    {
+      "categoryId": "95672",
+      "categoryName": "Athletic Shoes",
+      "aspectName": "Department",
+      "count": 1,
+      "sampleAsins": [
+        "B0DGRJKPKD"
+      ]
+    },
+    {
+      "categoryId": "139973",
+      "categoryName": "Video Games",
+      "aspectName": "Game Name",
+      "count": 1,
+      "sampleAsins": [
+        "B0FYQS3HN2"
+      ]
+    },
+    {
+      "categoryId": "139973",
+      "categoryName": "Video Games",
+      "aspectName": "Platform",
+      "count": 1,
+      "sampleAsins": [
+        "B0FYQS3HN2"
+      ]
+    },
+    {
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "aspectName": "Department",
+      "count": 1,
+      "sampleAsins": [
+        "B0FDQ3B7L9"
+      ]
+    },
+    {
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0FDQ3B7L9"
+      ]
+    },
+    {
+      "categoryId": "29946",
+      "categoryName": "Microphones & Wireless Systems",
+      "aspectName": "Form Factor",
+      "count": 1,
+      "sampleAsins": [
+        "B0D9MVMVMH"
+      ]
+    },
+    {
+      "categoryId": "58540",
+      "categoryName": "Screen Protectors",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0D9LL8LK7"
+      ]
+    },
+    {
+      "categoryId": "111422",
+      "categoryName": "Apple Laptops",
+      "aspectName": "Processor",
+      "count": 1,
+      "sampleAsins": [
+        "B0DZDBHQPQ"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "asin": "B0FVNV8CK3",
+      "status": "gaps",
+      "categoryId": "261328",
+      "categoryName": "Trading Card Singles",
+      "missing": [
+        "Sport"
+      ]
+    },
+    {
+      "asin": "B09774JQQY",
+      "status": "gaps",
+      "categoryId": "53548",
+      "categoryName": "Comfort Shoes",
+      "missing": [
+        "Style",
+        "Department",
+        "Type",
+        "Upper Material"
+      ]
+    },
+    {
+      "asin": "B0CBTV2XGH",
+      "status": "complete",
+      "categoryId": "2518",
+      "categoryName": "Other Educational Toys"
+    },
+    {
+      "asin": "B0DGRJKPKD",
+      "status": "gaps",
+      "categoryId": "95672",
+      "categoryName": "Athletic Shoes",
+      "missing": [
+        "Department"
+      ]
+    },
+    {
+      "asin": "B07JV9LL2K",
+      "status": "complete",
+      "categoryId": "259104",
+      "categoryName": "Comics & Graphic Novels"
+    },
+    {
+      "asin": "B0FYQS3HN2",
+      "status": "gaps",
+      "categoryId": "139973",
+      "categoryName": "Video Games",
+      "missing": [
+        "Game Name",
+        "Platform"
+      ]
+    },
+    {
+      "asin": "B0DJDLNV31",
+      "status": "complete",
+      "categoryId": "1278",
+      "categoryName": "Endurance & Energy Bars, Drinks & Pills"
+    },
+    {
+      "asin": "B0FDQ3B7L9",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D9MVMVMH",
+      "status": "gaps",
+      "categoryId": "29946",
+      "categoryName": "Microphones & Wireless Systems",
+      "missing": [
+        "Form Factor"
+      ]
+    },
+    {
+      "asin": "B0D9LL8LK7",
+      "status": "gaps",
+      "categoryId": "58540",
+      "categoryName": "Screen Protectors",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DZDBHQPQ",
+      "status": "gaps",
+      "categoryId": "111422",
+      "categoryName": "Apple Laptops",
+      "missing": [
+        "Processor"
+      ]
+    }
+  ]
+}

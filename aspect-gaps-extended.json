@@ -1,0 +1,115 @@
+{
+  "gaps": [
+    {
+      "categoryId": "18871",
+      "categoryName": "Memory Cards",
+      "aspectName": "Format",
+      "count": 1,
+      "sampleAsins": [
+        "B07H48412Q"
+      ]
+    },
+    {
+      "categoryId": "18871",
+      "categoryName": "Memory Cards",
+      "aspectName": "Storage Capacity",
+      "count": 1,
+      "sampleAsins": [
+        "B07H48412Q"
+      ]
+    },
+    {
+      "categoryId": "20614",
+      "categoryName": "Vacuum Cleaners",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B00006IAOR"
+      ]
+    },
+    {
+      "categoryId": "131553",
+      "categoryName": "External Hard Disk Drives",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B07CRG7BBH"
+      ]
+    },
+    {
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "aspectName": "Storage Capacity",
+      "count": 1,
+      "sampleAsins": [
+        "B09V3KXJPB"
+      ]
+    },
+    {
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B09V3KXJPB"
+      ]
+    },
+    {
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "aspectName": "Internet Connectivity",
+      "count": 1,
+      "sampleAsins": [
+        "B09V3KXJPB"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "asin": "B07H48412Q",
+      "status": "gaps",
+      "categoryId": "18871",
+      "categoryName": "Memory Cards",
+      "missing": [
+        "Format",
+        "Storage Capacity"
+      ]
+    },
+    {
+      "asin": "B00006IAOR",
+      "status": "gaps",
+      "categoryId": "20614",
+      "categoryName": "Vacuum Cleaners",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B07CRG7BBH",
+      "status": "gaps",
+      "categoryId": "131553",
+      "categoryName": "External Hard Disk Drives",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B09V3KXJPB",
+      "status": "gaps",
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "missing": [
+        "Storage Capacity",
+        "Type",
+        "Internet Connectivity"
+      ]
+    },
+    {
+      "asin": "B07TZ5YHJN",
+      "status": "ok",
+      "categoryId": "133705",
+      "categoryName": "Tea Kettles"
+    }
+  ],
+  "timestamp": "2026-01-15T02:37:50.360Z"
+}

@@ -182,6 +182,7 @@ Question: Is the CANDIDATE the same product as the primary product?
 Answer YES if:
 - Both are the same product (e.g., both speakers, both headphones)
 - Candidate is a variant of the primary (different color, size, model)
+- Same clothing item besides color and size
 
 Answer NO if:
 - Candidate is a different kind of product (e.g., primary is speaker, candidate is cable)

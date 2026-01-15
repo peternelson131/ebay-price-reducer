@@ -15,15 +15,23 @@ export default function InfluencerAsinCorrelation() {
   const pollCountRef = useRef(0);
   
   // Feedback state
-  const [feedback, setFeedback] = useState({}); // { [candidateAsin]: { decision } }
+  const [feedback, setFeedback] = useState({}); // { [candidateAsin]: { decision, uploaded_usa } }
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [savingFeedback, setSavingFeedback] = useState({});
+  const [markingUploaded, setMarkingUploaded] = useState({});
+  
+  // Loading state for checking availability (per ASIN)
+  const [checkingAvailability, setCheckingAvailability] = useState({});
 
   // Save feedback to database
   const saveFeedback = async (candidateAsin, decision) => {
     if (!results?.asin) return;
     
     setSavingFeedback(prev => ({ ...prev, [candidateAsin]: true }));
+    // Also show checking availability indicator for accepts
+    if (decision === 'accepted') {
+      setCheckingAvailability(prev => ({ ...prev, [candidateAsin]: true }));
+    }
     
     try {
       const token = await userAPI.getAuthToken();
@@ -43,9 +51,17 @@ export default function InfluencerAsinCorrelation() {
       
       const data = await response.json();
       if (data.success) {
+        // Include availability data if returned (for accepts)
+        const feedbackData = { decision };
+        if (data.availability) {
+          feedbackData.available_us = data.availability.US;
+          feedbackData.available_ca = data.availability.CA;
+          feedbackData.available_de = data.availability.DE;
+          feedbackData.available_uk = data.availability.UK;
+        }
         setFeedback(prev => ({
           ...prev,
-          [candidateAsin]: { decision }
+          [candidateAsin]: { ...prev[candidateAsin], ...feedbackData }
         }));
       } else {
         throw new Error(data.error || 'Failed to save');
@@ -55,6 +71,7 @@ export default function InfluencerAsinCorrelation() {
       alert('Failed to save feedback. Please try again.');
     } finally {
       setSavingFeedback(prev => ({ ...prev, [candidateAsin]: false }));
+      setCheckingAvailability(prev => ({ ...prev, [candidateAsin]: false }));
     }
   };
 
@@ -70,7 +87,17 @@ export default function InfluencerAsinCorrelation() {
       if (data.success && data.feedback) {
         const feedbackMap = {};
         data.feedback.forEach(f => {
-          feedbackMap[f.similar_asin] = { decision: f.decision };
+          feedbackMap[f.similar_asin] = { 
+            decision: f.decision,
+            uploaded_usa: f.uploaded_usa,
+            uploaded_ca: f.uploaded_ca,
+            uploaded_de: f.uploaded_de,
+            uploaded_uk: f.uploaded_uk,
+            available_us: f.available_us,
+            available_ca: f.available_ca,
+            available_de: f.available_de,
+            available_uk: f.available_uk
+          };
         });
         setFeedback(feedbackMap);
       }
@@ -87,6 +114,47 @@ export default function InfluencerAsinCorrelation() {
 
   const handleDecline = (item) => {
     saveFeedback(item.asin, 'declined');
+  };
+
+  // Handle Amazon upload button click
+  const handleAmazonUpload = async (item) => {
+    if (!results?.asin) return;
+    
+    // Open Amazon creator hub manage page in new tab
+    window.open('https://www.amazon.com/creatorhub/manage', '_blank');
+    
+    // Mark as uploaded in database
+    setMarkingUploaded(prev => ({ ...prev, [item.asin]: true }));
+    
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/correlation-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'mark_uploaded',
+          search_asin: results.asin,
+          candidate_asin: item.asin
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setFeedback(prev => ({
+          ...prev,
+          [item.asin]: { ...prev[item.asin], uploaded_usa: true }
+        }));
+      } else {
+        throw new Error(data.error || 'Failed to mark as uploaded');
+      }
+    } catch (err) {
+      console.error('Failed to mark as uploaded:', err);
+    } finally {
+      setMarkingUploaded(prev => ({ ...prev, [item.asin]: false }));
+    }
   };
 
   const handleUndo = async (item) => {
@@ -381,7 +449,23 @@ export default function InfluencerAsinCorrelation() {
           </div>
           <div className="p-6">
             {results.correlations && Array.isArray(results.correlations) && results.correlations.length > 0 ? (
-              <div className="divide-y divide-gray-200">
+              <div>
+                {/* Table Header with Flags */}
+                <div className="flex items-center gap-4 py-2 border-b border-dark-border mb-2 text-xs text-text-tertiary font-medium">
+                  <div className="w-16 flex-shrink-0"></div>
+                  <div className="flex-1 min-w-0">Product</div>
+                  <div className="w-24 flex-shrink-0 text-center">ASIN</div>
+                  <div className="w-40 flex-shrink-0 text-center">Actions</div>
+                  {/* Marketplace Flags Header */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <img src="https://hatscripts.github.io/circle-flags/flags/us.svg" alt="US" className="w-6 h-6" title="United States" />
+                    <img src="https://hatscripts.github.io/circle-flags/flags/ca.svg" alt="CA" className="w-6 h-6" title="Canada" />
+                    <img src="https://hatscripts.github.io/circle-flags/flags/de.svg" alt="DE" className="w-6 h-6" title="Germany" />
+                    <img src="https://hatscripts.github.io/circle-flags/flags/gb.svg" alt="UK" className="w-6 h-6" title="United Kingdom" />
+                  </div>
+                </div>
+                
+                <div className="divide-y divide-dark-border/50">
                 {[...results.correlations]
                   .sort((a, b) => {
                     if (a.suggestedType === 'variation' && b.suggestedType !== 'variation') return -1;
@@ -390,6 +474,8 @@ export default function InfluencerAsinCorrelation() {
                   })
                   .map((item, index) => {
                   const productImage = item.imageUrl || null;
+                  const itemFeedback = feedback[item.asin] || {};
+                  const isCheckingAvail = checkingAvailability[item.asin];
 
                   return (
                   <div key={item.asin || index} className="flex items-center gap-4 py-3 hover:bg-dark-bg transition-colors">
@@ -430,7 +516,7 @@ export default function InfluencerAsinCorrelation() {
                     </div>
 
                     {/* ASIN & Link */}
-                    <div className="flex-shrink-0 text-right mr-4">
+                    <div className="flex-shrink-0 w-24 text-center">
                       <p className="text-sm font-mono text-text-secondary">{item.asin || 'N/A'}</p>
                       {item.url && (
                         <a
@@ -445,14 +531,12 @@ export default function InfluencerAsinCorrelation() {
                     </div>
 
                     {/* Feedback Buttons */}
-                    <div className="flex-shrink-0 min-w-[140px]">
+                    <div className="flex-shrink-0 w-40 flex items-center justify-center gap-2">
                       {feedbackLoading ? (
-                        <div className="flex items-center gap-2 text-text-tertiary">
-                          <span className="text-xs">Loading...</span>
-                        </div>
-                      ) : feedback[item.asin] ? (
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs px-3 py-1.5 rounded-full ${
+                        <span className="text-xs text-text-tertiary">Loading...</span>
+                      ) : feedback[item.asin]?.decision ? (
+                        <div className="flex items-center gap-1">
+                          <span className={`text-xs px-2 py-1 rounded-full ${
                             feedback[item.asin].decision === 'accepted'
                               ? 'bg-success/20 text-success'
                               : 'bg-error/20 text-error'
@@ -462,14 +546,14 @@ export default function InfluencerAsinCorrelation() {
                           <button
                             onClick={() => handleUndo(item)}
                             disabled={savingFeedback[item.asin]}
-                            className="text-xs px-2 py-1 text-text-tertiary hover:text-text-secondary hover:bg-dark-hover rounded transition-colors disabled:opacity-50"
+                            className="text-xs px-1 py-1 text-text-tertiary hover:text-text-secondary hover:bg-dark-hover rounded transition-colors disabled:opacity-50"
                             title="Undo decision"
                           >
                             {savingFeedback[item.asin] ? '...' : '↩'}
                           </button>
                         </div>
                       ) : (
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <button
                             onClick={() => handleAccept(item)}
                             disabled={savingFeedback[item.asin]}
@@ -487,9 +571,64 @@ export default function InfluencerAsinCorrelation() {
                         </div>
                       )}
                     </div>
+
+                    {/* Marketplace Availability Flags - only shown after Accept */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {isCheckingAvail ? (
+                        <>
+                          <span className="w-8 text-center text-text-tertiary text-xs">...</span>
+                          <span className="w-8 text-center text-text-tertiary text-xs">...</span>
+                          <span className="w-8 text-center text-text-tertiary text-xs">...</span>
+                          <span className="w-8 text-center text-text-tertiary text-xs">...</span>
+                        </>
+                      ) : itemFeedback.decision === 'accepted' ? (
+                        <>
+                          {/* US */}
+                          {itemFeedback.available_us === true ? (
+                            <a href={`https://www.amazon.com/dp/${item.asin}`} target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform" title="View on Amazon.com">
+                              <img src="https://hatscripts.github.io/circle-flags/flags/us.svg" alt="US" className="w-6 h-6" />
+                            </a>
+                          ) : (
+                            <span className="w-6 h-6"></span>
+                          )}
+                          {/* CA */}
+                          {itemFeedback.available_ca === true ? (
+                            <a href={`https://www.amazon.ca/dp/${item.asin}`} target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform" title="View on Amazon.ca">
+                              <img src="https://hatscripts.github.io/circle-flags/flags/ca.svg" alt="CA" className="w-6 h-6" />
+                            </a>
+                          ) : (
+                            <span className="w-6 h-6"></span>
+                          )}
+                          {/* DE */}
+                          {itemFeedback.available_de === true ? (
+                            <a href={`https://www.amazon.de/dp/${item.asin}`} target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform" title="View on Amazon.de">
+                              <img src="https://hatscripts.github.io/circle-flags/flags/de.svg" alt="DE" className="w-6 h-6" />
+                            </a>
+                          ) : (
+                            <span className="w-6 h-6"></span>
+                          )}
+                          {/* UK */}
+                          {itemFeedback.available_uk === true ? (
+                            <a href={`https://www.amazon.co.uk/dp/${item.asin}`} target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform" title="View on Amazon.co.uk">
+                              <img src="https://hatscripts.github.io/circle-flags/flags/gb.svg" alt="UK" className="w-6 h-6" />
+                            </a>
+                          ) : (
+                            <span className="w-6 h-6"></span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <span className="w-8 text-center text-text-tertiary">—</span>
+                          <span className="w-8 text-center text-text-tertiary">—</span>
+                          <span className="w-8 text-center text-text-tertiary">—</span>
+                          <span className="w-8 text-center text-text-tertiary">—</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                   );
                 })}
+                </div>
               </div>
             ) : (
               <div className="text-center py-8 text-text-tertiary">

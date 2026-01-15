@@ -1,0 +1,869 @@
+{
+  "gaps": [
+    {
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "aspectName": "Suitable For",
+      "count": 15,
+      "sampleAsins": [
+        "B00IZCSX9U",
+        "B00W9KAQ26",
+        "B00W9KB1GQ",
+        "B012YHUX0S",
+        "B00W9KAQC6"
+      ]
+    },
+    {
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "aspectName": "Type",
+      "count": 12,
+      "sampleAsins": [
+        "B0DZ23MN7Y",
+        "B0DZ61D2VX",
+        "B0DK272TS5",
+        "B0DK277RKC",
+        "B0D241GHP5"
+      ]
+    },
+    {
+      "categoryId": "44995",
+      "categoryName": "Wireless Routers",
+      "aspectName": "Type",
+      "count": 6,
+      "sampleAsins": [
+        "B0FQXFFZ4R",
+        "B0DG9PXYKF",
+        "B085WS7H6K",
+        "B0CN8WD86H",
+        "B0CN8QLS4K"
+      ]
+    },
+    {
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "aspectName": "Model",
+      "count": 6,
+      "sampleAsins": [
+        "B0DK272TS5",
+        "B0DK277RKC",
+        "B0DQ2MKM3Y",
+        "B0FR9PLZVR",
+        "B0FRB529JS"
+      ]
+    },
+    {
+      "categoryId": "36261",
+      "categoryName": "Snow Pants & Bibs",
+      "aspectName": "Style",
+      "count": 5,
+      "sampleAsins": [
+        "B0B5B3PBNR",
+        "B082YNKWY7",
+        "B08PZ3RNLD",
+        "B082YMBX38",
+        "B0B3597KTV"
+      ]
+    },
+    {
+      "categoryId": "36261",
+      "categoryName": "Snow Pants & Bibs",
+      "aspectName": "Type",
+      "count": 5,
+      "sampleAsins": [
+        "B0B5B3PBNR",
+        "B082YNKWY7",
+        "B08PZ3RNLD",
+        "B082YMBX38",
+        "B0B3597KTV"
+      ]
+    },
+    {
+      "categoryId": "36261",
+      "categoryName": "Snow Pants & Bibs",
+      "aspectName": "Department",
+      "count": 5,
+      "sampleAsins": [
+        "B0B5B3PBNR",
+        "B082YNKWY7",
+        "B08PZ3RNLD",
+        "B082YMBX38",
+        "B0B3597KTV"
+      ]
+    },
+    {
+      "categoryId": "24087",
+      "categoryName": "Casual Shoes",
+      "aspectName": "Department",
+      "count": 3,
+      "sampleAsins": [
+        "B0DCJ91JZM",
+        "B00152AGGA",
+        "B0BSG9JVFM"
+      ]
+    },
+    {
+      "categoryId": "24087",
+      "categoryName": "Casual Shoes",
+      "aspectName": "Style",
+      "count": 3,
+      "sampleAsins": [
+        "B0DCJ91JZM",
+        "B00152AGGA",
+        "B0BSG9JVFM"
+      ]
+    },
+    {
+      "categoryId": "24087",
+      "categoryName": "Casual Shoes",
+      "aspectName": "Upper Material",
+      "count": 3,
+      "sampleAsins": [
+        "B0DCJ91JZM",
+        "B00152AGGA",
+        "B0BSG9JVFM"
+      ]
+    },
+    {
+      "categoryId": "99697",
+      "categoryName": "Washer & Dryer Parts",
+      "aspectName": "Type",
+      "count": 2,
+      "sampleAsins": [
+        "B0CQY6MPNG",
+        "B0D4TD8YKS"
+      ]
+    },
+    {
+      "categoryId": "53548",
+      "categoryName": "Comfort Shoes",
+      "aspectName": "Style",
+      "count": 1,
+      "sampleAsins": [
+        "B0CNJ4DJS3"
+      ]
+    },
+    {
+      "categoryId": "53548",
+      "categoryName": "Comfort Shoes",
+      "aspectName": "Department",
+      "count": 1,
+      "sampleAsins": [
+        "B0CNJ4DJS3"
+      ]
+    },
+    {
+      "categoryId": "53548",
+      "categoryName": "Comfort Shoes",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0CNJ4DJS3"
+      ]
+    },
+    {
+      "categoryId": "53548",
+      "categoryName": "Comfort Shoes",
+      "aspectName": "Upper Material",
+      "count": 1,
+      "sampleAsins": [
+        "B0CNJ4DJS3"
+      ]
+    },
+    {
+      "categoryId": "116022",
+      "categoryName": "String Lights, Fairy Lights",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0FN43F8G2"
+      ]
+    },
+    {
+      "categoryId": "123417",
+      "categoryName": "Chargers & Cradles",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0C8HHV9DK"
+      ]
+    },
+    {
+      "categoryId": "20653",
+      "categoryName": "Food Storage Bags",
+      "aspectName": "Item Length",
+      "count": 1,
+      "sampleAsins": [
+        "B093WPZF1Y"
+      ]
+    },
+    {
+      "categoryId": "20653",
+      "categoryName": "Food Storage Bags",
+      "aspectName": "Item Width",
+      "count": 1,
+      "sampleAsins": [
+        "B093WPZF1Y"
+      ]
+    },
+    {
+      "categoryId": "179203",
+      "categoryName": "Paper Towels",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B09NW81TH8"
+      ]
+    },
+    {
+      "categoryId": "184435",
+      "categoryName": "Smart Speakers",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B089DR29T6"
+      ]
+    },
+    {
+      "categoryId": "184435",
+      "categoryName": "Smart Speakers",
+      "aspectName": "Connectivity",
+      "count": 1,
+      "sampleAsins": [
+        "B089DR29T6"
+      ]
+    },
+    {
+      "categoryId": "175689",
+      "categoryName": "Antivirus & Security",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B07PNFRCZS"
+      ]
+    },
+    {
+      "categoryId": "170626",
+      "categoryName": "Lint Removers",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0CJPZ161R"
+      ]
+    },
+    {
+      "categoryId": "48656",
+      "categoryName": "TV Stands & Mounts",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B09JWTLJK4"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "asin": "B09YL1FB69",
+      "status": "ok",
+      "categoryId": "184079",
+      "categoryName": "Liquid Glues & Cements"
+    },
+    {
+      "asin": "B0DCJ91JZM",
+      "status": "gaps",
+      "categoryId": "24087",
+      "categoryName": "Casual Shoes",
+      "missing": [
+        "Department",
+        "Style",
+        "Upper Material"
+      ]
+    },
+    {
+      "asin": "B0DZ23MN7Y",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CQY6MPNG",
+      "status": "gaps",
+      "categoryId": "99697",
+      "categoryName": "Washer & Dryer Parts",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CNJ4DJS3",
+      "status": "gaps",
+      "categoryId": "53548",
+      "categoryName": "Comfort Shoes",
+      "missing": [
+        "Style",
+        "Department",
+        "Type",
+        "Upper Material"
+      ]
+    },
+    {
+      "asin": "B00152AGGA",
+      "status": "gaps",
+      "categoryId": "24087",
+      "categoryName": "Casual Shoes",
+      "missing": [
+        "Department",
+        "Style",
+        "Upper Material"
+      ]
+    },
+    {
+      "asin": "B0BSG9JVFM",
+      "status": "gaps",
+      "categoryId": "24087",
+      "categoryName": "Casual Shoes",
+      "missing": [
+        "Department",
+        "Style",
+        "Upper Material"
+      ]
+    },
+    {
+      "asin": "B0DZ61D2VX",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B07H3P525Q",
+      "status": "ok",
+      "categoryId": "15559",
+      "categoryName": "Disposable Diapers"
+    },
+    {
+      "asin": "B0FQXFFZ4R",
+      "status": "gaps",
+      "categoryId": "44995",
+      "categoryName": "Wireless Routers",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DK272TS5",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type",
+        "Model"
+      ]
+    },
+    {
+      "asin": "B0C6FKN7NZ",
+      "status": "ok",
+      "categoryId": "20552",
+      "categoryName": "Home Fragrance"
+    },
+    {
+      "asin": "B0DG9PXYKF",
+      "status": "gaps",
+      "categoryId": "44995",
+      "categoryName": "Wireless Routers",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DK277RKC",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type",
+        "Model"
+      ]
+    },
+    {
+      "asin": "B0D241GHP5",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B01M31JZ7H",
+      "status": "ok",
+      "categoryId": "15559",
+      "categoryName": "Disposable Diapers"
+    },
+    {
+      "asin": "B07H34Q5S5",
+      "status": "ok",
+      "categoryId": "177014",
+      "categoryName": "Other Kitchen & Dining Items"
+    },
+    {
+      "asin": "B0BFVW29P9",
+      "status": "ok",
+      "categoryId": "25846",
+      "categoryName": "Other Bakeware & Ovenware"
+    },
+    {
+      "asin": "B0FN43F8G2",
+      "status": "gaps",
+      "categoryId": "116022",
+      "categoryName": "String Lights, Fairy Lights",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0F5WYH9NG",
+      "status": "ok",
+      "categoryId": "43421",
+      "categoryName": "Cooking Thermometers"
+    },
+    {
+      "asin": "B0F5WZ658G",
+      "status": "ok",
+      "categoryId": "43421",
+      "categoryName": "Cooking Thermometers"
+    },
+    {
+      "asin": "B0C8HHV9DK",
+      "status": "gaps",
+      "categoryId": "123417",
+      "categoryName": "Chargers & Cradles",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DQ2MKM3Y",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type",
+        "Model"
+      ]
+    },
+    {
+      "asin": "B093WPZF1Y",
+      "status": "gaps",
+      "categoryId": "20653",
+      "categoryName": "Food Storage Bags",
+      "missing": [
+        "Item Length",
+        "Item Width"
+      ]
+    },
+    {
+      "asin": "B0D23QNB6F",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0F5X1CD38",
+      "status": "ok",
+      "categoryId": "43421",
+      "categoryName": "Cooking Thermometers"
+    },
+    {
+      "asin": "B00DEYYRGM",
+      "status": "ok",
+      "categoryId": "15559",
+      "categoryName": "Disposable Diapers"
+    },
+    {
+      "asin": "B085WS7H6K",
+      "status": "gaps",
+      "categoryId": "44995",
+      "categoryName": "Wireless Routers",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0F5X3NSR4",
+      "status": "ok",
+      "categoryId": "43421",
+      "categoryName": "Cooking Thermometers"
+    },
+    {
+      "asin": "B0FR9PLZVR",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type",
+        "Model"
+      ]
+    },
+    {
+      "asin": "B0FRB529JS",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type",
+        "Model"
+      ]
+    },
+    {
+      "asin": "B07H3815HW",
+      "status": "ok",
+      "categoryId": "15559",
+      "categoryName": "Disposable Diapers"
+    },
+    {
+      "asin": "B0D23B14XS",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D23XCB6C",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DQ2PBZ5D",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type",
+        "Model"
+      ]
+    },
+    {
+      "asin": "B0F5X1MX57",
+      "status": "ok",
+      "categoryId": "43421",
+      "categoryName": "Cooking Thermometers"
+    },
+    {
+      "asin": "B07H38112X",
+      "status": "ok",
+      "categoryId": "15559",
+      "categoryName": "Disposable Diapers"
+    },
+    {
+      "asin": "B00IZCSX9U",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B00W9KAQ26",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B00W9KB1GQ",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B0B5B3PBNR",
+      "status": "gaps",
+      "categoryId": "36261",
+      "categoryName": "Snow Pants & Bibs",
+      "missing": [
+        "Style",
+        "Type",
+        "Department"
+      ]
+    },
+    {
+      "asin": "B012YHUX0S",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B082YNKWY7",
+      "status": "gaps",
+      "categoryId": "36261",
+      "categoryName": "Snow Pants & Bibs",
+      "missing": [
+        "Style",
+        "Type",
+        "Department"
+      ]
+    },
+    {
+      "asin": "B09NW81TH8",
+      "status": "gaps",
+      "categoryId": "179203",
+      "categoryName": "Paper Towels",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D4TD8YKS",
+      "status": "gaps",
+      "categoryId": "99697",
+      "categoryName": "Washer & Dryer Parts",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CN8WD86H",
+      "status": "gaps",
+      "categoryId": "44995",
+      "categoryName": "Wireless Routers",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B089DR29T6",
+      "status": "gaps",
+      "categoryId": "184435",
+      "categoryName": "Smart Speakers",
+      "missing": [
+        "Type",
+        "Connectivity"
+      ]
+    },
+    {
+      "asin": "B08PZ3RNLD",
+      "status": "gaps",
+      "categoryId": "36261",
+      "categoryName": "Snow Pants & Bibs",
+      "missing": [
+        "Style",
+        "Type",
+        "Department"
+      ]
+    },
+    {
+      "asin": "B00W9KAQC6",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B00YJJ0HQA",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B07PNFRCZS",
+      "status": "gaps",
+      "categoryId": "175689",
+      "categoryName": "Antivirus & Security",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B082YMBX38",
+      "status": "gaps",
+      "categoryId": "36261",
+      "categoryName": "Snow Pants & Bibs",
+      "missing": [
+        "Style",
+        "Type",
+        "Department"
+      ]
+    },
+    {
+      "asin": "B00YJJ0HAG",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B0CN8QLS4K",
+      "status": "gaps",
+      "categoryId": "44995",
+      "categoryName": "Wireless Routers",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0178ENHYG",
+      "status": "ok",
+      "categoryId": "1278",
+      "categoryName": "Endurance & Energy Bars, Drinks & Pills"
+    },
+    {
+      "asin": "B0B3597KTV",
+      "status": "gaps",
+      "categoryId": "36261",
+      "categoryName": "Snow Pants & Bibs",
+      "missing": [
+        "Style",
+        "Type",
+        "Department"
+      ]
+    },
+    {
+      "asin": "B0F9FWP38Z",
+      "status": "ok",
+      "categoryId": "1278",
+      "categoryName": "Endurance & Energy Bars, Drinks & Pills"
+    },
+    {
+      "asin": "B0CJPZ161R",
+      "status": "gaps",
+      "categoryId": "170626",
+      "categoryName": "Lint Removers",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B00W9KAQMQ",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B00L1LLK9M",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B00W9KAQP8",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B00IZCSW3M",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B00W9KAQOO",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B0BNJXST23",
+      "status": "ok",
+      "categoryId": "20398",
+      "categoryName": "Skin Care"
+    },
+    {
+      "asin": "B01G1WP1Z4",
+      "status": "ok",
+      "categoryId": "9972",
+      "categoryName": "Calculators"
+    },
+    {
+      "asin": "B012YHV0HI",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B00L1LKQE2",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B07SQZQWKH",
+      "status": "gaps",
+      "categoryId": "41431",
+      "categoryName": "Strings",
+      "missing": [
+        "Suitable For"
+      ]
+    },
+    {
+      "asin": "B0CN8WBXY2",
+      "status": "gaps",
+      "categoryId": "44995",
+      "categoryName": "Wireless Routers",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B09JWTLJK4",
+      "status": "gaps",
+      "categoryId": "48656",
+      "categoryName": "TV Stands & Mounts",
+      "missing": [
+        "Type"
+      ]
+    }
+  ]
+}

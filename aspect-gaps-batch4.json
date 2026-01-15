@@ -1,0 +1,156 @@
+{
+  "gaps": [
+    {
+      "categoryId": "31388",
+      "categoryName": "Digital Cameras",
+      "aspectName": "Type",
+      "count": 2,
+      "sampleAsins": [
+        "B07GW23M7T",
+        "B00I8BICCG"
+      ]
+    },
+    {
+      "categoryId": "112529",
+      "categoryName": "Headphones",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0863TXGM3"
+      ]
+    },
+    {
+      "categoryId": "112529",
+      "categoryName": "Headphones",
+      "aspectName": "Connectivity",
+      "count": 1,
+      "sampleAsins": [
+        "B0863TXGM3"
+      ]
+    },
+    {
+      "categoryId": "175669",
+      "categoryName": "Solid State Drives",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B08GTYFC37"
+      ]
+    },
+    {
+      "categoryId": "23160",
+      "categoryName": "Mice, Trackballs & Touchpads",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B07GBZ4Q68"
+      ]
+    },
+    {
+      "categoryId": "184435",
+      "categoryName": "Smart Speakers",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B09B2SBHQK"
+      ]
+    },
+    {
+      "categoryId": "184435",
+      "categoryName": "Smart Speakers",
+      "aspectName": "Connectivity",
+      "count": 1,
+      "sampleAsins": [
+        "B09B2SBHQK"
+      ]
+    },
+    {
+      "categoryId": "260172",
+      "categoryName": "Miter Saws",
+      "aspectName": "Battery Included",
+      "count": 1,
+      "sampleAsins": [
+        "B00004TBPX"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "asin": "B07GW23M7T",
+      "status": "gaps",
+      "categoryId": "31388",
+      "categoryName": "Digital Cameras",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B00I8BICCG",
+      "status": "gaps",
+      "categoryId": "31388",
+      "categoryName": "Digital Cameras",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0863TXGM3",
+      "status": "gaps",
+      "categoryId": "112529",
+      "categoryName": "Headphones",
+      "missing": [
+        "Type",
+        "Connectivity"
+      ]
+    },
+    {
+      "asin": "B08H75RTZ8",
+      "status": "ok",
+      "categoryId": "139971",
+      "categoryName": "Video Game Consoles"
+    },
+    {
+      "asin": "B08GTYFC37",
+      "status": "gaps",
+      "categoryId": "175669",
+      "categoryName": "Solid State Drives",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B07VGRJDFY",
+      "status": "ok",
+      "categoryId": "139971",
+      "categoryName": "Video Game Consoles"
+    },
+    {
+      "asin": "B07GBZ4Q68",
+      "status": "gaps",
+      "categoryId": "23160",
+      "categoryName": "Mice, Trackballs & Touchpads",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B09B2SBHQK",
+      "status": "gaps",
+      "categoryId": "184435",
+      "categoryName": "Smart Speakers",
+      "missing": [
+        "Type",
+        "Connectivity"
+      ]
+    },
+    {
+      "asin": "B00004TBPX",
+      "status": "gaps",
+      "categoryId": "260172",
+      "categoryName": "Miter Saws",
+      "missing": [
+        "Battery Included"
+      ]
+    }
+  ]
+}

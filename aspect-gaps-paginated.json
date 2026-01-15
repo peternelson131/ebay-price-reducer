@@ -1,0 +1,800 @@
+{
+  "gaps": [
+    {
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "aspectName": "Department",
+      "count": 58,
+      "sampleAsins": [
+        "B0DB1T1YZ6",
+        "B0FDQ3B7L9",
+        "B0FFN7QPFD",
+        "B0FFN9NN5R",
+        "B0DFGDL6YB"
+      ]
+    },
+    {
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "aspectName": "Type",
+      "count": 58,
+      "sampleAsins": [
+        "B0DB1T1YZ6",
+        "B0FDQ3B7L9",
+        "B0FFN7QPFD",
+        "B0FFN9NN5R",
+        "B0DFGDL6YB"
+      ]
+    },
+    {
+      "categoryId": "181408",
+      "categoryName": "Canteens, Bottles & Flasks",
+      "aspectName": "Volume",
+      "count": 1,
+      "sampleAsins": [
+        "B0BZYC7N7X"
+      ]
+    },
+    {
+      "categoryId": "261186",
+      "categoryName": "Books",
+      "aspectName": "Author",
+      "count": 1,
+      "sampleAsins": [
+        "B0CGC8LSS1"
+      ]
+    },
+    {
+      "categoryId": "261186",
+      "categoryName": "Books",
+      "aspectName": "Book Title",
+      "count": 1,
+      "sampleAsins": [
+        "B0CGC8LSS1"
+      ]
+    },
+    {
+      "categoryId": "261186",
+      "categoryName": "Books",
+      "aspectName": "Language",
+      "count": 1,
+      "sampleAsins": [
+        "B0CGC8LSS1"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "asin": "B0DB1T1YZ6",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DXVZGRR7",
+      "status": "ok",
+      "categoryId": "259689",
+      "categoryName": "Windshield Wiper Arms & Blades"
+    },
+    {
+      "asin": "B0BJQV1S6F",
+      "status": "ok",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes"
+    },
+    {
+      "asin": "B0FDQ3B7L9",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0BZYC7N7X",
+      "status": "gaps",
+      "categoryId": "181408",
+      "categoryName": "Canteens, Bottles & Flasks",
+      "missing": [
+        "Volume"
+      ]
+    },
+    {
+      "asin": "B0FFN7QPFD",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN9NN5R",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DFGDL6YB",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN9S585",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FDPZ4Q9T",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DB1W1PVQ",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FLX9Z8PL",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FLXCSRTF",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D4Y3KBJB",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN7XT38",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DKJG7PXD",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN11Q27",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN8XVNG",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DKJG6GGK",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DB1T36S9",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D4YP3KXP",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B07SRDK7P1",
+      "status": "ok",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes"
+    },
+    {
+      "asin": "B00KQ33JQI",
+      "status": "ok",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes"
+    },
+    {
+      "asin": "B0FFN982PW",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DB1T6R9Z",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN6J4RC",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D642J3KX",
+      "status": "ok",
+      "categoryId": "1278",
+      "categoryName": "Endurance & Energy Bars, Drinks & Pills"
+    },
+    {
+      "asin": "B0DR7PH993",
+      "status": "ok",
+      "categoryId": "184592",
+      "categoryName": "Other Sensory Toys"
+    },
+    {
+      "asin": "B0FFN87WVV",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FDQ7MJHV",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DGKZLM1T",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FDQ5Y2WR",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D4YDFJFL",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN8MP6N",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DR7MLG17",
+      "status": "ok",
+      "categoryId": "184592",
+      "categoryName": "Other Sensory Toys"
+    },
+    {
+      "asin": "B0F6F8M3KG",
+      "status": "ok",
+      "categoryId": "1278",
+      "categoryName": "Endurance & Energy Bars, Drinks & Pills"
+    },
+    {
+      "asin": "B07SVHLGV8",
+      "status": "ok",
+      "categoryId": "15559",
+      "categoryName": "Disposable Diapers"
+    },
+    {
+      "asin": "B0DB1TXP3X",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DB1TSQK8",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CJK1MW2P",
+      "status": "ok",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes"
+    },
+    {
+      "asin": "B0FFN7Y361",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FDQ6HBNW",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FDQ3YJMK",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FDQ3CBD8",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B09CZCK955",
+      "status": "ok",
+      "categoryId": "93839",
+      "categoryName": "Other Travel Accessories"
+    },
+    {
+      "asin": "B0FLXB7FB1",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D4YJYZTQ",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DKJDT8F2",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DKJDHX7N",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DB1VCQ1G",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B084CTGDKQ",
+      "status": "ok",
+      "categoryId": "93839",
+      "categoryName": "Other Travel Accessories"
+    },
+    {
+      "asin": "B0D4YGZN3X",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D4YLXYWS",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN8HKLB",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B017TD24ZY",
+      "status": "ok",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes"
+    },
+    {
+      "asin": "B0FFN9FJNX",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D4Y8MST4",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN89PML",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DGKKHL42",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DKJG4HKJ",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DFMQ2BN4",
+      "status": "ok",
+      "categoryId": "88433",
+      "categoryName": "Every Other Thing"
+    },
+    {
+      "asin": "B0FFN51G9Z",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B005MHY1GA",
+      "status": "ok",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes"
+    },
+    {
+      "asin": "B0FLX89X4P",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0BN29HP68",
+      "status": "ok",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes"
+    },
+    {
+      "asin": "B0D4YD34LV",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DGL28F21",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B08V6MVB8N",
+      "status": "ok",
+      "categoryId": "15559",
+      "categoryName": "Disposable Diapers"
+    },
+    {
+      "asin": "B0FFN1QYJD",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN65XVV",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D4YM6KFV",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D4Y56C2X",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CGC8LSS1",
+      "status": "gaps",
+      "categoryId": "261186",
+      "categoryName": "Books",
+      "missing": [
+        "Author",
+        "Book Title",
+        "Language"
+      ]
+    },
+    {
+      "asin": "B09CLLD99K",
+      "status": "ok",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes"
+    },
+    {
+      "asin": "B0BSLTHMPP",
+      "status": "ok",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes"
+    },
+    {
+      "asin": "B0CGBP3VP7",
+      "status": "ok",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes"
+    },
+    {
+      "asin": "B0FFN9FDBC",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D4Y56C2G",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN8DK17",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DB1TQFLW",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    }
+  ],
+  "categoriesAnalyzed": [
+    "53159",
+    "259689",
+    "180918",
+    "181408",
+    "1278",
+    "184592",
+    "15559",
+    "93839",
+    "88433",
+    "261186"
+  ]
+}

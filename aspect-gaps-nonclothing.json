@@ -1,0 +1,875 @@
+{
+  "gaps": [
+    {
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "aspectName": "Item Height",
+      "count": 19,
+      "sampleAsins": [
+        "B0C6JWBDCW",
+        "B0BQQC3FTX",
+        "B0CQT45P82",
+        "B0FJLM7F1L",
+        "B0CBXCF9ZY"
+      ]
+    },
+    {
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "aspectName": "Item Length",
+      "count": 19,
+      "sampleAsins": [
+        "B0C6JWBDCW",
+        "B0BQQC3FTX",
+        "B0CQT45P82",
+        "B0FJLM7F1L",
+        "B0CBXCF9ZY"
+      ]
+    },
+    {
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "aspectName": "Item Width",
+      "count": 19,
+      "sampleAsins": [
+        "B0C6JWBDCW",
+        "B0BQQC3FTX",
+        "B0CQT45P82",
+        "B0FJLM7F1L",
+        "B0CBXCF9ZY"
+      ]
+    },
+    {
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "aspectName": "Type",
+      "count": 19,
+      "sampleAsins": [
+        "B0C6JWBDCW",
+        "B0BQQC3FTX",
+        "B0CQT45P82",
+        "B0FJLM7F1L",
+        "B0CBXCF9ZY"
+      ]
+    },
+    {
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "aspectName": "Type",
+      "count": 12,
+      "sampleAsins": [
+        "B0DB1CVMCB",
+        "B0DJNV8K5X",
+        "B0FDQBQSHN",
+        "B0D6RHD19N",
+        "B0FQHR16PS"
+      ]
+    },
+    {
+      "categoryId": "117042",
+      "categoryName": "Controllers & Attachments",
+      "aspectName": "Type",
+      "count": 5,
+      "sampleAsins": [
+        "B0DT5SQ84T",
+        "B0F1HDBJKH",
+        "B0FTQ5RJM7",
+        "B0F1J1JTKP",
+        "B08ZNQN1FP"
+      ]
+    },
+    {
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "aspectName": "Type",
+      "count": 4,
+      "sampleAsins": [
+        "B0DJ31VZZ3",
+        "B0BZWRLRLK",
+        "B0DJWGKVJJ",
+        "B0BZWRSRWV"
+      ]
+    },
+    {
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "aspectName": "Storage Capacity",
+      "count": 3,
+      "sampleAsins": [
+        "B084BWC5ZF",
+        "B084BVYZFN",
+        "B084C15855"
+      ]
+    },
+    {
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "aspectName": "Type",
+      "count": 3,
+      "sampleAsins": [
+        "B084BWC5ZF",
+        "B084BVYZFN",
+        "B084C15855"
+      ]
+    },
+    {
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "aspectName": "Internet Connectivity",
+      "count": 3,
+      "sampleAsins": [
+        "B084BWC5ZF",
+        "B084BVYZFN",
+        "B084C15855"
+      ]
+    },
+    {
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "aspectName": "Type",
+      "count": 3,
+      "sampleAsins": [
+        "B0D8B3WYKK",
+        "B0BDQXLT4C",
+        "B0BZR7VM51"
+      ]
+    },
+    {
+      "categoryId": "116743",
+      "categoryName": "Clothes Hangers",
+      "aspectName": "Type",
+      "count": 3,
+      "sampleAsins": [
+        "B01M4LQHAP",
+        "B07Y39ZXV7",
+        "B01MAZ6ZPN"
+      ]
+    },
+    {
+      "categoryId": "116743",
+      "categoryName": "Clothes Hangers",
+      "aspectName": "Item Height",
+      "count": 3,
+      "sampleAsins": [
+        "B01M4LQHAP",
+        "B07Y39ZXV7",
+        "B01MAZ6ZPN"
+      ]
+    },
+    {
+      "categoryId": "116743",
+      "categoryName": "Clothes Hangers",
+      "aspectName": "Item Length",
+      "count": 3,
+      "sampleAsins": [
+        "B01M4LQHAP",
+        "B07Y39ZXV7",
+        "B01MAZ6ZPN"
+      ]
+    },
+    {
+      "categoryId": "116743",
+      "categoryName": "Clothes Hangers",
+      "aspectName": "Item Width",
+      "count": 3,
+      "sampleAsins": [
+        "B01M4LQHAP",
+        "B07Y39ZXV7",
+        "B01MAZ6ZPN"
+      ]
+    },
+    {
+      "categoryId": "166679",
+      "categoryName": "Other Bullion",
+      "aspectName": "Certification",
+      "count": 1,
+      "sampleAsins": [
+        "B07RZM6BDJ"
+      ]
+    },
+    {
+      "categoryId": "179203",
+      "categoryName": "Paper Towels",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0DYV4TGG9"
+      ]
+    },
+    {
+      "categoryId": "58540",
+      "categoryName": "Screen Protectors",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0CCYNCW8G"
+      ]
+    },
+    {
+      "categoryId": "261186",
+      "categoryName": "Books",
+      "aspectName": "Author",
+      "count": 1,
+      "sampleAsins": [
+        "1538742578"
+      ]
+    },
+    {
+      "categoryId": "261186",
+      "categoryName": "Books",
+      "aspectName": "Book Title",
+      "count": 1,
+      "sampleAsins": [
+        "1538742578"
+      ]
+    },
+    {
+      "categoryId": "261186",
+      "categoryName": "Books",
+      "aspectName": "Language",
+      "count": 1,
+      "sampleAsins": [
+        "1538742578"
+      ]
+    },
+    {
+      "categoryId": "39464",
+      "categoryName": "Morgan (1878-1921)",
+      "aspectName": "Certification",
+      "count": 1,
+      "sampleAsins": [
+        "B07K9Q32MR"
+      ]
+    },
+    {
+      "categoryId": "39464",
+      "categoryName": "Morgan (1878-1921)",
+      "aspectName": "Circulated/Uncirculated",
+      "count": 1,
+      "sampleAsins": [
+        "B07K9Q32MR"
+      ]
+    },
+    {
+      "categoryId": "31711",
+      "categoryName": "Binoculars",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B07V3M2DX9"
+      ]
+    },
+    {
+      "categoryId": "31711",
+      "categoryName": "Binoculars",
+      "aspectName": "Maximum Magnification",
+      "count": 1,
+      "sampleAsins": [
+        "B07V3M2DX9"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "asin": "B07RZM6BDJ",
+      "status": "gaps",
+      "categoryId": "166679",
+      "categoryName": "Other Bullion",
+      "missing": [
+        "Certification"
+      ]
+    },
+    {
+      "asin": "B0DYV4TGG9",
+      "status": "gaps",
+      "categoryId": "179203",
+      "categoryName": "Paper Towels",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B084BWC5ZF",
+      "status": "gaps",
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "missing": [
+        "Storage Capacity",
+        "Type",
+        "Internet Connectivity"
+      ]
+    },
+    {
+      "asin": "B0DB1CVMCB",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D8B3WYKK",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0BL7316GD",
+      "status": "ok",
+      "categoryId": "165237",
+      "categoryName": "Energy Drinks"
+    },
+    {
+      "asin": "B01M4LQHAP",
+      "status": "gaps",
+      "categoryId": "116743",
+      "categoryName": "Clothes Hangers",
+      "missing": [
+        "Type",
+        "Item Height",
+        "Item Length",
+        "Item Width"
+      ]
+    },
+    {
+      "asin": "B07Y39ZXV7",
+      "status": "gaps",
+      "categoryId": "116743",
+      "categoryName": "Clothes Hangers",
+      "missing": [
+        "Type",
+        "Item Height",
+        "Item Length",
+        "Item Width"
+      ]
+    },
+    {
+      "asin": "B0DJNV8K5X",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0BDQXLT4C",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B01MAZ6ZPN",
+      "status": "gaps",
+      "categoryId": "116743",
+      "categoryName": "Clothes Hangers",
+      "missing": [
+        "Type",
+        "Item Height",
+        "Item Length",
+        "Item Width"
+      ]
+    },
+    {
+      "asin": "B0BZR7VM51",
+      "status": "gaps",
+      "categoryId": "26384",
+      "categoryName": "Balloons",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FDQBQSHN",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B084BVYZFN",
+      "status": "gaps",
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "missing": [
+        "Storage Capacity",
+        "Type",
+        "Internet Connectivity"
+      ]
+    },
+    {
+      "asin": "B0D6RHD19N",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CCYNCW8G",
+      "status": "gaps",
+      "categoryId": "58540",
+      "categoryName": "Screen Protectors",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B084C15855",
+      "status": "gaps",
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "missing": [
+        "Storage Capacity",
+        "Type",
+        "Internet Connectivity"
+      ]
+    },
+    {
+      "asin": "B0855NBDH3",
+      "status": "ok",
+      "categoryId": "1278",
+      "categoryName": "Endurance & Energy Bars, Drinks & Pills"
+    },
+    {
+      "asin": "B0DT5SQ84T",
+      "status": "gaps",
+      "categoryId": "117042",
+      "categoryName": "Controllers & Attachments",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DJ31VZZ3",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0C6JWBDCW",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0BQQC3FTX",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0BZWRLRLK",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B09W1KW4WG",
+      "status": "ok",
+      "categoryId": "36589",
+      "categoryName": "Yarn"
+    },
+    {
+      "asin": "B0CQT45P82",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "1538742578",
+      "status": "gaps",
+      "categoryId": "261186",
+      "categoryName": "Books",
+      "missing": [
+        "Author",
+        "Book Title",
+        "Language"
+      ]
+    },
+    {
+      "asin": "B0FJLM7F1L",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FQHR16PS",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CBXCF9ZY",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DJWGKVJJ",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CHSCPJW1",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0C5JBMNYB",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B07K9Q32MR",
+      "status": "gaps",
+      "categoryId": "39464",
+      "categoryName": "Morgan (1878-1921)",
+      "missing": [
+        "Certification",
+        "Circulated/Uncirculated"
+      ]
+    },
+    {
+      "asin": "B0F1HDBJKH",
+      "status": "gaps",
+      "categoryId": "117042",
+      "categoryName": "Controllers & Attachments",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0C5J8MS7G",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D9XZRZ9Y",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B07V3M2DX9",
+      "status": "gaps",
+      "categoryId": "31711",
+      "categoryName": "Binoculars",
+      "missing": [
+        "Type",
+        "Maximum Magnification"
+      ]
+    },
+    {
+      "asin": "B0FJLTK2VZ",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FJLQQDNZ",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DJQGCV43",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CCV5LT58",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FJLHLH18",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FJLM2XJW",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0F4N1N969",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DJNT99SQ",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CYQ3LYWJ",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FTQ5RJM7",
+      "status": "gaps",
+      "categoryId": "117042",
+      "categoryName": "Controllers & Attachments",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FJLLWHB8",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DHKWJ6XX",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0F1J1JTKP",
+      "status": "gaps",
+      "categoryId": "117042",
+      "categoryName": "Controllers & Attachments",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D6QY5WCN",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CQTD85J3",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FDQ3PWCX",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D49GT4QX",
+      "status": "gaps",
+      "categoryId": "20349",
+      "categoryName": "Cases, Covers & Skins",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DHKXBYKB",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B09W1KRS3R",
+      "status": "ok",
+      "categoryId": "36589",
+      "categoryName": "Yarn"
+    },
+    {
+      "asin": "B08ZNQN1FP",
+      "status": "gaps",
+      "categoryId": "117042",
+      "categoryName": "Controllers & Attachments",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B09W1LD8ZW",
+      "status": "ok",
+      "categoryId": "36589",
+      "categoryName": "Yarn"
+    },
+    {
+      "asin": "B0FJLPZJJ9",
+      "status": "gaps",
+      "categoryId": "79654",
+      "categoryName": "Frames",
+      "missing": [
+        "Item Height",
+        "Item Length",
+        "Item Width",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0BZWRSRWV",
+      "status": "gaps",
+      "categoryId": "48638",
+      "categoryName": "Security Cameras",
+      "missing": [
+        "Type"
+      ]
+    }
+  ]
+}

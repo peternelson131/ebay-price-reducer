@@ -33,7 +33,7 @@ async function keepaProductLookup(asins: string | string[], keepaKey: string) {
 }
 
 async function keepaProductSearch(brand: string, rootCategory: number, keepaKey: string) {
-  const query: Record<string, unknown> = { perPage: 100 }  // Max 100 for better coverage
+  const query: Record<string, unknown> = { perPage: 50 }  // Match n8n workflow
   if (brand) query.brand = [brand]
   if (rootCategory) query.rootCategory = [rootCategory]
   
@@ -103,7 +103,7 @@ async function evaluateSimilarity(primary: ProductData, candidate: ProductData, 
       .replace('{candidate_title}', candidate.title)
       .replace('{candidate_brand}', candidate.brand || 'Unknown');
   } else {
-    // Default prompt - accept same product TYPE from same brand
+    // Default prompt - match n8n workflow
     prompt = `PRIMARY PRODUCT:
 Title: ${primary.title}
 Brand: ${primary.brand || 'Unknown'}
@@ -113,19 +113,18 @@ ASIN: ${candidate.asin}
 Title: ${candidate.title}
 Brand: ${candidate.brand || 'Unknown'}
 
-Question: Is the CANDIDATE a similar product that a shopper might also consider?
+Question: Is the CANDIDATE the same product as the primary product?
 
 Answer YES if:
-- Same brand AND same product type (e.g., both speakers, both headphones)
-- Candidate is a variant (different color, size, model number)
-- Candidate is a different model in the same product line
-- Candidate is a bundle or multi-pack of the same product
-- Both serve the same primary purpose
+- Both are the same product (e.g., both speakers, both headphones)
+- Candidate is a variant of the primary (different color, size, model)
+- Same clothing item besides color and size
 
 Answer NO if:
-- Candidate is an accessory (charger, cable, case, adapter, stand, mount)
-- Different product category (speaker vs headphones, shoes vs socks)
-- Different brand entirely
+- Candidate is a different kind of product (e.g., primary is speaker, candidate is cable)
+- Candidate is an accessory (charger, cable, case, adapter)
+- Candidate serves a completely different purpose
+- The candidate is a different year's model of a product
 
 Answer with ONLY: YES or NO`;
   }
@@ -325,18 +324,20 @@ serve(async (req) => {
       console.log(`✅ Got ${allCorrelations.length} variations`)
     }
     
-    // 4. Search for similar products (if we have brand + category + AI key)
+    // 4. Search for similar products (if we have AI key - search even without brand/category like n8n)
     console.log(`🔍 Similar search check: brand="${primary.brand}", category=${primary.rootCategory}, hasAIKey=${!!anthropicKey}`)
-    if (primary.brand && primary.rootCategory && anthropicKey) {
+    if (anthropicKey && (primary.brand || primary.rootCategory)) {
       console.log('🔍 Searching for similar products...')
       
       try {
-        const similarAsins = await keepaProductSearch(primary.brand, primary.rootCategory, keepaKey)
+        const similarAsins = await keepaProductSearch(primary.brand || '', primary.rootCategory, keepaKey)
         debug.searchResultCount = similarAsins.length
         console.log(`🔍 Keepa search returned ${similarAsins.length} ASINs`)
-        const excludeSet = new Set([normalizedAsin, ...variationAsins])
+        // Only exclude the variations we actually fetched (first 20), matching n8n behavior
+        const fetchedVariationAsins = allCorrelations.filter(c => c.type === 'variation').map(c => c.asin)
+        const excludeSet = new Set([normalizedAsin, ...fetchedVariationAsins])
         console.log(`🔍 Exclude set: ${[...excludeSet]}`)
-        const candidateAsins = similarAsins.filter((a: string) => !excludeSet.has(a)).slice(0, 30)
+        const candidateAsins = similarAsins.filter((a: string) => !excludeSet.has(a))
         debug.candidateCount = candidateAsins.length
         debug.candidateAsins = candidateAsins
         console.log(`🔍 Candidate ASINs after filter: ${candidateAsins.length} - ${candidateAsins}`)

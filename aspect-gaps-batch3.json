@@ -1,0 +1,178 @@
+{
+  "gaps": [
+    {
+      "categoryId": "184435",
+      "categoryName": "Smart Speakers",
+      "aspectName": "Type",
+      "count": 3,
+      "sampleAsins": [
+        "B09B8V1LZ3",
+        "B07FZ8S74R",
+        "B07XJ8C8F5"
+      ]
+    },
+    {
+      "categoryId": "184435",
+      "categoryName": "Smart Speakers",
+      "aspectName": "Connectivity",
+      "count": 3,
+      "sampleAsins": [
+        "B09B8V1LZ3",
+        "B07FZ8S74R",
+        "B07XJ8C8F5"
+      ]
+    },
+    {
+      "categoryId": "80077",
+      "categoryName": "Headsets",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B09JQMJHXY"
+      ]
+    },
+    {
+      "categoryId": "80077",
+      "categoryName": "Headsets",
+      "aspectName": "Connectivity",
+      "count": 1,
+      "sampleAsins": [
+        "B09JQMJHXY"
+      ]
+    },
+    {
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "aspectName": "Storage Capacity",
+      "count": 1,
+      "sampleAsins": [
+        "B09V3KXJPB"
+      ]
+    },
+    {
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B09V3KXJPB"
+      ]
+    },
+    {
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "aspectName": "Internet Connectivity",
+      "count": 1,
+      "sampleAsins": [
+        "B09V3KXJPB"
+      ]
+    },
+    {
+      "categoryId": "9355",
+      "categoryName": "Cell Phones & Smartphones",
+      "aspectName": "Storage Capacity",
+      "count": 1,
+      "sampleAsins": [
+        "B0B3PSRHHN"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "asin": "B09JQMJHXY",
+      "status": "gaps",
+      "categoryId": "80077",
+      "categoryName": "Headsets",
+      "missing": [
+        "Type",
+        "Connectivity"
+      ]
+    },
+    {
+      "asin": "B09V3KXJPB",
+      "status": "gaps",
+      "categoryId": "171485",
+      "categoryName": "Tablets & eBook Readers",
+      "missing": [
+        "Storage Capacity",
+        "Type",
+        "Internet Connectivity"
+      ]
+    },
+    {
+      "asin": "B08FC6MR62",
+      "status": "ok",
+      "categoryId": "139971",
+      "categoryName": "Video Game Consoles"
+    },
+    {
+      "asin": "B0BCNKKZ91",
+      "status": "ok",
+      "categoryId": "139971",
+      "categoryName": "Video Game Consoles"
+    },
+    {
+      "asin": "B0B3PSRHHN",
+      "status": "gaps",
+      "categoryId": "9355",
+      "categoryName": "Cell Phones & Smartphones",
+      "missing": [
+        "Storage Capacity"
+      ]
+    },
+    {
+      "asin": "B09B8V1LZ3",
+      "status": "gaps",
+      "categoryId": "184435",
+      "categoryName": "Smart Speakers",
+      "missing": [
+        "Type",
+        "Connectivity"
+      ]
+    },
+    {
+      "asin": "B07FZ8S74R",
+      "status": "gaps",
+      "categoryId": "184435",
+      "categoryName": "Smart Speakers",
+      "missing": [
+        "Type",
+        "Connectivity"
+      ]
+    },
+    {
+      "asin": "B00FLYWNYQ",
+      "status": "ok",
+      "categoryId": "260311",
+      "categoryName": "Pressure Cookers"
+    },
+    {
+      "asin": "B07XJ8C8F5",
+      "status": "gaps",
+      "categoryId": "184435",
+      "categoryName": "Smart Speakers",
+      "missing": [
+        "Type",
+        "Connectivity"
+      ]
+    },
+    {
+      "asin": "B08DFCWVZ4",
+      "status": "ok",
+      "categoryId": "179798",
+      "categoryName": "Activity Trackers"
+    },
+    {
+      "asin": "B00006IE70",
+      "status": "ok",
+      "categoryId": "257906",
+      "categoryName": "Ballpoint & Rollerball Pens"
+    },
+    {
+      "asin": "B0002DK9OM",
+      "status": "ok",
+      "categoryId": "177791",
+      "categoryName": "Toys"
+    }
+  ]
+}

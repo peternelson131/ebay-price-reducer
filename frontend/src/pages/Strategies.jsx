@@ -77,11 +77,10 @@ export default function Strategies() {
     // Map frontend field names to database column names
     createStrategyMutation.mutate({
       name: newRule.name,
-      strategy_type: newRule.reduction_type,  // DB uses strategy_type
+      strategy_type: newRule.reduction_type,
       reduction_percentage: newRule.reduction_type === 'percentage' ? newRule.reduction_amount : 0,
       reduction_amount: newRule.reduction_type === 'dollar' ? newRule.reduction_amount : 0,
-      interval_days: newRule.frequency_days,  // DB uses interval_days
-      is_active: true
+      interval_days: newRule.frequency_days
     })
 
     setNewRule({
@@ -97,10 +96,10 @@ export default function Strategies() {
     // Map frontend field names to database column names
     const dbUpdates = {
       name: updates.name,
-      strategy_type: updates.reduction_type,  // DB uses strategy_type
+      strategy_type: updates.reduction_type,
       reduction_percentage: updates.reduction_type === 'percentage' ? updates.reduction_amount : 0,
       reduction_amount: updates.reduction_type === 'dollar' ? updates.reduction_amount : 0,
-      interval_days: updates.frequency_days  // DB uses interval_days
+      interval_days: updates.frequency_days
     }
     updateStrategyMutation.mutate({ id, updates: dbUpdates })
     setEditingRule(null)
@@ -368,11 +367,17 @@ export default function Strategies() {
 }
 
 function EditRuleForm({ rule, onSave, onCancel, showNotification }) {
+  // Map DB column names to form field names
+  const strategyType = rule.strategy_type || rule.reduction_type || 'percentage'
+  const reductionValue = strategyType === 'percentage' 
+    ? (rule.reduction_percentage || rule.reduction_amount || 0)
+    : (rule.reduction_amount || 0)
+  
   const [editData, setEditData] = useState({
     name: rule.name,
-    reduction_type: rule.reduction_type || 'percentage',
-    reduction_amount: rule.reduction_amount || 0,
-    frequency_days: rule.frequency_days || 7
+    reduction_type: strategyType,
+    reduction_amount: reductionValue,
+    frequency_days: rule.interval_days || rule.frequency_days || 7
   })
 
   const handleSave = () => {

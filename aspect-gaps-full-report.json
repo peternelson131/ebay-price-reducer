@@ -1,0 +1,616 @@
+{
+  "timestamp": "2026-01-15T02:11:22.484Z",
+  "summary": {
+    "total": 50,
+    "complete": 23,
+    "withGaps": 27,
+    "errors": 0
+  },
+  "categoryStats": {
+    "1278": {
+      "name": "Endurance & Energy Bars, Drinks & Pills",
+      "total": 2,
+      "withGaps": 0,
+      "noGaps": 2
+    },
+    "13874": {
+      "name": "Planes",
+      "total": 3,
+      "withGaps": 0,
+      "noGaps": 3
+    },
+    "14044": {
+      "name": "Pins",
+      "total": 1,
+      "withGaps": 0,
+      "noGaps": 1
+    },
+    "15559": {
+      "name": "Disposable Diapers",
+      "total": 3,
+      "withGaps": 0,
+      "noGaps": 3
+    },
+    "29946": {
+      "name": "Microphones & Wireless Systems",
+      "total": 1,
+      "withGaps": 1,
+      "noGaps": 0
+    },
+    "53159": {
+      "name": "Tops",
+      "total": 16,
+      "withGaps": 16,
+      "noGaps": 0
+    },
+    "58540": {
+      "name": "Screen Protectors",
+      "total": 1,
+      "withGaps": 1,
+      "noGaps": 0
+    },
+    "61769": {
+      "name": "Copier, Printer & Fax Paper",
+      "total": 1,
+      "withGaps": 0,
+      "noGaps": 1
+    },
+    "88433": {
+      "name": "Every Other Thing",
+      "total": 3,
+      "withGaps": 0,
+      "noGaps": 3
+    },
+    "111422": {
+      "name": "Apple Laptops",
+      "total": 3,
+      "withGaps": 3,
+      "noGaps": 0
+    },
+    "146243": {
+      "name": "House Training Pads",
+      "total": 1,
+      "withGaps": 0,
+      "noGaps": 1
+    },
+    "180918": {
+      "name": "Hand Washes",
+      "total": 8,
+      "withGaps": 0,
+      "noGaps": 8
+    },
+    "181028": {
+      "name": "Garden & Lawn Stakes",
+      "total": 1,
+      "withGaps": 1,
+      "noGaps": 0
+    },
+    "181408": {
+      "name": "Canteens, Bottles & Flasks",
+      "total": 4,
+      "withGaps": 4,
+      "noGaps": 0
+    },
+    "259621": {
+      "name": "Cleaning Products",
+      "total": 1,
+      "withGaps": 1,
+      "noGaps": 0
+    },
+    "259689": {
+      "name": "Windshield Wiper Arms & Blades",
+      "total": 1,
+      "withGaps": 0,
+      "noGaps": 1
+    }
+  },
+  "gaps": [
+    {
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "aspectName": "Department",
+      "count": 16,
+      "sampleAsins": [
+        "B0FDQ3B7L9",
+        "B0D4YLB2Z7",
+        "B0D4YK12JS",
+        "B0DGL8S6JL",
+        "B0DB1T1YZ6"
+      ]
+    },
+    {
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "aspectName": "Type",
+      "count": 16,
+      "sampleAsins": [
+        "B0FDQ3B7L9",
+        "B0D4YLB2Z7",
+        "B0D4YK12JS",
+        "B0DGL8S6JL",
+        "B0DB1T1YZ6"
+      ]
+    },
+    {
+      "categoryId": "181408",
+      "categoryName": "Canteens, Bottles & Flasks",
+      "aspectName": "Volume",
+      "count": 4,
+      "sampleAsins": [
+        "B0DBJDDBNZ",
+        "B0FFTNJVQN",
+        "B0DKLNVHNW",
+        "B0BZYC7N7X"
+      ]
+    },
+    {
+      "categoryId": "111422",
+      "categoryName": "Apple Laptops",
+      "aspectName": "Processor",
+      "count": 3,
+      "sampleAsins": [
+        "B0DZDBHQPQ",
+        "B0DZFCDGR4",
+        "B0DZDC3WW5"
+      ]
+    },
+    {
+      "categoryId": "29946",
+      "categoryName": "Microphones & Wireless Systems",
+      "aspectName": "Form Factor",
+      "count": 1,
+      "sampleAsins": [
+        "B0D9MVMVMH"
+      ]
+    },
+    {
+      "categoryId": "58540",
+      "categoryName": "Screen Protectors",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0D9LL8LK7"
+      ]
+    },
+    {
+      "categoryId": "181028",
+      "categoryName": "Garden & Lawn Stakes",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B0CXPZ5HFV"
+      ]
+    },
+    {
+      "categoryId": "259621",
+      "categoryName": "Cleaning Products",
+      "aspectName": "Type",
+      "count": 1,
+      "sampleAsins": [
+        "B08T3W1ZG4"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "asin": "B08HSHWG89",
+      "status": "complete",
+      "categoryId": "146243",
+      "categoryName": "House Training Pads",
+      "missing": []
+    },
+    {
+      "asin": "B0DBJDDBNZ",
+      "status": "gaps",
+      "categoryId": "181408",
+      "categoryName": "Canteens, Bottles & Flasks",
+      "missing": [
+        "Volume"
+      ]
+    },
+    {
+      "asin": "B086ZJXN85",
+      "status": "complete",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes",
+      "missing": []
+    },
+    {
+      "asin": "B0DXW1YYGF",
+      "status": "complete",
+      "categoryId": "88433",
+      "categoryName": "Every Other Thing",
+      "missing": []
+    },
+    {
+      "asin": "B08V6T37X5",
+      "status": "complete",
+      "categoryId": "15559",
+      "categoryName": "Disposable Diapers",
+      "missing": []
+    },
+    {
+      "asin": "B0D9MVMVMH",
+      "status": "gaps",
+      "categoryId": "29946",
+      "categoryName": "Microphones & Wireless Systems",
+      "missing": [
+        "Form Factor"
+      ]
+    },
+    {
+      "asin": "B000S5TIU0",
+      "status": "complete",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes",
+      "missing": []
+    },
+    {
+      "asin": "B0FDQ3B7L9",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0D4YLB2Z7",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0BJQV1S6F",
+      "status": "complete",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes",
+      "missing": []
+    },
+    {
+      "asin": "B07V36F4G9",
+      "status": "complete",
+      "categoryId": "15559",
+      "categoryName": "Disposable Diapers",
+      "missing": []
+    },
+    {
+      "asin": "B0789HTHJW",
+      "status": "complete",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes",
+      "missing": []
+    },
+    {
+      "asin": "B0BJNCKHN7",
+      "status": "complete",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes",
+      "missing": []
+    },
+    {
+      "asin": "B0D4YK12JS",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DXVZGRR7",
+      "status": "complete",
+      "categoryId": "259689",
+      "categoryName": "Windshield Wiper Arms & Blades",
+      "missing": []
+    },
+    {
+      "asin": "B0DGL8S6JL",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DB1T1YZ6",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DJDLNV31",
+      "status": "complete",
+      "categoryId": "1278",
+      "categoryName": "Endurance & Energy Bars, Drinks & Pills",
+      "missing": []
+    },
+    {
+      "asin": "B08B2K6DNM",
+      "status": "complete",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes",
+      "missing": []
+    },
+    {
+      "asin": "B0FFTNJVQN",
+      "status": "gaps",
+      "categoryId": "181408",
+      "categoryName": "Canteens, Bottles & Flasks",
+      "missing": [
+        "Volume"
+      ]
+    },
+    {
+      "asin": "B0DKLNVHNW",
+      "status": "gaps",
+      "categoryId": "181408",
+      "categoryName": "Canteens, Bottles & Flasks",
+      "missing": [
+        "Volume"
+      ]
+    },
+    {
+      "asin": "B016NAA0J6",
+      "status": "complete",
+      "categoryId": "14044",
+      "categoryName": "Pins",
+      "missing": []
+    },
+    {
+      "asin": "B0FPF8HN9Y",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFNBT78F",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DZDBHQPQ",
+      "status": "gaps",
+      "categoryId": "111422",
+      "categoryName": "Apple Laptops",
+      "missing": [
+        "Processor"
+      ]
+    },
+    {
+      "asin": "B0BZYC7N7X",
+      "status": "gaps",
+      "categoryId": "181408",
+      "categoryName": "Canteens, Bottles & Flasks",
+      "missing": [
+        "Volume"
+      ]
+    },
+    {
+      "asin": "B0DXW2P236",
+      "status": "complete",
+      "categoryId": "88433",
+      "categoryName": "Every Other Thing",
+      "missing": []
+    },
+    {
+      "asin": "B0FFN7QPFD",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0C888NWQK",
+      "status": "complete",
+      "categoryId": "15559",
+      "categoryName": "Disposable Diapers",
+      "missing": []
+    },
+    {
+      "asin": "B0D9LL8LK7",
+      "status": "gaps",
+      "categoryId": "58540",
+      "categoryName": "Screen Protectors",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B01FV0F13E",
+      "status": "complete",
+      "categoryId": "61769",
+      "categoryName": "Copier, Printer & Fax Paper",
+      "missing": []
+    },
+    {
+      "asin": "B00AATAHY0",
+      "status": "complete",
+      "categoryId": "1278",
+      "categoryName": "Endurance & Energy Bars, Drinks & Pills",
+      "missing": []
+    },
+    {
+      "asin": "B0DXW15G7R",
+      "status": "complete",
+      "categoryId": "13874",
+      "categoryName": "Planes",
+      "missing": []
+    },
+    {
+      "asin": "B07FXR3WJR",
+      "status": "complete",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes",
+      "missing": []
+    },
+    {
+      "asin": "B0FPF7JMGS",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0FFN9NN5R",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DFGDL6YB",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DZFCDGR4",
+      "status": "gaps",
+      "categoryId": "111422",
+      "categoryName": "Apple Laptops",
+      "missing": [
+        "Processor"
+      ]
+    },
+    {
+      "asin": "B0886XVMGY",
+      "status": "complete",
+      "categoryId": "180918",
+      "categoryName": "Hand Washes",
+      "missing": []
+    },
+    {
+      "asin": "B0DFMNXHFX",
+      "status": "complete",
+      "categoryId": "88433",
+      "categoryName": "Every Other Thing",
+      "missing": []
+    },
+    {
+      "asin": "B0DXW4336R",
+      "status": "complete",
+      "categoryId": "13874",
+      "categoryName": "Planes",
+      "missing": []
+    },
+    {
+      "asin": "B0FDPZG9FS",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0CXPZ5HFV",
+      "status": "gaps",
+      "categoryId": "181028",
+      "categoryName": "Garden & Lawn Stakes",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DZDC3WW5",
+      "status": "gaps",
+      "categoryId": "111422",
+      "categoryName": "Apple Laptops",
+      "missing": [
+        "Processor"
+      ]
+    },
+    {
+      "asin": "B0D4YV649G",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DB1TGTNZ",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B08T3W1ZG4",
+      "status": "gaps",
+      "categoryId": "259621",
+      "categoryName": "Cleaning Products",
+      "missing": [
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DKJGL6FQ",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DKJ9X1SZ",
+      "status": "gaps",
+      "categoryId": "53159",
+      "categoryName": "Tops",
+      "missing": [
+        "Department",
+        "Type"
+      ]
+    },
+    {
+      "asin": "B0DXW34C41",
+      "status": "complete",
+      "categoryId": "13874",
+      "categoryName": "Planes",
+      "missing": []
+    }
+  ]
+}

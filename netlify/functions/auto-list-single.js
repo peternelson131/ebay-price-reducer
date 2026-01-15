@@ -33,18 +33,28 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// SKU prefix per Pete's requirements
-const SKU_PREFIX = 'wi_';
-
-// Default policies (from Pete's eBay account)
-const DEFAULT_POLICIES = {
-  fulfillmentPolicyId: '107540197026',
-  paymentPolicyId: '243561626026',
-  returnPolicyId: '243561625026'
-};
-
-// Default merchant location
-const DEFAULT_LOCATION = 'loc-94e1f3a0-6e1b-4d23-befc-750fe183';
+// Helper to get user's quick list settings
+async function getUserQuickListSettings(userId) {
+  const { data, error } = await supabase
+    .from('quick_list_settings')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+  
+  if (error || !data) {
+    return null;
+  }
+  
+  // Verify all required fields are set
+  if (!data.fulfillment_policy_id || 
+      !data.payment_policy_id || 
+      !data.return_policy_id || 
+      !data.merchant_location_key) {
+    return null;
+  }
+  
+  return data;
+}
 
 exports.handler = async (event, context) => {
   const headers = getCorsHeaders(event);
@@ -82,7 +92,24 @@ exports.handler = async (event, context) => {
     console.log(`✅ User authenticated: ${user.id}`);
 
     // ─────────────────────────────────────────────────────────
-    // Step 2: Parse & validate request
+    // Step 2: Get user's Quick List settings
+    // ─────────────────────────────────────────────────────────
+    const userSettings = await getUserQuickListSettings(user.id);
+    if (!userSettings) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Quick List not configured',
+          message: 'Please configure your Quick List settings (business policies, location, etc.) before creating listings.',
+          settingsRequired: true
+        })
+      };
+    }
+    console.log(`✅ User settings loaded: SKU prefix="${userSettings.sku_prefix}"`);
+
+    // ─────────────────────────────────────────────────────────
+    // Step 3: Parse & validate request
     // ─────────────────────────────────────────────────────────
     const {
       asin,
@@ -99,7 +126,7 @@ exports.handler = async (event, context) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Valid price required (must be positive number)' }) };
     }
 
-    sku = `${SKU_PREFIX}${asin}`;
+    sku = `${userSettings.sku_prefix}${asin}`;
     const priceValue = parseFloat(price).toFixed(2);
     console.log(`📦 Processing: ASIN=${asin}, SKU=${sku}, Price=$${priceValue}`);
 
@@ -183,7 +210,7 @@ exports.handler = async (event, context) => {
     // Step 8: Create inventory item
     // ─────────────────────────────────────────────────────────
     console.log('📦 Creating inventory item...');
-    const inventoryItem = buildInventoryItem(product, aiContent, condition, quantity, categoryAspects);
+    const inventoryItem = buildInventoryItem(product, aiContent, condition, quantity, categoryAspects, userSettings.description_note);
     
     await ebayApiRequest(
       accessToken,
@@ -202,11 +229,15 @@ exports.handler = async (event, context) => {
       format: 'FIXED_PRICE',
       availableQuantity: quantity,
       categoryId: categoryResult.categoryId,
-      listingPolicies: DEFAULT_POLICIES,
+      listingPolicies: {
+        fulfillmentPolicyId: userSettings.fulfillment_policy_id,
+        paymentPolicyId: userSettings.payment_policy_id,
+        returnPolicyId: userSettings.return_policy_id
+      },
       pricingSummary: {
         price: { currency: 'USD', value: priceValue }
       },
-      merchantLocationKey: DEFAULT_LOCATION
+      merchantLocationKey: userSettings.merchant_location_key
     };
 
     const offerResult = await ebayApiRequest(
@@ -362,7 +393,7 @@ async function fetchKeepaProduct(userId, asin) {
   return { success: true, product: data.products[0] };
 }
 
-function buildInventoryItem(product, aiContent, condition, quantity, categoryAspects = []) {
+function buildInventoryItem(product, aiContent, condition, quantity, categoryAspects = [], descriptionNote = null) {
   // Extract images
   const images = [];
   if (product.imagesCSV) {
@@ -370,6 +401,11 @@ function buildInventoryItem(product, aiContent, condition, quantity, categoryAsp
       const trimmed = f.trim();
       if (trimmed) images.push(`https://m.media-amazon.com/images/I/${trimmed}`);
     });
+  }
+  
+  // eBay requires at least one image - fail early with clear error
+  if (images.length === 0) {
+    throw new Error('Product has no images available. eBay requires at least one image to create a listing.');
   }
 
   // Build aspects from Keepa data
@@ -392,6 +428,12 @@ function buildInventoryItem(product, aiContent, condition, quantity, categoryAsp
     }
   }
 
+  // Build final description with optional custom note
+  let finalDescription = aiContent.description;
+  if (descriptionNote) {
+    finalDescription += `<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">${escapeHtml(descriptionNote)}</div>`;
+  }
+
   const item = {
     availability: {
       shipToLocationAvailability: { quantity }
@@ -399,7 +441,7 @@ function buildInventoryItem(product, aiContent, condition, quantity, categoryAsp
     condition: mapCondition(condition),
     product: {
       title: aiContent.title,
-      description: aiContent.description,
+      description: finalDescription,
       aspects,
       imageUrls: images.slice(0, 12)
     }
