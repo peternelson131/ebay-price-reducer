@@ -77,15 +77,28 @@ exports.handler = async (event, context) => {
       
       try {
         // 1. Fetch from Keepa
-        console.log(`[${asin}] Fetching from Keepa...`);
-        const keepaResponse = await fetch(
-          `https://api.keepa.com/product?key=${keepaKey}&domain=1&asin=${asin}&stats=180&offers=20`
-        );
-        const keepaData = await keepaResponse.json();
+        console.log(`[${asin}] Fetching from Keepa with key: ${keepaKey.substring(0,10)}...`);
+        const keepaUrl = `https://api.keepa.com/product?key=${keepaKey}&domain=1&asin=${asin}&stats=180&offers=20`;
+        const keepaResponse = await fetch(keepaUrl, {
+          headers: { 'Accept-Encoding': 'gzip' }
+        });
+        
+        const keepaText = await keepaResponse.text();
+        console.log(`[${asin}] Keepa response length: ${keepaText.length}, starts with: ${keepaText.substring(0, 100)}`);
+        
+        let keepaData;
+        try {
+          keepaData = JSON.parse(keepaText);
+        } catch (parseErr) {
+          result.status = 'failed';
+          result.error = `Keepa parse error: ${parseErr.message}, response: ${keepaText.substring(0, 200)}`;
+          results.push(result);
+          continue;
+        }
 
         if (!keepaData.products || keepaData.products.length === 0) {
           result.status = 'failed';
-          result.error = 'Product not found on Keepa';
+          result.error = `Product not found on Keepa. Response: ${JSON.stringify(keepaData).substring(0, 200)}`;
           results.push(result);
           continue;
         }
