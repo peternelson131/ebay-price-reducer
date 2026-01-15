@@ -18,10 +18,10 @@ const supabase = createClient(
 // Pete's gmail user ID
 const TEST_USER_ID = '94e1f3a0-6e1b-4d23-befc-750fe1832da8';
 
-// Test ASINs - verified to exist on Keepa
+// Test ASINs - verified to exist on Keepa (new ones to avoid duplicates)
 const TEST_ASINS = [
-  'B01KJEOCDW', // LEGO Mighty Dinosaur
-  'B07FZ8S74R', // Echo Dot 3rd Gen
+  'B09JQL3NWT', // Echo Show 5 (3rd Gen)
+  'B0C1H26C46', // Fire TV Stick 4K (2023)
 ];
 
 exports.handler = async (event, context) => {
