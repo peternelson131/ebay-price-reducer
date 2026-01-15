@@ -164,6 +164,8 @@ exports.handler = async (event, context) => {
         const aspects = {};
         if (product.brand) aspects.Brand = [product.brand];
         if (product.model) aspects.Model = [product.model];
+        if (product.partNumber) aspects.MPN = [product.partNumber];
+        if (product.manufacturer) aspects.Manufacturer = [product.manufacturer];
 
         // Add description note if configured
         let description = aiContent.description;
@@ -182,6 +184,13 @@ exports.handler = async (event, context) => {
           }
         };
         if (product.brand) inventoryItem.product.brand = product.brand;
+        if (product.partNumber) inventoryItem.product.mpn = product.partNumber;
+        if (product.upcList && product.upcList.length > 0) {
+          inventoryItem.product.upc = [product.upcList[0]];
+        }
+        if (product.eanList && product.eanList.length > 0) {
+          inventoryItem.product.ean = [product.eanList[0]];
+        }
 
         // 5. Create inventory item
         console.log(`[${asin}] Creating inventory item...`);
