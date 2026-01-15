@@ -18,10 +18,10 @@ const supabase = createClient(
 // Pete's gmail user ID
 const TEST_USER_ID = '94e1f3a0-6e1b-4d23-befc-750fe1832da8';
 
-// Test ASINs - validated against Keepa with current prices
+// Test ASINs - validated against Keepa with current prices (fresh, not yet listed)
 const TEST_ASINS = [
-  'B09B8V1LZ3', // Echo Dot (newest) - $49.99
-  'B09JQMJHXY', // AirPods Pro 1st Gen - $249.00
+  'B09WZBPX7K', // Ring Battery Doorbell Plus - $149.99
+  'B09N6Y5BTL', // Amazon Fire TV 75" Omni QLED - $1099.99
 ];
 
 exports.handler = async (event, context) => {
