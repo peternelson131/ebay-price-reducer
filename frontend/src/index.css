@@ -10,15 +10,15 @@
   :root {
     /* Light mode colors (default) */
     --bg-primary: #FFFFFF;
-    --bg-surface: #F9FAFB;
-    --bg-hover: #F3F4F6;
-    --border-color: #E5E7EB;
-    --text-primary: #111827;
-    --text-secondary: #6B7280;
-    --text-tertiary: #9CA3AF;
-    --scrollbar-track: #F3F4F6;
-    --scrollbar-thumb: #D1D5DB;
-    --scrollbar-thumb-hover: #9CA3AF;
+    --bg-surface: #F8F9FA;
+    --bg-hover: #E9ECEF;
+    --border-color: #CED4DA;
+    --text-primary: #212529;
+    --text-secondary: #495057;
+    --text-tertiary: #6C757D;
+    --scrollbar-track: #E9ECEF;
+    --scrollbar-thumb: #ADB5BD;
+    --scrollbar-thumb-hover: #6C757D;
   }
 
   /* Dark mode colors */
