@@ -7,6 +7,7 @@ const { getCorsHeaders } = require('./utils/cors');
 const { getValidAccessToken, ebayApiRequest } = require('./utils/ebay-oauth');
 const { decrypt } = require('./utils/encryption');
 const { getCategorySuggestion } = require('./get-ebay-category-suggestion');
+const { getCategoryAspects } = require('./get-ebay-category-aspects');
 const { generateListingContent } = require('./generate-ebay-listing-content');
 const fetch = require('node-fetch');
 
@@ -132,6 +133,17 @@ exports.handler = async (event, context) => {
         }
         result.category = categoryResult.categoryName;
 
+        // 2b. Get category aspects
+        console.log(`[${asin}] Getting category aspects...`);
+        let categoryAspects = [];
+        try {
+          const aspectsResult = await getCategoryAspects(categoryResult.categoryId);
+          categoryAspects = aspectsResult.aspects || [];
+          result.aspectCount = categoryAspects.length;
+        } catch (aspectError) {
+          console.warn(`[${asin}] Failed to fetch aspects:`, aspectError.message);
+        }
+
         // 3. Generate AI content
         console.log(`[${asin}] Generating content...`);
         const aiContent = await generateListingContent({
@@ -166,6 +178,27 @@ exports.handler = async (event, context) => {
         if (product.model) aspects.Model = [product.model];
         if (product.partNumber) aspects.MPN = [product.partNumber];
         if (product.manufacturer) aspects.Manufacturer = [product.manufacturer];
+        if (product.color) aspects.Color = [product.color];
+
+        // Map category-required aspects from Keepa data
+        for (const aspect of categoryAspects) {
+          const name = aspect.name;
+          if (aspects[name]) continue; // Already have it
+          
+          // Try to infer from product data
+          const lowerName = name.toLowerCase();
+          if (lowerName === 'type' && product.productGroup) {
+            aspects[name] = [product.productGroup];
+          } else if (lowerName === 'screen size' && product.title) {
+            // Try to extract screen size from title
+            const sizeMatch = product.title.match(/(\d+(?:\.\d+)?)["\s]*(?:inch|in|"|'')/i);
+            if (sizeMatch) {
+              aspects[name] = [`${sizeMatch[1]} in`];
+            }
+          } else if (lowerName === 'connectivity' && product.title?.toLowerCase().includes('wireless')) {
+            aspects[name] = ['Wireless'];
+          }
+        }
 
         // Add description note if configured
         let description = aiContent.description;
