@@ -399,7 +399,7 @@ export default function QuickList() {
               required
             />
             <p className="mt-1 text-xs text-text-tertiary">
-              Find this in Seller Hub → Account → Business Information → Store Location, or check an existing listing's inventory details
+              This is your inventory location key from eBay's Inventory API
             </p>
           </div>
         </div>
