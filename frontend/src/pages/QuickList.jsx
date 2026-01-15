@@ -399,7 +399,7 @@ export default function QuickList() {
               required
             />
             <p className="mt-1 text-xs text-text-tertiary">
-              Find this in Seller Hub → Payments → Manage Locations
+              Find this in Seller Hub → Account → Business Information → Store Location, or check an existing listing's inventory details
             </p>
           </div>
         </div>
