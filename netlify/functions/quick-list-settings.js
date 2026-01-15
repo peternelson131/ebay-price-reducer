@@ -64,6 +64,7 @@ async function handleGet(user, headers) {
   // Fetch merchant locations from eBay
   let locations = [];
   let primaryLocationKey = null;
+  let locationError = null;
   
   try {
     const accessToken = await getValidAccessToken(supabase, user.id);
@@ -94,8 +95,8 @@ async function handleGet(user, headers) {
       primaryLocationKey = primary.key;
     }
   } catch (ebayError) {
-    console.warn('Failed to fetch eBay locations:', ebayError.message);
-    // Non-blocking - user might not have eBay connected yet
+    console.error('Failed to fetch eBay locations:', ebayError.message);
+    locationError = ebayError.message;
   }
 
   // Calculate if settings are complete
@@ -114,6 +115,7 @@ async function handleGet(user, headers) {
       isConfigured,
       locations,
       primaryLocationKey,
+      locationError,
       requiredFields: ['fulfillment_policy_id', 'payment_policy_id', 'return_policy_id', 'merchant_location_key']
     })
   };

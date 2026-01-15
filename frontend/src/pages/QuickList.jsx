@@ -43,6 +43,7 @@ export default function QuickList() {
   const [settings, setSettings] = useState(null)
   const [isConfigured, setIsConfigured] = useState(false)
   const [locations, setLocations] = useState([])
+  const [locationError, setLocationError] = useState(null)
   const [settingsLoading, setSettingsLoading] = useState(true)
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [settingsError, setSettingsError] = useState(null)
@@ -104,6 +105,7 @@ export default function QuickList() {
         setSettings(data.settings)
         setIsConfigured(data.isConfigured)
         setLocations(data.locations || [])
+        setLocationError(data.locationError || null)
         
         // Populate form with existing settings or defaults
         if (data.settings) {
@@ -396,11 +398,36 @@ export default function QuickList() {
             <span className="text-xs text-error">*Required</span>
           </h3>
           
-          {locations.length === 0 ? (
+          {locationError ? (
+            <div className="p-4 bg-error/10 border border-error/30 rounded-lg">
+              <p className="text-sm text-error">
+                Failed to load locations: {locationError}
+              </p>
+              <p className="text-xs text-text-tertiary mt-2">
+                You can still enter a location key manually below.
+              </p>
+              <input
+                type="text"
+                value={formSettings.merchant_location_key}
+                onChange={(e) => setFormSettings(s => ({ ...s, merchant_location_key: e.target.value.trim() }))}
+                placeholder="e.g., loc-94e1f3a0-6e1b-4d23-befc-750fe183"
+                className="w-full mt-2 px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                required
+              />
+            </div>
+          ) : locations.length === 0 ? (
             <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
               <p className="text-sm text-warning">
                 No merchant locations found. Please ensure your eBay account is connected and has at least one location configured.
               </p>
+              <input
+                type="text"
+                value={formSettings.merchant_location_key}
+                onChange={(e) => setFormSettings(s => ({ ...s, merchant_location_key: e.target.value.trim() }))}
+                placeholder="Enter location key manually"
+                className="w-full mt-2 px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                required
+              />
             </div>
           ) : (
             <div>
