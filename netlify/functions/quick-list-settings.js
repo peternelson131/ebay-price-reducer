@@ -7,6 +7,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders } = require('./utils/cors');
+const { getValidAccessToken, ebayApiRequest } = require('./utils/ebay-oauth');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -60,6 +61,43 @@ async function handleGet(user, headers) {
     .eq('user_id', user.id)
     .single();
 
+  // Fetch merchant locations from eBay
+  let locations = [];
+  let primaryLocationKey = null;
+  
+  try {
+    const accessToken = await getValidAccessToken(supabase, user.id);
+    
+    const locationResult = await ebayApiRequest(
+      accessToken,
+      '/sell/inventory/v1/location',
+      { method: 'GET' }
+    );
+    
+    locations = (locationResult.locations || [])
+      .filter(l => l.merchantLocationStatus === 'ENABLED')
+      .map(l => ({
+        key: l.merchantLocationKey,
+        name: l.name || l.merchantLocationKey,
+        address: l.location?.address ? 
+          `${l.location.address.city || ''}, ${l.location.address.stateOrProvince || ''} ${l.location.address.postalCode || ''}`.trim() : 
+          '',
+        type: (l.locationTypes || [])[0] || 'UNKNOWN',
+        isPrimary: (l.name || '').toLowerCase().includes('primary')
+      }));
+    
+    // Find primary location (by name containing "primary", or first warehouse, or just first)
+    const primary = locations.find(l => l.isPrimary) || 
+                    locations.find(l => l.type === 'WAREHOUSE') || 
+                    locations[0];
+    if (primary) {
+      primaryLocationKey = primary.key;
+    }
+  } catch (ebayError) {
+    console.warn('Failed to fetch eBay locations:', ebayError.message);
+    // Non-blocking - user might not have eBay connected yet
+  }
+
   // Calculate if settings are complete
   const isConfigured = settings && 
     settings.fulfillment_policy_id && 
@@ -74,6 +112,8 @@ async function handleGet(user, headers) {
       success: true,
       settings: settings || null,
       isConfigured,
+      locations,
+      primaryLocationKey,
       requiredFields: ['fulfillment_policy_id', 'payment_policy_id', 'return_policy_id', 'merchant_location_key']
     })
   };

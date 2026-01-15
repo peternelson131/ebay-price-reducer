@@ -42,6 +42,7 @@ export default function QuickList() {
   // Settings state
   const [settings, setSettings] = useState(null)
   const [isConfigured, setIsConfigured] = useState(false)
+  const [locations, setLocations] = useState([])
   const [settingsLoading, setSettingsLoading] = useState(true)
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [settingsError, setSettingsError] = useState(null)
@@ -102,6 +103,7 @@ export default function QuickList() {
       if (data.success) {
         setSettings(data.settings)
         setIsConfigured(data.isConfigured)
+        setLocations(data.locations || [])
         
         // Populate form with existing settings or defaults
         if (data.settings) {
@@ -113,6 +115,11 @@ export default function QuickList() {
             sku_prefix: data.settings.sku_prefix || 'ql_',
             description_note: data.settings.description_note || ''
           })
+        } else {
+          // No settings yet - auto-select primary location if available
+          if (data.primaryLocationKey) {
+            setFormSettings(s => ({ ...s, merchant_location_key: data.primaryLocationKey }))
+          }
         }
         
         // If not configured, switch to settings tab
@@ -385,23 +392,36 @@ export default function QuickList() {
         {/* Location Section */}
         <div className="space-y-4">
           <h3 className="font-medium text-text-primary flex items-center gap-2">
-            <span className="text-lg">📍</span> Merchant Location Key
+            <span className="text-lg">📍</span> Merchant Location
             <span className="text-xs text-error">*Required</span>
           </h3>
           
-          <div>
-            <input
-              type="text"
-              value={formSettings.merchant_location_key}
-              onChange={(e) => setFormSettings(s => ({ ...s, merchant_location_key: e.target.value.trim() }))}
-              placeholder="e.g., loc-94e1f3a0-6e1b-4d23-befc-750fe183"
-              className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
-              required
-            />
-            <p className="mt-1 text-xs text-text-tertiary">
-              This is your inventory location key from eBay's Inventory API
-            </p>
-          </div>
+          {locations.length === 0 ? (
+            <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
+              <p className="text-sm text-warning">
+                No merchant locations found. Please ensure your eBay account is connected and has at least one location configured.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <select
+                value={formSettings.merchant_location_key}
+                onChange={(e) => setFormSettings(s => ({ ...s, merchant_location_key: e.target.value }))}
+                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                required
+              >
+                <option value="">Select a location...</option>
+                {locations.map(l => (
+                  <option key={l.key} value={l.key}>
+                    {l.name}{l.isPrimary ? ' ⭐' : ''} - {l.address || l.type}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-text-tertiary">
+                {locations.length} location{locations.length !== 1 ? 's' : ''} found • ⭐ = Primary
+              </p>
+            </div>
+          )}
         </div>
 
         {/* SKU Settings */}
