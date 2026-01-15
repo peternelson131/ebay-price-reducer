@@ -65,7 +65,12 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const keepaKey = decrypt(keyData.api_key_encrypted);
+    // Try to decrypt, fall back to raw value if not encrypted
+    let keepaKey = decrypt(keyData.api_key_encrypted);
+    if (!keepaKey) {
+      // Key might be stored unencrypted
+      keepaKey = keyData.api_key_encrypted;
+    }
 
     // Get eBay access token
     const accessToken = await getValidAccessToken(supabase, TEST_USER_ID);
