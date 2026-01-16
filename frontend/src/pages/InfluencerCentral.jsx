@@ -16,11 +16,11 @@ const menuItems = [
   },
   {
     id: 'auto-dubbing',
-    label: 'Auto-dubbing Integration',
+    label: 'Auto-dubbing',
     icon: null,
-    customIcon: '🚧',
+    customIcon: '🎙️',
     component: AutoDubbing,
-    badge: 'Coming Soon'
+    badge: null
   }
 ];
 
