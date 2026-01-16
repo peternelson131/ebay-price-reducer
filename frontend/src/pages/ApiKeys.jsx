@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Eye, EyeOff, ExternalLink, CheckCircle, XCircle, AlertCircle, Loader, Link2, Unlink } from 'lucide-react';
 
-// Simple API key services (just Keepa now)
+// API key services
 const API_SERVICES = [
   {
     id: 'keepa',
@@ -11,6 +11,13 @@ const API_SERVICES = [
     description: 'Required for product data, variations, and similar product search',
     helpUrl: 'https://keepa.com/#!api',
     placeholder: 'Enter your Keepa API key'
+  },
+  {
+    id: 'elevenlabs',
+    name: 'Eleven Labs',
+    description: 'Required for video auto-dubbing into multiple languages',
+    helpUrl: 'https://elevenlabs.io/app/settings/api-keys',
+    placeholder: 'Enter your Eleven Labs API key'
   }
 ];
 

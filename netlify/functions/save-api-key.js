@@ -21,7 +21,7 @@ const supabase = createClient(
 );
 
 // Allowed services
-const ALLOWED_SERVICES = ['keepa', 'ebay'];
+const ALLOWED_SERVICES = ['keepa', 'ebay', 'elevenlabs'];
 
 exports.handler = async (event, context) => {
   const headers = getCorsHeaders(event);

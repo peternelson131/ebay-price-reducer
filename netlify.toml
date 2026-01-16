@@ -68,3 +68,16 @@ schedule = "0 */4 * * *"
 # Imports new listings, updates status/qty, marks ended
 [functions."sync-ebay-listings"]
 timeout = 60
+
+# Cleanup expired dubbed videos - runs daily at 3 AM UTC
+# Deletes videos from Supabase Storage after 3-day expiry
+[functions."cleanup-dubbed-videos"]
+schedule = "0 3 * * *"
+timeout = 60
+
+# Video dubbing functions - extended timeout for large uploads
+[functions."dub-video"]
+timeout = 26
+
+[functions."dub-status"]
+timeout = 26
