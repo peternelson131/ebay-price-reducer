@@ -198,53 +198,68 @@ export default function AsinCatalog() {
           </p>
         </div>
       ) : (
-        /* Catalog Grid */
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {groupedByAsin.map((item) => (
-            <div 
-              key={item.asin}
-              className="bg-theme-surface rounded-lg border border-theme overflow-hidden hover:border-accent/50 transition-colors"
-            >
-              {/* Product Image */}
-              <div className="aspect-square bg-white p-4 flex items-center justify-center">
-                {item.image_url ? (
-                  <img 
-                    src={item.image_url} 
-                    alt={item.product_title || item.asin}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                ) : (
-                  <span className="text-6xl">📦</span>
-                )}
-              </div>
+        /* Catalog List */
+        <div className="bg-theme-surface rounded-lg border border-theme overflow-hidden">
+          {/* Header Row */}
+          <div className="hidden sm:grid sm:grid-cols-12 gap-4 px-4 py-3 bg-theme-primary border-b border-theme text-sm font-medium text-theme-secondary">
+            <div className="col-span-1">Image</div>
+            <div className="col-span-4">Title</div>
+            <div className="col-span-2">ASIN</div>
+            <div className="col-span-2">Source</div>
+            <div className="col-span-2">Marketplaces</div>
+            <div className="col-span-1"></div>
+          </div>
 
-              {/* Product Info */}
-              <div className="p-4">
-                {/* Title */}
-                <h3 className="font-medium text-theme-primary line-clamp-2 mb-2 min-h-[2.5rem]">
-                  {item.product_title || 'Title Not Available'}
-                </h3>
-
-                {/* ASINs */}
-                <div className="text-sm space-y-1 mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-theme-tertiary">ASIN:</span>
-                    <span className="font-mono text-accent">{item.asin}</span>
-                  </div>
-                  {item.search_asin && item.search_asin !== item.asin && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-theme-tertiary">From:</span>
-                      <span className="font-mono text-theme-secondary">{item.search_asin}</span>
+          {/* List Items */}
+          <div className="divide-y divide-theme">
+            {groupedByAsin.map((item) => (
+              <div 
+                key={item.asin}
+                className="grid grid-cols-1 sm:grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-theme-hover transition-colors"
+              >
+                {/* Image */}
+                <div className="col-span-1 flex justify-center sm:justify-start">
+                  {item.image_url ? (
+                    <img 
+                      src={item.image_url} 
+                      alt={item.product_title || item.asin}
+                      className="w-12 h-12 object-contain bg-white rounded"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-theme-primary rounded flex items-center justify-center">
+                      <span className="text-2xl">📦</span>
                     </div>
                   )}
                 </div>
 
-                {/* Completed Marketplaces */}
-                <div className="flex flex-wrap gap-2 mb-3">
+                {/* Title */}
+                <div className="col-span-4">
+                  <p className="text-theme-primary line-clamp-2 text-sm">
+                    {item.product_title || 'Title Not Available'}
+                  </p>
+                </div>
+
+                {/* ASIN */}
+                <div className="col-span-2">
+                  <span className="font-mono text-sm text-accent">{item.asin}</span>
+                </div>
+
+                {/* Source ASIN */}
+                <div className="col-span-2">
+                  {item.search_asin && item.search_asin !== item.asin ? (
+                    <span className="font-mono text-sm text-theme-secondary">{item.search_asin}</span>
+                  ) : (
+                    <span className="text-theme-tertiary text-sm">—</span>
+                  )}
+                </div>
+
+                {/* Marketplaces */}
+                <div className="col-span-2 flex flex-wrap gap-1">
                   {item.marketplaces.map(({ marketplace }) => (
                     <span 
                       key={marketplace}
-                      className="inline-flex items-center gap-1 px-2 py-1 bg-success/10 text-success text-sm rounded-full"
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-success/10 text-success text-xs rounded"
+                      title={MARKETPLACES[marketplace]?.name}
                     >
                       <CheckCircle className="w-3 h-3" />
                       {MARKETPLACES[marketplace]?.flag}
@@ -252,18 +267,21 @@ export default function AsinCatalog() {
                   ))}
                 </div>
 
-                {/* View on Amazon */}
-                <a
-                  href={`https://www.amazon.com/dp/${item.asin}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-accent hover:text-accent-hover flex items-center gap-1"
-                >
-                  View on Amazon <ExternalLink className="w-3 h-3" />
-                </a>
+                {/* Actions */}
+                <div className="col-span-1 flex justify-end">
+                  <a
+                    href={`https://www.amazon.com/dp/${item.asin}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:text-accent-hover"
+                    title="View on Amazon"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
