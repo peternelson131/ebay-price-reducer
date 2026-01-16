@@ -33,11 +33,27 @@ const menuItems = [
   }
 ];
 
+// Get initial tab from URL hash or default
+const getTabFromHash = () => {
+  const hash = window.location.hash.replace('#', '');
+  const validTabs = menuItems.map(m => m.id);
+  return validTabs.includes(hash) ? hash : 'asin-correlation';
+};
+
 export default function InfluencerCentral() {
-  const [activeItem, setActiveItem] = useState('asin-correlation');
+  const [activeItem, setActiveItem] = useState(getTabFromHash);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [pendingTaskCount, setPendingTaskCount] = useState(0);
+
+  // Sync with URL hash changes (back/forward navigation)
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveItem(getTabFromHash());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Load pending task count
   useEffect(() => {
@@ -68,6 +84,8 @@ export default function InfluencerCentral() {
   const handleMenuClick = (itemId) => {
     setActiveItem(itemId);
     setMobileSidebarOpen(false); // Close mobile sidebar on selection
+    // Update URL hash for persistence
+    window.location.hash = itemId;
   };
 
   return (
