@@ -573,12 +573,8 @@ export default function AutoDubbing() {
   };
 
   const triggerDownload = (url, filename) => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Open in new tab so user stays in app
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleDownload = (job) => {
