@@ -203,7 +203,36 @@ Answer with ONLY: YES or NO`;
 
 // ==================== DATABASE ====================
 
-async function getCorrelationsFromDB(asin, userId) {
+/**
+ * Get correlations from database, optionally filtering out those with completed tasks
+ * @param {string} asin - The search ASIN
+ * @param {string} userId - The user ID
+ * @param {Object} options - Options
+ * @param {boolean} options.includeCompleted - If true, include correlations with completed tasks (default: false)
+ */
+async function getCorrelationsFromDB(asin, userId, options = {}) {
+  const { includeCompleted = false } = options;
+  
+  // Step 1: Get ASINs with completed tasks (unless includeCompleted is true)
+  let completedAsins = new Set();
+  
+  if (!includeCompleted) {
+    const { data: completedTasks, error: tasksError } = await getSupabase()
+      .from('influencer_tasks')
+      .select('asin')
+      .eq('user_id', userId)
+      .eq('status', 'completed');
+    
+    if (tasksError) {
+      console.error('⚠️ Warning: Could not fetch completed tasks:', tasksError);
+      // Continue anyway - better to show all than fail completely
+    } else if (completedTasks?.length > 0) {
+      completedAsins = new Set(completedTasks.map(t => t.asin));
+      console.log(`🔍 Found ${completedAsins.size} ASINs with completed tasks to filter out`);
+    }
+  }
+  
+  // Step 2: Get correlations
   const { data: correlations, error: dbError } = await getSupabase()
     .from('asin_correlations')
     .select('*')
@@ -213,10 +242,21 @@ async function getCorrelationsFromDB(asin, userId) {
 
   if (dbError) {
     console.error('❌ Database query error:', dbError);
-    return { error: dbError, correlations: [] };
+    return { error: dbError, correlations: [], filteredCount: 0 };
   }
 
-  const formattedCorrelations = (correlations || []).map(row => ({
+  // Step 3: Filter out correlations with completed tasks
+  const allCorrelations = correlations || [];
+  const filteredCorrelations = allCorrelations.filter(
+    row => !completedAsins.has(row.similar_asin)
+  );
+  
+  const filteredCount = allCorrelations.length - filteredCorrelations.length;
+  if (filteredCount > 0) {
+    console.log(`✅ Filtered out ${filteredCount} correlations with completed tasks`);
+  }
+
+  const formattedCorrelations = filteredCorrelations.map(row => ({
     asin: row.similar_asin,
     title: row.correlated_title,
     imageUrl: row.image_url,
@@ -227,7 +267,7 @@ async function getCorrelationsFromDB(asin, userId) {
     url: row.correlated_amazon_url
   }));
 
-  return { error: null, correlations: formattedCorrelations };
+  return { error: null, correlations: formattedCorrelations, filteredCount };
 }
 
 async function writeCorrelationsToDB(asin, primaryData, correlations, userId) {
@@ -424,7 +464,7 @@ exports.handler = async (event, context) => {
     }
     
     // Parse request
-    const { asin, action = 'check', keepaKey } = JSON.parse(event.body);
+    const { asin, action = 'check', keepaKey, includeCompleted = false } = JSON.parse(event.body);
     
     if (!asin || !/^B[0-9A-Z]{9}$/i.test(asin)) {
       return {
@@ -438,7 +478,13 @@ exports.handler = async (event, context) => {
     
     // ACTION: CHECK
     if (action === 'check') {
-      const { error, correlations } = await getCorrelationsFromDB(normalizedAsin, user.id);
+      // By default, filter out correlations with completed tasks
+      // Pass includeCompleted: true to show all (useful for debugging)
+      const { error, correlations, filteredCount } = await getCorrelationsFromDB(
+        normalizedAsin, 
+        user.id, 
+        { includeCompleted }
+      );
       
       if (error) {
         return { statusCode: 500, headers, body: JSON.stringify({ error: 'Database error' }) };
@@ -453,6 +499,7 @@ exports.handler = async (event, context) => {
           exists: correlations.length > 0,
           correlations,
           count: correlations.length,
+          filteredCount: filteredCount || 0, // Number of correlations hidden due to completed tasks
           source: 'database'
         })
       };

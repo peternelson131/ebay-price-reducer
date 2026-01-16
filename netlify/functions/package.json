@@ -17,6 +17,7 @@
     "graphql-depth-limit": "^1.1.0",
     "graphql-query-complexity": "^1.1.0",
     "node-fetch": "^2.7.0",
+    "xlsx": "^0.18.5",
     "xml2js": "^0.6.2"
   }
 }

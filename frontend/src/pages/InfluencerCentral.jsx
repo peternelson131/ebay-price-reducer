@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Search, ChevronLeft, ChevronRight, Menu, ClipboardList, BookOpen } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Menu, ClipboardList, BookOpen, Upload } from 'lucide-react';
 import { userAPI } from '../lib/supabase';
 
 // Lazy load the content components
@@ -7,6 +7,7 @@ const InfluencerAsinCorrelation = lazy(() => import('./InfluencerAsinCorrelation
 const AutoDubbing = lazy(() => import('./AutoDubbing'));
 const InfluencerTaskList = lazy(() => import('./InfluencerTaskList'));
 const AsinCatalog = lazy(() => import('./AsinCatalog'));
+const CatalogImport = lazy(() => import('./CatalogImport'));
 
 // Menu item configuration
 const menuItems = [
@@ -29,6 +30,13 @@ const menuItems = [
     label: 'ASIN Catalog',
     icon: BookOpen,
     component: AsinCatalog,
+    badge: null
+  },
+  {
+    id: 'catalog-import',
+    label: 'Catalog Import',
+    icon: Upload,
+    component: CatalogImport,
     badge: null
   },
   {

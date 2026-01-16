@@ -22,6 +22,33 @@ export default function InfluencerAsinCorrelation() {
   
   // Loading state for checking availability (per ASIN)
   const [checkingAvailability, setCheckingAvailability] = useState({});
+  
+  // Hide completed correlations toggle (default: hide them)
+  const [hideCompleted, setHideCompleted] = useState(true);
+  
+  // Helper: Check if a correlation is fully completed
+  // A correlation is completed when ALL available marketplaces have been uploaded
+  const isCorrelationCompleted = (candidateAsin) => {
+    const fb = feedback[candidateAsin];
+    if (!fb || fb.decision !== 'accepted') return false;
+    
+    // Check each marketplace: if available, must also be uploaded
+    const marketplaces = [
+      { available: fb.available_us, uploaded: fb.uploaded_usa },
+      { available: fb.available_ca, uploaded: fb.uploaded_ca },
+      { available: fb.available_de, uploaded: fb.uploaded_de },
+      { available: fb.available_uk, uploaded: fb.uploaded_uk },
+    ];
+    
+    // Count available and uploaded
+    const availableMarkets = marketplaces.filter(m => m.available === true);
+    
+    // If no markets available, not completed (shouldn't happen for accepted items)
+    if (availableMarkets.length === 0) return false;
+    
+    // All available markets must be uploaded
+    return availableMarkets.every(m => m.uploaded === true);
+  };
 
   // Save feedback to database
   const saveFeedback = async (candidateAsin, decision) => {
@@ -425,32 +452,58 @@ export default function InfluencerAsinCorrelation() {
       )}
 
       {/* Results Display */}
-      {results && !loading && !syncing && (
+      {results && !loading && !syncing && (() => {
+        // Calculate completed count for display
+        const completedCount = results.correlations?.filter(item => isCorrelationCompleted(item.asin)).length || 0;
+        const visibleCorrelations = hideCompleted 
+          ? results.correlations?.filter(item => !isCorrelationCompleted(item.asin)) || []
+          : results.correlations || [];
+        
+        return (
         <div className="bg-theme-surface rounded-lg border border-theme">
           <div className="px-6 py-4 border-b border-theme flex flex-wrap justify-between items-center gap-3">
             <div>
               <h2 className="text-lg font-semibold">
                 Results for ASIN: <span className="text-accent">{results.asin}</span>
               </h2>
-              {results.correlations && Array.isArray(results.correlations) && (
-                <span className="text-sm text-theme-tertiary">
-                  {results.correlations.length} result{results.correlations.length !== 1 ? 's' : ''} found
-                </span>
-              )}
+              <div className="flex items-center gap-3 mt-1">
+                {results.correlations && Array.isArray(results.correlations) && (
+                  <span className="text-sm text-theme-tertiary">
+                    {visibleCorrelations.length} result{visibleCorrelations.length !== 1 ? 's' : ''} shown
+                    {completedCount > 0 && hideCompleted && (
+                      <span className="text-theme-tertiary"> · {completedCount} completed hidden</span>
+                    )}
+                  </span>
+                )}
+              </div>
             </div>
-            <button
-              onClick={handleResync}
-              disabled={syncing}
-              className="px-4 py-2 text-sm bg-theme-hover text-theme-secondary border border-theme rounded-lg hover:bg-gray-200 dark:bg-gray-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Re-sync
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Hide completed toggle */}
+              {completedCount > 0 && (
+                <label className="flex items-center gap-2 text-sm text-theme-secondary cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={hideCompleted}
+                    onChange={(e) => setHideCompleted(e.target.checked)}
+                    className="w-4 h-4 rounded border-theme bg-theme-surface text-accent focus:ring-accent focus:ring-offset-0"
+                  />
+                  Hide completed
+                </label>
+              )}
+              <button
+                onClick={handleResync}
+                disabled={syncing}
+                className="px-4 py-2 text-sm bg-theme-hover text-theme-secondary border border-theme rounded-lg hover:bg-gray-200 dark:bg-gray-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Re-sync
+              </button>
+            </div>
           </div>
           <div className="p-6">
-            {results.correlations && Array.isArray(results.correlations) && results.correlations.length > 0 ? (
+            {visibleCorrelations.length > 0 ? (
               <div>
                 {/* Table Header with Flags */}
                 <div className="flex items-center gap-4 py-2 border-b border-theme mb-2 text-xs text-theme-tertiary font-medium">
@@ -468,7 +521,7 @@ export default function InfluencerAsinCorrelation() {
                 </div>
                 
                 <div className="divide-y divide-gray-200 dark:divide-gray-700/50">
-                {[...results.correlations]
+                {[...visibleCorrelations]
                   .sort((a, b) => {
                     if (a.suggestedType === 'variation' && b.suggestedType !== 'variation') return -1;
                     if (a.suggestedType !== 'variation' && b.suggestedType === 'variation') return 1;
@@ -634,16 +687,39 @@ export default function InfluencerAsinCorrelation() {
               </div>
             ) : (
               <div className="text-center py-8 text-theme-tertiary">
-                <svg className="w-12 h-12 text-theme-tertiary mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p>No correlations found for this ASIN</p>
-                <p className="text-sm mt-1">Try syncing to fetch the latest data</p>
+                {completedCount > 0 && hideCompleted ? (
+                  // All correlations are completed and hidden
+                  <>
+                    <svg className="w-12 h-12 text-success mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-success font-medium">All correlations completed! 🎉</p>
+                    <p className="text-sm mt-1">
+                      {completedCount} correlation{completedCount !== 1 ? 's' : ''} uploaded to all marketplaces.{' '}
+                      <button 
+                        onClick={() => setHideCompleted(false)}
+                        className="text-accent hover:underline"
+                      >
+                        Show completed
+                      </button>
+                    </p>
+                  </>
+                ) : (
+                  // No correlations found at all
+                  <>
+                    <svg className="w-12 h-12 text-theme-tertiary mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p>No correlations found for this ASIN</p>
+                    <p className="text-sm mt-1">Try syncing to fetch the latest data</p>
+                  </>
+                )}
               </div>
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Empty State */}
       {!results && !loading && !syncing && !error && !showConfirmDialog && (

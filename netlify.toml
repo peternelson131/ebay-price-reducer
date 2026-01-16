@@ -81,3 +81,13 @@ timeout = 26
 
 [functions."dub-status"]
 timeout = 26
+
+# Catalog import processing - runs every 5 minutes
+# Processes pending catalog imports for correlation analysis
+[functions."catalog-process"]
+schedule = "*/5 * * * *"
+timeout = 60
+
+# Catalog import endpoint - extended timeout for large file uploads
+[functions."catalog-import"]
+timeout = 26

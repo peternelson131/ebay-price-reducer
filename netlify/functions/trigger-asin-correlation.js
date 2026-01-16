@@ -20,7 +20,28 @@ function getN8nWebhookUrl() {
 }
 
 // Helper function to query and format correlations from database
-async function getCorrelationsFromDB(userId, asin) {
+// Note: This is the legacy v1 function - v2 is the active one
+async function getCorrelationsFromDB(userId, asin, options = {}) {
+  const { includeCompleted = false } = options;
+  
+  // Step 1: Get ASINs with completed tasks (if user_id provided and not including completed)
+  let completedAsins = new Set();
+  
+  if (userId && !includeCompleted) {
+    const { data: completedTasks, error: tasksError } = await getSupabase()
+      .from('influencer_tasks')
+      .select('asin')
+      .eq('user_id', userId)
+      .eq('status', 'completed');
+    
+    if (tasksError) {
+      console.error('⚠️ Warning: Could not fetch completed tasks:', tasksError);
+    } else if (completedTasks?.length > 0) {
+      completedAsins = new Set(completedTasks.map(t => t.asin));
+      console.log(`🔍 Found ${completedAsins.size} ASINs with completed tasks to filter out`);
+    }
+  }
+  
   // Note: user_id filter removed since n8n uses hardcoded user_id
   // All users see the same correlation data
   const { data: correlations, error: dbError } = await getSupabase()
@@ -31,11 +52,22 @@ async function getCorrelationsFromDB(userId, asin) {
 
   if (dbError) {
     console.error('❌ Database query error:', dbError);
-    return { error: dbError, correlations: [] };
+    return { error: dbError, correlations: [], filteredCount: 0 };
+  }
+
+  // Filter out correlations with completed tasks
+  const allCorrelations = correlations || [];
+  const filteredCorrelations = allCorrelations.filter(
+    row => !completedAsins.has(row.similar_asin)
+  );
+  
+  const filteredCount = allCorrelations.length - filteredCorrelations.length;
+  if (filteredCount > 0) {
+    console.log(`✅ Filtered out ${filteredCount} correlations with completed tasks`);
   }
 
   // Transform database records to frontend format
-  const formattedCorrelations = (correlations || []).map(row => ({
+  const formattedCorrelations = filteredCorrelations.map(row => ({
     asin: row.similar_asin,
     title: row.correlated_title,
     imageUrl: row.image_url,
@@ -46,7 +78,7 @@ async function getCorrelationsFromDB(userId, asin) {
     url: row.correlated_amazon_url
   }));
 
-  return { error: null, correlations: formattedCorrelations };
+  return { error: null, correlations: formattedCorrelations, filteredCount };
 }
 
 exports.handler = async (event, context) => {
