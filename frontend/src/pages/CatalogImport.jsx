@@ -125,7 +125,7 @@ export default function CatalogImport() {
       });
       const data = await response.json();
       if (data.success) {
-        setImports(data.imports || []);
+        setImports(data.items || []);
       }
     } catch (err) {
       console.error('Failed to load catalog imports:', err);
