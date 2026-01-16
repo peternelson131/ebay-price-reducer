@@ -14,6 +14,33 @@ const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = requ
 const { verifyAuth } = require('./utils/auth');
 const Busboy = require('busboy');
 const XLSX = require('xlsx');
+const zlib = require('zlib');
+const { promisify } = require('util');
+
+const gunzipAsync = promisify(zlib.gunzip);
+
+/**
+ * Fetch from Keepa API with gzip decompression
+ * Keepa returns gzip-compressed JSON, so we need to decompress it first
+ */
+async function keepaFetch(url) {
+  const response = await fetch(url);
+  const buffer = await response.arrayBuffer();
+  
+  try {
+    // Try to decompress gzip first (most Keepa responses)
+    const decompressed = await gunzipAsync(Buffer.from(buffer));
+    return JSON.parse(decompressed.toString());
+  } catch (err) {
+    // Fallback: maybe it wasn't compressed
+    try {
+      return JSON.parse(Buffer.from(buffer).toString());
+    } catch (parseErr) {
+      console.error('Failed to parse Keepa response:', parseErr);
+      throw new Error('Invalid Keepa API response');
+    }
+  }
+}
 
 // Lazy-init Supabase client
 let supabase = null;
@@ -339,8 +366,8 @@ async function handlePost(event, userId, headers) {
         const keepaUrl = `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=1&asin=${asins.join(',')}`;
         
         try {
-          const keepaResponse = await fetch(keepaUrl);
-          const keepaData = await keepaResponse.json();
+          // Use keepaFetch to handle gzip decompression
+          const keepaData = await keepaFetch(keepaUrl);
           
           if (keepaData.error) {
             console.error(`Batch ${batchNum} Keepa error:`, keepaData.error);
@@ -350,18 +377,31 @@ async function handlePost(event, userId, headers) {
           const products = keepaData.products || [];
           totalTokens += keepaData.tokensConsumed || 0;
           
+          console.log(`📸 Batch ${batchNum}: Received ${products.length} products from Keepa`);
+          
           // Build image URL map for this batch
           const imageMap = {};
           for (const product of products) {
+            // imagesCSV contains image codes like "51GxQhfGhQL,41ABC123XY"
+            // We want the first one (primary image)
             if (product.imagesCSV) {
-              const imageCode = product.imagesCSV.split(',')[0];
-              if (imageCode) {
-                imageMap[product.asin] = `https://m.media-amazon.com/images/I/${imageCode}`;
+              const imageCodes = product.imagesCSV.split(',');
+              const imageCode = imageCodes[0]?.trim();
+              if (imageCode && imageCode.length > 0) {
+                // Image codes need the file extension - Amazon uses .jpg for most product images
+                const imageUrl = `https://m.media-amazon.com/images/I/${imageCode}._SL500_.jpg`;
+                imageMap[product.asin] = imageUrl;
+                console.log(`  📷 ${product.asin}: ${imageCode} -> ${imageUrl}`);
               }
+            } else {
+              console.log(`  ⚠️ ${product.asin}: No imagesCSV field`);
             }
           }
           
+          console.log(`📷 Batch ${batchNum}: Found images for ${Object.keys(imageMap).length}/${asins.length} ASINs`);
+          
           // Batch update database (more efficient)
+          let batchUpdated = 0;
           for (const row of batch) {
             const imageUrl = imageMap[row.asin];
             if (imageUrl) {
@@ -370,14 +410,19 @@ async function handlePost(event, userId, headers) {
                 .update({ image_url: imageUrl })
                 .eq('id', row.id);
               
-              if (!updateError) totalUpdated++;
+              if (!updateError) {
+                totalUpdated++;
+                batchUpdated++;
+              } else {
+                console.error(`  ❌ Failed to update ${row.asin}:`, updateError.message);
+              }
             }
           }
           
-          console.log(`✅ Batch ${batchNum}: Updated ${Object.keys(imageMap).length} images`);
+          console.log(`✅ Batch ${batchNum}: Updated ${batchUpdated} images in database`);
           
         } catch (keepaError) {
-          console.error(`Batch ${batchNum} error:`, keepaError);
+          console.error(`Batch ${batchNum} error:`, keepaError.message || keepaError);
           // Continue with next batch
         }
       }
