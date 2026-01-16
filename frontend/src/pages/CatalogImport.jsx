@@ -112,6 +112,9 @@ export default function CatalogImport() {
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 25;
   
+  // Image fetch state
+  const [fetchingImages, setFetchingImages] = useState(false);
+  
   // File upload state
   const [parsedData, setParsedData] = useState(null);
   const [parseError, setParseError] = useState(null);
@@ -386,6 +389,39 @@ export default function CatalogImport() {
     }
   };
 
+  // Fetch images from Keepa for items missing images
+  const handleFetchImages = async () => {
+    setFetchingImages(true);
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/catalog-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'fetch_images',
+          limit: 100
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert(`✅ ${data.message}`);
+        // Reload to show updated images
+        await loadImports(currentPage);
+      } else {
+        alert(data.error || 'Failed to fetch images');
+      }
+    } catch (err) {
+      console.error('Fetch images error:', err);
+      alert('Failed to fetch images from Keepa');
+    } finally {
+      setFetchingImages(false);
+    }
+  };
+
   // Create task from correlation
   const handleCreateTask = async (importItem, correlation) => {
     try {
@@ -638,8 +674,8 @@ export default function CatalogImport() {
         </div>
       )}
 
-      {/* Import Button - Opens Modal */}
-      <div className="mb-6">
+      {/* Action Buttons */}
+      <div className="mb-6 flex flex-wrap gap-3">
         <button
           onClick={() => setShowUploadModal(true)}
           className="px-4 py-2.5 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-colors flex items-center gap-2"
@@ -648,8 +684,21 @@ export default function CatalogImport() {
           Import from File
         </button>
         
+        <button
+          onClick={handleFetchImages}
+          disabled={fetchingImages}
+          className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+        >
+          {fetchingImages ? (
+            <Loader className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          {fetchingImages ? 'Fetching...' : 'Fetch Images from Keepa'}
+        </button>
+        
         {parseError && !showUploadModal && (
-          <div className="mt-3 p-3 bg-error/10 border border-error/30 rounded-lg flex items-center gap-2 text-error text-sm">
+          <div className="w-full mt-3 p-3 bg-error/10 border border-error/30 rounded-lg flex items-center gap-2 text-error text-sm">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {parseError}
           </div>
