@@ -1,15 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import apiService, { handleApiError } from '../services/api';
 import { userAPI } from '../lib/supabase';
-import { AlertCircle, CheckCircle, ExternalLink, Loader } from 'lucide-react';
-
-// Marketplace flags and info
-const MARKETPLACES = {
-  US: { name: 'United States', flag: '🇺🇸', domain: 'amazon.com' },
-  CA: { name: 'Canada', flag: '🇨🇦', domain: 'amazon.ca' },
-  UK: { name: 'United Kingdom', flag: '🇬🇧', domain: 'amazon.co.uk' },
-  DE: { name: 'Germany', flag: '🇩🇪', domain: 'amazon.de' }
-};
 
 export default function InfluencerAsinCorrelation() {
   const [asin, setAsin] = useState('');
@@ -28,54 +19,6 @@ export default function InfluencerAsinCorrelation() {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [savingFeedback, setSavingFeedback] = useState({});
   const [markingUploaded, setMarkingUploaded] = useState({});
-  
-  // Tasks state
-  const [tasks, setTasks] = useState([]);
-  const [tasksLoading, setTasksLoading] = useState(false);
-  const [pendingTaskCount, setPendingTaskCount] = useState(0);
-
-  // Load tasks on mount
-  useEffect(() => {
-    loadTasks();
-  }, []);
-
-  // Load influencer tasks
-  const loadTasks = async () => {
-    setTasksLoading(true);
-    try {
-      const token = await userAPI.getAuthToken();
-      const response = await fetch('/.netlify/functions/influencer-tasks', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setTasks(data.tasks || []);
-        setPendingTaskCount(data.pendingCount || 0);
-      }
-    } catch (err) {
-      console.error('Failed to load tasks:', err);
-    } finally {
-      setTasksLoading(false);
-    }
-  };
-
-  // Mark task as complete
-  const completeTask = async (taskId) => {
-    try {
-      const token = await userAPI.getAuthToken();
-      await fetch('/.netlify/functions/influencer-tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ taskId, action: 'complete' })
-      });
-      loadTasks(); // Reload tasks
-    } catch (err) {
-      console.error('Failed to complete task:', err);
-    }
-  };
   
   // Loading state for checking availability (per ASIN)
   const [checkingAvailability, setCheckingAvailability] = useState({});
@@ -121,10 +64,7 @@ export default function InfluencerAsinCorrelation() {
           [candidateAsin]: { ...prev[candidateAsin], ...feedbackData }
         }));
         
-        // Reload tasks if accepted (tasks are created)
-        if (decision === 'accepted' && data.tasksCreated > 0) {
-          loadTasks();
-        }
+        // Tasks are created automatically on accept (shown in Task List)
       } else {
         throw new Error(data.error || 'Failed to save');
       }
@@ -720,114 +660,6 @@ export default function InfluencerAsinCorrelation() {
         </div>
       )}
 
-      {/* Task Sidebar */}
-      <div className="mt-8 bg-theme-surface rounded-lg border border-theme p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-theme-primary flex items-center gap-2">
-            📋 Influencer Upload Tasks
-            {pendingTaskCount > 0 && (
-              <span className="px-2 py-0.5 bg-error text-white text-xs font-bold rounded-full animate-pulse">
-                {pendingTaskCount}
-              </span>
-            )}
-          </h2>
-          <button
-            onClick={loadTasks}
-            disabled={tasksLoading}
-            className="text-sm text-accent hover:text-accent-hover transition-colors"
-          >
-            {tasksLoading ? <Loader className="w-4 h-4 animate-spin" /> : 'Refresh'}
-          </button>
-        </div>
-
-        {tasksLoading && tasks.length === 0 ? (
-          <div className="text-center py-6 text-theme-tertiary">
-            <Loader className="w-6 h-6 animate-spin mx-auto mb-2" />
-            Loading tasks...
-          </div>
-        ) : tasks.length === 0 ? (
-          <div className="text-center py-6 text-theme-tertiary">
-            <p>No tasks yet</p>
-            <p className="text-sm mt-1">Accept ASIN correlations to create upload tasks</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {/* Pending Tasks */}
-            {tasks.filter(t => t.status === 'pending').length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-theme-secondary mb-2 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-error" />
-                  Pending ({tasks.filter(t => t.status === 'pending').length})
-                </h3>
-                <div className="space-y-2">
-                  {tasks.filter(t => t.status === 'pending').map(task => (
-                    <div
-                      key={task.id}
-                      className="flex items-center justify-between p-3 bg-error/5 border border-error/20 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">{MARKETPLACES[task.marketplace]?.flag}</span>
-                        <div>
-                          <p className="font-mono text-sm text-theme-primary">{task.asin}</p>
-                          <p className="text-xs text-theme-tertiary">{MARKETPLACES[task.marketplace]?.name}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={task.amazon_upload_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-accent text-white text-sm rounded-lg hover:bg-accent-hover transition-colors flex items-center gap-1"
-                        >
-                          Open <ExternalLink className="w-3 h-3" />
-                        </a>
-                        <button
-                          onClick={() => completeTask(task.id)}
-                          className="px-3 py-1.5 bg-success/10 text-success text-sm rounded-lg hover:bg-success/20 transition-colors"
-                        >
-                          Done
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Completed Tasks */}
-            {tasks.filter(t => t.status === 'completed').length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-theme-secondary mb-2 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-success" />
-                  Completed ({tasks.filter(t => t.status === 'completed').length})
-                </h3>
-                <div className="space-y-2">
-                  {tasks.filter(t => t.status === 'completed').slice(0, 5).map(task => (
-                    <div
-                      key={task.id}
-                      className="flex items-center justify-between p-3 bg-success/5 border border-success/20 rounded-lg opacity-60"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">{MARKETPLACES[task.marketplace]?.flag}</span>
-                        <div>
-                          <p className="font-mono text-sm text-theme-primary line-through">{task.asin}</p>
-                          <p className="text-xs text-theme-tertiary">{MARKETPLACES[task.marketplace]?.name}</p>
-                        </div>
-                      </div>
-                      <CheckCircle className="w-5 h-5 text-success" />
-                    </div>
-                  ))}
-                  {tasks.filter(t => t.status === 'completed').length > 5 && (
-                    <p className="text-xs text-theme-tertiary text-center">
-                      +{tasks.filter(t => t.status === 'completed').length - 5} more completed
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

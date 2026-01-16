@@ -1,9 +1,11 @@
-import { useState, lazy, Suspense } from 'react';
-import { Search, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { Search, ChevronLeft, ChevronRight, Menu, ClipboardList } from 'lucide-react';
+import { userAPI } from '../lib/supabase';
 
 // Lazy load the content components
 const InfluencerAsinCorrelation = lazy(() => import('./InfluencerAsinCorrelation'));
 const AutoDubbing = lazy(() => import('./AutoDubbing'));
+const InfluencerTaskList = lazy(() => import('./InfluencerTaskList'));
 
 // Menu item configuration
 const menuItems = [
@@ -13,6 +15,13 @@ const menuItems = [
     icon: Search,
     component: InfluencerAsinCorrelation,
     badge: null
+  },
+  {
+    id: 'task-list',
+    label: 'Upload Tasks',
+    icon: ClipboardList,
+    component: InfluencerTaskList,
+    badge: 'pending' // Special: will show pending task count
   },
   {
     id: 'auto-dubbing',
@@ -28,6 +37,30 @@ export default function InfluencerCentral() {
   const [activeItem, setActiveItem] = useState('asin-correlation');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [pendingTaskCount, setPendingTaskCount] = useState(0);
+
+  // Load pending task count
+  useEffect(() => {
+    const loadPendingCount = async () => {
+      try {
+        const token = await userAPI.getAuthToken();
+        const response = await fetch('/.netlify/functions/influencer-tasks?status=pending', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setPendingTaskCount(data.pendingCount || 0);
+        }
+      } catch (err) {
+        console.error('Failed to load pending task count:', err);
+      }
+    };
+    loadPendingCount();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(loadPendingCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const activeMenuItem = menuItems.find(item => item.id === activeItem);
   const ActiveComponent = activeMenuItem?.component;
@@ -108,18 +141,20 @@ export default function InfluencerCentral() {
                   <span className="block text-sm font-medium truncate">
                     {item.label}
                   </span>
-                  {item.badge && (
-                    <span className={`
-                      inline-block mt-1 text-xs px-2 py-0.5 rounded-full
-                      ${isActive 
-                        ? 'bg-white/20 text-white' 
-                        : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                      }
-                    `}>
-                      {item.badge}
-                    </span>
-                  )}
                 </span>
+                
+                {/* Pending task badge */}
+                {item.badge === 'pending' && pendingTaskCount > 0 && (
+                  <span className={`
+                    ml-2 text-xs font-bold px-2 py-0.5 rounded-full animate-pulse
+                    ${isActive 
+                      ? 'bg-white/30 text-white' 
+                      : 'bg-error text-white'
+                    }
+                  `}>
+                    {pendingTaskCount}
+                  </span>
+                )}
               </button>
             );
           })}
