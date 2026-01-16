@@ -8,7 +8,7 @@
 const https = require('https');
 const { verifyWebhookSecret } = require('./utils/auth');
 
-function httpsPost(url, data) {
+function httpsPost(url, data, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
     const postData = JSON.stringify(data);
@@ -20,7 +20,8 @@ function httpsPost(url, data) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData)
+        'Content-Length': Buffer.byteLength(postData),
+        ...extraHeaders
       }
     };
     
@@ -67,9 +68,10 @@ exports.handler = async (event, context) => {
     
     console.log(`📡 Calling ${functionUrl}`);
     
-    // Call the process-price-reductions function via HTTP
-    const response = await httpsPost(functionUrl, {
-      internalScheduled: 'netlify-scheduled-function'
+    // Call the process-price-reductions function via HTTP with webhook secret
+    const webhookSecret = process.env.WEBHOOK_SECRET;
+    const response = await httpsPost(functionUrl, {}, {
+      'X-Webhook-Secret': webhookSecret
     });
     
     let result;

@@ -438,40 +438,30 @@ exports.handler = async (event, context) => {
     console.log('💰 process-price-reductions started');
     console.log(`Environment: ${IS_SANDBOX ? 'SANDBOX' : 'PRODUCTION'}`);
 
-    // Authenticate user (or allow scheduled trigger with API key)
+    // ─────────────────────────────────────────────────────────
+    // SECURITY: Authentication required for all invocations
+    // ─────────────────────────────────────────────────────────
+    const { verifyAuth, verifyWebhookSecret } = require('./utils/auth');
+    
     const authHeader = event.headers.authorization || event.headers.Authorization;
     let userId = null;
+    let isScheduledMode = false;
     
-    // Check for scheduled job trigger or dry-run test mode
-    const { scheduled, userId: requestedUserId, dryRun, testSecret, internalScheduled, limit } = event.body ? JSON.parse(event.body) : {};
+    // Parse request body
+    const { userId: requestedUserId, dryRun, limit } = event.body ? JSON.parse(event.body) : {};
     
-    // Allow dry-run testing with a simple secret (for UAT verification)
-    const isDryRunTest = dryRun && testSecret === 'uat-test-2026';
-    
-    // F-BG001: Internal scheduled call from scheduled-price-reduction.js
-    const isInternalScheduled = internalScheduled === 'netlify-scheduled-function';
-    
-    if (isDryRunTest) {
-      console.log('🧪 DRY RUN TEST MODE - will calculate but not call eBay API');
-      if (requestedUserId) {
-        userId = requestedUserId;
-      }
-    } else if (isInternalScheduled) {
-      // Internal call from Netlify scheduled function or manual trigger - trusted
-      if (dryRun) {
-        console.log('🧪 INTERNAL DRY RUN MODE - will calculate but not call eBay API');
-      } else {
-        console.log('⏰ SCHEDULED MODE - processing all users');
-      }
-      // userId stays null to process all users
-    } else if (scheduled && process.env.SCHEDULED_JOB_SECRET) {
-      // Scheduled job mode - process specific user or all users
+    // Check webhook secret first (for scheduled jobs)
+    const webhookResult = verifyWebhookSecret(event);
+    if (webhookResult.success) {
+      console.log('✅ Webhook secret verified - scheduled mode');
+      isScheduledMode = true;
+      // In scheduled mode, process all users unless specific user requested
       if (requestedUserId) {
         userId = requestedUserId;
       }
     } else if (authHeader) {
-      // User-initiated mode
-      const token = authHeader.substring(7);
+      // Try JWT authentication
+      const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       
       if (authError || !user) {
@@ -482,12 +472,18 @@ exports.handler = async (event, context) => {
         };
       }
       userId = user.id;
+      console.log(`✅ JWT verified - user mode for ${userId}`);
     } else {
+      // No valid auth
       return {
         statusCode: 401,
         headers,
-        body: JSON.stringify({ error: 'Unauthorized' })
+        body: JSON.stringify({ error: 'Unauthorized - provide Bearer token or webhook secret' })
       };
+    }
+    
+    if (dryRun) {
+      console.log('🧪 DRY RUN MODE - will calculate but not call eBay API');
     }
 
     console.log(`✅ Processing for user: ${userId || 'all users'}`);

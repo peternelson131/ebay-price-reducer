@@ -8,7 +8,7 @@
 const https = require('https');
 const { verifyWebhookSecret } = require('./utils/auth');
 
-function httpsPost(url, data) {
+function httpsPost(url, data, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
     const postData = JSON.stringify(data);
@@ -20,7 +20,8 @@ function httpsPost(url, data) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData)
+        'Content-Length': Buffer.byteLength(postData),
+        ...extraHeaders
       }
     };
     
