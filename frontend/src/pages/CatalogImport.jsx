@@ -104,6 +104,7 @@ export default function CatalogImport() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -132,12 +133,41 @@ export default function CatalogImport() {
   
   // Polling ref
   const pollingRef = useRef(null);
+  
+  // Debounce ref for search
+  const searchDebounceRef = useRef(null);
 
   // Load imported ASINs on mount
   useEffect(() => {
     loadImports();
-    return () => stopPolling();
+    return () => {
+      stopPolling();
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
   }, []);
+
+  // Debounce search input
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    
+    searchDebounceRef.current = setTimeout(() => {
+      if (searchQuery !== debouncedSearch) {
+        setDebouncedSearch(searchQuery);
+        setCurrentPage(1);
+        loadImports(1, sortBy, sortOrder, searchQuery);
+      }
+    }, 300);
+    
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   // Start polling when we have processing items
   useEffect(() => {
@@ -149,7 +179,7 @@ export default function CatalogImport() {
     }
   }, [imports]);
 
-  const loadImports = async (page = currentPage, sort = sortBy, order = sortOrder) => {
+  const loadImports = async (page = currentPage, sort = sortBy, order = sortOrder, search = debouncedSearch) => {
     try {
       const token = await userAPI.getAuthToken();
       const params = new URLSearchParams({
@@ -159,6 +189,10 @@ export default function CatalogImport() {
         sortBy: sort,
         sortOrder: order
       });
+      // Add search param if present
+      if (search) {
+        params.set('search', search);
+      }
       const response = await fetch(`/.netlify/functions/catalog-import?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -180,9 +214,9 @@ export default function CatalogImport() {
     if (pollingRef.current) return; // Already polling
     
     pollingRef.current = setInterval(() => {
-      loadImports();
+      loadImports(currentPage, sortBy, sortOrder, debouncedSearch);
     }, 12000); // Poll every 12 seconds
-  }, []);
+  }, [currentPage, sortBy, sortOrder, debouncedSearch]);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -586,7 +620,7 @@ export default function CatalogImport() {
     setSortBy(newSortBy);
     setSortOrder(newSortOrder);
     setCurrentPage(1);
-    loadImports(1, newSortBy, newSortOrder);
+    loadImports(1, newSortBy, newSortOrder, debouncedSearch);
   };
 
   // Sort options
@@ -598,15 +632,9 @@ export default function CatalogImport() {
     { value: 'asin:asc', label: 'ASIN' }
   ];
 
-  // Filter imports
+  // Filter imports (search is now server-side, only filter by status client-side)
   const filteredImports = imports.filter(item => {
     if (statusFilter !== 'all' && item.status !== statusFilter) return false;
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchesAsin = item.asin?.toLowerCase().includes(query);
-      const matchesTitle = item.title?.toLowerCase().includes(query);
-      if (!matchesAsin && !matchesTitle) return false;
-    }
     return true;
   });
 
@@ -877,7 +905,12 @@ export default function CatalogImport() {
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery('')}
+                onClick={() => {
+                  setSearchQuery('');
+                  setDebouncedSearch('');
+                  setCurrentPage(1);
+                  loadImports(1, sortBy, sortOrder, '');
+                }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-tertiary hover:text-theme-primary"
               >
                 <X className="w-4 h-4" />
