@@ -106,6 +106,12 @@ export default function CatalogImport() {
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [selectedIds, setSelectedIds] = useState(new Set());
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 25;
+  
   // File upload state
   const [parsedData, setParsedData] = useState(null);
   const [parseError, setParseError] = useState(null);
@@ -131,15 +137,18 @@ export default function CatalogImport() {
     }
   }, [imports]);
 
-  const loadImports = async () => {
+  const loadImports = async (page = currentPage) => {
     try {
       const token = await userAPI.getAuthToken();
-      const response = await fetch('/.netlify/functions/catalog-import?action=list&limit=500', {
+      const response = await fetch(`/.netlify/functions/catalog-import?action=list&limit=${pageSize}&page=${page}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
       if (data.success) {
         setImports(data.items || []);
+        setTotalPages(data.pagination?.pages || 1);
+        setTotalCount(data.pagination?.total || 0);
+        setCurrentPage(page);
       }
     } catch (err) {
       console.error('Failed to load catalog imports:', err);
@@ -925,6 +934,48 @@ export default function CatalogImport() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between">
+          <div className="text-sm text-theme-secondary">
+            Showing {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, totalCount)} of {totalCount} items
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => loadImports(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 text-sm border border-theme rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-theme-hover transition-colors"
+            >
+              First
+            </button>
+            <button
+              onClick={() => loadImports(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 text-sm border border-theme rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-theme-hover transition-colors"
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1.5 text-sm text-theme-primary">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => loadImports(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 text-sm border border-theme rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-theme-hover transition-colors"
+            >
+              Next
+            </button>
+            <button
+              onClick={() => loadImports(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 text-sm border border-theme rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-theme-hover transition-colors"
+            >
+              Last
+            </button>
           </div>
         </div>
       )}
