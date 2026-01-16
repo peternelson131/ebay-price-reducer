@@ -137,8 +137,11 @@ export default function CatalogImport() {
   // Debounce ref for search
   const searchDebounceRef = useRef(null);
 
-  // Define loadImports function (needs to be before useEffects that call it)
-  const loadImports = async (page, sort, order, search) => {
+  // Refs for polling
+  const loadImportsRef = useRef(null);
+  
+  // Define loadImports function
+  const loadImports = useCallback(async (page, sort, order, search) => {
     // Use passed values or fall back to current state
     const p = page ?? currentPage;
     const s = sort ?? sortBy;
@@ -172,7 +175,12 @@ export default function CatalogImport() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, sortBy, sortOrder, debouncedSearch]);
+  
+  // Keep ref updated with latest loadImports
+  useEffect(() => {
+    loadImportsRef.current = loadImports;
+  }, [loadImports]);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -185,9 +193,11 @@ export default function CatalogImport() {
     if (pollingRef.current) return; // Already polling
     
     pollingRef.current = setInterval(() => {
-      loadImports(currentPage, sortBy, sortOrder, debouncedSearch);
+      if (loadImportsRef.current) {
+        loadImportsRef.current();
+      }
     }, 12000); // Poll every 12 seconds
-  }, [currentPage, sortBy, sortOrder, debouncedSearch]);
+  }, []);
 
   // Load imported ASINs on mount
   useEffect(() => {
