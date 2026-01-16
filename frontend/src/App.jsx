@@ -25,7 +25,7 @@ const QuickList = lazy(() => import('./pages/QuickList'))
 const AutoListBulk = lazy(() => import('./pages/AutoList')) // Renamed: bulk upload option
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
 const ListingSettings = lazy(() => import('./pages/ListingSettings'))
-const InfluencerAsinCorrelation = lazy(() => import('./pages/InfluencerAsinCorrelation'))
+const InfluencerCentral = lazy(() => import('./pages/InfluencerCentral'))
 const ApiKeys = lazy(() => import('./pages/ApiKeys'))
 
 export default function App() {
@@ -354,7 +354,7 @@ export default function App() {
               <Route path="/account" element={<Account />} />
               <Route path="/listing-settings" element={<ListingSettings />} />
               <Route path="/admin-settings" element={<AdminSettings />} />
-              <Route path="/asin-lookup" element={<InfluencerAsinCorrelation />} />
+              <Route path="/asin-lookup" element={<InfluencerCentral />} />
               <Route path="/api-keys" element={<ApiKeys />} />
             </Routes>
           </Suspense>
