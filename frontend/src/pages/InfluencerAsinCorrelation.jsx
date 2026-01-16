@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import apiService, { handleApiError } from '../services/api';
 import { userAPI } from '../lib/supabase';
 
@@ -22,6 +22,52 @@ export default function InfluencerAsinCorrelation() {
   
   // Loading state for checking availability (per ASIN)
   const [checkingAvailability, setCheckingAvailability] = useState({});
+  
+  // Completed tasks - ASINs that have ALL marketplace tasks completed
+  const [completedAsins, setCompletedAsins] = useState(new Set());
+
+  // Load completed tasks on mount
+  useEffect(() => {
+    loadCompletedTasks();
+  }, []);
+
+  // Load ASINs that have all tasks completed
+  const loadCompletedTasks = async () => {
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/influencer-tasks?status=completed', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.tasks) {
+        // Group by ASIN and check if all 4 marketplaces are complete
+        const asinMarketplaces = {};
+        data.tasks.forEach(task => {
+          if (!asinMarketplaces[task.asin]) {
+            asinMarketplaces[task.asin] = new Set();
+          }
+          asinMarketplaces[task.asin].add(task.marketplace);
+        });
+        
+        // ASINs with all 4 marketplaces completed
+        const fullyCompleted = new Set();
+        Object.entries(asinMarketplaces).forEach(([asin, marketplaces]) => {
+          if (marketplaces.size >= 4) {
+            fullyCompleted.add(asin);
+          }
+        });
+        setCompletedAsins(fullyCompleted);
+      }
+    } catch (err) {
+      console.error('Failed to load completed tasks:', err);
+    }
+  };
+
+  // Filter out correlations that are fully completed
+  const filteredCorrelations = useMemo(() => {
+    if (!results?.correlations) return [];
+    return results.correlations.filter(item => !completedAsins.has(item.asin));
+  }, [results?.correlations, completedAsins]);
 
   // Save feedback to database
   const saveFeedback = async (candidateAsin, decision) => {
@@ -434,7 +480,12 @@ export default function InfluencerAsinCorrelation() {
               </h2>
               {results.correlations && Array.isArray(results.correlations) && (
                 <span className="text-sm text-theme-tertiary">
-                  {results.correlations.length} result{results.correlations.length !== 1 ? 's' : ''} found
+                  {filteredCorrelations.length} result{filteredCorrelations.length !== 1 ? 's' : ''} found
+                  {completedAsins.size > 0 && results.correlations.length > filteredCorrelations.length && (
+                    <span className="ml-2 text-success">
+                      ({results.correlations.length - filteredCorrelations.length} completed, hidden)
+                    </span>
+                  )}
                 </span>
               )}
             </div>
@@ -450,7 +501,7 @@ export default function InfluencerAsinCorrelation() {
             </button>
           </div>
           <div className="p-6">
-            {results.correlations && Array.isArray(results.correlations) && results.correlations.length > 0 ? (
+            {filteredCorrelations.length > 0 ? (
               <div>
                 {/* Table Header with Flags */}
                 <div className="flex items-center gap-4 py-2 border-b border-theme mb-2 text-xs text-theme-tertiary font-medium">
@@ -468,7 +519,7 @@ export default function InfluencerAsinCorrelation() {
                 </div>
                 
                 <div className="divide-y divide-gray-200 dark:divide-gray-700/50">
-                {[...results.correlations]
+                {[...filteredCorrelations]
                   .sort((a, b) => {
                     if (a.suggestedType === 'variation' && b.suggestedType !== 'variation') return -1;
                     if (a.suggestedType !== 'variation' && b.suggestedType === 'variation') return 1;
