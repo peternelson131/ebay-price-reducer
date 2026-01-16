@@ -334,8 +334,8 @@ export default function App() {
         )}
       </nav>
 
-      <main className={location.pathname === '/listings' ? 'w-full py-4 px-2 sm:py-6 sm:px-4 lg:px-8' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
-        <div className={location.pathname === '/listings' ? '' : 'sm:px-0'}>
+      <main className={location.pathname === '/listings' || location.pathname === '/asin-lookup' ? 'w-full' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
+        <div className={location.pathname === '/listings' || location.pathname === '/asin-lookup' ? '' : 'sm:px-0'}>
           <Suspense fallback={
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
