@@ -24,14 +24,14 @@ const API_SERVICES = [
 function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
   const hasExistingKey = existingKey?.hasKey;
   // Show masked value if key exists and user hasn't started editing
-  const [inputValue, setInputValue] = useState(hasExistingKey ? '••••••••••••••••' : '');
+  const [inputValue, setInputValue] = useState(hasExistingKey ? '••••••••••••••••••••••••••••••••••••••••••••••••' : '');
   const [showKey, setShowKey] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
   // Update masked value when existingKey changes
   React.useEffect(() => {
     if (hasExistingKey && !isEditing) {
-      setInputValue('••••••••••••••••');
+      setInputValue('••••••••••••••••••••••••••••••••••••••••••••••••');
     } else if (!hasExistingKey) {
       setInputValue('');
     }
@@ -75,7 +75,7 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
               }}
               onFocus={() => {
                 // Clear masked value when user clicks to edit
-                if (inputValue === '••••••••••••••••') {
+                if (inputValue === '••••••••••••••••••••••••••••••••••••••••••••••••') {
                   setInputValue('');
                   setIsEditing(true);
                 }
@@ -83,7 +83,7 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
               onBlur={() => {
                 // Restore masked value if user didn't enter anything
                 if (!inputValue.trim() && hasExistingKey) {
-                  setInputValue('••••••••••••••••');
+                  setInputValue('••••••••••••••••••••••••••••••••••••••••••••••••');
                   setIsEditing(false);
                 }
               }}
@@ -100,7 +100,7 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
           </div>
           <button
             onClick={() => onSave(service.id, inputValue)}
-            disabled={saving || !inputValue.trim() || inputValue === '••••••••••••••••'}
+            disabled={saving || !inputValue.trim() || inputValue === '••••••••••••••••••••••••••••••••••••••••••••••••'}
             className="px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
             {saving ? 'Saving...' : 'Save'}
@@ -345,7 +345,7 @@ export default function ApiKeys() {
         keyMap[row.service] = {
           id: row.id,
           // Don't expose encrypted value - just show it's configured
-          value: row.api_key_encrypted ? '••••••••••••••••' : '',
+          value: row.api_key_encrypted ? '••••••••••••••••••••••••••••••••••••••••••••••••' : '',
           hasKey: !!row.api_key_encrypted,
           isValid: row.is_valid,
           lastUsed: row.last_used_at
