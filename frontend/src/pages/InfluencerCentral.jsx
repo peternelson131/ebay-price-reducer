@@ -38,7 +38,7 @@ export default function InfluencerCentral() {
   };
 
   return (
-    <div className="flex h-full min-h-[calc(100vh-120px)]">
+    <div className="flex" style={{ height: 'calc(100vh - 56px)' }}>
       {/* Mobile Sidebar Overlay */}
       {mobileSidebarOpen && (
         <div
@@ -56,7 +56,7 @@ export default function InfluencerCentral() {
           bg-theme-surface border-r border-theme
           transition-all duration-300 ease-in-out
           flex flex-col overflow-hidden
-          min-h-full
+          h-full
         `}
       >
         {/* Sidebar Header */}
