@@ -4,11 +4,17 @@
  * HTTP endpoint for manually triggering price reductions
  * Use this for testing since scheduled functions can't be invoked via HTTP
  * 
+ * SECURITY: Requires either:
+ *   - Valid JWT Bearer token (for user-initiated triggers)
+ *   - Valid webhook secret (for automated/scheduled triggers)
+ * 
  * POST /trigger-price-reduction
- * Body: { "testSecret": "uat-test-2026", "dryRun": true/false }
+ * Body: { "dryRun": true/false }
  */
 
 const https = require('https');
+const { getCorsHeaders, handlePreflight, errorResponse } = require('./utils/cors');
+const { verifyAuthOrWebhook } = require('./utils/auth');
 
 function httpsPost(url, data) {
   return new Promise((resolve, reject) => {
@@ -39,40 +45,32 @@ function httpsPost(url, data) {
 }
 
 exports.handler = async (event, context) => {
-  // CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
-  };
+  const headers = getCorsHeaders(event);
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  // Handle CORS preflight
+  const preflight = handlePreflight(event);
+  if (preflight) return preflight;
 
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+    return errorResponse(405, 'Method not allowed', headers);
   }
 
   const startTime = Date.now();
   console.log('🔧 Manual price reduction trigger at', new Date().toISOString());
   
   try {
-    const body = event.body ? JSON.parse(event.body) : {};
-    
-    // Require test secret for manual triggers
-    if (body.testSecret !== 'uat-test-2026') {
-      return {
-        statusCode: 401,
-        headers,
-        body: JSON.stringify({ error: 'Invalid test secret' })
-      };
+    // ─────────────────────────────────────────────────────────
+    // SECURITY: Verify authentication or webhook secret
+    // ─────────────────────────────────────────────────────────
+    const authResult = await verifyAuthOrWebhook(event);
+    if (!authResult.success) {
+      console.log('Auth failed:', authResult.error);
+      return errorResponse(authResult.statusCode, authResult.error, headers);
     }
     
+    console.log(`✅ Authenticated via ${authResult.isWebhook ? 'webhook secret' : 'JWT token'}`);
+    
+    const body = event.body ? JSON.parse(event.body) : {};
     const dryRun = body.dryRun !== false; // Default to dry run for safety
     const limit = body.limit || null; // Optional limit for testing
     
@@ -112,14 +110,7 @@ exports.handler = async (event, context) => {
     
   } catch (error) {
     console.error('❌ Manual trigger failed:', error);
-    
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        success: false,
-        error: error.message
-      })
-    };
+    // Don't leak internal error details
+    return errorResponse(500, 'Failed to trigger price reduction', headers);
   }
 };
