@@ -145,11 +145,19 @@ function parseFile(buffer, filename) {
         continue;
       }
       
+      // Helper to sanitize cell values - treats "null", "NULL", empty, etc. as actual null
+      const sanitize = (val) => {
+        if (val === undefined || val === null) return null;
+        const str = val.toString().trim();
+        if (!str || str.toLowerCase() === 'null' || str.toLowerCase() === 'n/a') return null;
+        return str;
+      };
+      
       data.push({
         asin,
-        title: titleIndex >= 0 ? row[titleIndex]?.toString().trim() || null : null,
-        image_url: imageIndex >= 0 ? row[imageIndex]?.toString().trim() || null : null,
-        category: categoryIndex >= 0 ? row[categoryIndex]?.toString().trim() || null : null,
+        title: titleIndex >= 0 ? sanitize(row[titleIndex])?.substring(0, 500) || null : null,
+        image_url: imageIndex >= 0 ? sanitize(row[imageIndex]) : null,
+        category: categoryIndex >= 0 ? sanitize(row[categoryIndex]) : null,
         price: priceIndex >= 0 ? parseFloat(row[priceIndex]) || null : null
       });
     }
@@ -503,14 +511,22 @@ async function handlePost(event, userId, headers) {
     }
     
     if (body.action === 'import' && Array.isArray(body.asins)) {
+      // Helper to sanitize values - treats "null", "NULL", empty, etc. as actual null
+      const sanitize = (val) => {
+        if (val === undefined || val === null) return null;
+        const str = val.toString().trim();
+        if (!str || str.toLowerCase() === 'null' || str.toLowerCase() === 'n/a') return null;
+        return str;
+      };
+      
       // Validate and normalize ASINs from JSON
       rows = body.asins
         .filter(a => a.asin && /^B[0-9A-Z]{9}$/i.test(a.asin.toString().trim()))
         .map(a => ({
           asin: a.asin.toString().trim().toUpperCase(),
-          title: a.title?.toString().substring(0, 500) || null,
-          image_url: a.image_url || null,
-          category: a.category || null,
+          title: sanitize(a.title)?.substring(0, 500) || null,
+          image_url: sanitize(a.image_url),
+          category: sanitize(a.category),
           price: a.price ? parseFloat(a.price) : null
         }));
       
