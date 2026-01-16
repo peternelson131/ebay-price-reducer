@@ -527,11 +527,27 @@ export default function AutoDubbing() {
         if (data.status === 'completed') {
           clearInterval(pollIntervalRef.current);
           setState(DubbingState.COMPLETE);
-          setMessage({ type: 'success', text: 'Dubbing complete! Your video is ready to download.' });
+          
+          // Show prominent success notification
+          setMessage({ 
+            type: 'success', 
+            text: '🎉 Dubbing complete! Your dubbed video is downloading now.',
+            isModal: true 
+          });
+          
+          // Play success sound (optional browser notification)
+          try {
+            if (Notification.permission === 'granted') {
+              new Notification('Video Dubbing Complete!', {
+                body: `Your video has been dubbed to ${TARGET_LANGUAGES.find(l => l.code === targetLanguage)?.name || targetLanguage}`,
+                icon: '/favicon.ico'
+              });
+            }
+          } catch (e) { /* ignore notification errors */ }
           
           // Auto-download
           if (data.downloadUrl) {
-            triggerDownload(data.downloadUrl, selectedFile.name.replace(/\.[^.]+$/, `_${targetLanguage}.mp4`));
+            triggerDownload(data.downloadUrl, selectedFile?.name?.replace(/\.[^.]+$/, `_${targetLanguage}.mp4`) || `dubbed_${targetLanguage}.mp4`);
           }
           
           // Refresh job history
@@ -618,8 +634,31 @@ export default function AutoDubbing() {
         </p>
       </div>
 
-      {/* Messages */}
-      {message && (
+      {/* Success Modal */}
+      {message?.isModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-theme-surface rounded-xl border border-theme shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-success" />
+              </div>
+              <h3 className="text-xl font-bold text-theme-primary mb-2">Dubbing Complete!</h3>
+              <p className="text-theme-secondary mb-6">
+                Your video has been dubbed and is downloading to your computer now.
+              </p>
+              <button
+                onClick={() => setMessage(null)}
+                className="px-6 py-3 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-colors"
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Messages (non-modal) */}
+      {message && !message.isModal && (
         <div className={`mb-6 p-4 rounded-lg border flex items-start gap-3 ${
           message.type === 'success' 
             ? 'bg-success/10 border-success/30 text-success' 
