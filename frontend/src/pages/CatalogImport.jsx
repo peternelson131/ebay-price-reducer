@@ -117,6 +117,9 @@ export default function CatalogImport() {
   // Image fetch state
   const [fetchingImages, setFetchingImages] = useState(false);
   
+  // Sync all state
+  const [syncingAll, setSyncingAll] = useState(false);
+  
   // File upload state
   const [parsedData, setParsedData] = useState(null);
   const [parseError, setParseError] = useState(null);
@@ -512,6 +515,54 @@ export default function CatalogImport() {
     await handleSync(Array.from(selectedIds));
   };
 
+  // Handle sync ALL imported items
+  const handleSyncAll = async () => {
+    // Count items that would be synced
+    const importedCount = imports.filter(i => i.status === 'imported').length;
+    const errorCount = imports.filter(i => i.status === 'error').length;
+    const totalSyncable = importedCount + errorCount;
+    
+    // If we only have current page data, use totalCount for better estimate
+    const estimatedTotal = totalCount > totalSyncable ? totalCount : totalSyncable;
+    
+    if (estimatedTotal === 0) {
+      alert('No items available to sync.');
+      return;
+    }
+    
+    const confirmed = confirm(`Queue all ${estimatedTotal} imported items for sync?\n\nThis will find correlations for all items with "Imported" or "Error" status.`);
+    if (!confirmed) return;
+    
+    setSyncingAll(true);
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/catalog-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'sync_all'
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert(`✅ ${data.queued || 'All'} items queued for sync!`);
+        // Reload to show updated statuses
+        await loadImports(currentPage);
+      } else {
+        alert(data.error || 'Failed to queue items for sync');
+      }
+    } catch (err) {
+      console.error('Sync all error:', err);
+      alert('Failed to sync all items');
+    } finally {
+      setSyncingAll(false);
+    }
+  };
+
   // Calculate syncable items for UI
   const syncableItems = filteredImports.filter(item => STATUS_CONFIG[item.status]?.canSync);
   const allSyncableSelected = syncableItems.length > 0 && 
@@ -747,6 +798,20 @@ export default function CatalogImport() {
             <RefreshCw className="w-4 h-4" />
           )}
           {fetchingImages ? 'Fetching...' : 'Fetch Images from Keepa'}
+        </button>
+        
+        {/* Sync All button */}
+        <button
+          onClick={handleSyncAll}
+          disabled={syncingAll || totalCount === 0}
+          className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+        >
+          {syncingAll ? (
+            <Loader className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          {syncingAll ? 'Queuing...' : 'Sync All'}
         </button>
         
         {/* Sync Selected button */}
