@@ -84,8 +84,8 @@ exports.handler = async (event, context) => {
     // Get user's Eleven Labs API key
     // ─────────────────────────────────────────────────────────
     const { data: apiKeyRecord } = await supabase
-      .from('api_keys')
-      .select('encrypted_key')
+      .from('user_api_keys')
+      .select('api_key_encrypted')
       .eq('user_id', userId)
       .eq('service', 'elevenlabs')
       .single();
@@ -94,7 +94,7 @@ exports.handler = async (event, context) => {
       return errorResponse(400, 'Eleven Labs API key not found', headers);
     }
 
-    const elevenLabsKey = decrypt(apiKeyRecord.encrypted_key);
+    const elevenLabsKey = decrypt(apiKeyRecord.api_key_encrypted);
 
     // ─────────────────────────────────────────────────────────
     // Poll Eleven Labs for status

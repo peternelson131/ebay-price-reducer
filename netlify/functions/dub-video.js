@@ -102,8 +102,8 @@ exports.handler = async (event, context) => {
     // Get user's Eleven Labs API key
     // ─────────────────────────────────────────────────────────
     const { data: apiKeyRecord, error: keyError } = await supabase
-      .from('api_keys')
-      .select('encrypted_key')
+      .from('user_api_keys')
+      .select('api_key_encrypted')
       .eq('user_id', userId)
       .eq('service', 'elevenlabs')
       .single();
@@ -112,7 +112,7 @@ exports.handler = async (event, context) => {
       return errorResponse(400, 'Eleven Labs API key not configured. Please add it in API Keys settings.', headers);
     }
 
-    const elevenLabsKey = decrypt(apiKeyRecord.encrypted_key);
+    const elevenLabsKey = decrypt(apiKeyRecord.api_key_encrypted);
     if (!elevenLabsKey) {
       return errorResponse(500, 'Failed to decrypt API key', headers);
     }
