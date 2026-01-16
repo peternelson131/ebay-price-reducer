@@ -425,6 +425,7 @@ async function handlePost(event, userId, headers) {
       const BATCH_SIZE = 100;
       let totalUpdated = 0;
       let totalTokens = 0;
+      let noImageAvailable = 0; // ASINs where Keepa has no image data
       
       for (let i = 0; i < missingImages.length; i += BATCH_SIZE) {
         const batch = missingImages.slice(i, i + BATCH_SIZE);
@@ -452,6 +453,8 @@ async function handlePost(event, userId, headers) {
           
           // Build image URL map for this batch
           const imageMap = {};
+          const productMap = new Map(products.map(p => [p.asin, p]));
+          
           for (const product of products) {
             // imagesCSV contains image codes like "51GxQhfGhQL,41ABC123XY"
             // We want the first one (primary image)
@@ -463,9 +466,21 @@ async function handlePost(event, userId, headers) {
                 const imageUrl = `https://m.media-amazon.com/images/I/${imageCode}._SL500_.jpg`;
                 imageMap[product.asin] = imageUrl;
                 console.log(`  📷 ${product.asin}: ${imageCode} -> ${imageUrl}`);
+              } else {
+                noImageAvailable++;
+                console.log(`  ⚠️ ${product.asin}: Empty image code`);
               }
             } else {
-              console.log(`  ⚠️ ${product.asin}: No imagesCSV field`);
+              noImageAvailable++;
+              console.log(`  ⚠️ ${product.asin}: No imagesCSV (Keepa has no image data)`);
+            }
+          }
+          
+          // Count ASINs not returned by Keepa
+          for (const asin of asins) {
+            if (!productMap.has(asin)) {
+              noImageAvailable++;
+              console.log(`  ⚠️ ${asin}: Not found in Keepa`);
             }
           }
           
@@ -498,13 +513,20 @@ async function handlePost(event, userId, headers) {
         }
       }
       
-      console.log(`✅ Complete: Updated ${totalUpdated}/${missingImages.length} images`);
+      console.log(`✅ Complete: Updated ${totalUpdated}/${missingImages.length} images (${noImageAvailable} unavailable from Keepa)`);
+      
+      // Build informative message
+      let message = `Updated ${totalUpdated} images from Keepa`;
+      if (noImageAvailable > 0) {
+        message += `. ${noImageAvailable} ASINs have no images available in Keepa (new/restricted products).`;
+      }
       
       return successResponse({
         success: true,
-        message: `Updated ${totalUpdated} images from Keepa`,
+        message,
         updated: totalUpdated,
         total: missingImages.length,
+        noImageAvailable, // How many ASINs had no image data in Keepa
         batches: Math.ceil(missingImages.length / BATCH_SIZE),
         tokensUsed: totalTokens
       }, headers);
