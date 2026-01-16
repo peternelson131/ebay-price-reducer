@@ -26,6 +26,7 @@ const AutoListBulk = lazy(() => import('./pages/AutoList')) // Renamed: bulk upl
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
 const ListingSettings = lazy(() => import('./pages/ListingSettings'))
 const InfluencerCentral = lazy(() => import('./pages/InfluencerCentral'))
+const EbayCentral = lazy(() => import('./pages/EbayCentral'))
 const ApiKeys = lazy(() => import('./pages/ApiKeys'))
 
 export default function App() {
@@ -101,34 +102,14 @@ export default function App() {
             {/* Desktop Navigation - Hidden on mobile */}
             <div className="hidden lg:flex items-center space-x-1">
               <Link
-                to="/listings"
+                to="/ebay-central"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === '/listings' || location.pathname === '/'
+                  location.pathname === '/ebay-central' || location.pathname === '/listings' || location.pathname === '/'
                     ? 'bg-accent text-white'
                     : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
                 }`}
               >
-                Listings
-              </Link>
-              <Link
-                to="/auto-list"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === '/auto-list'
-                    ? 'bg-accent text-white'
-                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                }`}
-              >
-                Quick List
-              </Link>
-              <Link
-                to="/strategies"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === '/strategies'
-                    ? 'bg-accent text-white'
-                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                }`}
-              >
-                Strategies
+                eBay Central
               </Link>
               <Link
                 to="/asin-lookup"
@@ -222,42 +203,16 @@ export default function App() {
 
                 {/* Navigation Links */}
                 <Link
-                  to="/listings"
+                  to="/ebay-central"
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    location.pathname === '/listings' || location.pathname === '/'
+                    location.pathname === '/ebay-central' || location.pathname === '/listings' || location.pathname === '/'
                       ? 'bg-accent text-white'
                       : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <LayoutList className="mr-3 h-5 w-5" strokeWidth={1.5} />
-                  Listings
-                </Link>
-
-                <Link
-                  to="/auto-list"
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    location.pathname === '/auto-list'
-                      ? 'bg-accent text-white'
-                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Plus className="mr-3 h-5 w-5" strokeWidth={1.5} />
-                  Quick List
-                </Link>
-
-                <Link
-                  to="/strategies"
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    location.pathname === '/strategies'
-                      ? 'bg-accent text-white'
-                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <TrendingDown className="mr-3 h-5 w-5" strokeWidth={1.5} />
-                  Strategies
+                  eBay Central
                 </Link>
 
                 <Link
@@ -334,8 +289,8 @@ export default function App() {
         )}
       </nav>
 
-      <main className={location.pathname === '/listings' || location.pathname === '/asin-lookup' ? 'w-full' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
-        <div className={location.pathname === '/listings' || location.pathname === '/asin-lookup' ? '' : 'sm:px-0'}>
+      <main className={['/listings', '/asin-lookup', '/ebay-central'].includes(location.pathname) || location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
+        <div className={['/listings', '/asin-lookup', '/ebay-central'].includes(location.pathname) || location.pathname === '/' ? '' : 'sm:px-0'}>
           <Suspense fallback={
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -345,9 +300,9 @@ export default function App() {
             </div>
           }>
             <Routes>
-              <Route path="/" element={<Listings />} />
+              <Route path="/" element={<EbayCentral />} />
+              <Route path="/ebay-central" element={<EbayCentral />} />
               <Route path="/listings" element={<Listings />} />
-
               <Route path="/auto-list" element={<QuickList />} />
               <Route path="/bulk-list" element={<AutoListBulk />} />
               <Route path="/strategies" element={<Strategies />} />
