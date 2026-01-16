@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { getCorsHeaders } = require('./utils/cors');
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -134,7 +135,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode,
       headers: {
-        'Content-Type': 'application/json',
+        ...getCorsHeaders(event),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'X-Health-Check': 'true'
       },
@@ -147,7 +148,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       headers: {
-        'Content-Type': 'application/json',
+        ...getCorsHeaders(event),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'X-Health-Check': 'true'
       },
@@ -155,8 +156,8 @@ exports.handler = async (event, context) => {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
         error: {
-          message: error.message,
-          type: error.constructor.name
+          message: 'Health check failed',
+          type: 'ServerError'
         },
         totalResponseTime: Date.now() - startTime + 'ms'
       }, null, 2)
