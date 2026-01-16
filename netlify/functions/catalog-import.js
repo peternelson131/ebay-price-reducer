@@ -295,21 +295,19 @@ async function handlePost(event, userId, headers) {
       }, headers);
     }
     
-    // Handle fetch_images action - get images from Keepa for ASINs missing images
+    // Handle fetch_images action - get images from Keepa for ALL ASINs missing images
     if (body.action === 'fetch_images') {
       const KEEPA_API_KEY = process.env.KEEPA_API_KEY;
       if (!KEEPA_API_KEY) {
         return errorResponse(500, 'KEEPA_API_KEY not configured', headers);
       }
       
-      // Get ASINs without images for this user
-      const limit = body.limit || 100; // Process up to 100 at a time
+      // Get ALL ASINs without images for this user
       const { data: missingImages, error: fetchError } = await getSupabase()
         .from('catalog_imports')
         .select('id, asin')
         .eq('user_id', userId)
-        .is('image_url', null)
-        .limit(limit);
+        .is('image_url', null);
       
       if (fetchError) {
         return errorResponse(500, `Failed to fetch ASINs: ${fetchError.message}`, headers);
@@ -323,63 +321,77 @@ async function handlePost(event, userId, headers) {
         }, headers);
       }
       
-      console.log(`📸 Fetching images for ${missingImages.length} ASINs`);
+      console.log(`📸 Fetching images for ${missingImages.length} ASINs (batching in groups of 100)`);
       
-      // Batch ASINs for Keepa (max 100 per request)
-      const asins = missingImages.map(r => r.asin);
-      const keepaUrl = `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=1&asin=${asins.join(',')}`;
+      // Process in batches of 100 (Keepa API limit)
+      const BATCH_SIZE = 100;
+      let totalUpdated = 0;
+      let totalTokens = 0;
       
-      try {
-        const keepaResponse = await fetch(keepaUrl);
-        const keepaData = await keepaResponse.json();
+      for (let i = 0; i < missingImages.length; i += BATCH_SIZE) {
+        const batch = missingImages.slice(i, i + BATCH_SIZE);
+        const asins = batch.map(r => r.asin);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(missingImages.length / BATCH_SIZE);
         
-        if (keepaData.error) {
-          return errorResponse(500, `Keepa error: ${keepaData.error.message || JSON.stringify(keepaData.error)}`, headers);
-        }
+        console.log(`📦 Processing batch ${batchNum}/${totalBatches} (${asins.length} ASINs)`);
         
-        const products = keepaData.products || [];
-        console.log(`📦 Keepa returned ${products.length} products`);
+        const keepaUrl = `https://api.keepa.com/product?key=${KEEPA_API_KEY}&domain=1&asin=${asins.join(',')}`;
         
-        // Build image URL map
-        const imageMap = {};
-        for (const product of products) {
-          if (product.imagesCSV) {
-            // imagesCSV is comma-separated image codes, first one is primary
-            const imageCode = product.imagesCSV.split(',')[0];
-            if (imageCode) {
-              imageMap[product.asin] = `https://m.media-amazon.com/images/I/${imageCode}`;
+        try {
+          const keepaResponse = await fetch(keepaUrl);
+          const keepaData = await keepaResponse.json();
+          
+          if (keepaData.error) {
+            console.error(`Batch ${batchNum} Keepa error:`, keepaData.error);
+            continue; // Skip this batch but continue with others
+          }
+          
+          const products = keepaData.products || [];
+          totalTokens += keepaData.tokensConsumed || 0;
+          
+          // Build image URL map for this batch
+          const imageMap = {};
+          for (const product of products) {
+            if (product.imagesCSV) {
+              const imageCode = product.imagesCSV.split(',')[0];
+              if (imageCode) {
+                imageMap[product.asin] = `https://m.media-amazon.com/images/I/${imageCode}`;
+              }
             }
           }
-        }
-        
-        // Update database with images
-        let updated = 0;
-        for (const row of missingImages) {
-          const imageUrl = imageMap[row.asin];
-          if (imageUrl) {
-            const { error: updateError } = await getSupabase()
-              .from('catalog_imports')
-              .update({ image_url: imageUrl })
-              .eq('id', row.id);
-            
-            if (!updateError) updated++;
+          
+          // Batch update database (more efficient)
+          for (const row of batch) {
+            const imageUrl = imageMap[row.asin];
+            if (imageUrl) {
+              const { error: updateError } = await getSupabase()
+                .from('catalog_imports')
+                .update({ image_url: imageUrl })
+                .eq('id', row.id);
+              
+              if (!updateError) totalUpdated++;
+            }
           }
+          
+          console.log(`✅ Batch ${batchNum}: Updated ${Object.keys(imageMap).length} images`);
+          
+        } catch (keepaError) {
+          console.error(`Batch ${batchNum} error:`, keepaError);
+          // Continue with next batch
         }
-        
-        console.log(`✅ Updated ${updated} images`);
-        
-        return successResponse({
-          success: true,
-          message: `Updated ${updated} images from Keepa`,
-          updated,
-          total: missingImages.length,
-          tokensUsed: keepaData.tokensConsumed || 0
-        }, headers);
-        
-      } catch (keepaError) {
-        console.error('Keepa fetch error:', keepaError);
-        return errorResponse(500, `Keepa request failed: ${keepaError.message}`, headers);
       }
+      
+      console.log(`✅ Complete: Updated ${totalUpdated}/${missingImages.length} images`);
+      
+      return successResponse({
+        success: true,
+        message: `Updated ${totalUpdated} images from Keepa`,
+        updated: totalUpdated,
+        total: missingImages.length,
+        batches: Math.ceil(missingImages.length / BATCH_SIZE),
+        tokensUsed: totalTokens
+      }, headers);
     }
     
     if (body.action === 'import' && Array.isArray(body.asins)) {
