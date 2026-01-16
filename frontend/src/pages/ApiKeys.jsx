@@ -22,12 +22,20 @@ const API_SERVICES = [
 ];
 
 function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
-  // Don't pre-fill with encrypted value - start empty for new entry
-  const [inputValue, setInputValue] = useState('');
-  const [showKey, setShowKey] = useState(false);
-  
-  // Track if user has started typing (to show placeholder vs saved indicator)
   const hasExistingKey = existingKey?.hasKey;
+  // Show masked value if key exists and user hasn't started editing
+  const [inputValue, setInputValue] = useState(hasExistingKey ? '••••••••••••••••' : '');
+  const [showKey, setShowKey] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Update masked value when existingKey changes
+  React.useEffect(() => {
+    if (hasExistingKey && !isEditing) {
+      setInputValue('••••••••••••••••');
+    } else if (!hasExistingKey) {
+      setInputValue('');
+    }
+  }, [hasExistingKey, isEditing]);
 
   return (
     <div className="bg-theme-surface rounded-lg border border-theme p-6">
@@ -61,8 +69,25 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
             <input
               type={showKey ? 'text' : 'password'}
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder={hasExistingKey ? 'Enter new key to replace existing' : service.placeholder}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                setIsEditing(true);
+              }}
+              onFocus={() => {
+                // Clear masked value when user clicks to edit
+                if (inputValue === '••••••••••••••••') {
+                  setInputValue('');
+                  setIsEditing(true);
+                }
+              }}
+              onBlur={() => {
+                // Restore masked value if user didn't enter anything
+                if (!inputValue.trim() && hasExistingKey) {
+                  setInputValue('••••••••••••••••');
+                  setIsEditing(false);
+                }
+              }}
+              placeholder={service.placeholder}
               className="w-full px-3 py-2.5 bg-theme-primary border border-theme rounded-lg text-theme-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
             />
             <button
@@ -75,7 +100,7 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
           </div>
           <button
             onClick={() => onSave(service.id, inputValue)}
-            disabled={saving || !inputValue.trim()}
+            disabled={saving || !inputValue.trim() || inputValue === '••••••••••••••••'}
             className="px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
             {saving ? 'Saving...' : 'Save'}
