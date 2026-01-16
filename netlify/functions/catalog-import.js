@@ -260,6 +260,7 @@ async function handlePost(event, userId, headers) {
   
   const contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
   let rows;
+  let fileData = null; // Declare at function scope for batch tracking
   
   // Check if this is a JSON request (frontend parses file client-side)
   if (contentType.includes('application/json')) {
@@ -297,7 +298,6 @@ async function handlePost(event, userId, headers) {
   else if (contentType.includes('multipart/form-data')) {
     console.log('📁 Received file upload');
     
-    let fileData;
     try {
       fileData = await parseMultipart(event);
     } catch (error) {
