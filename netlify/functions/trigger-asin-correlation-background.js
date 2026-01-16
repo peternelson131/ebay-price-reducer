@@ -9,6 +9,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
+const { verifyAuthOrWebhook } = require('./utils/auth');
 
 let supabase = null;
 
@@ -308,6 +309,14 @@ exports.handler = async (event, context) => {
   // They just process and exit
   
   console.log('🔔 Background function triggered');
+  
+  // Verify authentication (JWT or webhook secret)
+  const authResult = await verifyAuthOrWebhook(event);
+  if (!authResult.success) {
+    console.error('❌ Authentication failed:', authResult.error);
+    return { statusCode: authResult.statusCode || 401 };
+  }
+  console.log('✅ Auth verified:', authResult.isWebhook ? 'webhook' : `user ${authResult.userId}`);
   
   try {
     const body = JSON.parse(event.body || '{}');

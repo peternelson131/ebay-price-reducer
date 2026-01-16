@@ -6,6 +6,7 @@
  */
 
 const https = require('https');
+const { verifyWebhookSecret } = require('./utils/auth');
 
 function httpsPost(url, data) {
   return new Promise((resolve, reject) => {
@@ -38,6 +39,26 @@ function httpsPost(url, data) {
 exports.handler = async (event, context) => {
   const startTime = Date.now();
   console.log('⏰ Scheduled price reduction triggered at', new Date().toISOString());
+  
+  // Allow Netlify scheduled invocations (no body) OR require webhook secret for manual calls
+  const body = event.body ? JSON.parse(event.body) : {};
+  const isScheduledInvocation = !event.body || Object.keys(body).length === 0;
+  const hasInternalMarker = body.internalScheduled === 'netlify-scheduled-function';
+  
+  if (!isScheduledInvocation && !hasInternalMarker) {
+    // Manual HTTP call - require webhook secret
+    const authResult = verifyWebhookSecret(event);
+    if (!authResult.success) {
+      console.error('❌ Authentication failed for manual invocation:', authResult.error);
+      return {
+        statusCode: authResult.statusCode || 401,
+        body: JSON.stringify({ error: authResult.error })
+      };
+    }
+    console.log('✅ Webhook secret verified for manual invocation');
+  } else {
+    console.log('✅ Scheduled/internal invocation detected');
+  }
   
   try {
     // Get the site URL from environment
