@@ -222,16 +222,31 @@ async function handleGet(event, userId, headers) {
   const offset = (page - 1) * limit;
   const withCorrelations = params.with_correlations === 'true';
   
+  // Sort parameters
+  const sortBy = params.sortBy || 'created_at';
+  const sortOrder = params.sortOrder || 'desc';
+  const validSortFields = ['created_at', 'status', 'title', 'asin'];
+  const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'created_at';
+  const ascending = sortOrder === 'asc';
+  
+  // Search parameter
+  const search = params.search?.trim();
+  
   // Build query
   let query = getSupabase()
     .from('catalog_imports')
     .select('*', { count: 'exact' })
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    .order(actualSortBy, { ascending })
     .range(offset, offset + limit - 1);
   
   if (status) {
     query = query.eq('status', status);
+  }
+  
+  // Search in ASIN and title
+  if (search) {
+    query = query.or(`asin.ilike.%${search}%,title.ilike.%${search}%`);
   }
   
   const { data: items, error, count } = await query;
@@ -322,6 +337,53 @@ async function handlePost(event, userId, headers) {
       }, headers);
     }
     
+    // Handle sync_all action - queue ALL imported items for sync
+    if (body.action === 'sync_all') {
+      console.log(`🔄 Sync All: Queuing all imported items for user: ${userId}`);
+      
+      // First, count how many will be updated
+      const { data: importedItems, error: countError } = await getSupabase()
+        .from('catalog_imports')
+        .select('id', { count: 'exact' })
+        .eq('user_id', userId)
+        .eq('status', 'imported');
+      
+      if (countError) {
+        console.error('Sync all count error:', countError);
+        return errorResponse(500, `Failed to count items: ${countError.message}`, headers);
+      }
+      
+      const itemCount = importedItems?.length || 0;
+      
+      if (itemCount === 0) {
+        return successResponse({
+          success: true,
+          message: 'No imported items to queue',
+          queued: 0
+        }, headers);
+      }
+      
+      // Update all imported items to pending
+      const { error: updateError } = await getSupabase()
+        .from('catalog_imports')
+        .update({ status: 'pending', error_message: null })
+        .eq('user_id', userId)
+        .eq('status', 'imported');
+      
+      if (updateError) {
+        console.error('Sync all update error:', updateError);
+        return errorResponse(500, `Failed to queue items: ${updateError.message}`, headers);
+      }
+      
+      console.log(`✅ Sync All: Queued ${itemCount} items for sync`);
+      
+      return successResponse({
+        success: true,
+        message: `Queued ${itemCount} items for sync`,
+        queued: itemCount
+      }, headers);
+    }
+    
     // Handle fetch_images action - get images from Keepa for ALL ASINs missing images
     if (body.action === 'fetch_images') {
       const KEEPA_API_KEY = process.env.KEEPA_API_KEY;
@@ -329,12 +391,12 @@ async function handlePost(event, userId, headers) {
         return errorResponse(500, 'KEEPA_API_KEY not configured', headers);
       }
       
-      // Get ALL ASINs without images for this user
+      // Get ALL ASINs without images for this user (handles both NULL and empty string)
       const { data: missingImages, error: fetchError } = await getSupabase()
         .from('catalog_imports')
         .select('id, asin')
         .eq('user_id', userId)
-        .is('image_url', null);
+        .or('image_url.is.null,image_url.eq.');
       
       if (fetchError) {
         return errorResponse(500, `Failed to fetch ASINs: ${fetchError.message}`, headers);
