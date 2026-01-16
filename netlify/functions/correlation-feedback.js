@@ -282,6 +282,15 @@ exports.handler = async (event, context) => {
       // If accepted, create tasks for each available marketplace
       let tasksCreated = 0;
       if (decision === 'accepted' && availability) {
+        // Get correlation data for title and image
+        const { data: correlationData } = await supabase
+          .from('asin_correlations')
+          .select('correlated_title, image_url, search_asin')
+          .eq('search_asin', normalizedSearch)
+          .eq('similar_asin', normalizedCandidate)
+          .eq('user_id', user.id)
+          .single();
+
         const marketplaceUrls = {
           US: `https://www.amazon.com/dp/${normalizedCandidate}`,
           CA: `https://www.amazon.ca/dp/${normalizedCandidate}`,
@@ -295,6 +304,9 @@ exports.handler = async (event, context) => {
             tasksToCreate.push({
               user_id: user.id,
               asin: normalizedCandidate,
+              search_asin: normalizedSearch,
+              product_title: correlationData?.correlated_title || null,
+              image_url: correlationData?.image_url || null,
               marketplace,
               status: 'pending',
               amazon_upload_url: marketplaceUrls[marketplace]

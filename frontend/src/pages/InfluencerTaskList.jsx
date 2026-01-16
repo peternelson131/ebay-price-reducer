@@ -163,25 +163,71 @@ export default function InfluencerTaskList() {
         </div>
       ) : (
         <div className="space-y-6">
-          {Object.entries(groupedTasks).map(([asin, asinTasks]) => (
+          {Object.entries(groupedTasks).map(([asin, asinTasks]) => {
+            // Get product info from first task
+            const firstTask = asinTasks[0];
+            const imageUrl = firstTask?.image_url;
+            const productTitle = firstTask?.product_title;
+            const searchAsin = firstTask?.search_asin;
+            
+            return (
             <div key={asin} className="bg-theme-surface rounded-lg border border-theme overflow-hidden">
-              {/* ASIN Header */}
-              <div className="px-4 py-3 bg-theme-primary border-b border-theme">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-lg font-semibold text-accent">{asin}</span>
-                    <span className="text-sm text-theme-tertiary">
-                      {asinTasks.filter(t => t.status === 'pending').length} of {asinTasks.length} remaining
-                    </span>
+              {/* Product Header with Image */}
+              <div className="p-4 bg-theme-primary border-b border-theme">
+                <div className="flex gap-4">
+                  {/* Keepa/Product Image */}
+                  {imageUrl ? (
+                    <img 
+                      src={imageUrl} 
+                      alt={productTitle || asin}
+                      className="w-20 h-20 object-contain bg-white rounded-lg flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 bg-theme-surface rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-3xl">📦</span>
+                    </div>
+                  )}
+                  
+                  {/* Product Info */}
+                  <div className="flex-1 min-w-0">
+                    {/* Title */}
+                    <h3 className="font-medium text-theme-primary line-clamp-2 mb-2">
+                      {productTitle || 'Product Title Not Available'}
+                    </h3>
+                    
+                    {/* ASINs */}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                      {searchAsin && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-theme-tertiary">Search:</span>
+                          <span className="font-mono text-theme-secondary">{searchAsin}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <span className="text-theme-tertiary">Variation:</span>
+                        <span className="font-mono text-accent font-semibold">{asin}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Progress */}
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        asinTasks.filter(t => t.status === 'pending').length === 0
+                          ? 'bg-success/20 text-success'
+                          : 'bg-error/20 text-error'
+                      }`}>
+                        {asinTasks.filter(t => t.status === 'pending').length} of {asinTasks.length} remaining
+                      </span>
+                      <a
+                        href={`https://www.amazon.com/dp/${asin}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-accent hover:text-accent-hover flex items-center gap-1"
+                      >
+                        View on Amazon <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
                   </div>
-                  <a
-                    href={`https://www.amazon.com/dp/${asin}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-accent hover:text-accent-hover flex items-center gap-1"
-                  >
-                    View on Amazon <ExternalLink className="w-3 h-3" />
-                  </a>
                 </div>
               </div>
 
@@ -250,7 +296,8 @@ export default function InfluencerTaskList() {
                 ))}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>
