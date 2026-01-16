@@ -23,7 +23,9 @@ import {
   X,
   Trash2,
   Search,
-  Plus
+  Plus,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 
 // Status configuration
@@ -466,6 +468,56 @@ export default function CatalogImport() {
     });
   };
 
+  // Toggle selection of individual item
+  const toggleSelected = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Toggle select all syncable items on current page
+  const toggleSelectAll = () => {
+    const syncableIds = filteredImports
+      .filter(item => STATUS_CONFIG[item.status]?.canSync)
+      .map(item => item.id);
+    
+    const allSelected = syncableIds.every(id => selectedIds.has(id));
+    
+    if (allSelected) {
+      // Deselect all
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        syncableIds.forEach(id => next.delete(id));
+        return next;
+      });
+    } else {
+      // Select all syncable
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        syncableIds.forEach(id => next.add(id));
+        return next;
+      });
+    }
+  };
+
+  // Handle sync selected items
+  const handleSyncSelected = async () => {
+    if (selectedIds.size === 0) return;
+    await handleSync(Array.from(selectedIds));
+  };
+
+  // Calculate syncable items for UI
+  const syncableItems = filteredImports.filter(item => STATUS_CONFIG[item.status]?.canSync);
+  const allSyncableSelected = syncableItems.length > 0 && 
+    syncableItems.every(item => selectedIds.has(item.id));
+  const someSyncableSelected = syncableItems.some(item => selectedIds.has(item.id));
+
   // Filter imports
   const filteredImports = imports.filter(item => {
     if (statusFilter !== 'all' && item.status !== statusFilter) return false;
@@ -697,6 +749,17 @@ export default function CatalogImport() {
           {fetchingImages ? 'Fetching...' : 'Fetch Images from Keepa'}
         </button>
         
+        {/* Sync Selected button */}
+        {selectedIds.size > 0 && (
+          <button
+            onClick={handleSyncSelected}
+            className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Sync Selected ({selectedIds.size})
+          </button>
+        )}
+        
         {parseError && !showUploadModal && (
           <div className="w-full mt-3 p-3 bg-error/10 border border-error/30 rounded-lg flex items-center gap-2 text-error text-sm">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -779,7 +842,23 @@ export default function CatalogImport() {
         <div className="bg-theme-surface rounded-lg border border-theme overflow-hidden">
           {/* Header Row */}
           <div className="hidden sm:grid sm:grid-cols-12 gap-4 px-4 py-3 bg-theme-primary border-b border-theme text-sm font-medium text-theme-secondary">
-            <div className="col-span-1"></div>
+            <div className="col-span-1 flex items-center gap-2">
+              {syncableItems.length > 0 && (
+                <button
+                  onClick={toggleSelectAll}
+                  className="p-1 text-theme-tertiary hover:text-accent transition-colors"
+                  title={allSyncableSelected ? 'Deselect all' : 'Select all syncable'}
+                >
+                  {allSyncableSelected ? (
+                    <CheckSquare className="w-5 h-5 text-accent" />
+                  ) : someSyncableSelected ? (
+                    <CheckSquare className="w-5 h-5 text-theme-tertiary" />
+                  ) : (
+                    <Square className="w-5 h-5" />
+                  )}
+                </button>
+              )}
+            </div>
             <div className="col-span-1">Image</div>
             <div className="col-span-3">Title</div>
             <div className="col-span-2">ASIN</div>
@@ -803,17 +882,33 @@ export default function CatalogImport() {
                       isExpanded ? 'bg-theme-hover' : ''
                     }`}
                   >
-                    {/* Expand Toggle */}
-                    <div className="col-span-1 hidden sm:flex justify-center">
+                    {/* Checkbox + Expand Toggle */}
+                    <div className="col-span-1 hidden sm:flex items-center gap-1">
+                      {/* Checkbox for syncable items */}
+                      {statusConfig.canSync ? (
+                        <button
+                          onClick={() => toggleSelected(item.id)}
+                          className="p-1 text-theme-tertiary hover:text-accent transition-colors"
+                        >
+                          {selectedIds.has(item.id) ? (
+                            <CheckSquare className="w-5 h-5 text-accent" />
+                          ) : (
+                            <Square className="w-5 h-5" />
+                          )}
+                        </button>
+                      ) : (
+                        <div className="w-7"></div>
+                      )}
+                      {/* Expand toggle */}
                       {correlationCount > 0 && (
                         <button
                           onClick={() => toggleExpanded(item.id)}
                           className="p-1 text-theme-tertiary hover:text-theme-primary hover:bg-theme-primary rounded transition-colors"
                         >
                           {isExpanded ? (
-                            <ChevronDown className="w-5 h-5" />
+                            <ChevronDown className="w-4 h-4" />
                           ) : (
-                            <ChevronRight className="w-5 h-5" />
+                            <ChevronRight className="w-4 h-4" />
                           )}
                         </button>
                       )}
