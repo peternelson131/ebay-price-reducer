@@ -412,7 +412,7 @@ async function handlePost(event, userId, headers) {
     .from('catalog_import_batches')
     .insert({
       user_id: userId,
-      filename: fileData.filename,
+      filename: fileData?.filename || 'json-import',
       total_rows: stats.total,
       imported_count: stats.imported,
       skipped_count: stats.skipped_tasks + stats.skipped_existing,
