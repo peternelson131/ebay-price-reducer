@@ -253,34 +253,74 @@ async function handleGet(event, userId, headers) {
 }
 
 /**
- * POST handler - Upload and import file
+ * POST handler - Upload and import file OR accept JSON with pre-parsed ASINs
  */
 async function handlePost(event, userId, headers) {
   console.log(`📤 Processing catalog upload for user: ${userId}`);
   
-  // Parse multipart form data
-  let fileData;
-  try {
-    fileData = await parseMultipart(event);
-  } catch (error) {
-    console.error('File upload error:', error);
-    return errorResponse(400, error.message, headers);
-  }
-  
-  // Parse Excel/CSV
+  const contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
   let rows;
-  try {
-    rows = parseFile(fileData.buffer, fileData.filename);
-  } catch (error) {
-    console.error('File parsing error:', error);
-    return errorResponse(400, error.message, headers);
-  }
   
-  if (rows.length === 0) {
-    return errorResponse(400, 'No valid ASINs found in file', headers);
+  // Check if this is a JSON request (frontend parses file client-side)
+  if (contentType.includes('application/json')) {
+    console.log('📋 Received JSON with pre-parsed ASINs');
+    
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch (e) {
+      return errorResponse(400, 'Invalid JSON body', headers);
+    }
+    
+    if (body.action === 'import' && Array.isArray(body.asins)) {
+      // Validate and normalize ASINs from JSON
+      rows = body.asins
+        .filter(a => a.asin && /^B[0-9A-Z]{9}$/i.test(a.asin.toString().trim()))
+        .map(a => ({
+          asin: a.asin.toString().trim().toUpperCase(),
+          title: a.title?.toString().substring(0, 500) || null,
+          image_url: a.image_url || null,
+          category: a.category || null,
+          price: a.price ? parseFloat(a.price) : null
+        }));
+      
+      if (rows.length === 0) {
+        return errorResponse(400, 'No valid ASINs in request', headers);
+      }
+      
+      console.log(`📊 Received ${rows.length} valid ASINs from JSON`);
+    } else {
+      return errorResponse(400, 'Invalid request: expected action=import with asins array', headers);
+    }
+  } 
+  // Otherwise expect multipart form data with file
+  else if (contentType.includes('multipart/form-data')) {
+    console.log('📁 Received file upload');
+    
+    let fileData;
+    try {
+      fileData = await parseMultipart(event);
+    } catch (error) {
+      console.error('File upload error:', error);
+      return errorResponse(400, error.message, headers);
+    }
+    
+    // Parse Excel/CSV
+    try {
+      rows = parseFile(fileData.buffer, fileData.filename);
+    } catch (error) {
+      console.error('File parsing error:', error);
+      return errorResponse(400, error.message, headers);
+    }
+    
+    if (rows.length === 0) {
+      return errorResponse(400, 'No valid ASINs found in file', headers);
+    }
+    
+    console.log(`📊 Parsed ${rows.length} valid ASINs from file`);
+  } else {
+    return errorResponse(400, 'Content-Type must be application/json or multipart/form-data', headers);
   }
-  
-  console.log(`📊 Parsed ${rows.length} valid ASINs from file`);
   
   // Get existing ASINs to skip
   const asins = rows.map(r => r.asin);
