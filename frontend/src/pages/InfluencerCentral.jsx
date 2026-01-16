@@ -1,11 +1,12 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Search, ChevronLeft, ChevronRight, Menu, ClipboardList } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Menu, ClipboardList, BookOpen } from 'lucide-react';
 import { userAPI } from '../lib/supabase';
 
 // Lazy load the content components
 const InfluencerAsinCorrelation = lazy(() => import('./InfluencerAsinCorrelation'));
 const AutoDubbing = lazy(() => import('./AutoDubbing'));
 const InfluencerTaskList = lazy(() => import('./InfluencerTaskList'));
+const AsinCatalog = lazy(() => import('./AsinCatalog'));
 
 // Menu item configuration
 const menuItems = [
@@ -22,6 +23,13 @@ const menuItems = [
     icon: ClipboardList,
     component: InfluencerTaskList,
     badge: 'pending' // Special: will show pending task count
+  },
+  {
+    id: 'catalog',
+    label: 'ASIN Catalog',
+    icon: BookOpen,
+    component: AsinCatalog,
+    badge: null
   },
   {
     id: 'auto-dubbing',
