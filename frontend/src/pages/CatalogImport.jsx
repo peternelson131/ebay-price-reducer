@@ -137,6 +137,58 @@ export default function CatalogImport() {
   // Debounce ref for search
   const searchDebounceRef = useRef(null);
 
+  // Define loadImports function (needs to be before useEffects that call it)
+  const loadImports = async (page, sort, order, search) => {
+    // Use passed values or fall back to current state
+    const p = page ?? currentPage;
+    const s = sort ?? sortBy;
+    const o = order ?? sortOrder;
+    const q = search !== undefined ? search : debouncedSearch;
+    try {
+      const token = await userAPI.getAuthToken();
+      const params = new URLSearchParams({
+        action: 'list',
+        limit: pageSize.toString(),
+        page: p.toString(),
+        sortBy: s,
+        sortOrder: o
+      });
+      // Add search param if present
+      if (q) {
+        params.set('search', q);
+      }
+      const response = await fetch(`/.netlify/functions/catalog-import?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setImports(data.items || []);
+        setTotalPages(data.pagination?.pages || 1);
+        setTotalCount(data.pagination?.total || 0);
+        setCurrentPage(p);
+      }
+    } catch (err) {
+      console.error('Failed to load catalog imports:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) return; // Already polling
+    
+    pollingRef.current = setInterval(() => {
+      loadImports(currentPage, sortBy, sortOrder, debouncedSearch);
+    }, 12000); // Poll every 12 seconds
+  }, [currentPage, sortBy, sortOrder, debouncedSearch]);
+
   // Load imported ASINs on mount
   useEffect(() => {
     loadImports();
@@ -178,52 +230,6 @@ export default function CatalogImport() {
       stopPolling();
     }
   }, [imports]);
-
-  const loadImports = async (page = currentPage, sort = sortBy, order = sortOrder, search = debouncedSearch) => {
-    try {
-      const token = await userAPI.getAuthToken();
-      const params = new URLSearchParams({
-        action: 'list',
-        limit: pageSize.toString(),
-        page: page.toString(),
-        sortBy: sort,
-        sortOrder: order
-      });
-      // Add search param if present
-      if (search) {
-        params.set('search', search);
-      }
-      const response = await fetch(`/.netlify/functions/catalog-import?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setImports(data.items || []);
-        setTotalPages(data.pagination?.pages || 1);
-        setTotalCount(data.pagination?.total || 0);
-        setCurrentPage(page);
-      }
-    } catch (err) {
-      console.error('Failed to load catalog imports:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const startPolling = useCallback(() => {
-    if (pollingRef.current) return; // Already polling
-    
-    pollingRef.current = setInterval(() => {
-      loadImports(currentPage, sortBy, sortOrder, debouncedSearch);
-    }, 12000); // Poll every 12 seconds
-  }, [currentPage, sortBy, sortOrder, debouncedSearch]);
-
-  const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-  }, []);
 
   // File drop handler
   const onDrop = useCallback((acceptedFiles) => {
