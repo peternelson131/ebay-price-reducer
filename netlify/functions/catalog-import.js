@@ -391,12 +391,13 @@ async function handlePost(event, userId, headers) {
         return errorResponse(500, 'KEEPA_API_KEY not configured', headers);
       }
       
-      // Get ALL ASINs without images for this user (handles both NULL and empty string)
+      // Get ALL ASINs without images for this user
+      // Handles: NULL, empty string, and the string literal "null"
       const { data: missingImages, error: fetchError } = await getSupabase()
         .from('catalog_imports')
         .select('id, asin')
         .eq('user_id', userId)
-        .or('image_url.is.null,image_url.eq.');
+        .or('image_url.is.null,image_url.eq.,image_url.eq.null');
       
       if (fetchError) {
         return errorResponse(500, `Failed to fetch ASINs: ${fetchError.message}`, headers);
