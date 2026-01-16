@@ -13,15 +13,36 @@ import {
   Loader, 
   RefreshCw,
   Trash2,
-  RotateCcw
+  RotateCcw,
+  Upload
 } from 'lucide-react';
 
 // Marketplace flags and info
 const MARKETPLACES = {
-  US: { name: 'United States', flag: '🇺🇸', domain: 'amazon.com' },
-  CA: { name: 'Canada', flag: '🇨🇦', domain: 'amazon.ca' },
-  UK: { name: 'United Kingdom', flag: '🇬🇧', domain: 'amazon.co.uk' },
-  DE: { name: 'Germany', flag: '🇩🇪', domain: 'amazon.de' }
+  US: { 
+    name: 'United States', 
+    flag: '🇺🇸', 
+    domain: 'amazon.com',
+    uploadUrl: 'https://www.amazon.com/creatorhub/video/upload'
+  },
+  CA: { 
+    name: 'Canada', 
+    flag: '🇨🇦', 
+    domain: 'amazon.ca',
+    uploadUrl: 'https://www.amazon.ca/creatorhub/video/upload'
+  },
+  UK: { 
+    name: 'United Kingdom', 
+    flag: '🇬🇧', 
+    domain: 'amazon.co.uk',
+    uploadUrl: 'https://www.amazon.co.uk/creatorhub/video/upload'
+  },
+  DE: { 
+    name: 'Germany', 
+    flag: '🇩🇪', 
+    domain: 'amazon.de',
+    uploadUrl: 'https://www.amazon.de/creatorhub/video/upload'
+  }
 };
 
 export default function InfluencerTaskList() {
@@ -262,9 +283,19 @@ export default function InfluencerTaskList() {
                             href={task.amazon_upload_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-4 py-2 bg-accent text-white text-sm rounded-lg hover:bg-accent-hover transition-colors flex items-center gap-2"
+                            className="px-3 py-2 bg-theme-surface border border-theme text-theme-primary text-sm rounded-lg hover:bg-theme-hover transition-colors flex items-center gap-1"
+                            title="View product on Amazon"
                           >
-                            Open Product <ExternalLink className="w-4 h-4" />
+                            Product <ExternalLink className="w-3 h-3" />
+                          </a>
+                          <a
+                            href={MARKETPLACES[task.marketplace]?.uploadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-accent text-white text-sm rounded-lg hover:bg-accent-hover transition-colors flex items-center gap-2"
+                            title="Go to Amazon Influencer upload page"
+                          >
+                            Upload <ExternalLink className="w-4 h-4" />
                           </a>
                           <button
                             onClick={() => updateTask(task.id, 'complete')}
