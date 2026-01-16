@@ -273,6 +273,28 @@ async function handlePost(event, userId, headers) {
       return errorResponse(400, 'Invalid JSON body', headers);
     }
     
+    // Handle sync action - queue selected items for correlation finding
+    if (body.action === 'sync' && Array.isArray(body.ids)) {
+      console.log(`🔄 Syncing ${body.ids.length} items for user: ${userId}`);
+      
+      const { error } = await getSupabase()
+        .from('catalog_imports')
+        .update({ status: 'pending', error_message: null })
+        .eq('user_id', userId)
+        .in('id', body.ids);
+      
+      if (error) {
+        console.error('Sync error:', error);
+        return errorResponse(500, `Failed to queue for sync: ${error.message}`, headers);
+      }
+      
+      return successResponse({
+        success: true,
+        message: `Queued ${body.ids.length} items for sync`,
+        queued: body.ids.length
+      }, headers);
+    }
+    
     if (body.action === 'import' && Array.isArray(body.asins)) {
       // Validate and normalize ASINs from JSON
       rows = body.asins
@@ -379,7 +401,7 @@ async function handlePost(event, userId, headers) {
       continue; // Don't re-insert, just skip
     }
     
-    // New ASIN to import
+    // New ASIN to import (status='imported' - user must opt-in to sync)
     toInsert.push({
       user_id: userId,
       asin: row.asin,
@@ -387,7 +409,7 @@ async function handlePost(event, userId, headers) {
       image_url: row.image_url,
       category: row.category,
       price: row.price,
-      status: 'pending'
+      status: 'imported'
     });
     stats.imported++;
   }

@@ -28,13 +28,23 @@ import {
 
 // Status configuration
 const STATUS_CONFIG = {
+  imported: { 
+    icon: FileSpreadsheet, 
+    label: 'Imported', 
+    emoji: '📥',
+    bgClass: 'bg-gray-100 dark:bg-gray-800', 
+    textClass: 'text-gray-600 dark:text-gray-400',
+    animated: false,
+    canSync: true
+  },
   pending: { 
     icon: Clock, 
     label: 'Queued', 
     emoji: '⏳',
-    bgClass: 'bg-gray-100 dark:bg-gray-800', 
-    textClass: 'text-gray-600 dark:text-gray-400',
-    animated: false
+    bgClass: 'bg-yellow-50 dark:bg-yellow-900/30', 
+    textClass: 'text-yellow-600 dark:text-yellow-400',
+    animated: false,
+    canSync: false
   },
   processing: { 
     icon: Loader, 
@@ -42,7 +52,8 @@ const STATUS_CONFIG = {
     emoji: '🔄',
     bgClass: 'bg-blue-50 dark:bg-blue-900/30', 
     textClass: 'text-blue-600 dark:text-blue-400',
-    animated: true
+    animated: true,
+    canSync: false
   },
   processed: { 
     icon: CheckCircle, 
@@ -50,7 +61,8 @@ const STATUS_CONFIG = {
     emoji: '✅',
     bgClass: 'bg-green-50 dark:bg-green-900/30', 
     textClass: 'text-green-600 dark:text-green-400',
-    animated: false
+    animated: false,
+    canSync: false
   },
   error: { 
     icon: AlertCircle, 
@@ -58,7 +70,8 @@ const STATUS_CONFIG = {
     emoji: '❌',
     bgClass: 'bg-red-50 dark:bg-red-900/30', 
     textClass: 'text-red-600 dark:text-red-400',
-    animated: false
+    animated: false,
+    canSync: true
   }
 };
 
@@ -91,6 +104,7 @@ export default function CatalogImport() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [selectedIds, setSelectedIds] = useState(new Set());
   
   // File upload state
   const [parsedData, setParsedData] = useState(null);
@@ -191,16 +205,33 @@ export default function CatalogImport() {
           const value = rawValue.toString().trim().toUpperCase();
           
           if (isValidAsin(value)) {
-            // Also extract title if available
+            // Extract all available fields
             const titleIndex = headers.findIndex(h => 
               (h || '').toLowerCase().includes('title') || 
               (h || '').toLowerCase().includes('name')
             );
+            const imageIndex = headers.findIndex(h => 
+              (h || '').toLowerCase().includes('image') || 
+              (h || '').toLowerCase().includes('photo')
+            );
+            const categoryIndex = headers.findIndex(h => 
+              (h || '').toLowerCase().includes('category')
+            );
+            const priceIndex = headers.findIndex(h => 
+              (h || '').toLowerCase().includes('price')
+            );
+            
             const title = titleIndex !== -1 ? row[titleIndex] : null;
+            const image_url = imageIndex !== -1 ? row[imageIndex] : null;
+            const category = categoryIndex !== -1 ? row[categoryIndex] : null;
+            const price = priceIndex !== -1 ? parseFloat(row[priceIndex]) || null : null;
             
             asins.push({ 
               asin: value, 
               title: title?.toString() || null,
+              image_url: image_url?.toString() || null,
+              category: category?.toString() || null,
+              price,
               rowNum: i + 1 
             });
           } else if (value) {
@@ -262,7 +293,10 @@ export default function CatalogImport() {
           action: 'import',
           asins: parsedData.validAsins.map(a => ({
             asin: a.asin,
-            title: a.title
+            title: a.title,
+            image_url: a.image_url,
+            category: a.category,
+            price: a.price
           }))
         })
       });
@@ -307,6 +341,39 @@ export default function CatalogImport() {
       }
     } catch (err) {
       console.error('Delete error:', err);
+    }
+  };
+
+  // Queue items for sync (find correlations)
+  const handleSync = async (importIds) => {
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/catalog-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'sync',
+          ids: importIds
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        // Update local state to show pending status
+        setImports(prev => prev.map(i => 
+          importIds.includes(i.id) ? { ...i, status: 'pending' } : i
+        ));
+        // Clear selection
+        setSelectedIds(new Set());
+      } else {
+        alert(data.error || 'Failed to queue for sync');
+      }
+    } catch (err) {
+      console.error('Sync error:', err);
+      alert('Failed to queue for sync');
     }
   };
 
@@ -766,6 +833,16 @@ export default function CatalogImport() {
 
                     {/* Actions */}
                     <div className="col-span-1 flex justify-end gap-2">
+                      {/* Sync button - only for imported/error status */}
+                      {(item.status === 'imported' || item.status === 'error') && (
+                        <button
+                          onClick={() => handleSync([item.id])}
+                          className="p-2 text-theme-tertiary hover:text-accent hover:bg-accent/10 rounded-lg transition-colors"
+                          title="Find Correlations"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(item.id)}
                         className="p-2 text-theme-tertiary hover:text-error hover:bg-error/10 rounded-lg transition-colors"
