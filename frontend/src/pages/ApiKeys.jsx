@@ -15,12 +15,12 @@ const API_SERVICES = [
 ];
 
 function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
-  const [inputValue, setInputValue] = useState(existingKey?.value || '');
+  // Don't pre-fill with encrypted value - start empty for new entry
+  const [inputValue, setInputValue] = useState('');
   const [showKey, setShowKey] = useState(false);
-
-  useEffect(() => {
-    setInputValue(existingKey?.value || '');
-  }, [existingKey]);
+  
+  // Track if user has started typing (to show placeholder vs saved indicator)
+  const hasExistingKey = existingKey?.hasKey;
 
   return (
     <div className="bg-theme-surface rounded-lg border border-theme p-6">
@@ -37,13 +37,13 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
             Get API key <ExternalLink className="h-3 w-3" />
           </a>
         </div>
-        {existingKey && (
+        {hasExistingKey && (
           <span className={`px-2 py-1 text-xs rounded-lg ${
             existingKey.isValid 
               ? 'bg-success/10 text-success' 
               : 'bg-error/10 text-error'
           }`}>
-            {existingKey.isValid ? 'Active' : 'Invalid'}
+            {existingKey.isValid ? 'Configured' : 'Invalid'}
           </span>
         )}
       </div>
@@ -55,7 +55,7 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
               type={showKey ? 'text' : 'password'}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder={service.placeholder}
+              placeholder={hasExistingKey ? 'Enter new key to replace existing' : service.placeholder}
               className="w-full px-3 py-2.5 bg-theme-primary border border-theme rounded-lg text-theme-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
             />
             <button
@@ -73,7 +73,7 @@ function ApiKeyInput({ service, existingKey, onSave, onDelete, saving }) {
           >
             {saving ? 'Saving...' : 'Save'}
           </button>
-          {existingKey && (
+          {hasExistingKey && (
             <button
               onClick={() => onDelete(service.id)}
               className="px-4 py-2.5 bg-error/10 text-error border border-error/30 rounded-lg hover:bg-error/20 transition-colors"
@@ -312,7 +312,9 @@ export default function ApiKeys() {
       (data || []).forEach(row => {
         keyMap[row.service] = {
           id: row.id,
-          value: row.api_key_encrypted,
+          // Don't expose encrypted value - just show it's configured
+          value: row.api_key_encrypted ? '••••••••••••••••' : '',
+          hasKey: !!row.api_key_encrypted,
           isValid: row.is_valid,
           lastUsed: row.last_used_at
         };
@@ -333,33 +335,32 @@ export default function ApiKeys() {
     setMessage(null);
 
     try {
-      const existing = keys[serviceId];
-      
-      if (existing?.id) {
-        const { error } = await supabase
-          .from('user_api_keys')
-          .update({
-            api_key_encrypted: value.trim(),
-            is_valid: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existing.id);
-        
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('user_api_keys')
-          .insert({
-            user_id: user.id,
-            service: serviceId,
-            api_key_encrypted: value.trim(),
-            label: 'default'
-          });
-        
-        if (error) throw error;
+      // Get auth token for the API call
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
       }
 
-      setMessage({ type: 'success', text: `${serviceId} key saved successfully` });
+      // Call backend to securely encrypt and save the key
+      const response = await fetch('/.netlify/functions/save-api-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          service: serviceId,
+          apiKey: value.trim()
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save key');
+      }
+
+      setMessage({ type: 'success', text: data.message || `${serviceId} key saved successfully` });
       await loadKeys();
     } catch (error) {
       console.error('Error saving key:', error);
