@@ -446,43 +446,53 @@ export default function AutoDubbing() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      // Create form data
-      const formData = new FormData();
-      formData.append('video', selectedFile);
-      formData.append('targetLanguage', targetLanguage);
-      formData.append('sourceLanguage', 'en');
-
-      // Upload with progress tracking
-      const xhr = new XMLHttpRequest();
+      // Step 1: Upload video to Supabase Storage first
+      const timestamp = Date.now();
+      const ext = selectedFile.name.split('.').pop() || 'mp4';
+      const storagePath = `${user.id}/source_${timestamp}.${ext}`;
       
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const progress = (e.loaded / e.total) * 100;
-          setUploadProgress(progress);
-        }
-      });
-
-      const uploadPromise = new Promise((resolve, reject) => {
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(JSON.parse(xhr.responseText));
-          } else {
-            try {
-              const errorData = JSON.parse(xhr.responseText);
-              reject(new Error(errorData.error || 'Upload failed'));
-            } catch {
-              reject(new Error('Upload failed'));
-            }
+      console.log('Uploading to Supabase Storage:', storagePath);
+      
+      const { error: uploadError } = await supabase.storage
+        .from('dubbed-videos')
+        .upload(storagePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false,
+          onUploadProgress: (progress) => {
+            const percent = (progress.loaded / progress.total) * 100;
+            setUploadProgress(percent * 0.9); // 90% for upload
           }
-        };
-        xhr.onerror = () => reject(new Error('Network error'));
+        });
+
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      setUploadProgress(90);
+      console.log('Upload complete, starting dubbing job...');
+
+      // Step 2: Call dub-video with storage path
+      const response = await fetch('/.netlify/functions/dub-video', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          storagePath,
+          targetLanguage,
+          originalFilename: selectedFile.name
+        })
       });
 
-      xhr.open('POST', '/.netlify/functions/dub-video');
-      xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
-      xhr.send(formData);
+      setUploadProgress(100);
 
-      const result = await uploadPromise;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to start dubbing');
+      }
+
+      const result = await response.json();
       
       // Start polling for status
       setCurrentJobId(result.jobId);
@@ -504,7 +514,7 @@ export default function AutoDubbing() {
 
     const poll = async () => {
       try {
-        const response = await fetch(`/.netlify/functions/dub-status?id=${jobId}`, {
+        const response = await fetch(`/.netlify/functions/dub-status?jobId=${jobId}`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }

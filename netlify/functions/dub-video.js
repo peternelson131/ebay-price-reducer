@@ -2,16 +2,18 @@
  * Dub Video - Start Eleven Labs dubbing job
  * 
  * POST /dub-video
- * Content-Type: multipart/form-data
- * - video: File
- * - targetLanguage: string (es, fr, de, it, pt, etc.)
+ * Body: { "storageUrl": "supabase-storage-url", "targetLanguage": "es", "originalFilename": "video.mp4" }
+ * 
+ * The video should be uploaded to Supabase Storage first (client-side),
+ * then this function is called with the storage URL.
  */
 
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = require('./utils/cors');
 const { verifyAuth } = require('./utils/auth');
 const { decrypt } = require('./utils/encryption');
-const busboy = require('busboy');
+const fetch = require('node-fetch');
+const FormData = require('form-data');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -32,49 +34,6 @@ const SUPPORTED_LANGUAGES = {
   'zh': 'Chinese'
 };
 
-// Parse multipart form data
-function parseMultipart(event) {
-  return new Promise((resolve, reject) => {
-    const bb = busboy({ 
-      headers: { 'content-type': event.headers['content-type'] || event.headers['Content-Type'] }
-    });
-    
-    const fields = {};
-    let fileBuffer = null;
-    let fileName = null;
-    let fileMimeType = null;
-
-    bb.on('file', (name, file, info) => {
-      const { filename, mimeType } = info;
-      fileName = filename;
-      fileMimeType = mimeType;
-      const chunks = [];
-      
-      file.on('data', (data) => chunks.push(data));
-      file.on('end', () => {
-        fileBuffer = Buffer.concat(chunks);
-      });
-    });
-
-    bb.on('field', (name, value) => {
-      fields[name] = value;
-    });
-
-    bb.on('finish', () => {
-      resolve({ fields, fileBuffer, fileName, fileMimeType });
-    });
-
-    bb.on('error', reject);
-
-    // Handle base64 encoded body from API Gateway
-    const body = event.isBase64Encoded 
-      ? Buffer.from(event.body, 'base64') 
-      : Buffer.from(event.body);
-    
-    bb.end(body);
-  });
-}
-
 exports.handler = async (event, context) => {
   const headers = getCorsHeaders(event);
 
@@ -86,17 +45,36 @@ exports.handler = async (event, context) => {
     return errorResponse(405, 'Method not allowed', headers);
   }
 
+  console.log('📥 dub-video called');
+
   try {
     // ─────────────────────────────────────────────────────────
     // SECURITY: Verify authentication
     // ─────────────────────────────────────────────────────────
     const authResult = await verifyAuth(event);
     if (!authResult.success) {
+      console.log('❌ Auth failed:', authResult.error);
       return errorResponse(authResult.statusCode, authResult.error, headers);
     }
     
     const userId = authResult.userId;
     console.log(`✅ Authenticated user: ${userId}`);
+
+    // ─────────────────────────────────────────────────────────
+    // Parse request body
+    // ─────────────────────────────────────────────────────────
+    const body = JSON.parse(event.body || '{}');
+    const { storagePath, targetLanguage, originalFilename } = body;
+
+    if (!storagePath) {
+      return errorResponse(400, 'Missing storagePath - upload video to storage first', headers);
+    }
+
+    if (!targetLanguage || !SUPPORTED_LANGUAGES[targetLanguage]) {
+      return errorResponse(400, `Invalid target language. Supported: ${Object.keys(SUPPORTED_LANGUAGES).join(', ')}`, headers);
+    }
+
+    console.log(`📹 Processing: ${originalFilename} -> ${SUPPORTED_LANGUAGES[targetLanguage]}`);
 
     // ─────────────────────────────────────────────────────────
     // Get user's Eleven Labs API key
@@ -118,35 +96,37 @@ exports.handler = async (event, context) => {
     }
 
     // ─────────────────────────────────────────────────────────
-    // Parse multipart form data
+    // Download video from Supabase Storage
     // ─────────────────────────────────────────────────────────
-    const { fields, fileBuffer, fileName, fileMimeType } = await parseMultipart(event);
+    console.log(`📥 Downloading from storage: ${storagePath}`);
     
-    const targetLanguage = fields.targetLanguage;
-    
-    if (!fileBuffer) {
-      return errorResponse(400, 'No video file provided', headers);
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from('dubbed-videos')
+      .download(storagePath);
+
+    if (downloadError || !fileData) {
+      console.error('Download error:', downloadError);
+      return errorResponse(400, `Failed to download video: ${downloadError?.message || 'File not found'}`, headers);
     }
 
-    if (!targetLanguage || !SUPPORTED_LANGUAGES[targetLanguage]) {
-      return errorResponse(400, `Invalid target language. Supported: ${Object.keys(SUPPORTED_LANGUAGES).join(', ')}`, headers);
-    }
-
-    console.log(`📹 Processing video: ${fileName} (${fileBuffer.length} bytes) -> ${SUPPORTED_LANGUAGES[targetLanguage]}`);
+    const videoBuffer = Buffer.from(await fileData.arrayBuffer());
+    console.log(`📥 Downloaded ${videoBuffer.length} bytes`);
 
     // ─────────────────────────────────────────────────────────
     // Call Eleven Labs Dubbing API
     // ─────────────────────────────────────────────────────────
-    const FormData = require('form-data');
-    const fetch = require('node-fetch');
-    
     const formData = new FormData();
-    formData.append('file', fileBuffer, { filename: fileName, contentType: fileMimeType });
+    formData.append('file', videoBuffer, { 
+      filename: originalFilename || 'video.mp4', 
+      contentType: 'video/mp4' 
+    });
     formData.append('target_lang', targetLanguage);
     formData.append('source_lang', 'en');
     formData.append('num_speakers', '1');
     formData.append('watermark', 'false');
 
+    console.log('🎬 Calling Eleven Labs API...');
+    
     const dubResponse = await fetch('https://api.elevenlabs.io/v1/dubbing', {
       method: 'POST',
       headers: {
@@ -180,8 +160,8 @@ exports.handler = async (event, context) => {
         dubbing_id: dubbingId,
         source_language: 'en',
         target_language: targetLanguage,
-        original_filename: fileName,
-        file_size_bytes: fileBuffer.length,
+        original_filename: originalFilename,
+        file_size_bytes: videoBuffer.length,
         status: 'processing',
         expires_at: expiresAt.toISOString()
       })
@@ -192,6 +172,9 @@ exports.handler = async (event, context) => {
       console.error('Failed to save job:', insertError);
       return errorResponse(500, 'Failed to save dubbing job', headers);
     }
+
+    // Delete the source file from storage (we don't need it anymore)
+    await supabase.storage.from('dubbed-videos').remove([storagePath]);
 
     return successResponse({
       success: true,
