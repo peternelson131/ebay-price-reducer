@@ -279,13 +279,54 @@ exports.handler = async (event, context) => {
 
       if (error) throw error;
 
+      // If accepted, create tasks for each available marketplace
+      let tasksCreated = 0;
+      if (decision === 'accepted' && availability) {
+        const marketplaceUrls = {
+          US: `https://www.amazon.com/dp/${normalizedCandidate}`,
+          CA: `https://www.amazon.ca/dp/${normalizedCandidate}`,
+          UK: `https://www.amazon.co.uk/dp/${normalizedCandidate}`,
+          DE: `https://www.amazon.de/dp/${normalizedCandidate}`
+        };
+
+        const tasksToCreate = [];
+        for (const [marketplace, available] of Object.entries(availability)) {
+          if (available) {
+            tasksToCreate.push({
+              user_id: user.id,
+              asin: normalizedCandidate,
+              marketplace,
+              status: 'pending',
+              amazon_upload_url: marketplaceUrls[marketplace]
+            });
+          }
+        }
+
+        if (tasksToCreate.length > 0) {
+          const { error: taskError } = await supabase
+            .from('influencer_tasks')
+            .upsert(tasksToCreate, { 
+              onConflict: 'user_id,asin,marketplace',
+              ignoreDuplicates: true 
+            });
+
+          if (taskError) {
+            console.error('Failed to create tasks:', taskError);
+          } else {
+            tasksCreated = tasksToCreate.length;
+            console.log(`Created ${tasksCreated} influencer tasks for ${normalizedCandidate}`);
+          }
+        }
+      }
+
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({ 
           success: true, 
           message: 'Feedback saved',
-          availability: availability
+          availability: availability,
+          tasksCreated: tasksCreated
         })
       };
     }
