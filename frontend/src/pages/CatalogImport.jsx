@@ -96,6 +96,7 @@ export default function CatalogImport() {
   const [parsedData, setParsedData] = useState(null);
   const [parseError, setParseError] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   
   // Polling ref
   const pollingRef = useRef(null);
@@ -409,153 +410,175 @@ export default function CatalogImport() {
         </button>
       </div>
 
-      {/* Upload Dropzone - Always visible at top */}
-      <div className="mb-6">
-        <div
-          {...getRootProps()}
-          className={`
-            border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
-            transition-all duration-200
-            ${isDragActive 
-              ? 'border-accent bg-accent/5 scale-[1.02]' 
-              : 'border-theme hover:border-accent/50 hover:bg-theme-hover'
-            }
-          `}
-        >
-          <input {...getInputProps()} />
-          <div className="flex flex-col items-center">
-            <div className={`
-              w-16 h-16 rounded-full flex items-center justify-center mb-4
-              ${isDragActive ? 'bg-accent/20' : 'bg-theme-primary'}
-            `}>
-              {isDragActive ? (
-                <FileSpreadsheet className="w-8 h-8 text-accent" />
-              ) : (
-                <Upload className="w-8 h-8 text-theme-tertiary" />
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-theme-surface rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-theme">
+              <h2 className="text-lg font-semibold text-theme-primary flex items-center gap-2">
+                <Upload className="w-5 h-5 text-accent" />
+                Import ASINs from File
+              </h2>
+              <button
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setParsedData(null);
+                  setParseError(null);
+                }}
+                className="p-1 rounded-lg text-theme-tertiary hover:text-theme-primary hover:bg-theme-hover transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-4">
+              {/* Dropzone */}
+              <div
+                {...getRootProps()}
+                className={`
+                  border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
+                  transition-all duration-200
+                  ${isDragActive 
+                    ? 'border-accent bg-accent/5 scale-[1.02]' 
+                    : 'border-theme hover:border-accent/50 hover:bg-theme-hover'
+                  }
+                `}
+              >
+                <input {...getInputProps()} />
+                <div className="flex flex-col items-center">
+                  <div className={`
+                    w-16 h-16 rounded-full flex items-center justify-center mb-4
+                    ${isDragActive ? 'bg-accent/20' : 'bg-theme-primary'}
+                  `}>
+                    {isDragActive ? (
+                      <FileSpreadsheet className="w-8 h-8 text-accent" />
+                    ) : (
+                      <Upload className="w-8 h-8 text-theme-tertiary" />
+                    )}
+                  </div>
+                  <p className="text-theme-primary font-medium mb-1">
+                    {isDragActive ? 'Drop your file here' : 'Drop Excel/CSV file here'}
+                  </p>
+                  <p className="text-sm text-theme-secondary">
+                    or click to browse • Supports .xlsx, .xls, .csv
+                  </p>
+                </div>
+              </div>
+              
+              {/* Parse Error */}
+              {parseError && (
+                <div className="mt-3 p-3 bg-error/10 border border-error/30 rounded-lg flex items-center gap-2 text-error text-sm">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {parseError}
+                </div>
+              )}
+              
+              {/* Preview */}
+              {parsedData && (
+                <div className="mt-4">
+                  <div className="bg-theme-primary rounded-lg p-4 mb-4">
+                    <h3 className="font-medium text-theme-primary mb-2 flex items-center gap-2">
+                      <FileSpreadsheet className="w-4 h-4 text-accent" />
+                      {parsedData.fileName}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="text-theme-secondary">Total rows:</div>
+                      <div className="text-theme-primary">{parsedData.totalRows}</div>
+                      <div className="text-theme-secondary">Valid ASINs:</div>
+                      <div className="text-success font-medium">{parsedData.validAsins.length}</div>
+                      {parsedData.duplicatesRemoved > 0 && (
+                        <>
+                          <div className="text-theme-secondary">Duplicates removed:</div>
+                          <div className="text-warning">{parsedData.duplicatesRemoved}</div>
+                        </>
+                      )}
+                      {parsedData.invalidRows.length > 0 && (
+                        <>
+                          <div className="text-theme-secondary">Invalid rows:</div>
+                          <div className="text-error">{parsedData.invalidRows.length}</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Sample ASINs */}
+                  <div className="mb-4">
+                    <p className="text-sm text-theme-secondary mb-2">Sample ASINs to import:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {parsedData.validAsins.slice(0, 8).map(a => (
+                        <span key={a.asin} className="px-2 py-1 bg-theme-primary rounded text-xs font-mono text-accent">
+                          {a.asin}
+                        </span>
+                      ))}
+                      {parsedData.validAsins.length > 8 && (
+                        <span className="px-2 py-1 bg-theme-primary rounded text-xs text-theme-secondary">
+                          +{parsedData.validAsins.length - 8} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Import Button */}
+                  <button
+                    onClick={async () => {
+                      await handleImport();
+                      if (!parseError) {
+                        setShowUploadModal(false);
+                      }
+                    }}
+                    disabled={importing}
+                    className="w-full py-3 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    {importing ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Import {parsedData.validAsins.length} ASINs
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+              
+              {/* Instructions */}
+              {!parsedData && (
+                <div className="mt-4 p-3 bg-theme-primary rounded-lg">
+                  <p className="text-sm text-theme-secondary">
+                    <strong className="text-theme-primary">Required column:</strong> ASIN (e.g., B01N9SPQHQ)
+                  </p>
+                  <p className="text-sm text-theme-secondary mt-1">
+                    <strong className="text-theme-primary">Optional:</strong> Product Title, Category, Price
+                  </p>
+                </div>
               )}
             </div>
-            <p className="text-theme-primary font-medium mb-1">
-              {isDragActive ? 'Drop your file here' : 'Drop Excel/CSV file here'}
-            </p>
-            <p className="text-sm text-theme-secondary">
-              or click to browse • Supports .xlsx, .xls, .csv
-            </p>
           </div>
         </div>
+      )}
+
+      {/* Import Button - Opens Modal */}
+      <div className="mb-6">
+        <button
+          onClick={() => setShowUploadModal(true)}
+          className="px-4 py-2.5 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+        >
+          <Upload className="w-4 h-4" />
+          Import from File
+        </button>
         
-        {parseError && (
+        {parseError && !showUploadModal && (
           <div className="mt-3 p-3 bg-error/10 border border-error/30 rounded-lg flex items-center gap-2 text-error text-sm">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {parseError}
           </div>
         )}
       </div>
-
-      {/* Preview Modal */}
-      {showPreview && parsedData && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-theme-surface rounded-xl border border-theme shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-theme">
-              <div>
-                <h3 className="text-lg font-semibold text-theme-primary">Preview Import</h3>
-                <p className="text-sm text-theme-secondary">{parsedData.fileName}</p>
-              </div>
-              <button
-                onClick={() => { setShowPreview(false); setParsedData(null); }}
-                className="p-2 text-theme-tertiary hover:text-theme-primary hover:bg-theme-hover rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            {/* Stats */}
-            <div className="p-4 bg-theme-primary border-b border-theme">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <div className="text-2xl font-bold text-success">{parsedData.validAsins.length}</div>
-                  <div className="text-xs text-theme-secondary">Valid ASINs</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-theme-tertiary">{parsedData.duplicatesRemoved}</div>
-                  <div className="text-xs text-theme-secondary">Duplicates Removed</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-error">{parsedData.invalidRows.length}</div>
-                  <div className="text-xs text-theme-secondary">Invalid Rows</div>
-                </div>
-              </div>
-            </div>
-            
-            {/* ASIN List */}
-            <div className="flex-1 overflow-auto p-4">
-              <div className="text-sm font-medium text-theme-secondary mb-2">
-                ASINs to import:
-              </div>
-              <div className="space-y-1 max-h-60 overflow-y-auto">
-                {parsedData.validAsins.slice(0, 100).map((item, idx) => (
-                  <div key={item.asin} className="flex items-center gap-3 p-2 bg-theme-primary rounded-lg">
-                    <span className="w-8 text-xs text-theme-tertiary">#{idx + 1}</span>
-                    <span className="font-mono text-sm text-accent">{item.asin}</span>
-                    {item.title && (
-                      <span className="text-sm text-theme-secondary truncate flex-1">{item.title}</span>
-                    )}
-                  </div>
-                ))}
-                {parsedData.validAsins.length > 100 && (
-                  <div className="text-center text-sm text-theme-tertiary py-2">
-                    ... and {parsedData.validAsins.length - 100} more
-                  </div>
-                )}
-              </div>
-              
-              {/* Invalid rows warning */}
-              {parsedData.invalidRows.length > 0 && (
-                <div className="mt-4 p-3 bg-warning/10 border border-warning/30 rounded-lg">
-                  <div className="text-sm font-medium text-warning mb-1">
-                    {parsedData.invalidRows.length} invalid row(s) will be skipped:
-                  </div>
-                  <div className="text-xs text-theme-secondary space-y-1">
-                    {parsedData.invalidRows.slice(0, 5).map((row, idx) => (
-                      <div key={idx}>Row {row.rowNum}: "{row.value}"</div>
-                    ))}
-                    {parsedData.invalidRows.length > 5 && (
-                      <div>... and {parsedData.invalidRows.length - 5} more</div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-theme">
-              <button
-                onClick={() => { setShowPreview(false); setParsedData(null); }}
-                className="px-4 py-2 text-theme-secondary border border-theme rounded-lg hover:bg-theme-hover transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleImport}
-                disabled={importing}
-                className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {importing ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" />
-                    Importing...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    Import {parsedData.validAsins.length} ASINs
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Search and Filter Bar */}
       {imports.length > 0 && (
