@@ -191,7 +191,7 @@ async function handleGet(event, userId, headers) {
   const params = event.queryStringParameters || {};
   const status = params.status; // pending, processing, processed, error, skipped
   const page = parseInt(params.page) || 1;
-  const limit = Math.min(parseInt(params.limit) || 50, 100);
+  const limit = Math.min(parseInt(params.limit) || 50, 1000);
   const offset = (page - 1) * limit;
   const withCorrelations = params.with_correlations === 'true';
   

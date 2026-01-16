@@ -134,7 +134,7 @@ export default function CatalogImport() {
   const loadImports = async () => {
     try {
       const token = await userAPI.getAuthToken();
-      const response = await fetch('/.netlify/functions/catalog-import?action=list', {
+      const response = await fetch('/.netlify/functions/catalog-import?action=list&limit=500', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -837,10 +837,11 @@ export default function CatalogImport() {
                       {(item.status === 'imported' || item.status === 'error') && (
                         <button
                           onClick={() => handleSync([item.id])}
-                          className="p-2 text-theme-tertiary hover:text-accent hover:bg-accent/10 rounded-lg transition-colors"
+                          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
                           title="Find Correlations"
                         >
-                          <RefreshCw className="w-4 h-4" />
+                          <RefreshCw className="w-3 h-3" />
+                          Sync
                         </button>
                       )}
                       <button
