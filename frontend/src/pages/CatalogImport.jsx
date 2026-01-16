@@ -114,6 +114,10 @@ export default function CatalogImport() {
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 25;
   
+  // Sort state
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
+  
   // Image fetch state
   const [fetchingImages, setFetchingImages] = useState(false);
   
@@ -145,10 +149,17 @@ export default function CatalogImport() {
     }
   }, [imports]);
 
-  const loadImports = async (page = currentPage) => {
+  const loadImports = async (page = currentPage, sort = sortBy, order = sortOrder) => {
     try {
       const token = await userAPI.getAuthToken();
-      const response = await fetch(`/.netlify/functions/catalog-import?action=list&limit=${pageSize}&page=${page}`, {
+      const params = new URLSearchParams({
+        action: 'list',
+        limit: pageSize.toString(),
+        page: page.toString(),
+        sortBy: sort,
+        sortOrder: order
+      });
+      const response = await fetch(`/.netlify/functions/catalog-import?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -569,6 +580,24 @@ export default function CatalogImport() {
     syncableItems.every(item => selectedIds.has(item.id));
   const someSyncableSelected = syncableItems.some(item => selectedIds.has(item.id));
 
+  // Handle sort change
+  const handleSortChange = (value) => {
+    const [newSortBy, newSortOrder] = value.split(':');
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+    setCurrentPage(1);
+    loadImports(1, newSortBy, newSortOrder);
+  };
+
+  // Sort options
+  const sortOptions = [
+    { value: 'created_at:desc', label: 'Date (newest)' },
+    { value: 'created_at:asc', label: 'Date (oldest)' },
+    { value: 'status:asc', label: 'Status' },
+    { value: 'title:asc', label: 'Title (A-Z)' },
+    { value: 'asin:asc', label: 'ASIN' }
+  ];
+
   // Filter imports
   const filteredImports = imports.filter(item => {
     if (statusFilter !== 'all' && item.status !== statusFilter) return false;
@@ -855,6 +884,19 @@ export default function CatalogImport() {
               </button>
             )}
           </div>
+
+          {/* Sort Dropdown */}
+          <select
+            value={`${sortBy}:${sortOrder}`}
+            onChange={(e) => handleSortChange(e.target.value)}
+            className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-theme-primary focus:outline-none focus:border-accent cursor-pointer"
+          >
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                Sort: {option.label}
+              </option>
+            ))}
+          </select>
 
           {/* Status Filter */}
           <div className="flex gap-2 flex-wrap">
