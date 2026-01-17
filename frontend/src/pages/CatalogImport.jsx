@@ -136,6 +136,7 @@ export default function CatalogImport() {
   
   // Sync all state
   const [syncingAll, setSyncingAll] = useState(false);
+  const [processingQueue, setProcessingQueue] = useState(false);
   
   // Correlations state (Feature: Correlation View & Actions)
   const [correlationsCache, setCorrelationsCache] = useState({}); // { asin: correlations[] }
@@ -883,6 +884,39 @@ export default function CatalogImport() {
     }
   };
 
+  // Handle process queue - processes pending items
+  const handleProcessQueue = async () => {
+    setProcessingQueue(true);
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/catalog-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'process_pending',
+          limit: 5 // Process 5 at a time
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert(`✅ ${data.message}`);
+        // Reload to show updated statuses
+        await loadImports(currentPage);
+      } else {
+        alert(data.error || 'Failed to process queue');
+      }
+    } catch (err) {
+      console.error('Process queue error:', err);
+      alert('Failed to process queue');
+    } finally {
+      setProcessingQueue(false);
+    }
+  };
+
   // Filter imports (search is now server-side, only filter by status client-side)
   const filteredImports = imports.filter(item => {
     if (statusFilter !== 'all' && item.status !== statusFilter) return false;
@@ -1352,6 +1386,22 @@ export default function CatalogImport() {
           )}
           {syncingAll ? 'Queuing...' : 'Sync All'}
         </button>
+        
+        {/* Process Queue button - shows when there are pending items */}
+        {statusCounts.pending > 0 && (
+          <button
+            onClick={handleProcessQueue}
+            disabled={processingQueue}
+            className="px-4 py-2.5 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+          >
+            {processingQueue ? (
+              <Loader className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            {processingQueue ? 'Processing...' : `Process Queue (${statusCounts.pending})`}
+          </button>
+        )}
         
         {/* Sync Selected button */}
         {selectedIds.size > 0 && (

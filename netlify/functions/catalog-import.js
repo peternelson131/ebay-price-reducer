@@ -540,7 +540,7 @@ async function handlePost(event, userId, headers) {
       return errorResponse(400, 'Invalid JSON body', headers);
     }
     
-    // Handle sync action - queue selected items for correlation finding AND process immediately
+    // Handle sync action - queue selected items for correlation finding
     if (body.action === 'sync' && Array.isArray(body.ids)) {
       console.log(`🔄 Syncing ${body.ids.length} items for user: ${userId}`);
       
@@ -555,16 +555,27 @@ async function handlePost(event, userId, headers) {
         return errorResponse(500, `Failed to queue for sync: ${error.message}`, headers);
       }
       
-      // Process immediately (don't wait for scheduled function)
-      const processResult = await processUserPendingItems(userId, body.ids.length);
+      // Start processing ONE item immediately (non-blocking for the rest)
+      // This gives immediate feedback while remaining items process via scheduled function
+      let firstProcessed = null;
+      if (body.ids.length > 0) {
+        const { data: firstItem } = await getSupabase()
+          .from('catalog_imports')
+          .select('*')
+          .eq('id', body.ids[0])
+          .single();
+        
+        if (firstItem) {
+          // Process first item inline (will update status to processed or error)
+          firstProcessed = await processImportItem(firstItem, userId);
+        }
+      }
       
       return successResponse({
         success: true,
-        message: `Processed ${processResult.processed} of ${body.ids.length} items`,
+        message: `Queued ${body.ids.length} items for sync${firstProcessed ? `. First item: ${firstProcessed.error ? 'error' : 'processed'}` : ''}`,
         queued: body.ids.length,
-        processed: processResult.processed,
-        errors: processResult.errors,
-        remaining: processResult.remaining
+        firstResult: firstProcessed
       }, headers);
     }
     
@@ -608,13 +619,23 @@ async function handlePost(event, userId, headers) {
       
       console.log(`✅ Sync All: Queued ${itemCount} items for sync`);
       
-      // Process immediately (don't wait for scheduled function)
-      const processResult = await processUserPendingItems(userId, 15);
+      return successResponse({
+        success: true,
+        message: `Queued ${itemCount} items for sync. Processing will happen in background.`,
+        queued: itemCount
+      }, headers);
+    }
+    
+    // Handle process_pending action - process up to N pending items
+    if (body.action === 'process_pending') {
+      const limit = Math.min(body.limit || 5, 10); // Max 10 at a time
+      console.log(`🔄 Processing up to ${limit} pending items for user: ${userId}`);
+      
+      const processResult = await processUserPendingItems(userId, limit);
       
       return successResponse({
         success: true,
-        message: `Queued ${itemCount} items, processed ${processResult.processed} immediately`,
-        queued: itemCount,
+        message: `Processed ${processResult.processed} items (${processResult.errors} errors, ${processResult.remaining} remaining)`,
         processed: processResult.processed,
         errors: processResult.errors,
         remaining: processResult.remaining
