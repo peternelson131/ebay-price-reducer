@@ -796,9 +796,65 @@ export default function CatalogImport() {
     }
   };
 
-  // Open marketplace selection modal for accepting a correlation
-  const handleAcceptCorrelation = (importItem, correlation) => {
-    setMarketplaceModal({ importItem, correlation });
+  // Supported marketplaces for task creation (US, CA, UK, DE only)
+  const SUPPORTED_MARKETPLACES = ['US', 'CA', 'UK', 'DE'];
+
+  // Accept correlation - automatically create tasks for supported marketplaces
+  const handleAcceptCorrelation = async (importItem, correlation) => {
+    setActionInProgress({ asin: correlation.asin, action: 'accepting' });
+    
+    try {
+      // Get available marketplaces from correlation data, intersect with supported
+      const availableMarketplaces = correlation.marketplaces || ['US'];
+      const marketplacesToCreate = SUPPORTED_MARKETPLACES.filter(mp => 
+        availableMarketplaces.includes(mp)
+      );
+      
+      // Create task for each supported marketplace
+      const token = await userAPI.getAuthToken();
+      let successCount = 0;
+      
+      for (const marketplace of marketplacesToCreate) {
+        try {
+          const response = await fetch('/.netlify/functions/catalog-import', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              action: 'create_task',
+              import_id: importItem.id,
+              source_asin: importItem.asin,
+              target_asin: correlation.asin,
+              marketplace
+            })
+          });
+          
+          const data = await response.json();
+          if (data.success) {
+            successCount++;
+          }
+        } catch (err) {
+          console.error(`Failed to create task for ${marketplace}:`, err);
+        }
+      }
+      
+      if (successCount > 0) {
+        // Mark as accepted
+        setCorrelationActions(prev => ({
+          ...prev,
+          [correlation.asin]: 'accepted'
+        }));
+      } else {
+        alert('Failed to create tasks');
+      }
+    } catch (err) {
+      console.error('Accept correlation error:', err);
+      alert('Failed to create tasks');
+    } finally {
+      setActionInProgress(null);
+    }
   };
 
   // Decline a correlation
@@ -1478,14 +1534,12 @@ export default function CatalogImport() {
               {/* Marketplace Options */}
               <div className="grid grid-cols-2 gap-2">
                 {(() => {
+                  // Only show supported marketplaces (US, CA, UK, DE)
                   const allMarketplaces = [
                     { code: 'US', emoji: '🇺🇸', label: 'United States' },
+                    { code: 'CA', emoji: '🇨🇦', label: 'Canada' },
                     { code: 'UK', emoji: '🇬🇧', label: 'United Kingdom' },
-                    { code: 'DE', emoji: '🇩🇪', label: 'Germany' },
-                    { code: 'FR', emoji: '🇫🇷', label: 'France' },
-                    { code: 'IT', emoji: '🇮🇹', label: 'Italy' },
-                    { code: 'ES', emoji: '🇪🇸', label: 'Spain' },
-                    { code: 'CA', emoji: '🇨🇦', label: 'Canada' }
+                    { code: 'DE', emoji: '🇩🇪', label: 'Germany' }
                   ];
                   
                   const available = marketplaceModal.correlation.marketplaces || ['US'];

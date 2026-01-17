@@ -915,6 +915,103 @@ async function handlePost(event, userId, headers) {
       }, headers);
     }
     
+    // Handle create_task action - create influencer task for accepted correlation
+    if (body.action === 'create_task') {
+      const { import_id, source_asin, target_asin, marketplace } = body;
+      
+      console.log(`📝 Creating task: ${target_asin} for ${marketplace}`);
+      
+      // Validate inputs
+      if (!target_asin || !marketplace) {
+        return errorResponse(400, 'target_asin and marketplace required', headers);
+      }
+      
+      const validMarketplaces = ['US', 'CA', 'UK', 'DE'];
+      if (!validMarketplaces.includes(marketplace)) {
+        return errorResponse(400, `Invalid marketplace: ${marketplace}. Must be one of: ${validMarketplaces.join(', ')}`, headers);
+      }
+      
+      // Get title from correlation or import
+      let title = null;
+      if (target_asin) {
+        // Try to get title from correlations
+        const { data: corrData } = await getSupabase()
+          .from('asin_correlations')
+          .select('title')
+          .eq('user_id', userId)
+          .eq('result_asin', target_asin)
+          .limit(1)
+          .single();
+        
+        if (corrData?.title) {
+          title = corrData.title;
+        }
+      }
+      
+      // Create task (upsert to handle unique constraint)
+      const { data: task, error: taskError } = await getSupabase()
+        .from('influencer_tasks')
+        .upsert({
+          user_id: userId,
+          asin: target_asin,
+          title,
+          marketplace,
+          status: 'pending'
+        }, {
+          onConflict: 'user_id,asin,marketplace',
+          ignoreDuplicates: false
+        })
+        .select()
+        .single();
+      
+      if (taskError) {
+        console.error('Failed to create task:', taskError);
+        return errorResponse(500, `Failed to create task: ${taskError.message}`, headers);
+      }
+      
+      console.log(`✅ Task created: ${task.id}`);
+      
+      return successResponse({
+        success: true,
+        task
+      }, headers);
+    }
+    
+    // Handle decline_correlation action - mark correlation as declined
+    if (body.action === 'decline_correlation') {
+      const { source_asin, target_asin } = body;
+      
+      console.log(`❌ Declining correlation: ${source_asin} -> ${target_asin}`);
+      
+      if (!source_asin || !target_asin) {
+        return errorResponse(400, 'source_asin and target_asin required', headers);
+      }
+      
+      // Record the declined correlation in feedback table
+      const { error: feedbackError } = await getSupabase()
+        .from('asin_correlation_feedback')
+        .upsert({
+          user_id: userId,
+          search_asin: source_asin,
+          result_asin: target_asin,
+          feedback: 'declined'
+        }, {
+          onConflict: 'user_id,search_asin,result_asin'
+        });
+      
+      if (feedbackError) {
+        console.error('Failed to record decline:', feedbackError);
+        return errorResponse(500, `Failed to decline: ${feedbackError.message}`, headers);
+      }
+      
+      console.log(`✅ Correlation declined`);
+      
+      return successResponse({
+        success: true,
+        message: 'Correlation declined'
+      }, headers);
+    }
+    
     // Handle export action - returns CSV data
     if (body.action === 'export') {
       console.log(`📤 Exporting catalog for user: ${userId}`);

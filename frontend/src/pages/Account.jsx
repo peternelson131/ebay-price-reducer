@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { userAPI, authAPI } from '../lib/supabase'
+import { userAPI, authAPI, supabase } from '../lib/supabase'
 
 export default function Account() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -15,6 +15,13 @@ export default function Account() {
     newPassword: '',
     confirmPassword: ''
   })
+  const [feedbackData, setFeedbackData] = useState({
+    category: '',
+    description: '',
+    screenshot: null
+  })
+  const [feedbackStatus, setFeedbackStatus] = useState({ type: '', message: '' })
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading } = useQuery(
@@ -49,7 +56,7 @@ export default function Account() {
   // Handle URL parameter for tab selection
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['profile', 'preferences', 'security'].includes(tab)) {
+    if (tab && ['profile', 'preferences', 'security', 'feedback'].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -123,6 +130,66 @@ export default function Account() {
     URL.revokeObjectURL(url)
   }
 
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault()
+    setFeedbackStatus({ type: '', message: '' })
+
+    // Validate required fields
+    if (!feedbackData.category) {
+      setFeedbackStatus({ type: 'error', message: 'Please select a category.' })
+      return
+    }
+    if (!feedbackData.description.trim()) {
+      setFeedbackStatus({ type: 'error', message: 'Please provide a description.' })
+      return
+    }
+    // Screenshot required for Bug reports
+    if (feedbackData.category === 'bug' && !feedbackData.screenshot) {
+      setFeedbackStatus({ type: 'error', message: 'Screenshot is required for bug reports.' })
+      return
+    }
+
+    setIsSubmittingFeedback(true)
+
+    try {
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('Not authenticated')
+      }
+
+      const formData = new FormData()
+      formData.append('category', feedbackData.category)
+      formData.append('description', feedbackData.description)
+      if (feedbackData.screenshot) {
+        formData.append('screenshot', feedbackData.screenshot)
+      }
+
+      const response = await fetch('/.netlify/functions/submit-feedback', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to submit feedback')
+      }
+
+      setFeedbackStatus({ type: 'success', message: 'Thank you! Your feedback has been submitted successfully.' })
+      setFeedbackData({ category: '', description: '', screenshot: null })
+      // Reset file input
+      const fileInput = document.getElementById('screenshot-input')
+      if (fileInput) fileInput.value = ''
+    } catch (error) {
+      console.error('Feedback submission failed:', error)
+      setFeedbackStatus({ type: 'error', message: 'Failed to submit feedback. Please try again.' })
+    } finally {
+      setIsSubmittingFeedback(false)
+    }
+  }
+
   if (isLoading) {
     return <div className="text-center py-8">Loading...</div>
   }
@@ -130,7 +197,8 @@ export default function Account() {
   const tabs = [
     { id: 'profile', name: 'Profile', icon: '👤' },
     { id: 'preferences', name: 'Preferences', icon: '⚙️' },
-    { id: 'security', name: 'Security', icon: '🔒' }
+    { id: 'security', name: 'Security', icon: '🔒' },
+    { id: 'feedback', name: 'Feedback', icon: '💬' }
   ]
 
   return (
@@ -417,6 +485,83 @@ export default function Account() {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'feedback' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-theme-primary">Submit Feedback</h3>
+                <p className="text-sm text-theme-secondary">Help us improve by sharing your feedback, reporting bugs, or requesting new features.</p>
+              </div>
+
+              {feedbackStatus.message && (
+                <div className={`p-4 rounded-lg ${
+                  feedbackStatus.type === 'success' 
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800' 
+                    : 'bg-error/10 text-error border border-error/30'
+                }`}>
+                  {feedbackStatus.message}
+                </div>
+              )}
+
+              <form onSubmit={handleFeedbackSubmit} className="space-y-4 max-w-lg">
+                <div>
+                  <label className="block text-sm font-medium text-theme-secondary mb-1">
+                    Category <span className="text-error">*</span>
+                  </label>
+                  <select
+                    value={feedbackData.category}
+                    onChange={(e) => setFeedbackData(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full border border-theme rounded-lg px-3 py-2 bg-theme-surface text-theme-primary"
+                    required
+                  >
+                    <option value="">Select a category...</option>
+                    <option value="feature_request">New Feature Request</option>
+                    <option value="bug">Bug</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-theme-secondary mb-1">
+                    Description <span className="text-error">*</span>
+                  </label>
+                  <textarea
+                    value={feedbackData.description}
+                    onChange={(e) => setFeedbackData(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full border border-theme rounded-lg px-3 py-2 bg-theme-surface text-theme-primary min-h-[120px] resize-y"
+                    placeholder="Please describe your feedback in detail..."
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-theme-secondary mb-1">
+                    Screenshot {feedbackData.category === 'bug' && <span className="text-error">* (required for bugs)</span>}
+                  </label>
+                  <input
+                    id="screenshot-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFeedbackData(prev => ({ ...prev, screenshot: e.target.files?.[0] || null }))}
+                    className="w-full border border-theme rounded-lg px-3 py-2 bg-theme-surface text-theme-primary file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-accent file:text-white hover:file:bg-accent-hover"
+                  />
+                  {feedbackData.screenshot && (
+                    <p className="mt-1 text-sm text-theme-tertiary">
+                      Selected: {feedbackData.screenshot.name}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingFeedback}
+                  className="bg-accent text-white px-6 py-2 rounded hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+                </button>
+              </form>
             </div>
           )}
         </div>

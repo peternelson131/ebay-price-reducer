@@ -50,7 +50,7 @@ const menuItems = [
   },
   {
     id: 'whatnot-analysis',
-    label: 'WhatNot Analysis',
+    label: 'WhatNot Analysis 🚧',
     icon: Package,
     component: WhatNotAnalysis,
     badge: null

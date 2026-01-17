@@ -86,9 +86,12 @@ export default function App() {
     )
   }
 
+  // Hide nav bar on WhatNot page (standalone page like login)
+  const hideNav = location.pathname === '/whatnot'
+
   return (
     <div className="min-h-screen bg-theme-primary">
-      <nav className="bg-theme-surface border-b border-theme relative z-50">
+      {!hideNav && <nav className="bg-theme-surface border-b border-theme relative z-50">
         <div className={location.pathname === '/listings' ? 'w-full px-4' : 'max-w-7xl mx-auto px-4'}>
           {/* Main Navigation Bar */}
           <div className="flex justify-between items-center h-14">
@@ -122,16 +125,6 @@ export default function App() {
                 }`}
               >
                 Influencer Central
-              </Link>
-              <Link
-                to="/whatnot"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === '/whatnot'
-                    ? 'bg-accent text-white'
-                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                }`}
-              >
-                WhatNot
               </Link>
               <Link
                 to="/account"
@@ -241,19 +234,6 @@ export default function App() {
                 </Link>
 
                 <Link
-                  to="/whatnot"
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    location.pathname === '/whatnot'
-                      ? 'bg-accent text-white'
-                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <TrendingUp className="mr-3 h-5 w-5" strokeWidth={1.5} />
-                  WhatNot Analysis
-                </Link>
-
-                <Link
                   to="/account"
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                     location.pathname === '/account'
@@ -312,7 +292,7 @@ export default function App() {
             </div>
           </>
         )}
-      </nav>
+      </nav>}
 
       <main className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot'].includes(location.pathname) || location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
         <div className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot'].includes(location.pathname) || location.pathname === '/' ? '' : 'sm:px-0'}>

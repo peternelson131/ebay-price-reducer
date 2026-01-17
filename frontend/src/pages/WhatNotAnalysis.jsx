@@ -2,10 +2,10 @@
  * WhatNotAnalysis Component
  * 
  * Analyze WhatNot lot manifests by importing CSV/Excel data,
- * enriching with Keepa data, and calculating ROI.
+ * enriching with Keepa data for demand assessment.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
 import { userAPI } from '../lib/supabase';
@@ -31,18 +31,18 @@ import {
   Sparkles
 } from 'lucide-react';
 
-// ROI color coding configuration
-const getROIStyle = (roi, enriched) => {
-  if (!enriched) {
-    return { bg: 'bg-gray-50 dark:bg-gray-800/50', text: 'text-gray-500' };
+// Sales rank color coding (lower rank = higher demand)
+const getRankStyle = (rank, enriched) => {
+  if (!enriched || rank == null) {
+    return { bg: '', text: 'text-theme-secondary' };
   }
-  if (roi > 30) {
-    return { bg: 'bg-green-50 dark:bg-green-900/30', text: 'text-green-600 dark:text-green-400' };
+  if (rank < 50000) {
+    return { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-600 dark:text-green-400' };
   }
-  if (roi >= 10) {
-    return { bg: 'bg-yellow-50 dark:bg-yellow-900/30', text: 'text-yellow-600 dark:text-yellow-400' };
+  if (rank < 200000) {
+    return { bg: 'bg-yellow-50 dark:bg-yellow-900/20', text: 'text-yellow-600 dark:text-yellow-400' };
   }
-  return { bg: 'bg-red-50 dark:bg-red-900/30', text: 'text-red-600 dark:text-red-400' };
+  return { bg: '', text: 'text-theme-secondary' };
 };
 
 // Format currency
@@ -72,8 +72,8 @@ export default function WhatNotAnalysis() {
   const [importing, setImporting] = useState(false);
   
   // Sort state
-  const [sortBy, setSortBy] = useState('roi');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [sortBy, setSortBy] = useState('sales_rank');
+  const [sortOrder, setSortOrder] = useState('asc');
   
   // Filter state
   const [lotFilter, setLotFilter] = useState('all');
@@ -81,6 +81,40 @@ export default function WhatNotAnalysis() {
   
   // Get unique lot IDs from items
   const uniqueLots = [...new Set(items.map(item => item.lot_id).filter(Boolean))];
+
+  // Fetch items from database
+  const fetchItems = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/whatnot-analysis?action=list&limit=500', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.items) {
+        // Map DB items to component state format
+        setItems(data.items.map(item => ({
+          ...item,
+          enriched: item.status === 'enriched',
+          roi: item.roi_percent,
+          profit: item.estimated_profit
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch items:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Load existing items on mount
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
   
   // Parse manifest columns
   const parseManifestRow = (row, headers) => {
@@ -222,16 +256,8 @@ export default function WhatNotAnalysis() {
       const data = await response.json();
       
       if (data.success) {
-        // Set items directly from import
-        setItems(data.items || parsedData.validItems.map((item, idx) => ({
-          id: idx + 1,
-          ...item,
-          enriched: false,
-          amazon_price: null,
-          sales_rank: null,
-          roi: null,
-          profit: null
-        })));
+        // Fetch items from DB to get the actual saved data
+        await fetchItems();
         setShowPreview(false);
         setParsedData(null);
       } else {
@@ -272,34 +298,14 @@ export default function WhatNotAnalysis() {
       
       const data = await response.json();
       
-      if (data.success && data.enrichedData) {
-        // Merge enriched data back into items
-        setItems(prevItems => prevItems.map(item => {
-          const enriched = data.enrichedData[item.asin];
-          if (enriched) {
-            const amazonPrice = enriched.current_price || 0;
-            const cost = item.manifest_price || 0;
-            const profit = amazonPrice - cost;
-            const roi = cost > 0 ? ((profit / cost) * 100) : 0;
-            
-            return {
-              ...item,
-              enriched: true,
-              amazon_price: amazonPrice,
-              sales_rank: enriched.sales_rank,
-              category: enriched.category,
-              image_url: enriched.image_url,
-              roi: roi,
-              profit: profit
-            };
-          }
-          return item;
-        }));
+      if (data.success) {
+        // Fetch updated items from DB (they now have enrichment data)
+        await fetchItems();
         
         setEnrichProgress({ 
-          current: asins.length, 
+          current: data.enriched || 0, 
           total: asins.length, 
-          message: `Enriched ${Object.keys(data.enrichedData).length} items!`,
+          message: `Enriched ${data.enriched || 0} items!${data.errors ? ` (${data.errors} not found)` : ''}${data.remaining ? ` ${data.remaining} remaining.` : ''}`,
           complete: true
         });
       } else {
@@ -322,16 +328,18 @@ export default function WhatNotAnalysis() {
   const handleExport = () => {
     if (items.length === 0) return;
     
-    const headers = ['ASIN', 'Title', 'Qty', 'Manifest Price', 'Amazon Price', 'Profit', 'ROI %', 'Sales Rank', 'Brand', 'Condition', 'Lot ID'];
+    const headers = ['ASIN', 'Title', 'Qty', 'Manifest Price', 'Amazon Price', 'Sales Rank', '90-Day Avg Rank', 'FBA Sellers', 'FBM Sellers', 'Category', 'Brand', 'Condition', 'Lot ID'];
     const rows = items.map(item => [
       item.asin,
       item.title || '',
       item.quantity,
       item.manifest_price?.toFixed(2) || '',
       item.amazon_price?.toFixed(2) || '',
-      item.profit?.toFixed(2) || '',
-      item.roi?.toFixed(1) || '',
       item.sales_rank || '',
+      item.sales_rank_90_avg || '',
+      item.fba_sellers ?? '',
+      item.fbm_sellers ?? '',
+      item.category || '',
       item.brand || '',
       item.condition || '',
       item.lot_id || ''
@@ -407,11 +415,10 @@ export default function WhatNotAnalysis() {
     totalQuantity: items.reduce((sum, item) => sum + (item.quantity || 1), 0),
     totalManifestCost: items.reduce((sum, item) => sum + ((item.manifest_price || 0) * (item.quantity || 1)), 0),
     enrichedCount: items.filter(i => i.enriched).length,
-    totalProfit: items.filter(i => i.enriched).reduce((sum, item) => sum + ((item.profit || 0) * (item.quantity || 1)), 0),
-    avgROI: (() => {
-      const enriched = items.filter(i => i.enriched && i.roi != null);
+    avgRank: (() => {
+      const enriched = items.filter(i => i.enriched && i.sales_rank != null);
       if (enriched.length === 0) return null;
-      return enriched.reduce((sum, i) => sum + i.roi, 0) / enriched.length;
+      return Math.round(enriched.reduce((sum, i) => sum + i.sales_rank, 0) / enriched.length);
     })()
   };
 
@@ -441,7 +448,7 @@ export default function WhatNotAnalysis() {
             WhatNot Lot Analysis
           </h1>
           <p className="text-theme-secondary mt-1">
-            Import manifests, enrich with Keepa, analyze ROI
+            Import manifests, enrich with Keepa, assess demand
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -496,7 +503,7 @@ export default function WhatNotAnalysis() {
 
       {/* Summary Stats */}
       {items.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-theme-surface rounded-xl p-4 border border-theme">
             <div className="flex items-center gap-2 text-theme-secondary text-sm mb-1">
               <Package className="w-4 h-4" />
@@ -524,43 +531,37 @@ export default function WhatNotAnalysis() {
           </div>
           
           <div className={`rounded-xl p-4 border ${
-            stats.totalProfit > 0 
+            stats.avgRank != null && stats.avgRank < 50000
               ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-              : 'bg-theme-surface border-theme'
-          }`}>
-            <div className="flex items-center gap-2 text-theme-secondary text-sm mb-1">
-              <TrendingUp className="w-4 h-4" />
-              Est. Profit
-            </div>
-            <div className={`text-2xl font-bold ${stats.totalProfit > 0 ? 'text-green-600 dark:text-green-400' : 'text-theme-primary'}`}>
-              {stats.enrichedCount > 0 ? formatCurrency(stats.totalProfit) : '—'}
-            </div>
-          </div>
-          
-          <div className={`rounded-xl p-4 border ${
-            stats.avgROI != null && stats.avgROI > 30
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-              : stats.avgROI != null && stats.avgROI > 10
+              : stats.avgRank != null && stats.avgRank < 200000
               ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
               : 'bg-theme-surface border-theme'
           }`}>
             <div className="flex items-center gap-2 text-theme-secondary text-sm mb-1">
               <BarChart3 className="w-4 h-4" />
-              Avg ROI
+              Avg Rank
             </div>
             <div className={`text-2xl font-bold ${
-              stats.avgROI != null && stats.avgROI > 30 ? 'text-green-600 dark:text-green-400' :
-              stats.avgROI != null && stats.avgROI > 10 ? 'text-yellow-600 dark:text-yellow-400' :
+              stats.avgRank != null && stats.avgRank < 50000 ? 'text-green-600 dark:text-green-400' :
+              stats.avgRank != null && stats.avgRank < 200000 ? 'text-yellow-600 dark:text-yellow-400' :
               'text-theme-primary'
             }`}>
-              {stats.avgROI != null ? `${stats.avgROI.toFixed(1)}%` : '—'}
+              {stats.avgRank != null ? formatNumber(stats.avgRank) : '—'}
             </div>
           </div>
         </div>
       )}
 
-      {/* Upload Zone (show when no items) */}
-      {items.length === 0 && !showPreview && (
+      {/* Loading indicator */}
+      {loading && items.length === 0 && (
+        <div className="bg-theme-surface rounded-xl border border-theme p-8 flex flex-col items-center justify-center">
+          <Loader className="w-8 h-8 text-purple-500 animate-spin mb-4" />
+          <p className="text-theme-secondary">Loading items...</p>
+        </div>
+      )}
+
+      {/* Upload Zone (show when no items and not loading) */}
+      {items.length === 0 && !showPreview && !loading && (
         <div className="bg-theme-surface rounded-xl border border-theme p-8">
           <div
             {...getRootProps()}
@@ -734,6 +735,16 @@ export default function WhatNotAnalysis() {
               </div>
             )}
             
+            {/* Refresh Button */}
+            <button
+              onClick={fetchItems}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-theme-hover hover:bg-theme-primary text-theme-secondary hover:text-theme-primary disabled:opacity-50 font-medium rounded-lg transition-colors"
+              title="Refresh items from database"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            
             {/* New Import Button */}
             <button
               onClick={() => {
@@ -786,34 +797,28 @@ export default function WhatNotAnalysis() {
                   </th>
                   <th 
                     className="px-4 py-3 text-right cursor-pointer hover:text-theme-primary"
-                    onClick={() => handleSort('profit')}
-                  >
-                    Profit <SortIndicator column="profit" />
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-right cursor-pointer hover:text-theme-primary"
-                    onClick={() => handleSort('roi')}
-                  >
-                    ROI <SortIndicator column="roi" />
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-right cursor-pointer hover:text-theme-primary"
                     onClick={() => handleSort('sales_rank')}
                   >
                     Rank <SortIndicator column="sales_rank" />
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-left cursor-pointer hover:text-theme-primary"
+                    onClick={() => handleSort('category')}
+                  >
+                    Category <SortIndicator column="category" />
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme">
                 {filteredItems.map((item) => {
-                  const roiStyle = getROIStyle(item.roi, item.enriched);
+                  const rankStyle = getRankStyle(item.sales_rank, item.enriched);
                   const isExpanded = expandedRows.has(item.id);
                   
                   return (
                     <>
                       <tr 
                         key={item.id} 
-                        className={`${roiStyle.bg} hover:bg-theme-hover/50 transition-colors`}
+                        className={`${rankStyle.bg} hover:bg-theme-hover/50 transition-colors`}
                       >
                         <td className="px-4 py-3">
                           <button
@@ -861,25 +866,18 @@ export default function WhatNotAnalysis() {
                         <td className="px-4 py-3 text-right text-sm text-theme-primary">
                           {item.enriched ? formatCurrency(item.amazon_price) : '—'}
                         </td>
-                        <td className={`px-4 py-3 text-right text-sm font-medium ${
-                          item.profit > 0 ? 'text-green-600 dark:text-green-400' :
-                          item.profit < 0 ? 'text-red-600 dark:text-red-400' :
-                          'text-theme-primary'
-                        }`}>
-                          {item.enriched ? formatCurrency(item.profit) : '—'}
-                        </td>
-                        <td className={`px-4 py-3 text-right text-sm font-bold ${roiStyle.text}`}>
-                          {item.enriched && item.roi != null ? `${item.roi.toFixed(1)}%` : '—'}
-                        </td>
-                        <td className="px-4 py-3 text-right text-sm text-theme-secondary">
+                        <td className={`px-4 py-3 text-right text-sm font-medium ${rankStyle.text}`}>
                           {item.enriched ? formatNumber(item.sales_rank) : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-left text-sm text-theme-secondary truncate max-w-[150px]">
+                          {item.enriched ? (item.category || '—') : '—'}
                         </td>
                       </tr>
                       
                       {/* Expanded Row */}
                       {isExpanded && (
                         <tr key={`${item.id}-expanded`} className="bg-theme-primary/50">
-                          <td colSpan="9" className="px-4 py-4">
+                          <td colSpan="7" className="px-4 py-4">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                               <div>
                                 <span className="text-theme-tertiary">Brand:</span>
@@ -894,24 +892,24 @@ export default function WhatNotAnalysis() {
                                 <span className="ml-2 text-theme-primary">{item.lot_id || '—'}</span>
                               </div>
                               <div>
-                                <span className="text-theme-tertiary">Category:</span>
-                                <span className="ml-2 text-theme-primary">{item.category || '—'}</span>
+                                <span className="text-theme-tertiary">Total Cost:</span>
+                                <span className="ml-2 text-theme-primary">
+                                  {formatCurrency((item.manifest_price || 0) * (item.quantity || 1))}
+                                </span>
                               </div>
                               {item.enriched && (
                                 <>
                                   <div>
-                                    <span className="text-theme-tertiary">Total Cost:</span>
-                                    <span className="ml-2 text-theme-primary">
-                                      {formatCurrency((item.manifest_price || 0) * (item.quantity || 1))}
-                                    </span>
+                                    <span className="text-theme-tertiary">FBA Sellers:</span>
+                                    <span className="ml-2 text-theme-primary">{item.fba_sellers ?? '—'}</span>
                                   </div>
                                   <div>
-                                    <span className="text-theme-tertiary">Total Profit:</span>
-                                    <span className={`ml-2 font-medium ${
-                                      (item.profit || 0) > 0 ? 'text-green-600' : 'text-red-600'
-                                    }`}>
-                                      {formatCurrency((item.profit || 0) * (item.quantity || 1))}
-                                    </span>
+                                    <span className="text-theme-tertiary">FBM Sellers:</span>
+                                    <span className="ml-2 text-theme-primary">{item.fbm_sellers ?? '—'}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-theme-tertiary">90-Day Avg Rank:</span>
+                                    <span className="ml-2 text-theme-primary">{item.sales_rank_90_avg ? formatNumber(item.sales_rank_90_avg) : '—'}</span>
                                   </div>
                                 </>
                               )}
