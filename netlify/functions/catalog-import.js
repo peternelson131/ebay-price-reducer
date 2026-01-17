@@ -554,6 +554,84 @@ async function handlePost(event, userId, headers) {
       }, headers);
     }
     
+    // Handle export action - returns CSV data
+    if (body.action === 'export') {
+      console.log(`📤 Exporting catalog for user: ${userId}`);
+      
+      // Get all catalog imports for user
+      const { data: items, error: fetchError } = await getSupabase()
+        .from('catalog_imports')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (fetchError) {
+        console.error('Export fetch error:', fetchError);
+        return errorResponse(500, `Failed to fetch catalog: ${fetchError.message}`, headers);
+      }
+      
+      if (!items || items.length === 0) {
+        return successResponse({
+          success: true,
+          csv: 'ASIN,Title,Status,Image URL,Category,Price,Correlation Count,Created At\n',
+          count: 0
+        }, headers);
+      }
+      
+      // Get correlation counts for all ASINs
+      const asins = items.map(i => i.asin);
+      const { data: correlations } = await getSupabase()
+        .from('asin_correlations')
+        .select('search_asin')
+        .eq('user_id', userId)
+        .in('search_asin', asins);
+      
+      // Count correlations per ASIN
+      const correlationCounts = {};
+      if (correlations) {
+        for (const corr of correlations) {
+          correlationCounts[corr.search_asin] = (correlationCounts[corr.search_asin] || 0) + 1;
+        }
+      }
+      
+      // Build CSV
+      const escapeCSV = (val) => {
+        if (val === null || val === undefined) return '';
+        const str = String(val);
+        // Escape quotes and wrap in quotes if contains comma, quote, or newline
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+      
+      const csvRows = ['ASIN,Title,Status,Image URL,Category,Price,Correlation Count,Created At'];
+      
+      for (const item of items) {
+        const row = [
+          escapeCSV(item.asin),
+          escapeCSV(item.title),
+          escapeCSV(item.status),
+          escapeCSV(item.image_url),
+          escapeCSV(item.category),
+          escapeCSV(item.price),
+          correlationCounts[item.asin] || 0,
+          escapeCSV(item.created_at)
+        ];
+        csvRows.push(row.join(','));
+      }
+      
+      const csv = csvRows.join('\n');
+      
+      console.log(`✅ Export complete: ${items.length} items`);
+      
+      return successResponse({
+        success: true,
+        csv,
+        count: items.length
+      }, headers);
+    }
+    
     if (body.action === 'import' && Array.isArray(body.asins)) {
       // Helper to sanitize values - treats "null", "NULL", empty, etc. as actual null
       const sanitize = (val) => {
