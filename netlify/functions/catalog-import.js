@@ -333,6 +333,7 @@ async function handlePost(event, userId, headers) {
   const contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
   let rows;
   let fileData = null; // Declare at function scope for batch tracking
+  let importMode = 'skip'; // Default mode: 'skip' or 'merge'
   
   // Check if this is a JSON request (frontend parses file client-side)
   if (contentType.includes('application/json')) {
@@ -633,6 +634,9 @@ async function handlePost(event, userId, headers) {
     }
     
     if (body.action === 'import' && Array.isArray(body.asins)) {
+      // Get import mode: 'skip' (default) or 'merge' (update existing records)
+      importMode = body.mode === 'merge' ? 'merge' : 'skip';
+      
       // Helper to sanitize values - treats "null", "NULL", empty, etc. as actual null
       const sanitize = (val) => {
         if (val === undefined || val === null) return null;
@@ -656,7 +660,7 @@ async function handlePost(event, userId, headers) {
         return errorResponse(400, 'No valid ASINs in request', headers);
       }
       
-      console.log(`📊 Received ${rows.length} valid ASINs from JSON`);
+      console.log(`📊 Received ${rows.length} valid ASINs from JSON (mode: ${importMode})`);
     } else {
       return errorResponse(400, 'Invalid request: expected action=import with asins array', headers);
     }
@@ -689,7 +693,7 @@ async function handlePost(event, userId, headers) {
     return errorResponse(400, 'Content-Type must be application/json or multipart/form-data', headers);
   }
   
-  // Get existing ASINs to skip
+  // Get existing ASINs to check
   const asins = rows.map(r => r.asin);
   
   // Check influencer_tasks for completed tasks
@@ -711,21 +715,22 @@ async function handlePost(event, userId, headers) {
   const importedAsins = new Set(existingImports?.map(i => i.asin) || []);
   
   console.log(`🔍 Found ${tasksAsins.size} ASINs already in influencer_tasks`);
-  console.log(`🔍 Found ${importedAsins.size} ASINs already in catalog_imports`);
+  console.log(`🔍 Found ${importedAsins.size} ASINs already in catalog_imports (mode: ${importMode})`);
   
-  // Prepare rows for insert, marking duplicates as skipped
+  // Prepare rows for insert and update
   const toInsert = [];
+  const toUpdate = [];
   const stats = {
     total: rows.length,
-    imported: 0,
-    skipped_tasks: 0,
-    skipped_existing: 0
+    new: 0,
+    updated: 0,
+    skipped: 0
   };
   
   for (const row of rows) {
-    // Skip if already has an influencer task
+    // Skip if already has an influencer task (regardless of mode)
     if (tasksAsins.has(row.asin)) {
-      stats.skipped_tasks++;
+      stats.skipped++;
       // Insert as skipped so user can see it
       toInsert.push({
         user_id: userId,
@@ -740,10 +745,23 @@ async function handlePost(event, userId, headers) {
       continue;
     }
     
-    // Skip if already imported
+    // Handle existing catalog imports based on mode
     if (importedAsins.has(row.asin)) {
-      stats.skipped_existing++;
-      continue; // Don't re-insert, just skip
+      if (importMode === 'merge') {
+        // Update existing record with new data
+        toUpdate.push({
+          asin: row.asin,
+          title: row.title,
+          image_url: row.image_url,
+          category: row.category,
+          price: row.price
+        });
+        stats.updated++;
+      } else {
+        // Skip mode - don't re-insert
+        stats.skipped++;
+      }
+      continue;
     }
     
     // New ASIN to import (status='imported' - user must opt-in to sync)
@@ -756,10 +774,10 @@ async function handlePost(event, userId, headers) {
       price: row.price,
       status: 'imported'
     });
-    stats.imported++;
+    stats.new++;
   }
   
-  // Insert rows (use upsert to handle race conditions)
+  // Insert new rows
   if (toInsert.length > 0) {
     const { error: insertError } = await getSupabase()
       .from('catalog_imports')
@@ -774,6 +792,28 @@ async function handlePost(event, userId, headers) {
     }
   }
   
+  // Update existing rows in merge mode
+  if (toUpdate.length > 0) {
+    console.log(`📝 Updating ${toUpdate.length} existing records (merge mode)`);
+    
+    for (const item of toUpdate) {
+      const { error: updateError } = await getSupabase()
+        .from('catalog_imports')
+        .update({
+          title: item.title,
+          image_url: item.image_url,
+          category: item.category,
+          price: item.price
+        })
+        .eq('user_id', userId)
+        .eq('asin', item.asin);
+      
+      if (updateError) {
+        console.error(`Failed to update ${item.asin}:`, updateError.message);
+      }
+    }
+  }
+  
   // Create batch record for tracking
   const { data: batch, error: batchError } = await getSupabase()
     .from('catalog_import_batches')
@@ -781,8 +821,8 @@ async function handlePost(event, userId, headers) {
       user_id: userId,
       filename: fileData?.filename || 'json-import',
       total_rows: stats.total,
-      imported_count: stats.imported,
-      skipped_count: stats.skipped_tasks + stats.skipped_existing,
+      imported_count: stats.new,
+      skipped_count: stats.skipped,
       status: 'completed'
     })
     .select()
@@ -793,11 +833,20 @@ async function handlePost(event, userId, headers) {
     // Non-fatal, continue
   }
   
-  console.log(`✅ Import complete: ${stats.imported} imported, ${stats.skipped_tasks + stats.skipped_existing} skipped`);
+  console.log(`✅ Import complete: ${stats.new} new, ${stats.updated} updated, ${stats.skipped} skipped`);
+  
+  // Build message based on what happened
+  let message = `Successfully imported ${stats.new} new ASINs`;
+  if (stats.updated > 0) {
+    message += `, updated ${stats.updated}`;
+  }
+  if (stats.skipped > 0) {
+    message += `, skipped ${stats.skipped}`;
+  }
   
   return successResponse({
     success: true,
-    message: `Successfully imported ${stats.imported} ASINs`,
+    message,
     stats,
     batchId: batch?.id
   }, headers);
