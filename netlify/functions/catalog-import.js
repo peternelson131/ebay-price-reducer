@@ -54,6 +54,189 @@ function getSupabase() {
   return supabase;
 }
 
+// ==================== INLINE PROCESSING (for sync action) ====================
+
+/**
+ * Get image URL from Keepa product
+ */
+function getImageUrl(product) {
+  if (!product?.imagesCSV) return '';
+  const imageCode = product.imagesCSV.split(',')[0]?.trim();
+  return imageCode ? `https://m.media-amazon.com/images/I/${imageCode}._SL500_.jpg` : '';
+}
+
+/**
+ * Extract correlations from Keepa product data
+ */
+function extractCorrelations(product, searchAsin) {
+  const correlations = [];
+  const seen = new Set([searchAsin.toUpperCase()]);
+  
+  // Variation ASINs
+  if (product.variations?.length > 0) {
+    for (const variation of product.variations) {
+      const varAsin = variation.asin;
+      if (varAsin && !seen.has(varAsin)) {
+        seen.add(varAsin);
+        correlations.push({
+          asin: varAsin,
+          title: variation.title || product.title,
+          type: 'variation',
+          amazonUrl: `https://www.amazon.com/dp/${varAsin}`
+        });
+      }
+    }
+  }
+  
+  // Frequently Bought Together
+  if (product.frequentlyBoughtTogether?.length > 0) {
+    for (const fbtAsin of product.frequentlyBoughtTogether) {
+      if (fbtAsin && !seen.has(fbtAsin)) {
+        seen.add(fbtAsin);
+        correlations.push({
+          asin: fbtAsin,
+          type: 'frequently_bought_together',
+          amazonUrl: `https://www.amazon.com/dp/${fbtAsin}`
+        });
+      }
+    }
+  }
+  
+  // Parent ASIN
+  if (product.parentAsin && !seen.has(product.parentAsin)) {
+    seen.add(product.parentAsin);
+    correlations.push({
+      asin: product.parentAsin,
+      type: 'parent',
+      amazonUrl: `https://www.amazon.com/dp/${product.parentAsin}`
+    });
+  }
+  
+  return correlations;
+}
+
+/**
+ * Process a single catalog import item
+ */
+async function processImportItem(item, keepaKey) {
+  console.log(`🔄 Processing ASIN: ${item.asin}`);
+  
+  try {
+    // Mark as processing
+    await getSupabase()
+      .from('catalog_imports')
+      .update({ status: 'processing' })
+      .eq('id', item.id);
+    
+    // Lookup product in Keepa
+    const keepaUrl = `https://api.keepa.com/product?key=${keepaKey}&domain=1&asin=${item.asin}`;
+    const keepaData = await keepaFetch(keepaUrl);
+    
+    if (keepaData.error) {
+      throw new Error(`Keepa error: ${keepaData.error.message || JSON.stringify(keepaData.error)}`);
+    }
+    
+    const products = keepaData.products || [];
+    
+    if (!products || products.length === 0) {
+      console.log(`⚠️ No Keepa data for ${item.asin}`);
+      await getSupabase()
+        .from('catalog_imports')
+        .update({
+          status: 'processed',
+          correlation_count: 0,
+          correlations: [],
+          processed_at: new Date().toISOString()
+        })
+        .eq('id', item.id);
+      return { asin: item.asin, correlations: 0 };
+    }
+    
+    const product = products[0];
+    
+    // Extract correlations
+    const correlations = extractCorrelations(product, item.asin);
+    console.log(`📊 Found ${correlations.length} correlations for ${item.asin}`);
+    
+    // Update database
+    await getSupabase()
+      .from('catalog_imports')
+      .update({
+        status: 'processed',
+        correlation_count: correlations.length,
+        correlations: correlations,
+        processed_at: new Date().toISOString()
+      })
+      .eq('id', item.id);
+    
+    console.log(`✅ Processed ${item.asin}: ${correlations.length} correlations`);
+    return { asin: item.asin, correlations: correlations.length };
+    
+  } catch (error) {
+    console.error(`❌ Error processing ${item.asin}:`, error.message);
+    
+    await getSupabase()
+      .from('catalog_imports')
+      .update({
+        status: 'error',
+        error_message: error.message,
+        processed_at: new Date().toISOString()
+      })
+      .eq('id', item.id);
+    
+    return { asin: item.asin, error: error.message };
+  }
+}
+
+/**
+ * Process pending items for a user (called inline during sync)
+ */
+async function processUserPendingItems(userId, limit = 15) {
+  const keepaKey = process.env.KEEPA_API_KEY;
+  if (!keepaKey) {
+    console.error('⚠️ No KEEPA_API_KEY configured');
+    return { processed: 0, errors: 0, remaining: 0 };
+  }
+  
+  // Fetch pending items for this user
+  const { data: pendingItems, error: fetchError } = await getSupabase()
+    .from('catalog_imports')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(limit);
+  
+  if (fetchError || !pendingItems || pendingItems.length === 0) {
+    console.log('📭 No pending items to process');
+    return { processed: 0, errors: 0, remaining: 0 };
+  }
+  
+  console.log(`📋 Processing ${pendingItems.length} pending items inline`);
+  
+  const results = [];
+  for (const item of pendingItems) {
+    const result = await processImportItem(item, keepaKey);
+    results.push(result);
+    // Small delay to avoid rate limits
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  const processed = results.filter(r => !r.error).length;
+  const errors = results.filter(r => r.error).length;
+  
+  // Check remaining
+  const { count: remainingCount } = await getSupabase()
+    .from('catalog_imports')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'pending');
+  
+  console.log(`✅ Inline processing complete: ${processed} processed, ${errors} errors, ${remainingCount || 0} remaining`);
+  
+  return { processed, errors, remaining: remainingCount || 0 };
+}
+
 // Column name mappings - handles various naming conventions
 const COLUMN_MAPPINGS = {
   asin: ['asin', 'amazon asin', 'product asin', 'item asin'],
@@ -346,7 +529,7 @@ async function handlePost(event, userId, headers) {
       return errorResponse(400, 'Invalid JSON body', headers);
     }
     
-    // Handle sync action - queue selected items for correlation finding
+    // Handle sync action - queue selected items for correlation finding AND process immediately
     if (body.action === 'sync' && Array.isArray(body.ids)) {
       console.log(`🔄 Syncing ${body.ids.length} items for user: ${userId}`);
       
@@ -361,10 +544,16 @@ async function handlePost(event, userId, headers) {
         return errorResponse(500, `Failed to queue for sync: ${error.message}`, headers);
       }
       
+      // Process immediately (don't wait for scheduled function)
+      const processResult = await processUserPendingItems(userId, body.ids.length);
+      
       return successResponse({
         success: true,
-        message: `Queued ${body.ids.length} items for sync`,
-        queued: body.ids.length
+        message: `Processed ${processResult.processed} of ${body.ids.length} items`,
+        queued: body.ids.length,
+        processed: processResult.processed,
+        errors: processResult.errors,
+        remaining: processResult.remaining
       }, headers);
     }
     
@@ -408,10 +597,16 @@ async function handlePost(event, userId, headers) {
       
       console.log(`✅ Sync All: Queued ${itemCount} items for sync`);
       
+      // Process immediately (don't wait for scheduled function)
+      const processResult = await processUserPendingItems(userId, 15);
+      
       return successResponse({
         success: true,
-        message: `Queued ${itemCount} items for sync`,
-        queued: itemCount
+        message: `Queued ${itemCount} items, processed ${processResult.processed} immediately`,
+        queued: itemCount,
+        processed: processResult.processed,
+        errors: processResult.errors,
+        remaining: processResult.remaining
       }, headers);
     }
     
