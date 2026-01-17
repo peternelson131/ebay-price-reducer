@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Search, ChevronLeft, ChevronRight, Menu, ClipboardList, BookOpen, Upload } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Menu, ClipboardList, BookOpen, Upload, Package } from 'lucide-react';
 import { userAPI } from '../lib/supabase';
 
 // Lazy load the content components
@@ -8,6 +8,7 @@ const AutoDubbing = lazy(() => import('./AutoDubbing'));
 const InfluencerTaskList = lazy(() => import('./InfluencerTaskList'));
 const AsinCatalog = lazy(() => import('./AsinCatalog'));
 const CatalogImport = lazy(() => import('./CatalogImport'));
+const WhatNotAnalysis = lazy(() => import('./WhatNotAnalysis'));
 
 // Menu item configuration
 const menuItems = [
@@ -45,6 +46,13 @@ const menuItems = [
     icon: null,
     customIcon: '🎙️',
     component: AutoDubbing,
+    badge: null
+  },
+  {
+    id: 'whatnot-analysis',
+    label: 'WhatNot Analysis',
+    icon: Package,
+    component: WhatNotAnalysis,
     badge: null
   }
 ];

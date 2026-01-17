@@ -28,6 +28,7 @@ const ListingSettings = lazy(() => import('./pages/ListingSettings'))
 const InfluencerCentral = lazy(() => import('./pages/InfluencerCentral'))
 const EbayCentral = lazy(() => import('./pages/EbayCentral'))
 const ApiKeys = lazy(() => import('./pages/ApiKeys'))
+const WhatNotAnalysis = lazy(() => import('./pages/WhatNotAnalysis'))
 
 export default function App() {
   const { user, isAuthenticated, signOut } = useAuth()
@@ -130,6 +131,16 @@ export default function App() {
                 }`}
               >
                 Account
+              </Link>
+              <Link
+                to="/whatnot"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === '/whatnot'
+                    ? 'bg-accent text-white'
+                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                }`}
+              >
+                What Not
               </Link>
               <Link
                 to="/api-keys"
@@ -311,6 +322,7 @@ export default function App() {
               <Route path="/admin-settings" element={<AdminSettings />} />
               <Route path="/asin-lookup" element={<InfluencerCentral />} />
               <Route path="/api-keys" element={<ApiKeys />} />
+              <Route path="/whatnot" element={<WhatNotAnalysis />} />
             </Routes>
           </Suspense>
         </div>
