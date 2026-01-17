@@ -138,6 +138,18 @@ export default function CatalogImport() {
   const [syncingAll, setSyncingAll] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
   
+  // Enhanced sync progress state
+  const [syncingItems, setSyncingItems] = useState(new Set()); // IDs being synced
+  const [syncStartTimes, setSyncStartTimes] = useState({}); // { id: timestamp }
+  const [syncElapsedTimes, setSyncElapsedTimes] = useState({}); // { id: seconds }
+  
+  // Batch sync progress state
+  const [batchSyncProgress, setBatchSyncProgress] = useState(null); // { current, total, currentAsin, startTime, cancelled }
+  const batchSyncCancelledRef = useRef(false);
+  
+  // Image fetch elapsed time
+  const [imageFetchStartTime, setImageFetchStartTime] = useState(null);
+  
   // Correlations state (Feature: Correlation View & Actions)
   const [correlationsCache, setCorrelationsCache] = useState({}); // { asin: correlations[] }
   const [loadingCorrelations, setLoadingCorrelations] = useState(new Set()); // ASINs being fetched
@@ -260,6 +272,47 @@ export default function CatalogImport() {
       stopPolling();
     }
   }, [imports]);
+
+  // Update elapsed times for syncing items every second
+  useEffect(() => {
+    if (syncingItems.size === 0 && !batchSyncProgress && !imageFetchStartTime) return;
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      
+      // Update individual sync elapsed times
+      if (syncingItems.size > 0) {
+        setSyncElapsedTimes(prev => {
+          const updated = { ...prev };
+          syncingItems.forEach(id => {
+            const startTime = syncStartTimes[id];
+            if (startTime) {
+              updated[id] = Math.floor((now - startTime) / 1000);
+            }
+          });
+          return updated;
+        });
+      }
+      
+      // Update batch sync elapsed time
+      if (batchSyncProgress?.startTime) {
+        setBatchSyncProgress(prev => prev ? {
+          ...prev,
+          elapsed: Math.floor((now - prev.startTime) / 1000)
+        } : null);
+      }
+      
+      // Update image fetch elapsed time
+      if (imageFetchStartTime && imageFetchProgress?.inProgress) {
+        setImageFetchProgress(prev => prev ? {
+          ...prev,
+          elapsed: Math.floor((now - imageFetchStartTime) / 1000)
+        } : null);
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [syncingItems, syncStartTimes, batchSyncProgress, imageFetchStartTime, imageFetchProgress?.inProgress]);
 
   // Check for duplicate ASINs in existing catalog (Feature 10)
   const checkForDuplicates = async (asins) => {
@@ -487,8 +540,22 @@ export default function CatalogImport() {
     }
   };
 
-  // Queue items for sync (find correlations)
+  // Queue items for sync (find correlations) - single item
   const handleSync = async (importIds) => {
+    const startTime = Date.now();
+    
+    // Mark items as syncing with start times
+    setSyncingItems(prev => {
+      const next = new Set(prev);
+      importIds.forEach(id => next.add(id));
+      return next;
+    });
+    setSyncStartTimes(prev => {
+      const updated = { ...prev };
+      importIds.forEach(id => { updated[id] = startTime; });
+      return updated;
+    });
+    
     try {
       const token = await userAPI.getAuthToken();
       const response = await fetch('/.netlify/functions/catalog-import', {
@@ -517,14 +584,41 @@ export default function CatalogImport() {
     } catch (err) {
       console.error('Sync error:', err);
       alert('Failed to queue for sync');
+    } finally {
+      // Remove from syncing state
+      setSyncingItems(prev => {
+        const next = new Set(prev);
+        importIds.forEach(id => next.delete(id));
+        return next;
+      });
+      // Clean up elapsed times after a delay
+      setTimeout(() => {
+        setSyncElapsedTimes(prev => {
+          const updated = { ...prev };
+          importIds.forEach(id => { delete updated[id]; });
+          return updated;
+        });
+        setSyncStartTimes(prev => {
+          const updated = { ...prev };
+          importIds.forEach(id => { delete updated[id]; });
+          return updated;
+        });
+      }, 2000);
     }
   };
 
   // Fetch images from Keepa for items missing images
   const handleFetchImages = async (showModal = true) => {
     setFetchingImages(true);
+    const startTime = Date.now();
+    setImageFetchStartTime(startTime);
+    
     if (showModal) {
-      setImageFetchProgress({ message: 'Fetching images from Keepa... This may take a minute for large catalogs', inProgress: true });
+      setImageFetchProgress({ 
+        message: 'Fetching images from Keepa...', 
+        inProgress: true,
+        elapsed: 0
+      });
     }
     try {
       const token = await userAPI.getAuthToken();
@@ -541,6 +635,8 @@ export default function CatalogImport() {
       });
       
       const data = await response.json();
+      const finalElapsed = Math.floor((Date.now() - startTime) / 1000);
+      
       if (data.success) {
         // Backend returns: { updated, total, noImageAvailable, batches, tokensUsed }
         const resultMessage = `Updated ${data.updated || 0} images (${data.noImageAvailable || 0} had no image available)`;
@@ -550,7 +646,8 @@ export default function CatalogImport() {
           updated: data.updated || 0,
           noImageAvailable: data.noImageAvailable || 0,
           batches: data.batches || 0,
-          tokensUsed: data.tokensUsed || 0
+          tokensUsed: data.tokensUsed || 0,
+          elapsed: finalElapsed
         });
         // Reload to show updated images
         await loadImports(currentPage);
@@ -558,18 +655,22 @@ export default function CatalogImport() {
         setImageFetchProgress({ 
           message: data.error || 'Failed to fetch images', 
           inProgress: false, 
-          error: true 
+          error: true,
+          elapsed: finalElapsed
         });
       }
     } catch (err) {
       console.error('Fetch images error:', err);
+      const finalElapsed = Math.floor((Date.now() - startTime) / 1000);
       setImageFetchProgress({ 
         message: 'Failed to fetch images from Keepa', 
         inProgress: false, 
-        error: true 
+        error: true,
+        elapsed: finalElapsed
       });
     } finally {
       setFetchingImages(false);
+      setImageFetchStartTime(null);
     }
   };
 
@@ -830,10 +931,88 @@ export default function CatalogImport() {
     }
   };
 
-  // Handle sync selected items
+  // Handle sync selected items with batch progress
   const handleSyncSelected = async () => {
     if (selectedIds.size === 0) return;
-    await handleSync(Array.from(selectedIds));
+    
+    const idsToSync = Array.from(selectedIds);
+    const total = idsToSync.length;
+    
+    // If just one item, use simple sync
+    if (total === 1) {
+      await handleSync(idsToSync);
+      return;
+    }
+    
+    // Reset cancel flag
+    batchSyncCancelledRef.current = false;
+    
+    // Initialize batch progress
+    setBatchSyncProgress({
+      current: 0,
+      total,
+      currentAsin: null,
+      startTime: Date.now(),
+      elapsed: 0,
+      cancelled: false
+    });
+    
+    try {
+      const token = await userAPI.getAuthToken();
+      
+      // Process items one by one for detailed progress
+      for (let i = 0; i < idsToSync.length; i++) {
+        if (batchSyncCancelledRef.current) {
+          setBatchSyncProgress(prev => prev ? { ...prev, cancelled: true } : null);
+          break;
+        }
+        
+        const id = idsToSync[i];
+        const item = imports.find(imp => imp.id === id);
+        
+        setBatchSyncProgress(prev => prev ? {
+          ...prev,
+          current: i + 1,
+          currentAsin: item?.asin || 'Unknown',
+          elapsed: Math.floor((Date.now() - prev.startTime) / 1000)
+        } : null);
+        
+        try {
+          const response = await fetch('/.netlify/functions/catalog-import', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              action: 'sync',
+              ids: [id]
+            })
+          });
+          
+          const data = await response.json();
+          if (data.success) {
+            // Update local state
+            setImports(prev => prev.map(imp => 
+              imp.id === id ? { ...imp, status: 'pending' } : imp
+            ));
+          }
+        } catch (err) {
+          console.error(`Sync error for item ${id}:`, err);
+        }
+      }
+      
+      // Clear selection
+      setSelectedIds(new Set());
+      
+    } catch (err) {
+      console.error('Batch sync error:', err);
+    } finally {
+      // Keep progress visible for a moment before closing
+      setTimeout(() => {
+        setBatchSyncProgress(null);
+      }, 2000);
+    }
   };
 
   // Handle sync ALL imported items
@@ -855,6 +1034,21 @@ export default function CatalogImport() {
     if (!confirmed) return;
     
     setSyncingAll(true);
+    
+    // Reset cancel flag
+    batchSyncCancelledRef.current = false;
+    
+    // Show batch progress for sync all
+    setBatchSyncProgress({
+      current: 0,
+      total: estimatedTotal,
+      currentAsin: 'Queuing all items...',
+      startTime: Date.now(),
+      elapsed: 0,
+      cancelled: false,
+      isSyncAll: true
+    });
+    
     try {
       const token = await userAPI.getAuthToken();
       const response = await fetch('/.netlify/functions/catalog-import', {
@@ -869,24 +1063,61 @@ export default function CatalogImport() {
       });
       
       const data = await response.json();
+      const finalElapsed = Math.floor((Date.now() - batchSyncProgress?.startTime) / 1000);
+      
       if (data.success) {
-        alert(`✅ ${data.queued || 'All'} items queued for sync!`);
+        setBatchSyncProgress(prev => prev ? {
+          ...prev,
+          current: data.queued || estimatedTotal,
+          currentAsin: 'Complete!',
+          elapsed: finalElapsed,
+          complete: true
+        } : null);
         // Reload to show updated statuses
         await loadImports(currentPage);
       } else {
-        alert(data.error || 'Failed to queue items for sync');
+        setBatchSyncProgress(prev => prev ? {
+          ...prev,
+          error: data.error || 'Failed to queue items for sync',
+          elapsed: finalElapsed
+        } : null);
       }
     } catch (err) {
       console.error('Sync all error:', err);
-      alert('Failed to sync all items');
+      setBatchSyncProgress(prev => prev ? {
+        ...prev,
+        error: 'Failed to sync all items'
+      } : null);
     } finally {
       setSyncingAll(false);
+      // Keep progress visible for a moment before closing
+      setTimeout(() => {
+        setBatchSyncProgress(null);
+      }, 3000);
     }
   };
 
+  // Process queue elapsed time state
+  const [processQueueStartTime, setProcessQueueStartTime] = useState(null);
+  const [processQueueElapsed, setProcessQueueElapsed] = useState(0);
+  
+  // Update process queue elapsed time
+  useEffect(() => {
+    if (!processQueueStartTime) return;
+    
+    const interval = setInterval(() => {
+      setProcessQueueElapsed(Math.floor((Date.now() - processQueueStartTime) / 1000));
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [processQueueStartTime]);
+  
   // Handle process queue - processes pending items
   const handleProcessQueue = async () => {
     setProcessingQueue(true);
+    setProcessQueueStartTime(Date.now());
+    setProcessQueueElapsed(0);
+    
     try {
       const token = await userAPI.getAuthToken();
       const response = await fetch('/.netlify/functions/catalog-import', {
@@ -914,6 +1145,8 @@ export default function CatalogImport() {
       alert('Failed to process queue');
     } finally {
       setProcessingQueue(false);
+      setProcessQueueStartTime(null);
+      setProcessQueueElapsed(0);
     }
   };
 
@@ -1306,6 +1539,11 @@ export default function CatalogImport() {
                   <Loader className="w-12 h-12 animate-spin mx-auto mb-4 text-orange-500" />
                   <h3 className="text-lg font-semibold text-theme-primary mb-2">Fetching Images</h3>
                   <p className="text-theme-secondary">{imageFetchProgress.message}</p>
+                  {imageFetchProgress.elapsed > 0 && (
+                    <p className="text-sm text-theme-tertiary mt-2">
+                      Elapsed: {imageFetchProgress.elapsed}s
+                    </p>
+                  )}
                 </>
               ) : (
                 <>
@@ -1321,6 +1559,7 @@ export default function CatalogImport() {
                   {!imageFetchProgress.error && imageFetchProgress.batches > 0 && (
                     <div className="text-sm text-theme-tertiary">
                       Processed in {imageFetchProgress.batches} batch{imageFetchProgress.batches !== 1 ? 'es' : ''} • {imageFetchProgress.tokensUsed} Keepa tokens used
+                      {imageFetchProgress.elapsed > 0 && ` • ${imageFetchProgress.elapsed}s`}
                     </div>
                   )}
                   <button
@@ -1331,6 +1570,97 @@ export default function CatalogImport() {
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Sync Progress Modal */}
+      {batchSyncProgress && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-theme-surface rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              {/* Header */}
+              <div className="text-center mb-4">
+                {batchSyncProgress.complete ? (
+                  <CheckCircle className="w-12 h-12 mx-auto mb-3 text-success" />
+                ) : batchSyncProgress.error ? (
+                  <AlertCircle className="w-12 h-12 mx-auto mb-3 text-error" />
+                ) : batchSyncProgress.cancelled ? (
+                  <AlertCircle className="w-12 h-12 mx-auto mb-3 text-warning" />
+                ) : (
+                  <Loader className="w-12 h-12 animate-spin mx-auto mb-3 text-orange-500" />
+                )}
+                <h3 className="text-lg font-semibold text-theme-primary">
+                  {batchSyncProgress.complete ? 'Sync Complete!' : 
+                   batchSyncProgress.error ? 'Sync Failed' :
+                   batchSyncProgress.cancelled ? 'Sync Cancelled' :
+                   batchSyncProgress.isSyncAll ? 'Syncing All Items' : 'Syncing Selected Items'}
+                </h3>
+              </div>
+              
+              {/* Progress bar */}
+              {!batchSyncProgress.error && (
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm text-theme-secondary mb-1">
+                    <span>Progress</span>
+                    <span>{batchSyncProgress.current} of {batchSyncProgress.total}</span>
+                  </div>
+                  <div className="w-full bg-theme-primary rounded-full h-3 overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        batchSyncProgress.complete ? 'bg-success' :
+                        batchSyncProgress.cancelled ? 'bg-warning' : 'bg-orange-500'
+                      }`}
+                      style={{ width: `${Math.round((batchSyncProgress.current / batchSyncProgress.total) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Current item info */}
+              {batchSyncProgress.currentAsin && !batchSyncProgress.error && (
+                <div className="mb-4 p-3 bg-theme-primary rounded-lg">
+                  <p className="text-sm text-theme-secondary">
+                    {batchSyncProgress.complete ? 'Completed:' : 'Currently processing:'}
+                  </p>
+                  <p className="font-mono text-accent text-sm">{batchSyncProgress.currentAsin}</p>
+                </div>
+              )}
+              
+              {/* Error message */}
+              {batchSyncProgress.error && (
+                <div className="mb-4 p-3 bg-error/10 border border-error/30 rounded-lg">
+                  <p className="text-sm text-error">{batchSyncProgress.error}</p>
+                </div>
+              )}
+              
+              {/* Elapsed time */}
+              <div className="text-center text-sm text-theme-tertiary mb-4">
+                {batchSyncProgress.elapsed > 0 && (
+                  <span>Elapsed: {batchSyncProgress.elapsed}s</span>
+                )}
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex gap-3 justify-center">
+                {!batchSyncProgress.complete && !batchSyncProgress.error && !batchSyncProgress.cancelled && !batchSyncProgress.isSyncAll && (
+                  <button
+                    onClick={() => { batchSyncCancelledRef.current = true; }}
+                    className="px-4 py-2 bg-theme-primary border border-theme hover:bg-error/10 hover:border-error/30 hover:text-error text-theme-secondary font-medium rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )}
+                {(batchSyncProgress.complete || batchSyncProgress.error || batchSyncProgress.cancelled) && (
+                  <button
+                    onClick={() => setBatchSyncProgress(null)}
+                    className="px-6 py-2 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-colors"
+                  >
+                    Close
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1356,7 +1686,7 @@ export default function CatalogImport() {
           ) : (
             <RefreshCw className="w-4 h-4" />
           )}
-          {fetchingImages ? 'Fetching...' : 'Fetch Images from Keepa'}
+          {fetchingImages ? `Fetching... ${imageFetchProgress?.elapsed || 0}s` : 'Fetch Images from Keepa'}
         </button>
         
         {/* Export CSV button (Feature 9) */}
@@ -1376,7 +1706,7 @@ export default function CatalogImport() {
         {/* Sync All button */}
         <button
           onClick={handleSyncAll}
-          disabled={syncingAll || totalCount === 0}
+          disabled={syncingAll || totalCount === 0 || batchSyncProgress !== null}
           className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
         >
           {syncingAll ? (
@@ -1384,7 +1714,7 @@ export default function CatalogImport() {
           ) : (
             <RefreshCw className="w-4 h-4" />
           )}
-          {syncingAll ? 'Queuing...' : 'Sync All'}
+          {syncingAll ? `Queuing... ${batchSyncProgress?.elapsed || 0}s` : 'Sync All'}
         </button>
         
         {/* Process Queue button - shows when there are pending items */}
@@ -1399,7 +1729,7 @@ export default function CatalogImport() {
             ) : (
               <RefreshCw className="w-4 h-4" />
             )}
-            {processingQueue ? 'Processing...' : `Process Queue (${statusCounts.pending})`}
+            {processingQueue ? `Processing... ${processQueueElapsed}s` : `Process Queue (${statusCounts.pending})`}
           </button>
         )}
         
@@ -1407,9 +1737,14 @@ export default function CatalogImport() {
         {selectedIds.size > 0 && (
           <button
             onClick={handleSyncSelected}
-            className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+            disabled={batchSyncProgress !== null}
+            className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
           >
-            <RefreshCw className="w-4 h-4" />
+            {batchSyncProgress && !batchSyncProgress.isSyncAll ? (
+              <Loader className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
             Sync Selected ({selectedIds.size})
           </button>
         )}
@@ -1669,16 +2004,27 @@ export default function CatalogImport() {
                       {(item.status === 'imported' || item.status === 'error') && (
                         <button
                           onClick={() => handleSync([item.id])}
-                          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
+                          disabled={syncingItems.has(item.id)}
+                          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-400 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1 min-w-[80px] justify-center"
                           title="Find Correlations"
                         >
-                          <RefreshCw className="w-3 h-3" />
-                          Sync
+                          {syncingItems.has(item.id) ? (
+                            <>
+                              <Loader className="w-3 h-3 animate-spin" />
+                              <span>{syncElapsedTimes[item.id] || 0}s</span>
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3 h-3" />
+                              <span>Sync</span>
+                            </>
+                          )}
                         </button>
                       )}
                       <button
                         onClick={() => handleDelete(item.id)}
-                        className="p-2 text-theme-tertiary hover:text-error hover:bg-error/10 rounded-lg transition-colors"
+                        disabled={syncingItems.has(item.id)}
+                        className="p-2 text-theme-tertiary hover:text-error hover:bg-error/10 disabled:opacity-50 rounded-lg transition-colors"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />

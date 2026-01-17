@@ -252,6 +252,15 @@ serve(async (req) => {
     // ACTION: SYNC - full workflow
     console.log(`🚀 Starting ASIN correlation for ${normalizedAsin}`)
     
+    // Get user's existing catalog ASINs to exclude from correlations
+    const { data: catalogAsins } = await supabase
+      .from('catalog_imports')
+      .select('asin')
+      .eq('user_id', userId)
+    
+    const userCatalogSet = new Set((catalogAsins || []).map(c => c.asin.toUpperCase()))
+    console.log(`📋 User has ${userCatalogSet.size} ASINs in catalog`)
+    
     // Check if user has custom matching enabled
     let customPrompt: string | undefined
     const { data: userData } = await supabase
@@ -288,11 +297,15 @@ serve(async (req) => {
     console.log(`📦 Primary: "${primaryData.title.substring(0, 50)}..."`)
     
     // 2. Get variation ASINs
-    const variationAsins = (primary.variations || [])
+    const rawVariationAsins = (primary.variations || [])
       .map((v: { asin: string }) => v.asin)
       .filter((a: string) => a !== normalizedAsin)
     
-    console.log(`📦 Found ${variationAsins.length} variation ASINs`)
+    // Filter out variations already in user's catalog
+    const variationAsins = rawVariationAsins.filter(
+      (a: string) => !userCatalogSet.has(a.toUpperCase())
+    )
+    console.log(`📦 Filtered variations: ${rawVariationAsins.length} → ${variationAsins.length} (excluded ${rawVariationAsins.length - variationAsins.length} catalog ASINs)`)
     
     // Debug info (collected throughout)
     const debug: Record<string, unknown> = {
@@ -337,7 +350,10 @@ serve(async (req) => {
         const fetchedVariationAsins = allCorrelations.filter(c => c.type === 'variation').map(c => c.asin)
         const excludeSet = new Set([normalizedAsin, ...fetchedVariationAsins])
         console.log(`🔍 Exclude set: ${[...excludeSet]}`)
-        const candidateAsins = similarAsins.filter((a: string) => !excludeSet.has(a))
+        const candidateAsins = similarAsins
+          .filter((a: string) => !excludeSet.has(a))
+          .filter((a: string) => !userCatalogSet.has(a.toUpperCase()))
+        console.log(`🔍 Filtered out ${userCatalogSet.size} catalog ASINs from candidates`)
         debug.candidateCount = candidateAsins.length
         debug.candidateAsins = candidateAsins
         console.log(`🔍 Candidate ASINs after filter: ${candidateAsins.length} - ${candidateAsins}`)

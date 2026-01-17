@@ -1,0 +1,212 @@
+{
+  "testDate": "2026-01-17T05:52:01.194Z",
+  "environment": "UAT",
+  "baseUrl": "https://dainty-horse-49c336.netlify.app/.netlify/functions",
+  "authStatus": "authenticated",
+  "scenarios": {
+    "health": {
+      "description": "Health endpoint baseline",
+      "stats": {
+        "avg": 280,
+        "p95": 549,
+        "max": 549,
+        "min": 173,
+        "count": 5
+      }
+    },
+    "list": {
+      "description": "List catalog items with different page sizes",
+      "requests": 9,
+      "stats": {
+        "avg": 433,
+        "p95": 491,
+        "max": 491,
+        "min": 388,
+        "count": 9
+      },
+      "errors": 0,
+      "errorDetails": []
+    },
+    "concurrency": {
+      "description": "Concurrent request handling",
+      "levels": [
+        {
+          "concurrency": 2,
+          "totalTime": 752,
+          "successes": 2,
+          "failures": 0,
+          "stats": {
+            "avg": 561,
+            "p95": 748,
+            "max": 748,
+            "min": 373,
+            "count": 2
+          },
+          "errors": []
+        },
+        {
+          "concurrency": 5,
+          "totalTime": 817,
+          "successes": 5,
+          "failures": 0,
+          "stats": {
+            "avg": 639,
+            "p95": 812,
+            "max": 812,
+            "min": 543,
+            "count": 5
+          },
+          "errors": []
+        },
+        {
+          "concurrency": 10,
+          "totalTime": 1612,
+          "successes": 10,
+          "failures": 0,
+          "stats": {
+            "avg": 985,
+            "p95": 1600,
+            "max": 1600,
+            "min": 395,
+            "count": 10
+          },
+          "errors": []
+        },
+        {
+          "concurrency": 15,
+          "totalTime": 1486,
+          "successes": 15,
+          "failures": 0,
+          "stats": {
+            "avg": 699,
+            "p95": 1479,
+            "max": 1479,
+            "min": 392,
+            "count": 15
+          },
+          "errors": []
+        }
+      ],
+      "recommendation": "No rate limit detected up to 15 concurrent requests"
+    },
+    "fetchImages": {
+      "description": "Fetch images from Keepa for ASINs",
+      "batches": [
+        {
+          "batchSize": 5,
+          "elapsed": 1294,
+          "status": 200,
+          "success": true,
+          "tokensUsed": 0,
+          "imagesUpdated": 0
+        },
+        {
+          "batchSize": 10,
+          "elapsed": 406,
+          "status": 200,
+          "success": true,
+          "tokensUsed": 0,
+          "imagesUpdated": 0
+        }
+      ],
+      "stats": {
+        "avg": 850,
+        "p95": 1294,
+        "max": 1294,
+        "min": 406,
+        "count": 2
+      }
+    },
+    "singleSync": {
+      "description": "Single item correlation sync",
+      "elapsed": 23078,
+      "success": true,
+      "status": 200,
+      "data": {
+        "success": true,
+        "message": "Queued 1 items for sync. First item: processed",
+        "queued": 1,
+        "firstResult": {
+          "asin": "B085G2BJ1R",
+          "correlations": 9
+        }
+      }
+    },
+    "batchSync": {
+      "description": "Batch correlation sync (5 items)",
+      "elapsed": 20854,
+      "success": true,
+      "status": 200,
+      "data": {
+        "success": true,
+        "message": "Queued 5 items for sync. First item: processed",
+        "queued": 5,
+        "firstResult": {
+          "asin": "B085G2BJ1R",
+          "correlations": 9
+        }
+      }
+    },
+    "correlationTrigger": {
+      "description": "ASIN correlation trigger (Keepa + AI)",
+      "asins": [
+        {
+          "asin": "B01KJEOCDW",
+          "elapsed": 378,
+          "status": 401,
+          "success": false,
+          "correlationCount": 0,
+          "stats": {}
+        },
+        {
+          "asin": "B07FZ8S74R",
+          "elapsed": 226,
+          "status": 401,
+          "success": false,
+          "correlationCount": 0,
+          "stats": {}
+        },
+        {
+          "asin": "B08FC6MR62",
+          "elapsed": 399,
+          "status": 401,
+          "success": false,
+          "correlationCount": 0,
+          "stats": {}
+        }
+      ],
+      "stats": {
+        "avg": 334,
+        "p95": 399,
+        "max": 399,
+        "min": 226,
+        "count": 3
+      }
+    },
+    "errorHandling": {
+      "description": "Error handling for invalid inputs",
+      "tests": [
+        {
+          "test": "Invalid ASIN",
+          "status": 401,
+          "errorMessage": "Invalid token",
+          "handledGracefully": true
+        },
+        {
+          "test": "Missing action",
+          "status": 401,
+          "errorMessage": "Invalid or expired token",
+          "handledGracefully": true
+        },
+        {
+          "test": "Invalid action",
+          "status": 401,
+          "errorMessage": "Invalid or expired token",
+          "handledGracefully": true
+        }
+      ],
+      "allHandledGracefully": true
+    }
+  },
+  "totalTestTime": 84718
+}

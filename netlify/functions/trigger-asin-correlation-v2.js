@@ -8,7 +8,8 @@
  * For SaaS: Users provide their own Keepa API key
  */
 
-const { getCorsHeaders } = require('./utils/cors');
+const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = require('./utils/cors');
+const { verifyAuth } = require('./utils/auth');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 
@@ -18,7 +19,13 @@ function getSupabase() {
   if (!supabase) {
     supabase = createClient(
       process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     );
   }
   return supabase;
@@ -437,41 +444,29 @@ async function processAsin(asin, userId, keepaKey) {
 exports.handler = async (event, context) => {
   const headers = getCorsHeaders(event);
   
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  // Handle CORS preflight
+  const preflight = handlePreflight(event);
+  if (preflight) return preflight;
   
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+    return errorResponse(405, 'Method not allowed', headers);
   }
   
   try {
-    // Auth
-    const authHeader = event.headers.authorization || event.headers.Authorization;
-    if (!authHeader) {
-      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) };
+    // Use shared auth verification (same as catalog-import)
+    const authResult = await verifyAuth(event);
+    if (!authResult.success) {
+      console.log('Auth failed:', authResult.error);
+      return errorResponse(authResult.statusCode, authResult.error, headers);
     }
     
-    const token = authHeader.substring(7);
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
-    
-    if (authError || !user) {
-      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Invalid token' }) };
-    }
+    const user = authResult.user;
     
     // Parse request
     const { asin, action = 'check', keepaKey, includeCompleted = false } = JSON.parse(event.body);
     
     if (!asin || !/^B[0-9A-Z]{9}$/i.test(asin)) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Valid ASIN required (B + 9 chars)' })
-      };
+      return errorResponse(400, 'Valid ASIN required (B + 9 chars)', headers);
     }
     
     const normalizedAsin = asin.toUpperCase();
@@ -487,22 +482,18 @@ exports.handler = async (event, context) => {
       );
       
       if (error) {
-        return { statusCode: 500, headers, body: JSON.stringify({ error: 'Database error' }) };
+        return errorResponse(500, 'Database error', headers);
       }
       
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          success: true,
-          asin: normalizedAsin,
-          exists: correlations.length > 0,
-          correlations,
-          count: correlations.length,
-          filteredCount: filteredCount || 0, // Number of correlations hidden due to completed tasks
-          source: 'database'
-        })
-      };
+      return successResponse({
+        success: true,
+        asin: normalizedAsin,
+        exists: correlations.length > 0,
+        correlations,
+        count: correlations.length,
+        filteredCount: filteredCount || 0, // Number of correlations hidden due to completed tasks
+        source: 'database'
+      }, headers);
     }
     
     // ACTION: SYNC
@@ -528,44 +519,21 @@ exports.handler = async (event, context) => {
         console.log(`✅ Edge function returned:`, response.data);
         
         // Return the edge function response directly
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify(response.data)
-        };
+        return successResponse(response.data, headers);
         
       } catch (syncError) {
         console.error('❌ Edge function error:', syncError.message);
         
         // If edge function fails, return error
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({ 
-            error: 'Sync failed',
-            message: syncError.response?.data?.message || syncError.message
-          })
-        };
+        return errorResponse(500, `Sync failed: ${syncError.response?.data?.message || syncError.message}`, headers);
       }
     }
     
-    return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({ error: 'Invalid action' })
-    };
+    return errorResponse(400, 'Invalid action', headers);
     
   } catch (error) {
     console.error('❌ Error:', error);
     console.error('Stack:', error.stack);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        error: 'Processing failed',
-        message: error.message,
-        stack: error.stack?.split('\n').slice(0, 5)
-      })
-    };
+    return errorResponse(500, `Processing failed: ${error.message}`, headers);
   }
 };

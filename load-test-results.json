@@ -1,0 +1,323 @@
+{
+  "testDate": "2026-01-17T05:48:44.367Z",
+  "environment": "UAT",
+  "baseUrl": "https://dainty-horse-49c336.netlify.app/.netlify/functions",
+  "scenarios": {
+    "health": {
+      "description": "Health endpoint baseline",
+      "stats": {
+        "avg": 451,
+        "p95": 1221,
+        "max": 1221,
+        "min": 164,
+        "count": 5
+      }
+    },
+    "list": {
+      "description": "List catalog items (no auth)",
+      "requests": 5,
+      "stats": {
+        "avg": 342,
+        "p95": 942,
+        "max": 942,
+        "min": 99,
+        "count": 5
+      },
+      "errors": 5,
+      "errorDetails": [
+        {
+          "attempt": 1,
+          "error": {
+            "error": "Authorization header required"
+          }
+        },
+        {
+          "attempt": 2,
+          "error": {
+            "error": "Authorization header required"
+          }
+        },
+        {
+          "attempt": 3,
+          "error": {
+            "error": "Authorization header required"
+          }
+        },
+        {
+          "attempt": 4,
+          "error": {
+            "error": "Authorization header required"
+          }
+        },
+        {
+          "attempt": 5,
+          "error": {
+            "error": "Authorization header required"
+          }
+        }
+      ]
+    },
+    "concurrency": {
+      "description": "Concurrent request handling",
+      "levels": [
+        {
+          "concurrency": 2,
+          "totalTime": 216,
+          "successes": 0,
+          "failures": 2,
+          "stats": {
+            "avg": 163,
+            "p95": 214,
+            "max": 214,
+            "min": 112,
+            "count": 2
+          },
+          "errorTypes": [
+            401,
+            401
+          ]
+        },
+        {
+          "concurrency": 5,
+          "totalTime": 247,
+          "successes": 0,
+          "failures": 5,
+          "stats": {
+            "avg": 177,
+            "p95": 239,
+            "max": 239,
+            "min": 101,
+            "count": 5
+          },
+          "errorTypes": [
+            401,
+            401,
+            401,
+            401,
+            401
+          ]
+        },
+        {
+          "concurrency": 10,
+          "totalTime": 455,
+          "successes": 0,
+          "failures": 10,
+          "stats": {
+            "avg": 221,
+            "p95": 441,
+            "max": 441,
+            "min": 105,
+            "count": 10
+          },
+          "errorTypes": [
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401
+          ]
+        },
+        {
+          "concurrency": 20,
+          "totalTime": 412,
+          "successes": 0,
+          "failures": 20,
+          "stats": {
+            "avg": 233,
+            "p95": 399,
+            "max": 399,
+            "min": 102,
+            "count": 20
+          },
+          "errorTypes": [
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401,
+            401
+          ]
+        }
+      ],
+      "recommendation": "Rate limit detected at 2 concurrent requests"
+    },
+    "fetchImages": {
+      "description": "Fetch images from Keepa for 5 ASINs",
+      "elapsed": 266,
+      "success": false,
+      "status": 401,
+      "response": {
+        "error": "Authorization header required"
+      }
+    },
+    "syncBatches": {
+      "description": "Sync with different batch sizes",
+      "batches": [
+        {
+          "batchSize": 1,
+          "elapsed": 101,
+          "status": 401,
+          "success": false,
+          "data": {
+            "error": "Authorization header required"
+          }
+        },
+        {
+          "batchSize": 5,
+          "elapsed": 103,
+          "status": 401,
+          "success": false,
+          "data": {
+            "error": "Authorization header required"
+          }
+        },
+        {
+          "batchSize": 10,
+          "elapsed": 103,
+          "status": 401,
+          "success": false,
+          "data": {
+            "error": "Authorization header required"
+          }
+        }
+      ]
+    },
+    "correlationTrigger": {
+      "description": "ASIN correlation trigger (calls Keepa + possibly Claude)",
+      "asins": [
+        {
+          "asin": "B01KJEOCDW",
+          "elapsed": 669,
+          "status": 401,
+          "success": false,
+          "correlationCount": 0,
+          "data": {
+            "error": "Unauthorized"
+          }
+        },
+        {
+          "asin": "B07FZ8S74R",
+          "elapsed": 99,
+          "status": 401,
+          "success": false,
+          "correlationCount": 0,
+          "data": {
+            "error": "Unauthorized"
+          }
+        },
+        {
+          "asin": "B08FC6MR62",
+          "elapsed": 305,
+          "status": 401,
+          "success": false,
+          "correlationCount": 0,
+          "data": {
+            "error": "Unauthorized"
+          }
+        }
+      ],
+      "stats": {
+        "avg": 358,
+        "p95": 669,
+        "max": 669,
+        "min": 99,
+        "count": 3
+      }
+    },
+    "correlationV2": {
+      "description": "ASIN correlation v2 endpoint",
+      "asins": [
+        {
+          "asin": "B09JQMJHXY",
+          "elapsed": 750,
+          "status": 401,
+          "success": false,
+          "data": {
+            "error": "Unauthorized"
+          }
+        },
+        {
+          "asin": "B0BDJ279KT",
+          "elapsed": 125,
+          "status": 401,
+          "success": false,
+          "data": {
+            "error": "Unauthorized"
+          }
+        },
+        {
+          "asin": "B0BDJLS4DR",
+          "elapsed": 238,
+          "status": 401,
+          "success": false,
+          "data": {
+            "error": "Unauthorized"
+          }
+        }
+      ],
+      "stats": {
+        "avg": 371,
+        "p95": 750,
+        "max": 750,
+        "min": 125,
+        "count": 3
+      }
+    },
+    "errorHandling": {
+      "description": "Error handling for invalid inputs",
+      "tests": [
+        {
+          "test": "Invalid ASIN: \"NOTANASIN1\"",
+          "status": 401,
+          "errorMessage": "Unauthorized",
+          "handledGracefully": true
+        },
+        {
+          "test": "Invalid ASIN: \"INVALID123\"",
+          "status": 401,
+          "errorMessage": "Unauthorized",
+          "handledGracefully": true
+        },
+        {
+          "test": "Invalid ASIN: \"12345\"",
+          "status": 401,
+          "errorMessage": "Unauthorized",
+          "handledGracefully": true
+        },
+        {
+          "test": "Missing required fields",
+          "status": 401,
+          "errorMessage": "Authorization header required",
+          "handledGracefully": true
+        },
+        {
+          "test": "Invalid action",
+          "status": 401,
+          "errorMessage": "Authorization header required",
+          "handledGracefully": true
+        }
+      ],
+      "allHandledGracefully": true
+    }
+  },
+  "totalTestTime": 35857
+}

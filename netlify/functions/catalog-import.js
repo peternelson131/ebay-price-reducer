@@ -402,9 +402,48 @@ function parseMultipart(event) {
 
 /**
  * GET handler - List catalog imports with filters
+ * Also handles:
+ *   - action=sync_status&jobId=xxx - Poll for background job status
  */
 async function handleGet(event, userId, headers) {
   const params = event.queryStringParameters || {};
+  
+  // Handle sync_status action - poll for background job status
+  if (params.action === 'sync_status' && params.jobId) {
+    const { data: job, error: jobError } = await getSupabase()
+      .from('sync_jobs')
+      .select('*')
+      .eq('id', params.jobId)
+      .eq('user_id', userId)
+      .single();
+    
+    if (jobError || !job) {
+      return errorResponse(404, 'Job not found', headers);
+    }
+    
+    // Calculate progress percentage
+    const progress = job.total_items > 0 
+      ? Math.round(((job.processed_items + job.failed_items) / job.total_items) * 100)
+      : 0;
+    
+    return successResponse({
+      success: true,
+      job: {
+        id: job.id,
+        status: job.status,
+        totalItems: job.total_items,
+        processedItems: job.processed_items,
+        failedItems: job.failed_items,
+        progress,
+        results: job.results || [],
+        errorMessage: job.error_message,
+        createdAt: job.created_at,
+        startedAt: job.started_at,
+        completedAt: job.completed_at
+      }
+    }, headers);
+  }
+  
   const status = params.status; // pending, processing, processed, error, skipped
   const page = parseInt(params.page) || 1;
   const limit = Math.min(parseInt(params.limit) || 50, 1000);
@@ -541,41 +580,135 @@ async function handlePost(event, userId, headers) {
     }
     
     // Handle sync action - queue selected items for correlation finding
+    // Now creates a background job and returns immediately
     if (body.action === 'sync' && Array.isArray(body.ids)) {
       console.log(`🔄 Syncing ${body.ids.length} items for user: ${userId}`);
       
-      const { error } = await getSupabase()
+      if (body.ids.length === 0) {
+        return errorResponse(400, 'No items selected for sync', headers);
+      }
+      
+      // Get the ASINs for the selected IDs
+      const { data: itemsToSync, error: fetchError } = await getSupabase()
+        .from('catalog_imports')
+        .select('id, asin, title')
+        .eq('user_id', userId)
+        .in('id', body.ids);
+      
+      if (fetchError || !itemsToSync?.length) {
+        console.error('Fetch items error:', fetchError);
+        return errorResponse(500, `Failed to fetch items: ${fetchError?.message || 'No items found'}`, headers);
+      }
+      
+      // Create a background job
+      const { data: job, error: jobError } = await getSupabase()
+        .from('sync_jobs')
+        .insert({
+          user_id: userId,
+          job_type: 'catalog_sync',
+          status: 'pending',
+          total_items: itemsToSync.length,
+          processed_items: 0,
+          failed_items: 0,
+          results: [],
+          metadata: { item_ids: body.ids, asins: itemsToSync.map(i => i.asin) }
+        })
+        .select()
+        .single();
+      
+      if (jobError) {
+        console.error('Job creation error:', jobError);
+        return errorResponse(500, `Failed to create sync job: ${jobError.message}`, headers);
+      }
+      
+      console.log(`✅ Created job ${job.id} for ${itemsToSync.length} items`);
+      
+      // Mark items as pending
+      await getSupabase()
         .from('catalog_imports')
         .update({ status: 'pending', error_message: null })
         .eq('user_id', userId)
         .in('id', body.ids);
       
-      if (error) {
-        console.error('Sync error:', error);
-        return errorResponse(500, `Failed to queue for sync: ${error.message}`, headers);
-      }
-      
-      // Start processing ONE item immediately (non-blocking for the rest)
-      // This gives immediate feedback while remaining items process via scheduled function
-      let firstProcessed = null;
-      if (body.ids.length > 0) {
-        const { data: firstItem } = await getSupabase()
-          .from('catalog_imports')
-          .select('*')
-          .eq('id', body.ids[0])
-          .single();
-        
-        if (firstItem) {
-          // Process first item inline (will update status to processed or error)
-          firstProcessed = await processImportItem(firstItem, userId);
+      // Fire-and-forget: start background processing
+      // We use setImmediate to not block the response
+      setImmediate(async () => {
+        try {
+          console.log(`🚀 Starting background processing for job ${job.id}`);
+          
+          // Update job status to processing
+          await getSupabase()
+            .from('sync_jobs')
+            .update({ status: 'processing', started_at: new Date().toISOString() })
+            .eq('id', job.id);
+          
+          const results = [];
+          let processedCount = 0;
+          let failedCount = 0;
+          
+          for (const item of itemsToSync) {
+            try {
+              const result = await processImportItem({ ...item, id: body.ids[itemsToSync.indexOf(item)] }, userId);
+              
+              if (result.error) {
+                failedCount++;
+                results.push({ asin: item.asin, status: 'error', error: result.error });
+              } else {
+                processedCount++;
+                results.push({ asin: item.asin, status: 'success', correlations: result.correlations || 0 });
+              }
+              
+              // Update job progress after each item
+              await getSupabase()
+                .from('sync_jobs')
+                .update({
+                  processed_items: processedCount,
+                  failed_items: failedCount,
+                  results
+                })
+                .eq('id', job.id);
+              
+            } catch (itemError) {
+              failedCount++;
+              results.push({ asin: item.asin, status: 'error', error: itemError.message });
+            }
+          }
+          
+          // Mark job as completed
+          await getSupabase()
+            .from('sync_jobs')
+            .update({
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+              processed_items: processedCount,
+              failed_items: failedCount,
+              results
+            })
+            .eq('id', job.id);
+          
+          console.log(`✅ Job ${job.id} completed: ${processedCount} processed, ${failedCount} failed`);
+          
+        } catch (bgError) {
+          console.error(`❌ Background job ${job.id} failed:`, bgError);
+          
+          await getSupabase()
+            .from('sync_jobs')
+            .update({
+              status: 'failed',
+              error_message: bgError.message,
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', job.id);
         }
-      }
+      });
       
+      // Return immediately with job ID for polling
       return successResponse({
         success: true,
-        message: `Queued ${body.ids.length} items for sync${firstProcessed ? `. First item: ${firstProcessed.error ? 'error' : 'processed'}` : ''}`,
-        queued: body.ids.length,
-        firstResult: firstProcessed
+        message: `Sync job started for ${itemsToSync.length} items`,
+        jobId: job.id,
+        totalItems: itemsToSync.length,
+        pollUrl: `/catalog-import?action=sync_status&jobId=${job.id}`
       }, headers);
     }
     
