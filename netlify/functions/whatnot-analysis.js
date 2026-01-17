@@ -321,7 +321,7 @@ exports.handler = async (event, context) => {
         }
 
         // Prepare rows for insert
-        const rows = items.map(item => ({
+        const rawRows = items.map(item => ({
           user_id: user.id,
           asin: item.asin?.toUpperCase(),
           title: item.title || item.description,
@@ -334,6 +334,20 @@ exports.handler = async (event, context) => {
           lot_id: item.lotId || lotId,
           status: 'imported'
         })).filter(r => r.asin && /^B[0-9A-Z]{9}$/.test(r.asin));
+
+        // Deduplicate by ASIN+lot_id, aggregating quantities
+        const dedupeMap = new Map();
+        for (const row of rawRows) {
+          const key = `${row.asin}:${row.lot_id || 'default'}`;
+          if (dedupeMap.has(key)) {
+            const existing = dedupeMap.get(key);
+            existing.quantity += row.quantity;
+            existing.ext_retail = (existing.ext_retail || 0) + (row.ext_retail || 0);
+          } else {
+            dedupeMap.set(key, { ...row });
+          }
+        }
+        const rows = Array.from(dedupeMap.values());
 
         if (rows.length === 0) {
           return {

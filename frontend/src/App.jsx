@@ -13,7 +13,8 @@ import {
   Menu, 
   X,
   Sun,
-  Moon
+  Moon,
+  TrendingUp
 } from 'lucide-react'
 
 // Lazy load all page components for code splitting
@@ -121,6 +122,16 @@ export default function App() {
                 }`}
               >
                 Influencer Central
+              </Link>
+              <Link
+                to="/whatnot"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === '/whatnot'
+                    ? 'bg-accent text-white'
+                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                }`}
+              >
+                WhatNot
               </Link>
               <Link
                 to="/account"
@@ -240,6 +251,19 @@ export default function App() {
                 </Link>
 
                 <Link
+                  to="/whatnot"
+                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                    location.pathname === '/whatnot'
+                      ? 'bg-accent text-white'
+                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <TrendingUp className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  WhatNot Analysis
+                </Link>
+
+                <Link
                   to="/account"
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                     location.pathname === '/account'
@@ -300,8 +324,8 @@ export default function App() {
         )}
       </nav>
 
-      <main className={['/listings', '/asin-lookup', '/ebay-central'].includes(location.pathname) || location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
-        <div className={['/listings', '/asin-lookup', '/ebay-central'].includes(location.pathname) || location.pathname === '/' ? '' : 'sm:px-0'}>
+      <main className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot'].includes(location.pathname) || location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
+        <div className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot'].includes(location.pathname) || location.pathname === '/' ? '' : 'sm:px-0'}>
           <Suspense fallback={
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -321,6 +345,7 @@ export default function App() {
               <Route path="/listing-settings" element={<ListingSettings />} />
               <Route path="/admin-settings" element={<AdminSettings />} />
               <Route path="/asin-lookup" element={<InfluencerCentral />} />
+              <Route path="/whatnot" element={<WhatNotAnalysis />} />
               <Route path="/api-keys" element={<ApiKeys />} />
               <Route path="/whatnot" element={<WhatNotAnalysis />} />
             </Routes>
