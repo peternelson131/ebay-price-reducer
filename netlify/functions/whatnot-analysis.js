@@ -93,16 +93,22 @@ async function getUserFromToken(token) {
   return user;
 }
 
-// Get user's Keepa API key
+// Get user's Keepa API key (falls back to env var)
 async function getKeepaApiKey(userId) {
+  // First try user's stored key
   const { data, error } = await supabase
     .from('users')
     .select('keepa_api_key')
     .eq('id', userId)
     .single();
   
-  if (error || !data?.keepa_api_key) return null;
-  return decryptApiKey(data.keepa_api_key);
+  if (!error && data?.keepa_api_key) {
+    const decrypted = decryptApiKey(data.keepa_api_key);
+    if (decrypted) return decrypted;
+  }
+  
+  // Fall back to environment variable
+  return process.env.KEEPA_API_KEY || null;
 }
 
 // Parse Keepa price (stored as integer cents * 100, or -1 for unavailable)
