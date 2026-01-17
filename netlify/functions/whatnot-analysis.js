@@ -326,12 +326,12 @@ exports.handler = async (event, context) => {
           asin: item.asin?.toUpperCase(),
           title: item.title || item.description,
           quantity: parseInt(item.quantity) || 1,
-          manifest_price: parseFloat(item.unitRetail) || null,
-          ext_retail: parseFloat(item.extRetail) || null,
+          manifest_price: parseFloat(item.manifest_price || item.unitRetail) || null,
+          ext_retail: parseFloat(item.ext_retail || item.extRetail) || null,
           brand: item.brand,
           upc: item.upc,
           condition: item.condition,
-          lot_id: item.lotId || lotId,
+          lot_id: item.lot_id || item.lotId || lotId,
           status: 'imported'
         })).filter(r => r.asin && /^B[0-9A-Z]{9}$/.test(r.asin));
 
