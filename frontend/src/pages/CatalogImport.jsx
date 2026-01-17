@@ -137,6 +137,13 @@ export default function CatalogImport() {
   // Sync all state
   const [syncingAll, setSyncingAll] = useState(false);
   
+  // Correlations state (Feature: Correlation View & Actions)
+  const [correlationsCache, setCorrelationsCache] = useState({}); // { asin: correlations[] }
+  const [loadingCorrelations, setLoadingCorrelations] = useState(new Set()); // ASINs being fetched
+  const [correlationActions, setCorrelationActions] = useState({}); // { asin: 'accepted'|'declined' }
+  const [actionInProgress, setActionInProgress] = useState(null); // { asin, action: 'accepting'|'declining' }
+  const [marketplaceModal, setMarketplaceModal] = useState(null); // { importItem, correlation }
+  
   // File upload state
   const [parsedData, setParsedData] = useState(null);
   const [parseError, setParseError] = useState(null);
@@ -606,8 +613,9 @@ export default function CatalogImport() {
     }
   };
 
-  // Create task from correlation
-  const handleCreateTask = async (importItem, correlation) => {
+  // Create task from correlation (now with marketplace selection)
+  const handleCreateTask = async (importItem, correlation, marketplace = 'US') => {
+    setActionInProgress({ asin: correlation.asin, action: 'accepting' });
     try {
       const token = await userAPI.getAuthToken();
       const response = await fetch('/.netlify/functions/catalog-import', {
@@ -621,30 +629,163 @@ export default function CatalogImport() {
           import_id: importItem.id,
           source_asin: importItem.asin,
           target_asin: correlation.asin,
-          marketplace: 'US' // Default, could be expanded
+          marketplace
         })
       });
       
       const data = await response.json();
       if (data.success) {
-        alert('Task created successfully! Check the Upload Tasks page.');
+        // Mark as accepted
+        setCorrelationActions(prev => ({
+          ...prev,
+          [correlation.asin]: 'accepted'
+        }));
+        setMarketplaceModal(null);
       } else {
         alert(data.error || 'Failed to create task');
       }
     } catch (err) {
       console.error('Create task error:', err);
       alert('Failed to create task');
+    } finally {
+      setActionInProgress(null);
     }
   };
 
-  // Toggle row expansion
-  const toggleExpanded = (id) => {
+  // Fetch correlations for an ASIN when expanding row
+  const fetchCorrelations = async (asin) => {
+    // Check cache first
+    if (correlationsCache[asin]) {
+      return correlationsCache[asin];
+    }
+    
+    // Mark as loading
+    setLoadingCorrelations(prev => new Set(prev).add(asin));
+    
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch(
+        `/.netlify/functions/catalog-import?action=get_correlations&asin=${encodeURIComponent(asin)}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      const data = await response.json();
+      
+      if (data.success && data.correlations) {
+        // Cache the results
+        setCorrelationsCache(prev => ({
+          ...prev,
+          [asin]: data.correlations
+        }));
+        return data.correlations;
+      } else {
+        console.error('Failed to fetch correlations:', data.error);
+        return [];
+      }
+    } catch (err) {
+      console.error('Fetch correlations error:', err);
+      return [];
+    } finally {
+      setLoadingCorrelations(prev => {
+        const next = new Set(prev);
+        next.delete(asin);
+        return next;
+      });
+    }
+  };
+
+  // Open marketplace selection modal for accepting a correlation
+  const handleAcceptCorrelation = (importItem, correlation) => {
+    setMarketplaceModal({ importItem, correlation });
+  };
+
+  // Decline a correlation
+  const handleDeclineCorrelation = async (importItem, correlation) => {
+    setActionInProgress({ asin: correlation.asin, action: 'declining' });
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/catalog-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'decline_correlation',
+          source_asin: importItem.asin,
+          target_asin: correlation.asin
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        // Mark as declined
+        setCorrelationActions(prev => ({
+          ...prev,
+          [correlation.asin]: 'declined'
+        }));
+      } else {
+        // Still mark as declined locally even if backend fails
+        setCorrelationActions(prev => ({
+          ...prev,
+          [correlation.asin]: 'declined'
+        }));
+      }
+    } catch (err) {
+      console.error('Decline correlation error:', err);
+      // Still hide it locally
+      setCorrelationActions(prev => ({
+        ...prev,
+        [correlation.asin]: 'declined'
+      }));
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Marketplace flag component
+  const MarketplaceFlags = ({ marketplaces }) => {
+    const flags = {
+      US: { emoji: '🇺🇸', label: 'United States' },
+      UK: { emoji: '🇬🇧', label: 'United Kingdom' },
+      DE: { emoji: '🇩🇪', label: 'Germany' },
+      FR: { emoji: '🇫🇷', label: 'France' },
+      IT: { emoji: '🇮🇹', label: 'Italy' },
+      ES: { emoji: '🇪🇸', label: 'Spain' },
+      CA: { emoji: '🇨🇦', label: 'Canada' },
+      JP: { emoji: '🇯🇵', label: 'Japan' }
+    };
+    
+    if (!marketplaces || marketplaces.length === 0) {
+      return null;
+    }
+    
+    return (
+      <div className="flex items-center gap-0.5">
+        {marketplaces.map(mp => {
+          const flag = flags[mp] || { emoji: '🌐', label: mp };
+          return (
+            <span key={mp} title={flag.label} className="text-sm">
+              {flag.emoji}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Toggle row expansion (fetches correlations on expand)
+  const toggleExpanded = (id, asin) => {
     setExpandedRows(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
       } else {
         next.add(id);
+        // Fetch correlations when expanding
+        if (asin && !correlationsCache[asin] && !loadingCorrelations.has(asin)) {
+          fetchCorrelations(asin);
+        }
       }
       return next;
     });
@@ -1023,6 +1164,104 @@ export default function CatalogImport() {
         </div>
       )}
 
+      {/* Marketplace Selection Modal */}
+      {marketplaceModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-theme-surface rounded-xl shadow-2xl max-w-md w-full">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-theme">
+              <h2 className="text-lg font-semibold text-theme-primary flex items-center gap-2">
+                🌍 Select Marketplace
+              </h2>
+              <button
+                onClick={() => setMarketplaceModal(null)}
+                className="p-1 rounded-lg text-theme-tertiary hover:text-theme-primary hover:bg-theme-hover transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-4">
+              <p className="text-sm text-theme-secondary mb-4">
+                Select the marketplace to create a task for:
+              </p>
+              
+              {/* Product Info */}
+              <div className="flex items-center gap-3 p-3 bg-theme-primary rounded-lg mb-4">
+                {marketplaceModal.correlation.image_url ? (
+                  <img 
+                    src={marketplaceModal.correlation.image_url}
+                    alt=""
+                    className="w-12 h-12 object-contain bg-white rounded"
+                  />
+                ) : (
+                  <div className="w-12 h-12 bg-theme-surface rounded flex items-center justify-center">
+                    <span className="text-xl">📦</span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-theme-primary truncate">
+                    {marketplaceModal.correlation.correlated_title || marketplaceModal.correlation.title || 'Unknown'}
+                  </p>
+                  <p className="text-xs font-mono text-accent">{marketplaceModal.correlation.asin}</p>
+                </div>
+              </div>
+              
+              {/* Marketplace Options */}
+              <div className="grid grid-cols-2 gap-2">
+                {(() => {
+                  const allMarketplaces = [
+                    { code: 'US', emoji: '🇺🇸', label: 'United States' },
+                    { code: 'UK', emoji: '🇬🇧', label: 'United Kingdom' },
+                    { code: 'DE', emoji: '🇩🇪', label: 'Germany' },
+                    { code: 'FR', emoji: '🇫🇷', label: 'France' },
+                    { code: 'IT', emoji: '🇮🇹', label: 'Italy' },
+                    { code: 'ES', emoji: '🇪🇸', label: 'Spain' },
+                    { code: 'CA', emoji: '🇨🇦', label: 'Canada' }
+                  ];
+                  
+                  const available = marketplaceModal.correlation.marketplaces || ['US'];
+                  
+                  return allMarketplaces.map(mp => {
+                    const isAvailable = available.includes(mp.code);
+                    return (
+                      <button
+                        key={mp.code}
+                        onClick={() => handleCreateTask(
+                          marketplaceModal.importItem, 
+                          marketplaceModal.correlation, 
+                          mp.code
+                        )}
+                        disabled={!isAvailable || actionInProgress}
+                        className={`p-3 rounded-lg border transition-all flex items-center gap-2 ${
+                          isAvailable
+                            ? 'border-theme hover:border-accent hover:bg-accent/5 cursor-pointer'
+                            : 'border-theme/50 bg-theme-primary/50 opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <span className="text-xl">{mp.emoji}</span>
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-theme-primary">{mp.code}</p>
+                          <p className="text-xs text-theme-secondary">{mp.label}</p>
+                        </div>
+                        {actionInProgress && actionInProgress.asin === marketplaceModal.correlation.asin && (
+                          <Loader className="w-4 h-4 animate-spin ml-auto text-accent" />
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+              
+              <p className="text-xs text-theme-tertiary mt-3 text-center">
+                Only available marketplaces are clickable
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Image Fetch Progress Modal (Feature 3) */}
       {imageFetchProgress && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1285,7 +1524,7 @@ export default function CatalogImport() {
                       {/* Expand toggle */}
                       {correlationCount > 0 && (
                         <button
-                          onClick={() => toggleExpanded(item.id)}
+                          onClick={() => toggleExpanded(item.id, item.asin)}
                           className="p-1 text-theme-tertiary hover:text-theme-primary hover:bg-theme-primary rounded transition-colors"
                         >
                           {isExpanded ? (
@@ -1350,7 +1589,7 @@ export default function CatalogImport() {
                         if (item.status === 'processed' || count > 0) {
                           return (
                             <button
-                              onClick={() => toggleExpanded(item.id)}
+                              onClick={() => toggleExpanded(item.id, item.asin)}
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                                 count > 0 
                                   ? 'bg-accent/10 text-accent hover:bg-accent/20 cursor-pointer' 
@@ -1398,70 +1637,142 @@ export default function CatalogImport() {
                   </div>
 
                   {/* Expanded Correlations */}
-                  {isExpanded && item.correlations && item.correlations.length > 0 && (
+                  {isExpanded && (
                     <div className="px-4 pb-4 bg-theme-primary">
-                      <div className="ml-6 sm:ml-12 border-l-2 border-accent/30 pl-4 space-y-2">
-                        <div className="text-xs font-medium text-theme-secondary py-2">
-                          Related Products ({correlationCount})
+                      <div className="ml-6 sm:ml-12 border-l-2 border-accent/30 pl-4 space-y-3">
+                        <div className="text-xs font-medium text-theme-secondary py-2 flex items-center gap-2">
+                          Related Products
+                          {loadingCorrelations.has(item.asin) && (
+                            <Loader className="w-3 h-3 animate-spin text-accent" />
+                          )}
                         </div>
-                        {item.correlations.map((corr, idx) => (
-                          <div 
-                            key={corr.asin || idx}
-                            className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg border border-theme"
-                          >
-                            {/* Correlation Image */}
-                            {corr.image_url ? (
-                              <img 
-                                src={corr.image_url}
-                                alt={corr.title || corr.asin}
-                                className="w-10 h-10 object-contain bg-white rounded flex-shrink-0"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 bg-theme-primary rounded flex items-center justify-center flex-shrink-0">
-                                <span className="text-lg">📦</span>
-                              </div>
-                            )}
-                            
-                            {/* Correlation Info */}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-theme-primary truncate">
-                                {corr.title || 'Unknown Title'}
-                              </p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="font-mono text-xs text-accent">{corr.asin}</span>
-                                {corr.type && (
-                                  <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                    corr.type === 'variation'
-                                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-                                      : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                  }`}>
-                                    {corr.type}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            
-                            {/* Correlation Actions */}
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              <a
-                                href={`https://www.amazon.com/dp/${corr.asin}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 text-theme-secondary hover:text-accent hover:bg-theme-hover rounded-lg transition-colors"
-                                title="View on Amazon"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                              </a>
-                              <button
-                                onClick={() => handleCreateTask(item, corr)}
-                                className="px-3 py-1.5 text-xs bg-accent/10 text-accent hover:bg-accent/20 rounded-lg transition-colors flex items-center gap-1"
-                              >
-                                <Plus className="w-3 h-3" />
-                                Create Task
-                              </button>
-                            </div>
+                        
+                        {/* Loading state */}
+                        {loadingCorrelations.has(item.asin) && !correlationsCache[item.asin] && (
+                          <div className="flex items-center gap-3 p-4 bg-theme-surface rounded-lg border border-theme">
+                            <Loader className="w-5 h-5 animate-spin text-accent" />
+                            <span className="text-sm text-theme-secondary">Loading correlations...</span>
                           </div>
-                        ))}
+                        )}
+                        
+                        {/* Correlations list - use cache if available, fallback to embedded */}
+                        {(() => {
+                          const correlations = correlationsCache[item.asin] || item.correlations || [];
+                          const visibleCorrelations = correlations.filter(
+                            corr => correlationActions[corr.asin] !== 'declined'
+                          );
+                          
+                          if (visibleCorrelations.length === 0 && !loadingCorrelations.has(item.asin)) {
+                            return (
+                              <div className="p-4 bg-theme-surface rounded-lg border border-theme text-center">
+                                <span className="text-sm text-theme-tertiary">No correlations found</span>
+                              </div>
+                            );
+                          }
+                          
+                          return visibleCorrelations.map((corr, idx) => {
+                            const actionStatus = correlationActions[corr.asin];
+                            const isProcessing = actionInProgress?.asin === corr.asin;
+                            
+                            return (
+                              <div 
+                                key={corr.asin || idx}
+                                className={`p-4 bg-theme-surface rounded-lg border transition-all ${
+                                  actionStatus === 'accepted' 
+                                    ? 'border-green-500/50 bg-green-50/5' 
+                                    : 'border-theme hover:border-accent/30'
+                                }`}
+                              >
+                                <div className="flex items-start gap-4">
+                                  {/* Correlation Image */}
+                                  {corr.image_url ? (
+                                    <img 
+                                      src={corr.image_url}
+                                      alt={corr.correlated_title || corr.title || corr.asin}
+                                      className="w-16 h-16 object-contain bg-white rounded-lg flex-shrink-0 border border-theme"
+                                    />
+                                  ) : (
+                                    <div className="w-16 h-16 bg-theme-primary rounded-lg flex items-center justify-center flex-shrink-0 border border-theme">
+                                      <span className="text-2xl">📦</span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Correlation Info */}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-theme-primary font-medium line-clamp-2 mb-2">
+                                      {corr.correlated_title || corr.title || 'Unknown Title'}
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      {/* ASIN with link */}
+                                      <a
+                                        href={`https://www.amazon.com/dp/${corr.asin}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-mono text-xs text-accent hover:underline flex items-center gap-1"
+                                      >
+                                        {corr.asin}
+                                        <ExternalLink className="w-3 h-3" />
+                                      </a>
+                                      
+                                      {/* Type badge */}
+                                      {corr.type && (
+                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                          corr.type === 'variation'
+                                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+                                            : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                        }`}>
+                                          {corr.type}
+                                        </span>
+                                      )}
+                                      
+                                      {/* Marketplace flags */}
+                                      {corr.marketplaces && corr.marketplaces.length > 0 && (
+                                        <MarketplaceFlags marketplaces={corr.marketplaces} />
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Actions */}
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    {actionStatus === 'accepted' ? (
+                                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                        <CheckCircle className="w-3.5 h-3.5" />
+                                        Accepted
+                                      </span>
+                                    ) : (
+                                      <>
+                                        <button
+                                          onClick={() => handleAcceptCorrelation(item, corr)}
+                                          disabled={isProcessing}
+                                          className="px-3 py-1.5 text-xs bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white rounded-lg transition-colors flex items-center gap-1.5 font-medium"
+                                        >
+                                          {isProcessing && actionInProgress?.action === 'accepting' ? (
+                                            <Loader className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <CheckCircle className="w-3.5 h-3.5" />
+                                          )}
+                                          Accept
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeclineCorrelation(item, corr)}
+                                          disabled={isProcessing}
+                                          className="px-3 py-1.5 text-xs bg-theme-primary hover:bg-red-100 dark:hover:bg-red-900/20 text-theme-secondary hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors flex items-center gap-1.5 border border-theme"
+                                        >
+                                          {isProcessing && actionInProgress?.action === 'declining' ? (
+                                            <Loader className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <X className="w-3.5 h-3.5" />
+                                          )}
+                                          Decline
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
                   )}

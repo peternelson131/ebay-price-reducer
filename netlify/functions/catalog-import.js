@@ -445,22 +445,35 @@ async function handleGet(event, userId, headers) {
     return errorResponse(500, 'Failed to fetch catalog imports', headers);
   }
   
-  // Get correlation counts for the fetched ASINs
+  // Get correlation counts AND full data for the fetched ASINs
   let correlationCounts = {};
+  let correlationData = {};
   if (items && items.length > 0) {
     const asins = items.map(i => i.asin);
     
-    // Query asin_correlations grouped by search_asin
+    // Query asin_correlations with full data
     const { data: correlations } = await getSupabase()
       .from('asin_correlations')
-      .select('search_asin')
+      .select('search_asin, similar_asin, correlated_title, image_url, suggested_type, correlated_amazon_url')
       .eq('user_id', userId)
       .in('search_asin', asins);
     
-    // Count correlations per ASIN
+    // Count and group correlations per ASIN
     if (correlations) {
       for (const corr of correlations) {
         correlationCounts[corr.search_asin] = (correlationCounts[corr.search_asin] || 0) + 1;
+        
+        // Group full correlation data by search_asin
+        if (!correlationData[corr.search_asin]) {
+          correlationData[corr.search_asin] = [];
+        }
+        correlationData[corr.search_asin].push({
+          asin: corr.similar_asin,
+          title: corr.correlated_title,
+          image_url: corr.image_url,
+          type: corr.suggested_type,
+          amazonUrl: corr.correlated_amazon_url
+        });
       }
     }
   }
@@ -484,12 +497,12 @@ async function handleGet(event, userId, headers) {
     counts[item.status] = (counts[item.status] || 0) + 1;
   }
   
-  // Add correlation_count to each item
+  // Add correlation_count and actual correlations array to each item
   const responseItems = items?.map(item => ({
     ...item,
     correlation_count: correlationCounts[item.asin] || 0,
-    // Optionally filter out full correlations to reduce payload
-    correlations: withCorrelations ? item.correlations : (item.correlations ? `[${correlationCounts[item.asin] || 0} items]` : null)
+    // Always return actual correlations array from asin_correlations table
+    correlations: correlationData[item.asin] || []
   }));
   
   return successResponse({
