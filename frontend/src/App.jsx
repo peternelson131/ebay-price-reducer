@@ -144,16 +144,6 @@ export default function App() {
                 Account
               </Link>
               <Link
-                to="/whatnot"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === '/whatnot'
-                    ? 'bg-accent text-white'
-                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                }`}
-              >
-                What Not
-              </Link>
-              <Link
                 to="/api-keys"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   location.pathname === '/api-keys'

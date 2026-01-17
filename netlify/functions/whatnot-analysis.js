@@ -395,7 +395,9 @@ exports.handler = async (event, context) => {
       // ===== ENRICH ACTION =====
       if (action === 'enrich') {
         const { ids, limit: enrichLimit } = body;
-        const batchSize = Math.min(enrichLimit || 10, 100);
+        // Process more items but in smaller Keepa batches
+        const itemLimit = Math.min(enrichLimit || 100, 500);
+        const keepaBatchSize = 100; // Keepa API limit
 
         // Get Keepa API key
         const apiKey = await getKeepaApiKey(user.id);
@@ -410,7 +412,7 @@ exports.handler = async (event, context) => {
         // Get items to enrich
         let query = supabase
           .from('whatnot_analyses')
-          .select('id, asin')
+          .select('id, asin, manifest_price, quantity')
           .eq('user_id', user.id)
           .in('status', ['imported', 'error']);
 
@@ -418,7 +420,7 @@ exports.handler = async (event, context) => {
           query = query.in('id', ids);
         }
 
-        query = query.limit(batchSize);
+        query = query.limit(itemLimit);
 
         const { data: items, error: fetchError } = await query;
 
@@ -429,6 +431,7 @@ exports.handler = async (event, context) => {
             body: JSON.stringify({
               success: true,
               enriched: 0,
+              remaining: 0,
               message: 'No items to enrich'
             })
           };
@@ -441,141 +444,147 @@ exports.handler = async (event, context) => {
           .update({ status: 'enriching' })
           .in('id', itemIds);
 
-        // Batch ASINs for Keepa (up to 100 per request)
-        const asins = [...new Set(items.map(i => i.asin))];
-        const asinString = asins.join(',');
-
-        try {
-          // Call Keepa API
-          const keepaUrl = `https://api.keepa.com/product?key=${apiKey}&domain=1&asin=${asinString}&stats=180&offers=20`;
-          const keepaData = await httpsGet(keepaUrl);
-
-          if (!keepaData.products) {
-            throw new Error('No products returned from Keepa');
-          }
-
-          // Build update map
-          const productMap = {};
-          for (const product of keepaData.products) {
-            const csv = product.csv || [];
-            const stats = product.stats || {};
-
-            // Parse pricing data
-            const amazonPrice = parseKeepaPrice(csv[0]); // Amazon price
-            const buyBoxPrice = parseKeepaPrice(csv[18]); // Buy Box price
-            const salesRank = parseKeepaRank(csv[3]); // Sales rank
-            const salesRank90Avg = stats.avg90 ? stats.avg90[3] : calculateAvgRank90(csv[3]);
-
-            // Count sellers from offers
-            let fbaCount = 0;
-            let fbmCount = 0;
-            if (product.offers) {
-              for (const offer of product.offers) {
-                if (offer.isFBA) fbaCount++;
-                else fbmCount++;
-              }
-            }
-
-            // Get image URL
-            let imageUrl = null;
-            if (product.imagesCSV) {
-              const images = product.imagesCSV.split(',');
-              if (images[0]) {
-                imageUrl = `https://images-na.ssl-images-amazon.com/images/I/${images[0]}`;
-              }
-            }
-
-            // Get category
-            let category = null;
-            if (product.categoryTree && product.categoryTree.length > 0) {
-              category = product.categoryTree.map(c => c.name).join(' > ');
-            }
-
-            productMap[product.asin] = {
-              amazon_price: amazonPrice || buyBoxPrice,
-              buy_box_price: buyBoxPrice,
-              sales_rank: salesRank,
-              sales_rank_90_avg: salesRank90Avg,
-              fba_sellers: fbaCount,
-              fbm_sellers: fbmCount,
-              image_url: imageUrl,
-              category: category,
-              title: product.title || null,
-              status: 'enriched'
-            };
-          }
-
-          // Update each item
-          let enrichedCount = 0;
-          for (const item of items) {
-            const enrichment = productMap[item.asin];
-            if (enrichment) {
-              // Calculate profit and ROI if we have price data
-              const manifestPrice = await supabase
-                .from('whatnot_analyses')
-                .select('manifest_price, quantity')
-                .eq('id', item.id)
-                .single();
-
-              const mp = manifestPrice.data?.manifest_price;
-              const qty = manifestPrice.data?.quantity || 1;
-
-              if (mp && enrichment.amazon_price) {
-                // Estimate profit: (Amazon price * 0.85 - manifest price) * quantity
-                // 0.85 accounts for ~15% fees
-                const profitPerUnit = (enrichment.amazon_price * 0.85) - mp;
-                enrichment.estimated_profit = parseFloat((profitPerUnit * qty).toFixed(2));
-                enrichment.roi_percent = mp > 0 ? parseFloat(((profitPerUnit / mp) * 100).toFixed(2)) : null;
-              }
-
-              await supabase
-                .from('whatnot_analyses')
-                .update(enrichment)
-                .eq('id', item.id);
-              enrichedCount++;
-            } else {
-              // No data found
-              await supabase
-                .from('whatnot_analyses')
-                .update({
-                  status: 'error',
-                  error_message: 'Product not found in Keepa'
-                })
-                .eq('id', item.id);
-            }
-          }
-
-          return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-              success: true,
-              enriched: enrichedCount,
-              tokensUsed: keepaData.tokensConsumed || asins.length,
-              message: `Enriched ${enrichedCount} of ${items.length} items`
-            })
-          };
-        } catch (keepaError) {
-          console.error('Keepa error:', keepaError);
-
-          // Mark items as error
-          await supabase
-            .from('whatnot_analyses')
-            .update({
-              status: 'error',
-              error_message: keepaError.message
-            })
-            .in('id', itemIds);
-
-          return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({
-              success: false,
-              error: `Keepa API error: ${keepaError.message}`
-            })
-          };
+        // Get unique ASINs and batch them
+        const uniqueAsins = [...new Set(items.map(i => i.asin))];
+        const asinBatches = [];
+        for (let i = 0; i < uniqueAsins.length; i += keepaBatchSize) {
+          asinBatches.push(uniqueAsins.slice(i, i + keepaBatchSize));
         }
+
+        console.log(`Processing ${items.length} items with ${uniqueAsins.length} unique ASINs in ${asinBatches.length} batches`);
+
+        // Process all batches and collect results
+        const productMap = {};
+        let totalTokens = 0;
+        let errors = [];
+
+        for (let batchIdx = 0; batchIdx < asinBatches.length; batchIdx++) {
+          const batchAsins = asinBatches[batchIdx];
+          const asinString = batchAsins.join(',');
+
+          try {
+            console.log(`Batch ${batchIdx + 1}/${asinBatches.length}: ${batchAsins.length} ASINs`);
+            const keepaUrl = `https://api.keepa.com/product?key=${apiKey}&domain=1&asin=${asinString}&stats=180&offers=20`;
+            const keepaData = await httpsGet(keepaUrl);
+
+            if (keepaData.tokensConsumed) {
+              totalTokens += keepaData.tokensConsumed;
+            }
+
+            if (keepaData.products) {
+              for (const product of keepaData.products) {
+                const csv = product.csv || [];
+                const stats = product.stats || {};
+
+                // Parse pricing data
+                const amazonPrice = parseKeepaPrice(csv[0]); // Amazon price
+                const buyBoxPrice = parseKeepaPrice(csv[18]); // Buy Box price
+                const salesRank = parseKeepaRank(csv[3]); // Sales rank
+                const salesRank90Avg = stats.avg90 ? stats.avg90[3] : calculateAvgRank90(csv[3]);
+
+                // Count sellers from offers
+                let fbaCount = 0;
+                let fbmCount = 0;
+                if (product.offers) {
+                  for (const offer of product.offers) {
+                    if (offer.isFBA) fbaCount++;
+                    else fbmCount++;
+                  }
+                }
+
+                // Get image URL
+                let imageUrl = null;
+                if (product.imagesCSV) {
+                  const images = product.imagesCSV.split(',');
+                  if (images[0]) {
+                    imageUrl = `https://images-na.ssl-images-amazon.com/images/I/${images[0]}`;
+                  }
+                }
+
+                // Get category
+                let category = null;
+                if (product.categoryTree && product.categoryTree.length > 0) {
+                  category = product.categoryTree.map(c => c.name).join(' > ');
+                }
+
+                productMap[product.asin] = {
+                  amazon_price: amazonPrice || buyBoxPrice,
+                  buy_box_price: buyBoxPrice,
+                  sales_rank: salesRank,
+                  sales_rank_90_avg: salesRank90Avg,
+                  fba_sellers: fbaCount,
+                  fbm_sellers: fbmCount,
+                  image_url: imageUrl,
+                  category: category,
+                  title: product.title || null,
+                  status: 'enriched'
+                };
+              }
+            }
+          } catch (batchError) {
+            console.error(`Batch ${batchIdx + 1} error:`, batchError.message);
+            errors.push(`Batch ${batchIdx + 1}: ${batchError.message}`);
+            // Continue with other batches
+          }
+        }
+
+        // Update each item with enrichment data
+        let enrichedCount = 0;
+        let errorCount = 0;
+
+        for (const item of items) {
+          const enrichment = productMap[item.asin];
+          if (enrichment) {
+            // Calculate profit and ROI if we have price data
+            const mp = item.manifest_price;
+            const qty = item.quantity || 1;
+
+            if (mp && enrichment.amazon_price) {
+              // Estimate profit: (Amazon price * 0.85 - manifest price) * quantity
+              // 0.85 accounts for ~15% fees
+              const profitPerUnit = (enrichment.amazon_price * 0.85) - mp;
+              enrichment.estimated_profit = parseFloat((profitPerUnit * qty).toFixed(2));
+              enrichment.roi_percent = mp > 0 ? parseFloat(((profitPerUnit / mp) * 100).toFixed(2)) : null;
+            }
+
+            await supabase
+              .from('whatnot_analyses')
+              .update(enrichment)
+              .eq('id', item.id);
+            enrichedCount++;
+          } else {
+            // No data found
+            await supabase
+              .from('whatnot_analyses')
+              .update({
+                status: 'error',
+                error_message: 'Product not found in Keepa'
+              })
+              .eq('id', item.id);
+            errorCount++;
+          }
+        }
+
+        // Check if there are more items to process
+        const { count: remainingCount } = await supabase
+          .from('whatnot_analyses')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .in('status', ['imported', 'error']);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            enriched: enrichedCount,
+            errors: errorCount,
+            tokensUsed: totalTokens,
+            remaining: remainingCount || 0,
+            batchErrors: errors.length > 0 ? errors : undefined,
+            message: `Enriched ${enrichedCount} items${errorCount > 0 ? `, ${errorCount} not found` : ''}${remainingCount > 0 ? `. ${remainingCount} remaining.` : ''}`
+          })
+        };
       }
 
       // ===== DELETE ACTION =====
