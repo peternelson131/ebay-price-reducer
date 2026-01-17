@@ -25,7 +25,8 @@ import {
   Search,
   Plus,
   CheckSquare,
-  Square
+  Square,
+  Download
 } from 'lucide-react';
 
 // Status configuration
@@ -121,6 +122,17 @@ export default function CatalogImport() {
   
   // Image fetch state
   const [fetchingImages, setFetchingImages] = useState(false);
+  const [imageFetchProgress, setImageFetchProgress] = useState(null); // { message, inProgress }
+  
+  // Auto-fetch images on import
+  const [autoFetchImages, setAutoFetchImages] = useState(true);
+  
+  // Export state
+  const [exporting, setExporting] = useState(false);
+  
+  // Re-import merge mode
+  const [mergeMode, setMergeMode] = useState('skip'); // 'skip' or 'merge'
+  const [duplicateCheck, setDuplicateCheck] = useState(null); // { newCount, existingCount, existingAsins }
   
   // Sync all state
   const [syncingAll, setSyncingAll] = useState(false);
@@ -241,6 +253,41 @@ export default function CatalogImport() {
     }
   }, [imports]);
 
+  // Check for duplicate ASINs in existing catalog (Feature 10)
+  const checkForDuplicates = async (asins) => {
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/catalog-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'check_duplicates',
+          asins
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        const existingAsins = data.existingAsins || [];
+        const newCount = asins.length - existingAsins.length;
+        setDuplicateCheck({
+          newCount,
+          existingCount: existingAsins.length,
+          existingAsins
+        });
+        // Reset merge mode based on duplicates found
+        setMergeMode(existingAsins.length > 0 ? 'skip' : 'skip');
+      }
+    } catch (err) {
+      console.error('Duplicate check error:', err);
+      // Don't block import if check fails
+      setDuplicateCheck(null);
+    }
+  };
+  
   // File drop handler
   const onDrop = useCallback((acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -334,6 +381,9 @@ export default function CatalogImport() {
         });
         setShowPreview(true);
         
+        // Check for existing ASINs (Feature 10: Re-import merge)
+        checkForDuplicates(uniqueAsins.map(a => a.asin));
+        
       } catch (err) {
         console.error('Parse error:', err);
         setParseError('Failed to parse file. Please ensure it\'s a valid Excel or CSV file.');
@@ -369,6 +419,7 @@ export default function CatalogImport() {
         },
         body: JSON.stringify({
           action: 'import',
+          mode: mergeMode, // Feature 10: pass merge mode ('skip' or 'merge')
           asins: parsedData.validAsins.map(a => ({
             asin: a.asin,
             title: a.title,
@@ -384,7 +435,13 @@ export default function CatalogImport() {
       if (data.success) {
         setShowPreview(false);
         setParsedData(null);
+        setDuplicateCheck(null);
         await loadImports();
+        
+        // Feature 8: Auto-fetch images after import
+        if (autoFetchImages) {
+          await handleFetchImages(true);
+        }
       } else {
         setParseError(data.error || 'Import failed');
       }
@@ -456,8 +513,11 @@ export default function CatalogImport() {
   };
 
   // Fetch images from Keepa for items missing images
-  const handleFetchImages = async () => {
+  const handleFetchImages = async (showModal = true) => {
     setFetchingImages(true);
+    if (showModal) {
+      setImageFetchProgress({ message: 'Fetching images from Keepa... This may take a minute for large catalogs', inProgress: true });
+    }
     try {
       const token = await userAPI.getAuthToken();
       const response = await fetch('/.netlify/functions/catalog-import', {
@@ -474,17 +534,75 @@ export default function CatalogImport() {
       
       const data = await response.json();
       if (data.success) {
-        alert(`✅ ${data.message}`);
+        // Backend returns: { updated, total, noImageAvailable, batches, tokensUsed }
+        const resultMessage = `Updated ${data.updated || 0} images (${data.noImageAvailable || 0} had no image available)`;
+        setImageFetchProgress({ 
+          message: resultMessage, 
+          inProgress: false,
+          updated: data.updated || 0,
+          noImageAvailable: data.noImageAvailable || 0,
+          batches: data.batches || 0,
+          tokensUsed: data.tokensUsed || 0
+        });
         // Reload to show updated images
         await loadImports(currentPage);
       } else {
-        alert(data.error || 'Failed to fetch images');
+        setImageFetchProgress({ 
+          message: data.error || 'Failed to fetch images', 
+          inProgress: false, 
+          error: true 
+        });
       }
     } catch (err) {
       console.error('Fetch images error:', err);
-      alert('Failed to fetch images from Keepa');
+      setImageFetchProgress({ 
+        message: 'Failed to fetch images from Keepa', 
+        inProgress: false, 
+        error: true 
+      });
     } finally {
       setFetchingImages(false);
+    }
+  };
+
+  // Export catalog as CSV (Feature 9)
+  const handleExportCSV = async () => {
+    setExporting(true);
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/catalog-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'export'
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.csv) {
+        // Create download
+        const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const date = new Date().toISOString().split('T')[0];
+        link.href = url;
+        link.download = `catalog-export-${date}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        alert(data.error || 'Failed to export catalog');
+      }
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Failed to export catalog');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -714,6 +832,8 @@ export default function CatalogImport() {
                   setShowUploadModal(false);
                   setParsedData(null);
                   setParseError(null);
+                  setDuplicateCheck(null);
+                  setMergeMode('skip');
                 }}
                 className="p-1 rounded-lg text-theme-tertiary hover:text-theme-primary hover:bg-theme-hover transition-colors"
               >
@@ -792,6 +912,39 @@ export default function CatalogImport() {
                     </div>
                   </div>
                   
+                  {/* Feature 10: Re-import Merge UI */}
+                  {duplicateCheck && duplicateCheck.existingCount > 0 && (
+                    <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-lg">
+                      <p className="text-sm text-theme-primary mb-2 font-medium">
+                        📋 {duplicateCheck.newCount} new ASINs, {duplicateCheck.existingCount} already exist
+                      </p>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="mergeMode"
+                            value="skip"
+                            checked={mergeMode === 'skip'}
+                            onChange={() => setMergeMode('skip')}
+                            className="w-4 h-4 text-accent focus:ring-accent"
+                          />
+                          <span className="text-sm text-theme-secondary">Skip existing (import only new)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="mergeMode"
+                            value="merge"
+                            checked={mergeMode === 'merge'}
+                            onChange={() => setMergeMode('merge')}
+                            className="w-4 h-4 text-accent focus:ring-accent"
+                          />
+                          <span className="text-sm text-theme-secondary">Update existing (merge data)</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Sample ASINs */}
                   <div className="mb-4">
                     <p className="text-sm text-theme-secondary mb-2">Sample ASINs to import:</p>
@@ -809,6 +962,19 @@ export default function CatalogImport() {
                     </div>
                   </div>
                   
+                  {/* Feature 8: Auto-fetch Images Checkbox */}
+                  <div className="mb-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoFetchImages}
+                        onChange={(e) => setAutoFetchImages(e.target.checked)}
+                        className="w-4 h-4 text-orange-500 focus:ring-orange-500 rounded"
+                      />
+                      <span className="text-sm text-theme-secondary">Fetch images from Keepa after import</span>
+                    </label>
+                  </div>
+                  
                   {/* Import Button */}
                   <button
                     onClick={async () => {
@@ -817,7 +983,7 @@ export default function CatalogImport() {
                         setShowUploadModal(false);
                       }
                     }}
-                    disabled={importing}
+                    disabled={importing || fetchingImages}
                     className="w-full py-3 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                   >
                     {importing ? (
@@ -825,10 +991,16 @@ export default function CatalogImport() {
                         <Loader className="w-4 h-4 animate-spin" />
                         Importing...
                       </>
+                    ) : fetchingImages ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Fetching images...
+                      </>
                     ) : (
                       <>
                         <Plus className="w-4 h-4" />
                         Import {parsedData.validAsins.length} ASINs
+                        {autoFetchImages && ' + Fetch Images'}
                       </>
                     )}
                   </button>
@@ -851,6 +1023,46 @@ export default function CatalogImport() {
         </div>
       )}
 
+      {/* Image Fetch Progress Modal (Feature 3) */}
+      {imageFetchProgress && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-theme-surface rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6 text-center">
+              {imageFetchProgress.inProgress ? (
+                <>
+                  <Loader className="w-12 h-12 animate-spin mx-auto mb-4 text-orange-500" />
+                  <h3 className="text-lg font-semibold text-theme-primary mb-2">Fetching Images</h3>
+                  <p className="text-theme-secondary">{imageFetchProgress.message}</p>
+                </>
+              ) : (
+                <>
+                  {imageFetchProgress.error ? (
+                    <AlertCircle className="w-12 h-12 mx-auto mb-4 text-error" />
+                  ) : (
+                    <CheckCircle className="w-12 h-12 mx-auto mb-4 text-success" />
+                  )}
+                  <h3 className="text-lg font-semibold text-theme-primary mb-2">
+                    {imageFetchProgress.error ? 'Fetch Failed' : 'Fetch Complete'}
+                  </h3>
+                  <p className="text-theme-secondary mb-4">{imageFetchProgress.message}</p>
+                  {!imageFetchProgress.error && imageFetchProgress.batches > 0 && (
+                    <div className="text-sm text-theme-tertiary">
+                      Processed in {imageFetchProgress.batches} batch{imageFetchProgress.batches !== 1 ? 'es' : ''} • {imageFetchProgress.tokensUsed} Keepa tokens used
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setImageFetchProgress(null)}
+                    className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-colors"
+                  >
+                    Close
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="mb-6 flex flex-wrap gap-3">
         <button
@@ -862,7 +1074,7 @@ export default function CatalogImport() {
         </button>
         
         <button
-          onClick={handleFetchImages}
+          onClick={() => handleFetchImages(true)}
           disabled={fetchingImages}
           className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
         >
@@ -872,6 +1084,20 @@ export default function CatalogImport() {
             <RefreshCw className="w-4 h-4" />
           )}
           {fetchingImages ? 'Fetching...' : 'Fetch Images from Keepa'}
+        </button>
+        
+        {/* Export CSV button (Feature 9) */}
+        <button
+          onClick={handleExportCSV}
+          disabled={exporting || totalCount === 0}
+          className="px-4 py-2.5 bg-theme-surface border border-theme hover:bg-theme-hover disabled:opacity-50 text-theme-primary font-medium rounded-lg transition-colors flex items-center gap-2"
+        >
+          {exporting ? (
+            <Loader className="w-4 h-4 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+          {exporting ? 'Exporting...' : 'Export CSV'}
         </button>
         
         {/* Sync All button */}
@@ -1116,29 +1342,36 @@ export default function CatalogImport() {
                       )}
                     </div>
 
-                    {/* Correlations Count */}
+                    {/* Correlations Count Badge (Feature 7) */}
                     <div className="col-span-2">
-                      {item.status === 'processed' ? (
-                        <button
-                          onClick={() => toggleExpanded(item.id)}
-                          className={`text-sm font-medium ${
-                            correlationCount > 0 
-                              ? 'text-accent hover:underline cursor-pointer' 
-                              : 'text-theme-tertiary'
-                          }`}
-                        >
-                          {correlationCount > 0 ? (
-                            <span className="flex items-center gap-1">
-                              {correlationCount} found
-                              {!isExpanded && <ChevronRight className="w-4 h-4" />}
-                            </span>
-                          ) : (
-                            'None found'
-                          )}
-                        </button>
-                      ) : (
-                        <span className="text-sm text-theme-tertiary">—</span>
-                      )}
+                      {/* Use correlation_count from backend if available, else count array */}
+                      {(() => {
+                        const count = item.correlation_count ?? correlationCount;
+                        if (item.status === 'processed' || count > 0) {
+                          return (
+                            <button
+                              onClick={() => toggleExpanded(item.id)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                count > 0 
+                                  ? 'bg-accent/10 text-accent hover:bg-accent/20 cursor-pointer' 
+                                  : 'bg-theme-primary text-theme-tertiary'
+                              }`}
+                            >
+                              {count > 0 ? (
+                                <>
+                                  <span className="font-bold">{count}</span>
+                                  <span>correlation{count !== 1 ? 's' : ''}</span>
+                                  {!isExpanded && <ChevronRight className="w-3 h-3" />}
+                                  {isExpanded && <ChevronDown className="w-3 h-3" />}
+                                </>
+                              ) : (
+                                <span>—</span>
+                              )}
+                            </button>
+                          );
+                        }
+                        return <span className="text-sm text-theme-tertiary">—</span>;
+                      })()}
                     </div>
 
                     {/* Actions */}
