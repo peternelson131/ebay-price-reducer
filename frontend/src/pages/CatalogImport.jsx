@@ -657,6 +657,7 @@ export default function CatalogImport() {
   // Status counts for filter badges
   const statusCounts = {
     all: imports.length,
+    imported: imports.filter(i => i.status === 'imported').length,
     pending: imports.filter(i => i.status === 'pending').length,
     processing: imports.filter(i => i.status === 'processing').length,
     processed: imports.filter(i => i.status === 'processed').length,
@@ -949,7 +950,7 @@ export default function CatalogImport() {
 
           {/* Status Filter */}
           <div className="flex gap-2 flex-wrap">
-            {['all', 'pending', 'processing', 'processed', 'error'].map((status) => (
+            {['all', 'imported', 'pending', 'processing', 'processed', 'error'].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
