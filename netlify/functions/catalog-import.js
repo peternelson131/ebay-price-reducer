@@ -264,6 +264,26 @@ async function handleGet(event, userId, headers) {
     return errorResponse(500, 'Failed to fetch catalog imports', headers);
   }
   
+  // Get correlation counts for the fetched ASINs
+  let correlationCounts = {};
+  if (items && items.length > 0) {
+    const asins = items.map(i => i.asin);
+    
+    // Query asin_correlations grouped by search_asin
+    const { data: correlations } = await getSupabase()
+      .from('asin_correlations')
+      .select('search_asin')
+      .eq('user_id', userId)
+      .in('search_asin', asins);
+    
+    // Count correlations per ASIN
+    if (correlations) {
+      for (const corr of correlations) {
+        correlationCounts[corr.search_asin] = (correlationCounts[corr.search_asin] || 0) + 1;
+      }
+    }
+  }
+  
   // Get status counts
   const { data: statusCounts } = await getSupabase()
     .from('catalog_imports')
@@ -283,10 +303,12 @@ async function handleGet(event, userId, headers) {
     counts[item.status] = (counts[item.status] || 0) + 1;
   }
   
-  // Optionally filter out correlations to reduce payload
-  const responseItems = withCorrelations ? items : items?.map(item => ({
+  // Add correlation_count to each item
+  const responseItems = items?.map(item => ({
     ...item,
-    correlations: item.correlations ? `[${item.correlation_count} items]` : null
+    correlation_count: correlationCounts[item.asin] || 0,
+    // Optionally filter out full correlations to reduce payload
+    correlations: withCorrelations ? item.correlations : (item.correlations ? `[${correlationCounts[item.asin] || 0} items]` : null)
   }));
   
   return successResponse({
