@@ -624,7 +624,13 @@ export default function CatalogImport() {
     }
   };
 
-  // Calculate syncable items for UI
+  // Filter imports (search is now server-side, only filter by status client-side)
+  const filteredImports = imports.filter(item => {
+    if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+    return true;
+  });
+
+  // Calculate syncable items for UI (must come after filteredImports)
   const syncableItems = filteredImports.filter(item => STATUS_CONFIG[item.status]?.canSync);
   const allSyncableSelected = syncableItems.length > 0 && 
     syncableItems.every(item => selectedIds.has(item.id));
@@ -647,12 +653,6 @@ export default function CatalogImport() {
     { value: 'title:asc', label: 'Title (A-Z)' },
     { value: 'asin:asc', label: 'ASIN' }
   ];
-
-  // Filter imports (search is now server-side, only filter by status client-side)
-  const filteredImports = imports.filter(item => {
-    if (statusFilter !== 'all' && item.status !== statusFilter) return false;
-    return true;
-  });
 
   // Status counts for filter badges
   const statusCounts = {
