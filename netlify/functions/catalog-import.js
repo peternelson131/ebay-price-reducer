@@ -116,10 +116,10 @@ function extractCorrelations(product, searchAsin) {
 }
 
 /**
- * Process a single catalog import item
+ * Process a single catalog import item using the REAL asin-correlation Supabase function
  */
-async function processImportItem(item, keepaKey) {
-  console.log(`🔄 Processing ASIN: ${item.asin}`);
+async function processImportItem(item, userId) {
+  console.log(`🔄 Processing ASIN: ${item.asin} via Supabase edge function`);
   
   try {
     // Mark as processing
@@ -128,49 +128,46 @@ async function processImportItem(item, keepaKey) {
       .update({ status: 'processing' })
       .eq('id', item.id);
     
-    // Lookup product in Keepa
-    const keepaUrl = `https://api.keepa.com/product?key=${keepaKey}&domain=1&asin=${item.asin}`;
-    const keepaData = await keepaFetch(keepaUrl);
+    // Call the REAL asin-correlation Supabase edge function
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    if (keepaData.error) {
-      throw new Error(`Keepa error: ${keepaData.error.message || JSON.stringify(keepaData.error)}`);
+    const correlationUrl = `${supabaseUrl}/functions/v1/asin-correlation`;
+    console.log(`📡 Calling: ${correlationUrl}`);
+    
+    const response = await fetch(correlationUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`
+      },
+      body: JSON.stringify({
+        asin: item.asin,
+        userId: userId,
+        action: 'sync'
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok || result.error) {
+      throw new Error(result.error || result.message || `HTTP ${response.status}`);
     }
     
-    const products = keepaData.products || [];
+    console.log(`✅ Edge function returned: ${result.count} correlations (${result.stats?.variations || 0} variations, ${result.stats?.similar || 0} similar)`);
     
-    if (!products || products.length === 0) {
-      console.log(`⚠️ No Keepa data for ${item.asin}`);
-      await getSupabase()
-        .from('catalog_imports')
-        .update({
-          status: 'processed',
-          correlation_count: 0,
-          correlations: [],
-          processed_at: new Date().toISOString()
-        })
-        .eq('id', item.id);
-      return { asin: item.asin, correlations: 0 };
-    }
-    
-    const product = products[0];
-    
-    // Extract correlations
-    const correlations = extractCorrelations(product, item.asin);
-    console.log(`📊 Found ${correlations.length} correlations for ${item.asin}`);
-    
-    // Update database
+    // Update catalog_imports with result
     await getSupabase()
       .from('catalog_imports')
       .update({
         status: 'processed',
-        correlation_count: correlations.length,
-        correlations: correlations,
+        correlation_count: result.count || 0,
         processed_at: new Date().toISOString()
       })
       .eq('id', item.id);
     
-    console.log(`✅ Processed ${item.asin}: ${correlations.length} correlations`);
-    return { asin: item.asin, correlations: correlations.length };
+    console.log(`✅ Processed ${item.asin}: ${result.count} correlations`);
+    return { asin: item.asin, correlations: result.count || 0 };
     
   } catch (error) {
     console.error(`❌ Error processing ${item.asin}:`, error.message);
@@ -190,11 +187,12 @@ async function processImportItem(item, keepaKey) {
 
 /**
  * Process pending items for a user (called inline during sync)
+ * Calls the REAL asin-correlation Supabase edge function for each item
  */
-async function processUserPendingItems(userId, limit = 15) {
-  const keepaKey = process.env.KEEPA_API_KEY;
-  if (!keepaKey) {
-    console.error('⚠️ No KEEPA_API_KEY configured');
+async function processUserPendingItems(userId, limit = 10) {
+  // Check required env vars
+  if (!process.env.SUPABASE_URL) {
+    console.error('⚠️ No SUPABASE_URL configured');
     return { processed: 0, errors: 0, remaining: 0 };
   }
   
@@ -212,14 +210,14 @@ async function processUserPendingItems(userId, limit = 15) {
     return { processed: 0, errors: 0, remaining: 0 };
   }
   
-  console.log(`📋 Processing ${pendingItems.length} pending items inline`);
+  console.log(`📋 Processing ${pendingItems.length} pending items via asin-correlation edge function`);
   
   const results = [];
   for (const item of pendingItems) {
-    const result = await processImportItem(item, keepaKey);
+    const result = await processImportItem(item, userId);
     results.push(result);
-    // Small delay to avoid rate limits
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Delay between items to avoid rate limits (edge function calls Keepa + Claude)
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
   
   const processed = results.filter(r => !r.error).length;
