@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI, supabase } from '../lib/supabase'
-import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X } from 'lucide-react'
+import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle } from 'lucide-react'
 
 export default function Account() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -35,12 +35,12 @@ export default function Account() {
   )
 
   // Admin feedback query - only fetch if user is admin
-  const { data: allFeedback, isLoading: isLoadingFeedback, error: feedbackError } = useQuery(
+  const { data: allFeedback, isLoading: isLoadingFeedback, error: feedbackError, refetch: refetchFeedback } = useQuery(
     ['allFeedback'],
     async () => {
       const { data, error } = await supabase
         .from('feedback')
-        .select('id, category, description, screenshot_url, user_id, created_at')
+        .select('id, category, description, screenshot_url, user_id, created_at, status, processed')
         .order('created_at', { ascending: false })
       if (error) throw error
       
@@ -181,6 +181,48 @@ export default function Account() {
     } catch (error) {
       console.error('Failed to delete feedback:', error)
       alert('Failed to delete feedback. Please try again.')
+    }
+  }
+
+  const handleApproveFeedback = async (feedbackId) => {
+    try {
+      const { error } = await supabase
+        .from('feedback')
+        .update({ status: 'approved', processed: false })
+        .eq('id', feedbackId)
+      if (error) throw error
+      queryClient.invalidateQueries(['allFeedback'])
+    } catch (error) {
+      console.error('Failed to approve feedback:', error)
+      alert('Failed to approve feedback. Please try again.')
+    }
+  }
+
+  const handleDeclineFeedback = async (feedbackId) => {
+    try {
+      const { error } = await supabase
+        .from('feedback')
+        .update({ status: 'declined', processed: false })
+        .eq('id', feedbackId)
+      if (error) throw error
+      queryClient.invalidateQueries(['allFeedback'])
+    } catch (error) {
+      console.error('Failed to decline feedback:', error)
+      alert('Failed to decline feedback. Please try again.')
+    }
+  }
+
+  const handleMarkProcessed = async (feedbackId) => {
+    try {
+      const { error } = await supabase
+        .from('feedback')
+        .update({ processed: true })
+        .eq('id', feedbackId)
+      if (error) throw error
+      queryClient.invalidateQueries(['allFeedback'])
+    } catch (error) {
+      console.error('Failed to mark as processed:', error)
+      alert('Failed to mark as processed. Please try again.')
     }
   }
 
@@ -683,6 +725,9 @@ export default function Account() {
                     <thead className="bg-gray-100 dark:bg-gray-700">
                       <tr>
                         <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">
+                          Status
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">
                           Category
                         </th>
                         <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">
@@ -694,10 +739,7 @@ export default function Account() {
                         <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">
                           Date
                         </th>
-                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">
-                          Screenshot
-                        </th>
-                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4 w-20">
+                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4 w-32">
                           Actions
                         </th>
                       </tr>
@@ -706,9 +748,22 @@ export default function Account() {
                       {allFeedback.map(item => (
                         <tr 
                           key={item.id} 
-                          className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                          className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
+                            item.status === 'approved' ? 'bg-green-50/50 dark:bg-green-900/10' : ''
+                          }`}
                           onClick={() => setSelectedFeedback(item)}
                         >
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              item.status === 'approved' 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                : item.status === 'declined'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            }`}>
+                              {item.status || 'Pending'}
+                            </span>
+                          </td>
                           <td className="py-3 px-4">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               item.category === 'bug' 
@@ -729,21 +784,43 @@ export default function Account() {
                           <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">
                             {new Date(item.created_at).toLocaleDateString()}
                           </td>
-                          <td className="py-3 px-4">
-                            {item.screenshot_url ? (
-                              <span className="text-green-600 text-xs">✓</span>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </td>
                           <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
-                            <button
-                              onClick={() => handleDeleteFeedback(item.id)}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400"
-                              title="Delete feedback"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {(!item.status || item.status === 'pending') && (
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => handleApproveFeedback(item.id)}
+                                  className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400"
+                                  title="Approve"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeclineFeedback(item.id)}
+                                  className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400"
+                                  title="Decline"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                            {item.status === 'approved' && (
+                              <button
+                                onClick={() => handleMarkProcessed(item.id)}
+                                className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400"
+                                title="Mark as Processed"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                            )}
+                            {item.status === 'declined' && (
+                              <button
+                                onClick={() => handleDeleteFeedback(item.id)}
+                                className="p-1.5 bg-gray-100 text-gray-500 rounded hover:bg-gray-200"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
