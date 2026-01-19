@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Search, ChevronLeft, ChevronRight, Menu, ClipboardList, BookOpen, Upload, Package } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Menu, ClipboardList, BookOpen, Upload, Package, ShoppingBag } from 'lucide-react';
 import { userAPI } from '../lib/supabase';
 
 // Lazy load the content components
@@ -9,9 +9,17 @@ const InfluencerTaskList = lazy(() => import('./InfluencerTaskList'));
 const AsinCatalog = lazy(() => import('./AsinCatalog'));
 const CatalogImport = lazy(() => import('./CatalogImport'));
 const WhatNotAnalysis = lazy(() => import('./WhatNotAnalysis'));
+const ProductCRM = lazy(() => import('./ProductCRM'));
 
-// Menu item configuration
+// Menu item configuration - Product CRM at top
 const menuItems = [
+  {
+    id: 'product-crm',
+    label: 'Product CRM',
+    icon: ShoppingBag,
+    component: ProductCRM,
+    badge: null
+  },
   {
     id: 'asin-correlation',
     label: 'ASIN Correlation Finder',
@@ -57,11 +65,11 @@ const menuItems = [
   }
 ];
 
-// Get initial tab from URL hash or default
+// Get initial tab from URL hash or default to Product CRM
 const getTabFromHash = () => {
   const hash = window.location.hash.replace('#', '');
   const validTabs = menuItems.map(m => m.id);
-  return validTabs.includes(hash) ? hash : 'asin-correlation';
+  return validTabs.includes(hash) ? hash : 'product-crm';
 };
 
 export default function InfluencerCentral() {
