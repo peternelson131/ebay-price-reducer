@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI, supabase } from '../lib/supabase'
-import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2 } from 'lucide-react'
+import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X } from 'lucide-react'
 
 export default function Account() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -23,6 +23,7 @@ export default function Account() {
   })
   const [feedbackStatus, setFeedbackStatus] = useState({ type: '', message: '' })
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
+  const [selectedFeedback, setSelectedFeedback] = useState(null)
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading } = useQuery(
@@ -684,7 +685,11 @@ export default function Account() {
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                       {allFeedback.map(item => (
-                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <tr 
+                          key={item.id} 
+                          className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                          onClick={() => setSelectedFeedback(item)}
+                        >
                           <td className="py-3 px-4">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               item.category === 'bug' 
@@ -707,17 +712,12 @@ export default function Account() {
                           </td>
                           <td className="py-3 px-4">
                             {item.screenshot_url ? (
-                              <button
-                                onClick={() => window.open(item.screenshot_url, '_blank')}
-                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
-                              >
-                                <Image className="w-5 h-5" />
-                              </button>
+                              <span className="text-green-600 text-xs">✓</span>
                             ) : (
                               <span className="text-gray-400">-</span>
                             )}
                           </td>
-                          <td className="py-3 px-4">
+                          <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
                             <button
                               onClick={() => handleDeleteFeedback(item.id)}
                               className="text-red-600 hover:text-red-800 dark:text-red-400"
@@ -731,6 +731,109 @@ export default function Account() {
                     </tbody>
                   </table>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Feedback Detail Side Panel */}
+          {selectedFeedback && (
+            <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-gray-800 shadow-xl z-50 flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Feedback Details
+                </h3>
+                <button
+                  onClick={() => setSelectedFeedback(null)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Category */}
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Category</label>
+                  <div className="mt-1">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedFeedback.category === 'bug' 
+                        ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                        : selectedFeedback.category === 'feature_request'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    }`}>
+                      {selectedFeedback.category === 'feature_request' ? 'Feature Request' : selectedFeedback.category}
+                    </span>
+                  </div>
+                </div>
+
+                {/* User */}
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Submitted By</label>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-white">
+                    {selectedFeedback.user_email || 'Unknown User'}
+                  </p>
+                </div>
+
+                {/* Date */}
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date Submitted</label>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-white">
+                    {new Date(selectedFeedback.created_at).toLocaleString()}
+                  </p>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Description</label>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
+                    {selectedFeedback.description}
+                  </p>
+                </div>
+
+                {/* Screenshot */}
+                {selectedFeedback.screenshot_url && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Screenshot</label>
+                    <div className="mt-2">
+                      <img
+                        src={selectedFeedback.screenshot_url}
+                        alt="Feedback screenshot"
+                        className="w-full rounded-lg border border-gray-200 dark:border-gray-700"
+                      />
+                      <a
+                        href={selectedFeedback.screenshot_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                      >
+                        <Image className="w-4 h-4" />
+                        Open full size
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+                <button
+                  onClick={() => {
+                    handleDeleteFeedback(selectedFeedback.id)
+                    setSelectedFeedback(null)
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => setSelectedFeedback(null)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Close
+                </button>
               </div>
             </div>
           )}
