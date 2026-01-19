@@ -242,6 +242,24 @@ export default function Account() {
                 <span className="hidden md:inline">{tab.name}</span>
               </button>
             ))}
+            
+            {/* Admin Tab - only show if user is admin */}
+            {profile?.is_admin && (
+              <button
+                onClick={() => {
+                  setActiveTab('admin')
+                  setIsEditingPreferences(false)
+                }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'admin'
+                    ? 'bg-accent text-white'
+                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                }`}
+              >
+                <Shield className="w-5 h-5" />
+                <span className="hidden md:inline">Admin</span>
+              </button>
+            )}
           </nav>
         </div>
 
@@ -562,6 +580,107 @@ export default function Account() {
                   {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
                 </button>
               </form>
+            </div>
+          )}
+
+          {/* Admin Panel - Only visible to admin users */}
+          {activeTab === 'admin' && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Admin Feedback Review
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  View and manage all feedback submitted by users.
+                </p>
+              </div>
+
+              {/* Feedback Table */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                {isLoadingFeedback ? (
+                  <div className="p-8 text-center text-gray-500">
+                    <Loader className="w-8 h-8 animate-spin mx-auto mb-2" />
+                    Loading feedback...
+                  </div>
+                ) : allFeedback.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500">
+                    No feedback submissions yet.
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead className="bg-gray-100 dark:bg-gray-700">
+                      <tr>
+                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">
+                          Category
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">
+                          Description
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">
+                          User
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">
+                          Date
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">
+                          Screenshot
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4 w-20">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {allFeedback.map(item => (
+                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              item.category === 'bug' 
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                : item.category === 'feature_request'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                            }`}>
+                              {item.category === 'feature_request' ? 'Feature' : item.category}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100 max-w-xs truncate">
+                            {item.description}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100">
+                            {item.user_email || 'Unknown'}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="py-3 px-4">
+                            {item.screenshot_url ? (
+                              <button
+                                onClick={() => window.open(item.screenshot_url, '_blank')}
+                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                              >
+                                <Image className="w-5 h-5" />
+                              </button>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <button
+                              onClick={() => handleDeleteFeedback(item.id)}
+                              className="text-red-600 hover:text-red-800 dark:text-red-400"
+                              title="Delete feedback"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -648,6 +648,7 @@ const localStorageUserAPI = {
       id: user.id || 'local-user-1',
       email: user.email || 'user@example.com',
       name: user.name || user.username || 'User',
+      is_admin: user.is_admin || false,
       default_reduction_strategy: 'fixed_percentage',
       default_reduction_percentage: 5,
       default_reduction_interval: 7,
@@ -687,6 +688,7 @@ const mockUserAPI = {
       id: mockUser.id,
       email: mockUser.email,
       name: mockUser.name,
+      is_admin: mockUser.is_admin || false,
       default_reduction_strategy: 'fixed_percentage',
       default_reduction_percentage: 5,
       default_reduction_interval: 7,
@@ -722,7 +724,7 @@ const realUserAPI = realSupabaseClient ? {
         default_reduction_strategy, default_reduction_percentage, default_reduction_interval,
         email_notifications, price_reduction_alerts,
         subscription_plan, subscription_active, subscription_expires_at, listing_limit,
-        is_active, last_login, login_count, n8n_webhook_url
+        is_active, last_login, login_count, n8n_webhook_url, is_admin
       `)
       .eq('id', user.id)
       .single()
@@ -760,6 +762,9 @@ const realUserAPI = realSupabaseClient ? {
       is_active: true,
       last_login: null,
       login_count: 0,
+
+      // Admin status (only true if manually set)
+      is_admin: false,
 
       // N8N integration
       n8n_webhook_url: null
