@@ -2686,23 +2686,14 @@ export default function ProductCRM() {
   // Count delivered items for badge
   const deliveredCount = products.filter(p => p.status?.name === 'Delivered').length;
   
-  // Filtered products - apply view mode filter, status filter, and owner filter
+  // Filtered products - apply status filter and owner filter
   const filteredProducts = products.filter(product => {
-    // Status filter (multi-select) - if statuses are selected, only show those
-    if (statusFilter.size > 0 && product.status?.id) {
-      if (!statusFilter.has(product.status.id)) return false;
+    // Status filter (multi-select) - only show products with selected statuses
+    if (statusFilter.size > 0) {
+      if (!product.status?.id || !statusFilter.has(product.status.id)) return false;
     }
-    // If no status filter selected, fall back to view mode behavior
-    if (statusFilter.size === 0) {
-      // Open Items view - show everything EXCEPT Delivered and Completed
-      if (viewMode === 'open') {
-        if (product.status?.name === 'Delivered' || product.status?.name === 'Completed') return false;
-      }
-      // Delivered view - only show Delivered status
-      if (viewMode === 'delivered') {
-        if (product.status?.name !== 'Delivered') return false;
-      }
-    }
+    // If no status filter selected, show all (shouldn't happen normally since tabs set filters)
+    
     // Owner filter (applies to all views)
     if (ownerFilter && product.owners) {
       const hasOwner = product.owners.some(o => o.owner_id === ownerFilter);
@@ -2781,7 +2772,14 @@ export default function ProductCRM() {
           {/* View Mode Toggle */}
           <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
             <button
-              onClick={() => setViewMode('open')}
+              onClick={() => {
+                setViewMode('open');
+                // Set filter to all statuses EXCEPT Delivered and Completed
+                const openStatuses = new Set(
+                  statuses.filter(s => s.name !== 'Delivered' && s.name !== 'Completed').map(s => s.id)
+                );
+                setStatusFilter(openStatuses);
+              }}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 viewMode === 'open' 
                   ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
@@ -2791,7 +2789,14 @@ export default function ProductCRM() {
               Open Items
             </button>
             <button
-              onClick={() => setViewMode('delivered')}
+              onClick={() => {
+                setViewMode('delivered');
+                // Set filter to only Delivered status
+                const deliveredStatus = statuses.find(s => s.name === 'Delivered');
+                if (deliveredStatus) {
+                  setStatusFilter(new Set([deliveredStatus.id]));
+                }
+              }}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
                 viewMode === 'delivered' 
                   ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
@@ -2807,7 +2812,11 @@ export default function ProductCRM() {
               )}
             </button>
             <button
-              onClick={() => setViewMode('all')}
+              onClick={() => {
+                setViewMode('all');
+                // Set filter to ALL statuses
+                setStatusFilter(new Set(statuses.map(s => s.id)));
+              }}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 viewMode === 'all' 
                   ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
