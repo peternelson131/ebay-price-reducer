@@ -2239,7 +2239,8 @@ export default function ProductCRM() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(new Set()); // Multi-select: Set of status IDs
+  const [statusFilterOpen, setStatusFilterOpen] = useState(false);
   const [ownerFilter, setOwnerFilter] = useState('');
   const [availableOwners, setAvailableOwners] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -2286,9 +2287,7 @@ export default function ProductCRM() {
         query = query.ilike('asin', `%${searchQuery}%`);
       }
       
-      if (statusFilter) {
-        query = query.eq('status_id', statusFilter);
-      }
+      // Note: Status filter is applied client-side for multi-select support
       
       const { data, error } = await query;
       
@@ -2326,7 +2325,7 @@ export default function ProductCRM() {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery]);
 
   // Fetch lookup data
   const fetchLookups = useCallback(async () => {
@@ -2351,6 +2350,18 @@ export default function ProductCRM() {
     fetchProducts();
     fetchLookups();
   }, [fetchProducts, fetchLookups]);
+
+  // Initialize status filter with all statuses except Delivered and Completed
+  useEffect(() => {
+    if (statuses.length > 0 && statusFilter.size === 0) {
+      const defaultStatuses = new Set(
+        statuses
+          .filter(s => s.name !== 'Delivered' && s.name !== 'Completed')
+          .map(s => s.id)
+      );
+      setStatusFilter(defaultStatuses);
+    }
+  }, [statuses]);
 
   // Fetch product data from Keepa (with fallback to direct image URL)
   const fetchKeepaData = async (asin) => {
@@ -2675,15 +2686,22 @@ export default function ProductCRM() {
   // Count delivered items for badge
   const deliveredCount = products.filter(p => p.status?.name === 'Delivered').length;
   
-  // Filtered products - apply view mode filter and owner filter
+  // Filtered products - apply view mode filter, status filter, and owner filter
   const filteredProducts = products.filter(product => {
-    // Open Items view - show everything EXCEPT Delivered and Completed
-    if (viewMode === 'open') {
-      if (product.status?.name === 'Delivered' || product.status?.name === 'Completed') return false;
+    // Status filter (multi-select) - if statuses are selected, only show those
+    if (statusFilter.size > 0 && product.status?.id) {
+      if (!statusFilter.has(product.status.id)) return false;
     }
-    // Delivered view - only show Delivered status
-    if (viewMode === 'delivered') {
-      if (product.status?.name !== 'Delivered') return false;
+    // If no status filter selected, fall back to view mode behavior
+    if (statusFilter.size === 0) {
+      // Open Items view - show everything EXCEPT Delivered and Completed
+      if (viewMode === 'open') {
+        if (product.status?.name === 'Delivered' || product.status?.name === 'Completed') return false;
+      }
+      // Delivered view - only show Delivered status
+      if (viewMode === 'delivered') {
+        if (product.status?.name !== 'Delivered') return false;
+      }
     }
     // Owner filter (applies to all views)
     if (ownerFilter && product.owners) {
@@ -2706,6 +2724,17 @@ export default function ProductCRM() {
   useEffect(() => {
     setCurrentPage(1);
   }, [viewMode, ownerFilter, statusFilter, searchQuery]);
+
+  // Close status filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (statusFilterOpen && !e.target.closest('.status-filter-dropdown')) {
+        setStatusFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [statusFilterOpen]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -2801,18 +2830,92 @@ export default function ProductCRM() {
             />
           </div>
           
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            disabled={viewMode === 'delivered'}
-          >
-            <option value="">All Statuses</option>
-            {statuses.map(status => (
-              <option key={status.id} value={status.id}>{status.name}</option>
-            ))}
-          </select>
+          {/* Status Filter - Multi-select */}
+          <div className="relative status-filter-dropdown">
+            <button
+              onClick={() => setStatusFilterOpen(!statusFilterOpen)}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex items-center gap-2 min-w-[160px]"
+            >
+              <span className="truncate">
+                {statusFilter.size === 0 
+                  ? 'All Statuses' 
+                  : statusFilter.size === statuses.length 
+                    ? 'All Statuses'
+                    : `${statusFilter.size} Status${statusFilter.size > 1 ? 'es' : ''}`}
+              </span>
+              <ChevronDown className="w-4 h-4 flex-shrink-0" />
+            </button>
+            
+            {statusFilterOpen && (
+              <div className="absolute z-50 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg">
+                <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex gap-2">
+                  <button
+                    onClick={() => setStatusFilter(new Set(statuses.map(s => s.id)))}
+                    className="text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-gray-300">|</span>
+                  <button
+                    onClick={() => setStatusFilter(new Set())}
+                    className="text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    Clear All
+                  </button>
+                  <span className="text-gray-300">|</span>
+                  <button
+                    onClick={() => {
+                      const openStatuses = new Set(
+                        statuses
+                          .filter(s => s.name !== 'Delivered' && s.name !== 'Completed')
+                          .map(s => s.id)
+                      );
+                      setStatusFilter(openStatuses);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    Open Only
+                  </button>
+                </div>
+                <div className="max-h-64 overflow-y-auto p-2">
+                  {statuses.map(status => (
+                    <label 
+                      key={status.id} 
+                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={statusFilter.has(status.id)}
+                        onChange={(e) => {
+                          const newFilter = new Set(statusFilter);
+                          if (e.target.checked) {
+                            newFilter.add(status.id);
+                          } else {
+                            newFilter.delete(status.id);
+                          }
+                          setStatusFilter(newFilter);
+                        }}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
+                      <span 
+                        className="w-3 h-3 rounded-full flex-shrink-0" 
+                        style={{ backgroundColor: status.color || '#6b7280' }}
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{status.name}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setStatusFilterOpen(false)}
+                    className="w-full px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           
           {/* Owner Filter */}
           <select
