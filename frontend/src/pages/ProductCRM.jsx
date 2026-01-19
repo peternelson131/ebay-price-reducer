@@ -2251,6 +2251,10 @@ export default function ProductCRM() {
   const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  
   // View mode: 'all' or 'delivered'
   const [viewMode, setViewMode] = useState(searchParams.get('view') === 'delivered' ? 'delivered' : searchParams.get('view') === 'all' ? 'all' : 'open');
   
@@ -2692,6 +2696,17 @@ export default function ProductCRM() {
     return true;
   });
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+  
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [viewMode, ownerFilter, statusFilter, searchQuery]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -2849,18 +2864,25 @@ export default function ProductCRM() {
               </button>
             </div>
           ) : (
+            <>
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
                   <th className="py-3 px-3 w-10">
                     <input
                       type="checkbox"
-                      checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0}
+                      checked={paginatedProducts.length > 0 && paginatedProducts.every(p => selectedProducts.has(p.id))}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+                          // Select all on current page
+                          const newSelected = new Set(selectedProducts);
+                          paginatedProducts.forEach(p => newSelected.add(p.id));
+                          setSelectedProducts(newSelected);
                         } else {
-                          setSelectedProducts(new Set());
+                          // Deselect all on current page
+                          const newSelected = new Set(selectedProducts);
+                          paginatedProducts.forEach(p => newSelected.delete(p.id));
+                          setSelectedProducts(newSelected);
                         }
                       }}
                       className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
@@ -2877,7 +2899,7 @@ export default function ProductCRM() {
                 </tr>
               </thead>
               <tbody>
-                {filteredProducts.map(product => (
+                {paginatedProducts.map(product => (
                   <ProductRow
                     key={product.id}
                     product={product}
@@ -2898,6 +2920,63 @@ export default function ProductCRM() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            {filteredProducts.length > 0 && (
+              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Showing {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length}
+                  </span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value={25}>25 per page</option>
+                    <option value={50}>50 per page</option>
+                    <option value={100}>100 per page</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    First
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ←
+                  </button>
+                  <span className="px-3 py-1 text-sm text-gray-600 dark:text-gray-400">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    →
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Last
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
           )}
         </div>
       </div>
