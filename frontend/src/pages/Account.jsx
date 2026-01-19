@@ -63,12 +63,12 @@ export default function Account() {
         let signedUrl = null
         if (f.screenshot_url) {
           try {
-            // Prepend bucket name to path
-            const fullPath = `feedback-screenshots/${f.screenshot_url}`
+            // The screenshot_url already contains the path like "userId/filename.jpg"
+            // Just pass it directly to createSignedUrl
             const { data: signedData } = await supabase
               .storage
               .from('feedback-screenshots')
-              .createSignedUrl(fullPath, 3600)
+              .createSignedUrl(f.screenshot_url, 3600)
             signedUrl = signedData?.signedUrl || null
           } catch (e) {
             console.error('Error creating signed URL for', f.id, e)
