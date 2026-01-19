@@ -56,14 +56,23 @@ export default function Account() {
         
         const userMap = Object.fromEntries((users || []).map(u => [u.id, u.email]))
         
-        // Add email to feedback data
+        // Add email and full screenshot URL to feedback data
         return data.map(f => ({
           ...f,
-          user_email: userMap[f.user_id] || 'Unknown'
+          user_email: userMap[f.user_id] || 'Unknown',
+          screenshot_url: f.screenshot_url 
+            ? `https://zxcdkanccbdeqebnabgg.supabase.co/storage/v1/object/public/${f.screenshot_url}`
+            : null
         }))
       }
       
-      return data.map(f => ({ ...f, user_email: 'Unknown' }))
+      return data.map(f => ({ 
+        ...f, 
+        user_email: 'Unknown',
+        screenshot_url: f.screenshot_url 
+          ? `https://zxcdkanccbdeqebnabgg.supabase.co/storage/v1/object/public/${f.screenshot_url}`
+          : null
+      }))
     },
     {
       enabled: profile?.is_admin === true,
