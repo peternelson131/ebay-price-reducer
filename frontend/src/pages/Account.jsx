@@ -48,31 +48,41 @@ export default function Account() {
       const userIds = [...new Set(data.map(f => f.user_id).filter(Boolean))]
       
       // Fetch user emails
+      let userMap = {}
       if (userIds.length > 0) {
         const { data: users } = await supabase
           .from('users')
           .select('id, email')
           .in('id', userIds)
         
-        const userMap = Object.fromEntries((users || []).map(u => [u.id, u.email]))
-        
-        // Add email and full screenshot URL to feedback data
-        return data.map(f => ({
-          ...f,
-          user_email: userMap[f.user_id] || 'Unknown',
-          screenshot_url: f.screenshot_url 
-            ? `https://zxcdkanccbdeqebnabgg.supabase.co/storage/v1/object/public/${f.screenshot_url}`
-            : null
-        }))
+        userMap = Object.fromEntries((users || []).map(u => [u.id, u.email]))
       }
       
-      return data.map(f => ({ 
-        ...f, 
-        user_email: 'Unknown',
-        screenshot_url: f.screenshot_url 
-          ? `https://zxcdkanccbdeqebnabgg.supabase.co/storage/v1/object/public/${f.screenshot_url}`
-          : null
+      // Process feedback with signed URLs
+      const feedbackWithSignedUrls = await Promise.all(data.map(async (f) => {
+        let signedUrl = null
+        if (f.screenshot_url) {
+          try {
+            // Extract filename from path (e.g., "feedback-screenshots/uuid/filename.jpg" -> "filename.jpg")
+            const filename = f.screenshot_url.split('/').pop()
+            const { data: signedData } = await supabase
+              .storage
+              .from('feedback-screenshots')
+              .createSignedUrl(filename, 3600)
+            signedUrl = signedData?.signedUrl || null
+          } catch (e) {
+            console.error('Error creating signed URL for', f.id, e)
+          }
+        }
+        
+        return {
+          ...f,
+          user_email: userMap[f.user_id] || 'Unknown',
+          screenshot_url: signedUrl
+        }
       }))
+      
+      return feedbackWithSignedUrls
     },
     {
       enabled: profile?.is_admin === true,
