@@ -14,8 +14,7 @@ import {
   X,
   Sun,
   Moon,
-  TrendingUp,
-  Package
+  TrendingUp
 } from 'lucide-react'
 
 // Lazy load all page components for code splitting
@@ -121,22 +120,12 @@ export default function App() {
               <Link
                 to="/asin-lookup"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === '/asin-lookup'
+                  location.pathname === '/asin-lookup' || location.pathname === '/product-crm'
                     ? 'bg-accent text-white'
                     : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
                 }`}
               >
                 Influencer Central
-              </Link>
-              <Link
-                to="/product-crm"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === '/product-crm'
-                    ? 'bg-accent text-white'
-                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                }`}
-              >
-                Product CRM
               </Link>
               <Link
                 to="/account"
@@ -235,7 +224,7 @@ export default function App() {
                 <Link
                   to="/asin-lookup"
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    location.pathname === '/asin-lookup'
+                    location.pathname === '/asin-lookup' || location.pathname === '/product-crm'
                       ? 'bg-accent text-white'
                       : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
                   }`}
@@ -243,19 +232,6 @@ export default function App() {
                 >
                   <Search className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   Influencer Central
-                </Link>
-
-                <Link
-                  to="/product-crm"
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    location.pathname === '/product-crm'
-                      ? 'bg-accent text-white'
-                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Package className="mr-3 h-5 w-5" strokeWidth={1.5} />
-                  Product CRM
                 </Link>
 
                 <Link
