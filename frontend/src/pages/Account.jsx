@@ -33,6 +33,23 @@ export default function Account() {
     }
   )
 
+  // Admin feedback query - only fetch if user is admin
+  const { data: allFeedback, isLoading: isLoadingFeedback } = useQuery(
+    ['allFeedback'],
+    async () => {
+      const { data, error } = await supabase
+        .from('feedback')
+        .select('id, category, description, screenshot_url, user_id, created_at, user:user_id(email)')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data
+    },
+    {
+      enabled: profile?.is_admin === true,
+      refetchOnWindowFocus: false
+    }
+  )
+
   // Initialize form states when profile data loads
   useEffect(() => {
     if (profile && !isEditing) {
@@ -111,6 +128,18 @@ export default function Account() {
       if (window.confirm('This will permanently delete all your listings and data. Are you absolutely sure?')) {
         alert('Account deletion would be processed. In demo mode, this is simulated.')
       }
+    }
+  }
+
+  const handleDeleteFeedback = async (feedbackId) => {
+    if (!window.confirm('Are you sure you want to delete this feedback?')) return
+    try {
+      const { error } = await supabase.from('feedback').delete().eq('id', feedbackId)
+      if (error) throw error
+      queryClient.invalidateQueries(['allFeedback'])
+    } catch (error) {
+      console.error('Failed to delete feedback:', error)
+      alert('Failed to delete feedback. Please try again.')
     }
   }
 
