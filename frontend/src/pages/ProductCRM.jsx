@@ -959,16 +959,25 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
 };
 
 // Product Row Component
-const ProductRow = ({ product, isSelected, onSelect, onEdit }) => {
+const ProductRow = ({ product, isSelected, isChecked, onCheck, onSelect, onEdit }) => {
   const amazonUrl = `https://amazon.com/dp/${product.asin}`;
   
   return (
     <tr 
       className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors ${
         isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-      }`}
+      } ${isChecked ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
       onClick={() => onSelect(product)}
     >
+      {/* Checkbox */}
+      <td className="py-3 px-3" onClick={e => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={isChecked}
+          onChange={(e) => onCheck(e.target.checked)}
+          className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+        />
+      </td>
       {/* Image */}
       <td className="py-3 px-4">
         <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
@@ -1713,6 +1722,142 @@ const DeclineTaskDialog = ({ isOpen, onClose, onConfirm, isSubmitting }) => {
   );
 };
 
+// Bulk Edit Modal
+const BulkEditModal = ({ isOpen, onClose, selectedCount, statuses, availableOwners, onApply }) => {
+  const [changes, setChanges] = useState({
+    status_id: '',
+    decision: '',
+    ownerAction: '',
+    ownerIds: []
+  });
+
+  const handleApply = () => {
+    const changesObj = {};
+    if (changes.status_id) changesObj.status_id = changes.status_id;
+    if (changes.decision) changesObj.decision = changes.decision;
+    if (changes.ownerAction) {
+      changesObj.ownerAction = changes.ownerAction;
+      changesObj.ownerIds = changes.ownerIds;
+    }
+    onApply(changesObj);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 mx-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Edit {selectedCount} Products
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-5">
+          {/* Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Status
+            </label>
+            <select
+              value={changes.status_id}
+              onChange={(e) => setChanges(prev => ({ ...prev, status_id: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="">— Don't change —</option>
+              {statuses.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Decision */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Decision
+            </label>
+            <select
+              value={changes.decision}
+              onChange={(e) => setChanges(prev => ({ ...prev, decision: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="">— Don't change —</option>
+              <option value="sell">Sell</option>
+              <option value="keep">Keep</option>
+              <option value="clear">Clear (remove decision)</option>
+            </select>
+          </div>
+
+          {/* Owners */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Owners
+            </label>
+            <select
+              value={changes.ownerAction}
+              onChange={(e) => setChanges(prev => ({ ...prev, ownerAction: e.target.value, ownerIds: [] }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="">— Don't change —</option>
+              <option value="add">Add owners</option>
+              <option value="remove">Remove owners</option>
+              <option value="set">Set owners (replace existing)</option>
+            </select>
+            
+            {changes.ownerAction && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {changes.ownerAction === 'add' && 'Select owners to add:'}
+                  {changes.ownerAction === 'remove' && 'Select owners to remove:'}
+                  {changes.ownerAction === 'set' && 'Select owners to assign:'}
+                </p>
+                <div className="max-h-32 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg">
+                  {availableOwners?.map(owner => (
+                    <label key={owner.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={changes.ownerIds.includes(owner.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setChanges(prev => ({ ...prev, ownerIds: [...prev.ownerIds, owner.id] }));
+                          } else {
+                            setChanges(prev => ({ ...prev, ownerIds: prev.ownerIds.filter(id => id !== owner.id) }));
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{owner.name || owner.email}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleApply}
+            disabled={!changes.status_id && !changes.decision && !changes.ownerAction}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Apply to {selectedCount} Products
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Product Detail Panel
 const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChange, statuses, collaborationTypes, contactSources, marketplaces }) => {
   // Resizable panel state
@@ -2101,6 +2246,11 @@ export default function ProductCRM() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   
+  // Bulk selection state
+  const [selectedProducts, setSelectedProducts] = useState(new Set());
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  
   // View mode: 'all' or 'delivered'
   const [viewMode, setViewMode] = useState(searchParams.get('view') === 'delivered' ? 'delivered' : searchParams.get('view') === 'all' ? 'all' : 'open');
   
@@ -2301,6 +2451,82 @@ export default function ProductCRM() {
     // Remove from local state and close panel
     setProducts(prev => prev.filter(p => p.id !== productId));
     setSelectedProduct(null);
+  };
+
+  // Bulk delete products
+  const handleBulkDelete = async () => {
+    const productIds = Array.from(selectedProducts);
+    
+    try {
+      // Delete from product_owners first (foreign key constraint)
+      await supabase.from('product_owners').delete().in('product_id', productIds);
+      
+      // Delete products
+      const { error } = await supabase.from('sourced_products').delete().in('id', productIds);
+      
+      if (error) throw error;
+      
+      setSelectedProducts(new Set());
+      setShowBulkDeleteConfirm(false);
+      fetchProducts();
+    } catch (err) {
+      console.error('Bulk delete error:', err);
+      alert('Failed to delete products: ' + err.message);
+    }
+  };
+
+  // Bulk edit products
+  const handleBulkEdit = async (changes) => {
+    const productIds = Array.from(selectedProducts);
+    
+    try {
+      // Build update object (only include changed fields)
+      const updates = {};
+      if (changes.status_id) updates.status_id = changes.status_id;
+      if (changes.decision === 'clear') updates.decision = null;
+      else if (changes.decision) updates.decision = changes.decision;
+      
+      // Update products if there are field changes
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabase.from('sourced_products').update(updates).in('id', productIds);
+        if (error) throw error;
+      }
+      
+      // Handle owner changes
+      if (changes.ownerAction === 'set') {
+        // Delete all existing owners, add new ones
+        await supabase.from('product_owners').delete().in('product_id', productIds);
+        if (changes.ownerIds?.length > 0) {
+          const ownerInserts = productIds.flatMap(pid => 
+            changes.ownerIds.map(oid => ({ product_id: pid, owner_id: oid, is_primary: false }))
+          );
+          await supabase.from('product_owners').insert(ownerInserts);
+        }
+      } else if (changes.ownerAction === 'add' && changes.ownerIds?.length > 0) {
+        // Add owners (ignore duplicates)
+        const ownerInserts = productIds.flatMap(pid => 
+          changes.ownerIds.map(oid => ({ product_id: pid, owner_id: oid, is_primary: false }))
+        );
+        await supabase.from('product_owners').upsert(ownerInserts, { 
+          onConflict: 'product_id,owner_id',
+          ignoreDuplicates: true 
+        });
+      } else if (changes.ownerAction === 'remove' && changes.ownerIds?.length > 0) {
+        // Remove specific owners from selected products
+        for (const oid of changes.ownerIds) {
+          await supabase.from('product_owners').delete()
+            .in('product_id', productIds)
+            .eq('owner_id', oid);
+        }
+      }
+      
+      setSelectedProducts(new Set());
+      setShowBulkEditModal(false);
+      fetchProducts();
+    } catch (err) {
+      console.error('Bulk edit error:', err);
+      alert('Failed to update products: ' + err.message);
+    }
   };
 
   // Import products from CSV
@@ -2626,6 +2852,20 @@ export default function ProductCRM() {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
+                  <th className="py-3 px-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+                        } else {
+                          setSelectedProducts(new Set());
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">Image</th>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">ASIN</th>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">Status</th>
@@ -2642,6 +2882,16 @@ export default function ProductCRM() {
                     key={product.id}
                     product={product}
                     isSelected={selectedProduct?.id === product.id}
+                    isChecked={selectedProducts.has(product.id)}
+                    onCheck={(checked) => {
+                      const newSelected = new Set(selectedProducts);
+                      if (checked) {
+                        newSelected.add(product.id);
+                      } else {
+                        newSelected.delete(product.id);
+                      }
+                      setSelectedProducts(newSelected);
+                    }}
                     onSelect={setSelectedProduct}
                     onEdit={setSelectedProduct}
                   />
@@ -2680,6 +2930,74 @@ export default function ProductCRM() {
         contactSources={contactSources}
         marketplaces={marketplaces}
       />
+
+      {/* Bulk Action Toolbar */}
+      {selectedProducts.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 dark:bg-gray-700 rounded-xl shadow-2xl px-6 py-4 flex items-center gap-4 z-50 border border-gray-700 dark:border-gray-600">
+          <span className="text-white font-medium">{selectedProducts.size} selected</span>
+          <div className="w-px h-6 bg-gray-600"></div>
+          <button
+            onClick={() => setShowBulkEditModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <Edit className="w-4 h-4" />
+            Edit Selected
+          </button>
+          <button
+            onClick={() => setShowBulkDeleteConfirm(true)}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Selected
+          </button>
+          <button
+            onClick={() => setSelectedProducts(new Set())}
+            className="px-3 py-2 text-gray-400 hover:text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation */}
+      {showBulkDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Delete {selectedProducts.size} Products?
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              This action cannot be undone. All selected products and their owner assignments will be permanently deleted.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Delete {selectedProducts.size} Products
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Edit Modal */}
+      {showBulkEditModal && (
+        <BulkEditModal
+          isOpen={showBulkEditModal}
+          onClose={() => setShowBulkEditModal(false)}
+          selectedCount={selectedProducts.size}
+          statuses={statuses}
+          availableOwners={availableOwners}
+          onApply={handleBulkEdit}
+        />
+      )}
     </div>
   );
 }
