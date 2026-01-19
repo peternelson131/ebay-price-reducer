@@ -34,19 +34,40 @@ export default function Account() {
   )
 
   // Admin feedback query - only fetch if user is admin
-  const { data: allFeedback, isLoading: isLoadingFeedback } = useQuery(
+  const { data: allFeedback, isLoading: isLoadingFeedback, error: feedbackError } = useQuery(
     ['allFeedback'],
     async () => {
       const { data, error } = await supabase
         .from('feedback')
-        .select('id, category, description, screenshot_url, user_id, created_at, user:user_id(email)')
+        .select('id, category, description, screenshot_url, user_id, created_at')
         .order('created_at', { ascending: false })
       if (error) throw error
-      return data
+      
+      // Get unique user IDs
+      const userIds = [...new Set(data.map(f => f.user_id).filter(Boolean))]
+      
+      // Fetch user emails
+      if (userIds.length > 0) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, email')
+          .in('id', userIds)
+        
+        const userMap = Object.fromEntries((users || []).map(u => [u.id, u.email]))
+        
+        // Add email to feedback data
+        return data.map(f => ({
+          ...f,
+          user_email: userMap[f.user_id] || 'Unknown'
+        }))
+      }
+      
+      return data.map(f => ({ ...f, user_email: 'Unknown' }))
     },
     {
       enabled: profile?.is_admin === true,
-      refetchOnWindowFocus: false
+      refetchOnWindowFocus: false,
+      retry: 1
     }
   )
 
