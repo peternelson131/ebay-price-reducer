@@ -2447,9 +2447,9 @@ export default function ProductCRM() {
   
   // Filtered products - apply view mode filter and owner filter
   const filteredProducts = products.filter(product => {
-    // Open Items view - show everything EXCEPT Delivered
+    // Open Items view - show everything EXCEPT Delivered and Completed
     if (viewMode === 'open') {
-      if (product.status?.name === 'Delivered') return false;
+      if (product.status?.name === 'Delivered' || product.status?.name === 'Completed') return false;
     }
     // Delivered view - only show Delivered status
     if (viewMode === 'delivered') {
