@@ -14,7 +14,8 @@ import {
   X,
   Sun,
   Moon,
-  TrendingUp
+  TrendingUp,
+  Package
 } from 'lucide-react'
 
 // Lazy load all page components for code splitting
@@ -30,6 +31,7 @@ const InfluencerCentral = lazy(() => import('./pages/InfluencerCentral'))
 const EbayCentral = lazy(() => import('./pages/EbayCentral'))
 const ApiKeys = lazy(() => import('./pages/ApiKeys'))
 const WhatNotAnalysis = lazy(() => import('./pages/WhatNotAnalysis'))
+const ProductCRM = lazy(() => import('./pages/ProductCRM'))
 
 export default function App() {
   const { user, isAuthenticated, signOut } = useAuth()
@@ -125,6 +127,16 @@ export default function App() {
                 }`}
               >
                 Influencer Central
+              </Link>
+              <Link
+                to="/product-crm"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === '/product-crm'
+                    ? 'bg-accent text-white'
+                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                }`}
+              >
+                Product CRM
               </Link>
               <Link
                 to="/account"
@@ -234,6 +246,19 @@ export default function App() {
                 </Link>
 
                 <Link
+                  to="/product-crm"
+                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                    location.pathname === '/product-crm'
+                      ? 'bg-accent text-white'
+                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Package className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  Product CRM
+                </Link>
+
+                <Link
                   to="/account"
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                     location.pathname === '/account'
@@ -294,8 +319,8 @@ export default function App() {
         )}
       </nav>}
 
-      <main className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot'].includes(location.pathname) || location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
-        <div className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot'].includes(location.pathname) || location.pathname === '/' ? '' : 'sm:px-0'}>
+      <main className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot', '/product-crm'].includes(location.pathname) || location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
+        <div className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot', '/product-crm'].includes(location.pathname) || location.pathname === '/' ? '' : 'sm:px-0'}>
           <Suspense fallback={
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -318,6 +343,7 @@ export default function App() {
               <Route path="/whatnot" element={<WhatNotAnalysis />} />
               <Route path="/api-keys" element={<ApiKeys />} />
               <Route path="/whatnot" element={<WhatNotAnalysis />} />
+              <Route path="/product-crm" element={<ProductCRM />} />
             </Routes>
           </Suspense>
         </div>
