@@ -27,10 +27,10 @@ exports.handler = async (event, context) => {
   console.log('AFTERSHIP_API_KEY:', process.env.AFTERSHIP_API_KEY ? 'set' : 'NOT SET');
   console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'NOT SET');
 
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.AFTERSHIP_API_KEY) {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Missing environment variables' })
+      body: JSON.stringify({ error: 'Missing required environment variables' })
     };
   }
 
