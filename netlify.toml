@@ -48,7 +48,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://api.ebay.com https://api.sandbox.ebay.com; img-src 'self' data: https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.ebay.com https://api.sandbox.ebay.com; img-src 'self' data: https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';"
 
 # Scheduled function to refresh popular category aspects daily
 # Configured in Netlify UI: scheduled-aspect-refresh runs daily at 2 AM UTC
@@ -91,3 +91,7 @@ timeout = 60
 # Catalog import endpoint - extended timeout for large file uploads
 [functions."catalog-import"]
 timeout = 26
+
+[functions."aftership-sync-scheduled"]
+schedule = "0 */4 * * *"
+timeout = 60

@@ -38,15 +38,25 @@ async function getUserApiKey(userId, service) {
 }
 
 // Trigger the background function
-async function triggerBackgroundFunction(jobId, asin, userId, keepaKey) {
-  const baseUrl = process.env.URL || 'https://ebay-price-reducer-public-platform.netlify.app';
+async function triggerBackgroundFunction(jobId, asin, userId, keepaKey, requestHost) {
+  // Use request host if available, then process.env.URL, then fallback
+  let baseUrl;
+  if (requestHost) {
+    const protocol = requestHost.includes('localhost') ? 'http' : 'https';
+    baseUrl = `${protocol}://${requestHost}`;
+  } else {
+    baseUrl = process.env.URL || 'https://dainty-horse-49c336.netlify.app';
+  }
   const functionUrl = `${baseUrl}/.netlify/functions/trigger-asin-correlation-background`;
   
   console.log(`🚀 Triggering background function at ${functionUrl}`);
   
   const response = await fetch(functionUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'X-Webhook-Secret': process.env.WEBHOOK_SECRET || ''
+    },
     body: JSON.stringify({ jobId, asin, userId, keepaKey })
   });
   
@@ -55,7 +65,9 @@ async function triggerBackgroundFunction(jobId, asin, userId, keepaKey) {
     throw new Error(`Failed to trigger background function: ${response.status} - ${error}`);
   }
   
-  return response.json();
+  // Background functions may return empty body or non-JSON
+  const text = await response.text();
+  return text ? JSON.parse(text) : { ok: true };
 }
 
 exports.handler = async (event, context) => {
@@ -168,7 +180,8 @@ exports.handler = async (event, context) => {
       
       // Trigger background function
       try {
-        await triggerBackgroundFunction(job.id, normalizedAsin, user.id, keepaKey);
+        const requestHost = event.headers.host || event.headers.Host;
+        await triggerBackgroundFunction(job.id, normalizedAsin, user.id, keepaKey, requestHost);
         console.log('✅ Background function triggered');
       } catch (triggerError) {
         console.error('Failed to trigger background function:', triggerError);

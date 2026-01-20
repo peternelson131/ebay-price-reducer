@@ -30,13 +30,22 @@ import ProductStatusBadge from './ProductStatusBadge';
 // Shipping status configuration
 const SHIPPING_STATUS_CONFIG = {
   'pending': { icon: Clock, label: 'Pending', color: 'text-gray-500' },
+  'Pending': { icon: Clock, label: 'Pending', color: 'text-gray-500' },
   'label_created': { icon: Package, label: 'Label Created', color: 'text-blue-500' },
   'picked_up': { icon: Truck, label: 'Picked Up', color: 'text-blue-500' },
   'in_transit': { icon: Truck, label: 'In Transit', color: 'text-yellow-500' },
   'out_for_delivery': { icon: Truck, label: 'Out for Delivery', color: 'text-orange-500' },
   'delivered': { icon: CheckCircle, label: 'Delivered', color: 'text-green-500' },
+  'Delivered': { icon: CheckCircle, label: 'Delivered', color: 'text-green-500' },
   'exception': { icon: AlertCircle, label: 'Exception', color: 'text-red-500' },
-  'returned': { icon: Package, label: 'Returned', color: 'text-red-500' }
+  'Exception': { icon: AlertCircle, label: 'Exception', color: 'text-red-500' },
+  'returned': { icon: Package, label: 'Returned', color: 'text-red-500' },
+  'InfoReceived': { icon: Clock, label: 'Info Received', color: 'text-blue-500' },
+  'InTransit': { icon: Truck, label: 'In Transit', color: 'text-yellow-500' },
+  'OutForDelivery': { icon: Truck, label: 'Out for Delivery', color: 'text-orange-500' },
+  'AttemptFail': { icon: AlertCircle, label: 'Delivery Failed', color: 'text-red-500' },
+  'AvailableForPickup': { icon: Package, label: 'Available for Pickup', color: 'text-blue-500' },
+  'Expired': { icon: AlertCircle, label: 'Expired', color: 'text-red-500' }
 };
 
 // Default page size options
@@ -212,7 +221,7 @@ const ProductRow = ({
       {/* Shipping */}
       <td className="py-3 px-4">
         {product.tracking_number ? (
-          <ShippingBadge status={product.shipping_status || 'pending'} />
+          <ShippingBadge status={product.tracking_status || 'pending'} />
         ) : (
           <span className="text-gray-400 text-sm">-</span>
         )}
@@ -556,8 +565,8 @@ export default function ProductList({
           bVal = b.decision || '';
           break;
         case 'shipping':
-          aVal = a.shipping_status || '';
-          bVal = b.shipping_status || '';
+          aVal = a.tracking_status || '';
+          bVal = b.tracking_status || '';
           break;
         case 'created_at':
           aVal = new Date(a.created_at || 0);

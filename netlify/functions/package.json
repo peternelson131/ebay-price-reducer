@@ -8,7 +8,7 @@
     "@netlify/functions": "^2.0.0",
     "@supabase/supabase-js": "^2.58.0",
     "apollo-server-lambda": "^3.13.0",
-    "axios": "^1.12.2",
+    "axios": "^1.13.2",
     "busboy": "^1.6.0",
     "dataloader": "^2.2.3",
     "dotenv": "^17.2.2",

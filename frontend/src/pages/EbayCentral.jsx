@@ -100,7 +100,7 @@ export default function EbayCentral() {
         </div>
 
         {/* Menu Items */}
-        <nav className={`flex-1 py-2 ${!sidebarOpen && 'lg:hidden'}`}>
+        <nav className={`flex-1 py-2 ${!sidebarOpen && 'md:hidden'}`}>
           {menuItems.map((item) => {
             const isActive = activeItem === item.id;
             const Icon = item.icon;
@@ -138,8 +138,8 @@ export default function EbayCentral() {
           })}
         </nav>
 
-        {/* Collapse Toggle (Desktop only) */}
-        <div className="hidden lg:block border-t border-theme p-2">
+        {/* Collapse Toggle (Tablet and Desktop) */}
+        <div className="hidden md:block border-t border-theme p-2">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="w-full flex items-center justify-center p-2 rounded-lg text-theme-tertiary hover:text-theme-secondary hover:bg-theme-hover transition-colors"
@@ -154,9 +154,9 @@ export default function EbayCentral() {
         </div>
       </aside>
 
-      {/* Collapsed Sidebar Icons (Desktop) */}
+      {/* Collapsed Sidebar Icons (Tablet and Desktop) */}
       {!sidebarOpen && (
-        <aside className="hidden lg:flex w-12 flex-col items-center py-4 bg-theme-surface border-r border-theme gap-2">
+        <aside className="hidden md:flex w-12 flex-col items-center py-4 bg-theme-surface border-r border-theme gap-2">
           {menuItems.map((item) => {
             const isActive = activeItem === item.id;
             const Icon = item.icon;

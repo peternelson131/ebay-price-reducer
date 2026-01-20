@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI, supabase } from '../lib/supabase'
-import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle } from 'lucide-react'
+import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle, Undo2 } from 'lucide-react'
 
 export default function Account() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -185,44 +185,75 @@ export default function Account() {
   }
 
   const handleApproveFeedback = async (feedbackId) => {
+    console.log('🟢 handleApproveFeedback called with:', feedbackId)
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('feedback')
         .update({ status: 'approved', processed: false })
         .eq('id', feedbackId)
+        .select()
+      console.log('🟢 Approve result:', { data, error })
       if (error) throw error
-      queryClient.invalidateQueries(['allFeedback'])
+      await refetchFeedback()
     } catch (error) {
       console.error('Failed to approve feedback:', error)
-      alert('Failed to approve feedback. Please try again.')
+      alert('Failed to approve feedback: ' + error.message)
     }
   }
 
   const handleDeclineFeedback = async (feedbackId) => {
+    console.log('🔴 handleDeclineFeedback called with:', feedbackId)
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('feedback')
         .update({ status: 'declined', processed: false })
         .eq('id', feedbackId)
+        .select()
+      console.log('🔴 Decline result:', { data, error })
       if (error) throw error
-      queryClient.invalidateQueries(['allFeedback'])
+      await refetchFeedback()
     } catch (error) {
       console.error('Failed to decline feedback:', error)
-      alert('Failed to decline feedback. Please try again.')
+      alert('Failed to decline feedback: ' + error.message)
     }
   }
 
   const handleMarkProcessed = async (feedbackId) => {
+    console.log('🔵 handleMarkProcessed called with:', feedbackId)
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('feedback')
-        .update({ processed: true })
+        .update({ processed: true, status: 'processed' })
         .eq('id', feedbackId)
+        .select()
+      console.log('🔵 Mark processed result:', { data, error })
       if (error) throw error
-      queryClient.invalidateQueries(['allFeedback'])
+      await refetchFeedback()
     } catch (error) {
       console.error('Failed to mark as processed:', error)
-      alert('Failed to mark as processed. Please try again.')
+      alert('Failed to mark as processed: ' + error.message)
+    }
+  }
+
+  const handleUndoStatus = async (feedbackId, currentStatus) => {
+    console.log('⏪ handleUndoStatus called with:', feedbackId, 'from status:', currentStatus)
+    // Determine the previous status to revert to
+    let previousStatus = 'pending'
+    if (currentStatus === 'processed') {
+      previousStatus = 'approved'
+    }
+    try {
+      const { data, error } = await supabase
+        .from('feedback')
+        .update({ status: previousStatus, processed: false })
+        .eq('id', feedbackId)
+        .select()
+      console.log('⏪ Undo result:', { data, error })
+      if (error) throw error
+      await refetchFeedback()
+    } catch (error) {
+      console.error('Failed to undo status:', error)
+      alert('Failed to undo status: ' + error.message)
     }
   }
 
@@ -804,21 +835,48 @@ export default function Account() {
                               </div>
                             )}
                             {item.status === 'approved' && (
-                              <button
-                                onClick={() => handleMarkProcessed(item.id)}
-                                className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400"
-                                title="Mark as Processed"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                              </button>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => handleMarkProcessed(item.id)}
+                                  className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400"
+                                  title="Mark as Processed"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleUndoStatus(item.id, item.status)}
+                                  className="p-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                  title="Undo (back to pending)"
+                                >
+                                  <Undo2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             )}
                             {item.status === 'declined' && (
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => handleDeleteFeedback(item.id)}
+                                  className="p-1.5 bg-gray-100 text-gray-500 rounded hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleUndoStatus(item.id, item.status)}
+                                  className="p-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                  title="Undo (back to pending)"
+                                >
+                                  <Undo2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                            {item.status === 'processed' && (
                               <button
-                                onClick={() => handleDeleteFeedback(item.id)}
-                                className="p-1.5 bg-gray-100 text-gray-500 rounded hover:bg-gray-200"
-                                title="Delete"
+                                onClick={() => handleUndoStatus(item.id, item.status)}
+                                className="p-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                title="Undo (back to approved)"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Undo2 className="w-4 h-4" />
                               </button>
                             )}
                           </td>

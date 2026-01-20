@@ -159,7 +159,7 @@ export default function InfluencerCentral() {
         </div>
 
         {/* Menu Items */}
-        <nav className={`flex-1 py-2 ${!sidebarOpen && 'lg:hidden'}`}>
+        <nav className={`flex-1 py-2 ${!sidebarOpen && 'md:hidden'}`}>
           {menuItems.map((item) => {
             const isActive = activeItem === item.id;
             const Icon = item.icon;
@@ -210,8 +210,8 @@ export default function InfluencerCentral() {
           })}
         </nav>
 
-        {/* Collapse Toggle (Desktop only) */}
-        <div className="hidden lg:block border-t border-theme p-2">
+        {/* Collapse Toggle (Tablet and Desktop) */}
+        <div className="hidden md:block border-t border-theme p-2">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="w-full flex items-center justify-center p-2 rounded-lg text-theme-tertiary hover:text-theme-secondary hover:bg-theme-hover transition-colors"
@@ -225,9 +225,9 @@ export default function InfluencerCentral() {
           </button>
         </div>
 
-        {/* Collapsed state icon strip (Desktop only) */}
+        {/* Collapsed state icon strip (Tablet and Desktop) */}
         {!sidebarOpen && (
-          <div className="hidden lg:flex flex-col items-center py-4 space-y-2">
+          <div className="hidden md:flex flex-col items-center py-4 space-y-2">
             {menuItems.map((item) => {
               const isActive = activeItem === item.id;
               const Icon = item.icon;

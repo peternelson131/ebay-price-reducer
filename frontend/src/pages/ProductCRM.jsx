@@ -72,8 +72,11 @@ const SHIPPING_STATUS_CONFIG = {
   'in_transit': { icon: Truck, label: 'In Transit', color: 'text-yellow-500' },
   'out_for_delivery': { icon: Truck, label: 'Out for Delivery', color: 'text-orange-500' },
   'delivered': { icon: CheckCircle, label: 'Delivered', color: 'text-green-500' },
+  'Delivered': { icon: CheckCircle, label: 'Delivered', color: 'text-green-500' },
   'exception': { icon: AlertCircle, label: 'Exception', color: 'text-red-500' },
-  'returned': { icon: Package, label: 'Returned', color: 'text-red-500' }
+  'returned': { icon: Package, label: 'Returned', color: 'text-red-500' },
+  'InfoReceived': { icon: Clock, label: 'Info Received', color: 'text-blue-500' },
+  'InTransit': { icon: Truck, label: 'In Transit', color: 'text-yellow-500' }
 };
 
 // Status Badge Component
@@ -96,6 +99,100 @@ const ShippingBadge = ({ status }) => {
       {config.label}
     </span>
   );
+};
+
+// Tracking Input Component
+const TrackingInput = ({ productId, currentTracking, onUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [trackingNumber, setTrackingNumber] = useState(currentTracking || '');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!trackingNumber.trim()) return;
+    
+    setIsSaving(true);
+    try {
+      // Update product with tracking number
+      const { error } = await supabase
+        .from('sourced_products')
+        .update({ tracking_number: trackingNumber.trim() })
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      // Register with AfterShip
+      try {
+        await fetch('/api/aftership-add-tracking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId, trackingNumber: trackingNumber.trim() })
+        });
+      } catch (e) {
+        console.log('AfterShip registration will happen on next sync');
+      }
+
+      onUpdate(trackingNumber.trim());
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving tracking:', error);
+      alert('Failed to save tracking number');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (currentTracking && !isEditing) {
+    return (
+      <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Truck className="w-4 h-4 text-gray-500" />
+          <span className="font-mono text-sm">{currentTracking}</span>
+        </div>
+        <button
+          onClick={() => setIsEditing(true)}
+          className="text-xs text-blue-600 hover:text-blue-700"
+        >
+          Edit
+        </button>
+      </div>
+    );
+  }
+
+  if (isEditing || !currentTracking) {
+    return (
+      <div className="space-y-2">
+        <input
+          type="text"
+          value={trackingNumber}
+          onChange={(e) => setTrackingNumber(e.target.value)}
+          placeholder="Enter tracking number..."
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+          autoFocus
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            disabled={isSaving || !trackingNumber.trim()}
+            className="flex-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm flex items-center justify-center gap-1"
+          >
+            {isSaving ? <Loader className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Save
+          </button>
+          {(currentTracking || isEditing) && (
+            <button
+              onClick={() => {
+                setTrackingNumber(currentTracking || '');
+                setIsEditing(false);
+              }}
+              className="px-3 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 text-sm"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 };
 
 // Owner Avatars Component
@@ -1048,7 +1145,7 @@ const ProductRow = ({ product, isSelected, isChecked, onCheck, onSelect, onEdit 
       {/* Shipping */}
       <td className="py-3 px-4">
         {product.tracking_number ? (
-          <ShippingBadge status={product.shipping_status} />
+          <ShippingBadge status={product.tracking_status} />
         ) : (
           <span className="text-gray-400 text-sm">-</span>
         )}
@@ -1559,6 +1656,222 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
               'Next'
             )}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Manage Custom Fields Modal
+const ManageCustomFieldsModal = ({ isOpen, onClose, statuses, collaborationTypes, contactSources, onFieldsUpdated }) => {
+  const [fieldType, setFieldType] = useState('status');
+  const [deletingId, setDeletingId] = useState(null);
+  const [usageCounts, setUsageCounts] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Field type configuration
+  const fieldConfigs = {
+    status: {
+      label: 'Status',
+      items: statuses,
+      tableName: 'crm_statuses',
+      fieldName: 'status_id',
+      systemItems: ['Initial Contact', 'Delivered', 'Completed'],
+      hasColor: true
+    },
+    collaboration: {
+      label: 'Collaboration Type',
+      items: collaborationTypes,
+      tableName: 'crm_collaboration_types',
+      fieldName: 'collaboration_type_id',
+      systemItems: [],
+      hasColor: false
+    },
+    contact: {
+      label: 'Contact Source',
+      items: contactSources,
+      tableName: 'crm_contact_sources',
+      fieldName: 'contact_source_id',
+      systemItems: [],
+      hasColor: false
+    }
+  };
+
+  const currentConfig = fieldConfigs[fieldType];
+
+  useEffect(() => {
+    if (isOpen) {
+      loadUsageCounts();
+    }
+  }, [isOpen, fieldType]);
+
+  const loadUsageCounts = async () => {
+    if (isLoading || !currentConfig?.fieldName) return;
+    
+    setIsLoading(true);
+    try {
+      const { data: products, error } = await supabase
+        .from('sourced_products')
+        .select(currentConfig.fieldName);
+      
+      if (error) throw error;
+      
+      // Count usage for each item
+      const counts = {};
+      products.forEach(product => {
+        const fieldValue = product[currentConfig.fieldName];
+        if (fieldValue) {
+          counts[fieldValue] = (counts[fieldValue] || 0) + 1;
+        }
+      });
+      setUsageCounts(counts);
+    } catch (error) {
+      console.error('Error loading usage counts:', error);
+      setIsLoading(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteItem = async (itemId, itemName) => {
+    // Check if item is in use
+    if (usageCounts[itemId] > 0) {
+      alert(`Cannot delete this ${currentConfig.label.toLowerCase()} - it's used by ${usageCounts[itemId]} product(s)`);
+      return;
+    }
+
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingId(itemId);
+    try {
+      const { error } = await supabase
+        .from(currentConfig.tableName)
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+      
+      // Reload fields in parent
+      if (onFieldsUpdated) {
+        onFieldsUpdated();
+      }
+      
+      // Reload usage counts for current type
+      await loadUsageCounts();
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      alert(`Failed to delete ${currentConfig.label.toLowerCase()}: ` + error.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Manage Custom Fields</h3>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          {/* Field Type Selector */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Field Type
+            </label>
+            <select
+              value={fieldType}
+              onChange={(e) => setFieldType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            >
+              <option value="status">Status</option>
+              <option value="collaboration">Collaboration Type</option>
+              <option value="contact">Contact Source</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="p-6 overflow-y-auto" style={{ maxHeight: '60vh' }}>
+          {!currentConfig?.items || currentConfig.items.length === 0 ? (
+            <div className="flex justify-center py-8 text-gray-500 dark:text-gray-400">
+              No custom fields found for this type.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {currentConfig?.items?.map(item => {
+                const isSystemItem = currentConfig.systemItems.includes(item.name);
+                const usageCount = usageCounts[item.id] || 0;
+                const canDelete = !isSystemItem && usageCount === 0;
+                
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      {currentConfig.hasColor && (
+                        <div 
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                      )}
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {item.name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {usageCount > 0 ? `Used by ${usageCount} product(s)` : 'Not in use'}
+                          {isSystemItem && ' • System field'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {!isSystemItem && (
+                      <button
+                        onClick={() => handleDeleteItem(item.id, item.name)}
+                        disabled={!canDelete || deletingId === item.id}
+                        className={`
+                          px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                          ${canDelete
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                          }
+                        `}
+                        title={!canDelete ? `Cannot delete - ${currentConfig.label.toLowerCase()} is in use` : `Delete ${currentConfig.label.toLowerCase()}`}
+                      >
+                        {deletingId === item.id ? (
+                          <Loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Trash2 className="w-4 h-4 inline mr-1" />
+                            Delete
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              <strong>Note:</strong> You can only delete custom {currentConfig?.label.toLowerCase()}s that are not currently in use. 
+              {currentConfig?.systemItems?.length > 0 && `System ${currentConfig.label.toLowerCase()}s cannot be deleted.`}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -2164,7 +2477,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Status</span>
-                <ShippingBadge status={product.shipping_status} />
+                <ShippingBadge status={product.tracking_status} />
               </div>
               {product.shipping_eta && (
                 <div className="flex items-center justify-between">
@@ -2176,16 +2489,15 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
           </div>
         )}
         
-        {/* Add Tracking (if no tracking) */}
-        {!product.tracking_number && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Shipping</h4>
-            <button className="w-full px-4 py-2 border border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-lg hover:border-gray-400 hover:text-gray-700 flex items-center justify-center gap-2">
-              <Truck className="w-4 h-4" />
-              Add Tracking Number
-            </button>
-          </div>
-        )}
+        {/* Add/Edit Tracking */}
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Shipping</h4>
+          <TrackingInput 
+            productId={product.id}
+            currentTracking={product.tracking_number}
+            onUpdate={(trackingNumber) => onUpdate({ ...product, tracking_number: trackingNumber })}
+          />
+        </div>
         
         {/* ASIN Correlation Finder - Opens Side Panel */}
         <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -2246,6 +2558,8 @@ export default function ProductCRM() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isManageCustomFieldsModalOpen, setIsManageCustomFieldsModalOpen] = useState(false);
+  const [isSyncingTracking, setIsSyncingTracking] = useState(false);
   
   // Bulk selection state
   const [selectedProducts, setSelectedProducts] = useState(new Set());
@@ -2362,6 +2676,8 @@ export default function ProductCRM() {
       setStatusFilter(defaultStatuses);
     }
   }, [statuses]);
+
+  // Removed realtime subscription - use Sync Tracking button instead
 
   // Fetch product data from Keepa (with fallback to direct image URL)
   const fetchKeepaData = async (asin) => {
@@ -2761,6 +3077,42 @@ export default function ProductCRM() {
                 <Plus className="w-4 h-4" />
                 Add Product
               </button>
+              <button
+                onClick={() => setIsManageCustomFieldsModalOpen(true)}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
+                title="Manage custom fields"
+              >
+                <ListTodo className="w-4 h-4" />
+                Custom Fields
+              </button>
+              <button
+                onClick={async () => {
+                  setIsSyncingTracking(true);
+                  try {
+                    const response = await fetch('/api/aftership-sync-scheduled');
+                    const result = await response.json();
+                    console.log('Sync result:', result);
+                    // Refresh products after sync
+                    fetchProducts();
+                    alert(`Tracking sync complete! ${result.updated || 0} products updated.`);
+                  } catch (error) {
+                    console.error('Sync error:', error);
+                    alert('Failed to sync tracking. Please try again.');
+                  } finally {
+                    setIsSyncingTracking(false);
+                  }
+                }}
+                disabled={isSyncingTracking}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                title="Sync tracking status from AfterShip"
+              >
+                {isSyncingTracking ? (
+                  <Loader className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                Sync Tracking
+              </button>
             </div>
           </div>
         </div>
@@ -3107,6 +3459,16 @@ export default function ProductCRM() {
         onClose={() => setIsImportModalOpen(false)}
         onImport={handleImportProducts}
         statuses={statuses}
+      />
+      
+      {/* Manage Custom Fields Modal */}
+      <ManageCustomFieldsModal
+        isOpen={isManageCustomFieldsModalOpen}
+        onClose={() => setIsManageCustomFieldsModalOpen(false)}
+        statuses={statuses}
+        collaborationTypes={collaborationTypes}
+        contactSources={contactSources}
+        onFieldsUpdated={fetchLookups}
       />
       
       {/* Detail Panel */}

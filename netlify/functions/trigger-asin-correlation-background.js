@@ -309,34 +309,66 @@ exports.handler = async (event, context) => {
   // They just process and exit
   
   console.log('🔔 Background function triggered');
+  console.log('Headers:', JSON.stringify(event.headers));
+  console.log('WEBHOOK_SECRET exists:', !!process.env.WEBHOOK_SECRET);
+  
+  // Parse body early to get jobId for error logging
+  const db = getSupabase();
+  let earlyJobId = null;
+  try {
+    const earlyBody = JSON.parse(event.body || '{}');
+    earlyJobId = earlyBody.jobId;
+    console.log('Parsed jobId:', earlyJobId);
+  } catch (e) {
+    console.error('Failed to parse body early:', e);
+  }
   
   // Verify authentication (JWT or webhook secret)
   const authResult = await verifyAuthOrWebhook(event);
   if (!authResult.success) {
     console.error('❌ Authentication failed:', authResult.error);
+    // Log auth failure to job if we have jobId
+    if (earlyJobId) {
+      await db.from('import_jobs').update({ 
+        status: 'error', 
+        error_message: `Auth failed: ${authResult.error}` 
+      }).eq('id', earlyJobId);
+    }
     return { statusCode: authResult.statusCode || 401 };
   }
   console.log('✅ Auth verified:', authResult.isWebhook ? 'webhook' : `user ${authResult.userId}`);
   
+  const db = getSupabase();
+  let jobId = null;
+  
   try {
     const body = JSON.parse(event.body || '{}');
     const { asin, userId } = body;
+    jobId = body.jobId;
     
     if (!asin || !userId) {
       console.error('❌ Missing asin or userId');
       return { statusCode: 400 };
     }
     
-    // Get Keepa key from env
-    const keepaKey = process.env.KEEPA_API_KEY;
+    // Update job status to processing
+    if (jobId) {
+      await db.from('import_jobs').update({ status: 'processing' }).eq('id', jobId);
+      console.log(`📝 Job ${jobId} marked as processing`);
+    }
+    
+    // Get Keepa key from env or request
+    const keepaKey = body.keepaKey || process.env.KEEPA_API_KEY;
     if (!keepaKey) {
       console.error('❌ KEEPA_API_KEY not configured');
+      if (jobId) await db.from('import_jobs').update({ status: 'error', error_message: 'Keepa API key not configured' }).eq('id', jobId);
       return { statusCode: 500 };
     }
     
     // Check for Anthropic key
     if (!process.env.ANTHROPIC_API_KEY) {
       console.error('❌ ANTHROPIC_API_KEY not configured');
+      if (jobId) await db.from('import_jobs').update({ status: 'error', error_message: 'Anthropic API key not configured' }).eq('id', jobId);
       return { statusCode: 500 };
     }
     
@@ -345,10 +377,23 @@ exports.handler = async (event, context) => {
     
     console.log('📋 Result:', JSON.stringify(result));
     
+    // Mark job complete
+    if (jobId) {
+      await db.from('import_jobs').update({ 
+        status: 'complete', 
+        completed_at: new Date().toISOString(),
+        total_count: result.correlationsFound || 0
+      }).eq('id', jobId);
+      console.log(`✅ Job ${jobId} marked as complete`);
+    }
+    
     return { statusCode: 200 };
     
   } catch (error) {
     console.error('❌ Handler error:', error);
+    if (jobId) {
+      await db.from('import_jobs').update({ status: 'error', error_message: error.message }).eq('id', jobId).catch(() => {});
+    }
     return { statusCode: 500 };
   }
 };

@@ -222,8 +222,10 @@ async function getCorrelationsFromDB(asin, userId, options = {}) {
   
   // Step 1: Get ASINs with completed tasks (unless includeCompleted is true)
   let completedAsins = new Set();
+  let decidedAsins = new Set();
   
   if (!includeCompleted) {
+    // Get completed tasks
     const { data: completedTasks, error: tasksError } = await getSupabase()
       .from('influencer_tasks')
       .select('asin')
@@ -232,10 +234,24 @@ async function getCorrelationsFromDB(asin, userId, options = {}) {
     
     if (tasksError) {
       console.error('⚠️ Warning: Could not fetch completed tasks:', tasksError);
-      // Continue anyway - better to show all than fail completely
     } else if (completedTasks?.length > 0) {
       completedAsins = new Set(completedTasks.map(t => t.asin));
       console.log(`🔍 Found ${completedAsins.size} ASINs with completed tasks to filter out`);
+    }
+    
+    // Get accepted/declined correlations from feedback table
+    const { data: feedbackData, error: feedbackError } = await getSupabase()
+      .from('asin_correlations')
+      .select('similar_asin, decision')
+      .eq('search_asin', asin.toUpperCase())
+      .eq('user_id', userId)
+      .in('decision', ['accepted', 'declined']);
+    
+    if (feedbackError) {
+      console.error('⚠️ Warning: Could not fetch feedback:', feedbackError);
+    } else if (feedbackData?.length > 0) {
+      decidedAsins = new Set(feedbackData.map(f => f.similar_asin));
+      console.log(`🔍 Found ${decidedAsins.size} ASINs with decisions to filter out`);
     }
   }
   
@@ -252,15 +268,17 @@ async function getCorrelationsFromDB(asin, userId, options = {}) {
     return { error: dbError, correlations: [], filteredCount: 0 };
   }
 
-  // Step 3: Filter out correlations with completed tasks
+  // Step 3: Filter out correlations with completed tasks OR accepted/declined decisions
   const allCorrelations = correlations || [];
   const filteredCorrelations = allCorrelations.filter(
-    row => !completedAsins.has(row.similar_asin)
+    row => !completedAsins.has(row.similar_asin) && 
+           !decidedAsins.has(row.similar_asin) &&
+           !row.decision // Also filter if decision is set on the correlation itself
   );
   
   const filteredCount = allCorrelations.length - filteredCorrelations.length;
   if (filteredCount > 0) {
-    console.log(`✅ Filtered out ${filteredCount} correlations with completed tasks`);
+    console.log(`✅ Filtered out ${filteredCount} correlations (completed tasks or decided)`);
   }
 
   const formattedCorrelations = filteredCorrelations.map(row => ({

@@ -1,0 +1,30 @@
+import{_ as h}from"./vendor-supabase-5edd3635.js";import{c as v,j as e,M as j}from"./index-0231291c.js";import{r as n}from"./vendor-react-4c62d1cf.js";import{C as b}from"./chevron-left-205438b2.js";import{C as f}from"./chevron-right-269a41e8.js";import{Z as y}from"./zap-8fb19a26.js";import"./vendor-query-4b12add6.js";/**
+ * @license lucide-react v0.562.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const w=[["path",{d:"M3 5h.01",key:"18ugdj"}],["path",{d:"M3 12h.01",key:"nlz23k"}],["path",{d:"M3 19h.01",key:"noohij"}],["path",{d:"M8 5h13",key:"1pao27"}],["path",{d:"M8 12h13",key:"1za7za"}],["path",{d:"M8 19h13",key:"m83p4d"}]],N=v("list",w);/**
+ * @license lucide-react v0.562.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const k=[["path",{d:"M16 17h6v-6",key:"t6n2it"}],["path",{d:"m22 17-8.5-8.5-5 5L2 7",key:"x473p"}]],_=v("trending-down",k),C=n.lazy(()=>h(()=>import("./Listings-94dc143f.js"),["assets/Listings-94dc143f.js","assets/index-0231291c.js","assets/vendor-react-4c62d1cf.js","assets/vendor-supabase-5edd3635.js","assets/vendor-query-4b12add6.js","assets/index-6b801a89.css","assets/api-0ba7f9da.js","assets/refresh-cw-6c475bbf.js","assets/funnel-9484537d.js"])),E=n.lazy(()=>h(()=>import("./Strategies-cc8598d1.js"),["assets/Strategies-cc8598d1.js","assets/index-0231291c.js","assets/vendor-react-4c62d1cf.js","assets/vendor-supabase-5edd3635.js","assets/vendor-query-4b12add6.js","assets/index-6b801a89.css","assets/plus-1047e1dd.js","assets/check-9783a27c.js"])),L=n.lazy(()=>h(()=>import("./QuickList-42adf0f9.js"),["assets/QuickList-42adf0f9.js","assets/index-0231291c.js","assets/vendor-react-4c62d1cf.js","assets/vendor-supabase-5edd3635.js","assets/vendor-query-4b12add6.js","assets/index-6b801a89.css"])),i=[{id:"listings",label:"Listings",icon:N,component:C,description:"Manage your eBay inventory"},{id:"strategies",label:"Price Strategies",icon:_,component:E,description:"Configure pricing rules"},{id:"quick-list",label:"Quick List",icon:y,component:L,description:"Fast listing creation"}],g=()=>{const a=window.location.hash.replace("#","");return i.map(s=>s.id).includes(a)?a:"listings"};function $(){const[a,l]=n.useState(g),[s,m]=n.useState(!0),[x,r]=n.useState(!1);n.useEffect(()=>{const t=()=>{l(g())};return window.addEventListener("hashchange",t),()=>window.removeEventListener("hashchange",t)},[]);const c=i.find(t=>t.id===a),p=c==null?void 0:c.component,u=t=>{l(t),r(!1),window.location.hash=t};return e.jsxs("div",{className:"flex",style:{height:"calc(100vh - 56px)"},children:[x&&e.jsx("div",{className:"fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden",onClick:()=>r(!1)}),e.jsxs("aside",{className:`
+          ${s?"w-64":"w-0 lg:w-12"}
+          ${x?"translate-x-0":"-translate-x-full lg:translate-x-0"}
+          fixed lg:relative inset-y-0 left-0 z-40 lg:z-0
+          bg-theme-surface border-r border-theme
+          transition-all duration-300 ease-in-out
+          flex flex-col overflow-hidden
+          h-full
+        `,children:[e.jsxs("div",{className:`
+          flex items-center justify-between p-4 border-b border-theme
+          ${!s&&"lg:hidden"}
+        `,children:[e.jsx("h2",{className:"font-semibold text-theme-primary text-sm uppercase tracking-wide",children:"eBay Tools"}),e.jsx("button",{onClick:()=>r(!1),className:"lg:hidden p-1 rounded hover:bg-theme-hover text-theme-secondary",children:e.jsx(b,{className:"w-5 h-5"})})]}),e.jsx("nav",{className:`flex-1 py-2 ${!s&&"lg:hidden"}`,children:i.map(t=>{const d=a===t.id,o=t.icon;return e.jsxs("button",{onClick:()=>u(t.id),className:`
+                  w-full flex items-center px-4 py-3 text-left
+                  transition-colors duration-150
+                  ${d?"bg-accent text-white":"text-theme-secondary hover:bg-theme-hover hover:text-theme-primary"}
+                `,children:[e.jsx("span",{className:"flex-shrink-0 w-6 h-6 flex items-center justify-center mr-3",children:t.customIcon?e.jsx("span",{className:"text-lg",children:t.customIcon}):o?e.jsx(o,{className:"w-5 h-5",strokeWidth:1.5}):null}),e.jsx("span",{className:"flex-1 min-w-0",children:e.jsx("span",{className:"block text-sm font-medium truncate",children:t.label})})]},t.id)})}),e.jsx("div",{className:"hidden lg:block border-t border-theme p-2",children:e.jsx("button",{onClick:()=>m(!s),className:"w-full flex items-center justify-center p-2 rounded-lg text-theme-tertiary hover:text-theme-secondary hover:bg-theme-hover transition-colors",title:s?"Collapse sidebar":"Expand sidebar",children:s?e.jsx(b,{className:"w-5 h-5"}):e.jsx(f,{className:"w-5 h-5"})})})]}),!s&&e.jsxs("aside",{className:"hidden lg:flex w-12 flex-col items-center py-4 bg-theme-surface border-r border-theme gap-2",children:[i.map(t=>{const d=a===t.id,o=t.icon;return e.jsx("button",{onClick:()=>u(t.id),className:`
+                  p-2 rounded-lg transition-colors
+                  ${d?"bg-accent text-white":"text-theme-tertiary hover:text-theme-primary hover:bg-theme-hover"}
+                `,title:t.label,children:t.customIcon?e.jsx("span",{className:"text-lg",children:t.customIcon}):o?e.jsx(o,{className:"w-5 h-5",strokeWidth:1.5}):null},t.id)}),e.jsx("button",{onClick:()=>m(!0),className:"mt-auto p-2 rounded-lg text-theme-tertiary hover:text-theme-secondary hover:bg-theme-hover transition-colors",title:"Expand sidebar",children:e.jsx(f,{className:"w-5 h-5"})})]}),e.jsx("button",{onClick:()=>r(!0),className:"lg:hidden fixed bottom-4 left-4 z-20 p-3 bg-accent text-white rounded-full shadow-lg",children:e.jsx(j,{className:"w-6 h-6"})}),e.jsx("main",{className:"flex-1 overflow-auto bg-theme-primary",children:e.jsx(n.Suspense,{fallback:e.jsx("div",{className:"flex items-center justify-center h-full",children:e.jsx("div",{className:"animate-spin rounded-full h-12 w-12 border-b-2 border-accent"})}),children:p&&e.jsx(p,{})})})]})}export{$ as default};
+//# sourceMappingURL=EbayCentral-3fe9f864.js.map
