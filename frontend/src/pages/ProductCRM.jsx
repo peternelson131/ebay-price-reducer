@@ -2528,6 +2528,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
           {/* Video Uploader */}
           <VideoUploader 
             productId={product.id}
+            asin={product.asin}
             onUploadComplete={() => {
               // Trigger a refresh of the video gallery
               // The VideoGallery component will handle its own refresh

@@ -17,7 +17,7 @@ const ACCEPTED_VIDEO_TYPES = {
  * VideoUploader Component
  * Handles chunked video uploads to OneDrive with progress tracking
  */
-export default function VideoUploader({ productId, onUploadComplete }) {
+export default function VideoUploader({ productId, asin, onUploadComplete }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -109,6 +109,10 @@ export default function VideoUploader({ productId, onUploadComplete }) {
       const token = await userAPI.getAuthToken();
 
       // Step 1: Create upload session
+      // Generate filename based on ASIN if available, otherwise use original name
+      const fileExtension = file.name.split('.').pop().toLowerCase();
+      const uploadFilename = asin ? `${asin}.${fileExtension}` : file.name;
+      
       const sessionResponse = await fetch('/.netlify/functions/onedrive-upload-session', {
         method: 'POST',
         headers: {
@@ -117,7 +121,7 @@ export default function VideoUploader({ productId, onUploadComplete }) {
         },
         body: JSON.stringify({
           productId,
-          fileName: file.name,
+          filename: uploadFilename,  // Use ASIN-based filename
           fileSize: file.size
         })
       });
@@ -150,10 +154,11 @@ export default function VideoUploader({ productId, onUploadComplete }) {
         },
         body: JSON.stringify({
           productId,
-          fileName: file.name,
+          filename: uploadFilename,  // Use ASIN-based filename
           fileSize: file.size,
           oneDriveId: sessionData.oneDriveId,
-          oneDrivePath: sessionData.oneDrivePath
+          oneDrivePath: sessionData.oneDrivePath,
+          originalFilename: file.name  // Keep original for reference
         })
       });
 
