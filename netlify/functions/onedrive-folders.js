@@ -27,14 +27,53 @@ const supabase = createClient(
 function buildFolderTree(items, parentPath = '') {
   return items
     .filter(item => item.folder) // Only folders, not files
-    .map(folder => ({
-      id: folder.id,
-      name: folder.name,
-      path: parentPath ? `${parentPath}/${folder.name}` : folder.name,
-      childCount: folder.folder.childCount,
-      webUrl: folder.webUrl,
-      lastModified: folder.lastModifiedDateTime
-    }));
+    .map(folder => {
+      // Construct the full path
+      let fullPath;
+      if (parentPath) {
+        // If we have a parent path, append the folder name
+        fullPath = parentPath === 'My Files' 
+          ? folder.name  // Root level: just the folder name
+          : `${parentPath}/${folder.name}`;
+      } else {
+        // No parent path provided, use just the name
+        fullPath = folder.name;
+      }
+
+      return {
+        id: folder.id,
+        name: folder.name,
+        path: fullPath,
+        childCount: folder.folder.childCount,
+        webUrl: folder.webUrl,
+        lastModified: folder.lastModifiedDateTime
+      };
+    });
+}
+
+/**
+ * Extract user-friendly path from OneDrive's parentReference.path
+ * OneDrive paths look like: "/drive/root:/Documents/Folder"
+ * We want to show: "My Files/Documents/Folder"
+ */
+function extractUserFriendlyPath(parentReferencePath, folderName) {
+  if (!parentReferencePath) {
+    return 'My Files';
+  }
+
+  // Remove the "/drive/root:" prefix
+  let cleanPath = parentReferencePath.replace(/^\/drive\/root:?/, '');
+  
+  // Remove leading slash
+  cleanPath = cleanPath.replace(/^\//, '');
+  
+  // If empty, we're at root
+  if (!cleanPath) {
+    return 'My Files';
+  }
+  
+  // Otherwise prepend "My Files"
+  return `My Files/${cleanPath}`;
 }
 
 exports.handler = async (event, context) => {
@@ -74,7 +113,23 @@ exports.handler = async (event, context) => {
     if (folderId) {
       // List specific folder by ID
       endpoint = `/me/drive/items/${folderId}/children`;
-      currentPath = path || 'Unknown'; // Path should be provided with folderId
+      
+      // If path not provided, fetch the folder metadata to get its path
+      if (!path) {
+        const folderMetadata = await graphApiRequest(userId, `/me/drive/items/${folderId}`);
+        currentPath = extractUserFriendlyPath(
+          folderMetadata.parentReference?.path,
+          folderMetadata.name
+        );
+        // Append the current folder name to create the full path for children
+        if (currentPath === 'My Files') {
+          currentPath = folderMetadata.name;
+        } else {
+          currentPath = `${currentPath}/${folderMetadata.name}`;
+        }
+      } else {
+        currentPath = path;
+      }
     } else if (path) {
       // List folder by path
       const encodedPath = encodeURIComponent(path);
@@ -83,7 +138,7 @@ exports.handler = async (event, context) => {
     } else {
       // List root folder
       endpoint = '/me/drive/root/children';
-      currentPath = '/';
+      currentPath = 'My Files';
     }
 
     // Make Graph API request with automatic token refresh
