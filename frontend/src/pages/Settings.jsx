@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { userAPI } from '../lib/supabase'
-import { OneDriveConnection } from '../components/onedrive'
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('general')
@@ -228,7 +227,6 @@ export default function Settings() {
   const tabs = [
     { id: 'general', name: 'General' },
     { id: 'ebay', name: 'eBay Integration' },
-    { id: 'onedrive', name: 'OneDrive' },
     { id: 'notifications', name: 'Notifications' },
     { id: 'ai-matching', name: 'AI Matching' },
   ]
@@ -593,22 +591,6 @@ export default function Settings() {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* OneDrive Integration */}
-          {activeTab === 'onedrive' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-theme-primary mb-4">
-                  OneDrive Video Storage
-                </h3>
-                <p className="text-sm text-theme-secondary mb-6">
-                  Connect your OneDrive account to store product videos. Videos are uploaded directly to your OneDrive folder and linked to products in your CRM.
-                </p>
-              </div>
-              
-              <OneDriveConnection />
             </div>
           )}
 

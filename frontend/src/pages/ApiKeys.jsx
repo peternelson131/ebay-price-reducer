@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Eye, EyeOff, ExternalLink, CheckCircle, XCircle, AlertCircle, Loader, Link2, Unlink } from 'lucide-react';
+import { OneDriveConnection } from '../components/onedrive';
 
 // API key services
 const API_SERVICES = [
@@ -435,9 +436,9 @@ export default function ApiKeys() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-theme-primary">API Keys</h1>
+        <h1 className="text-2xl font-semibold text-theme-primary">Integrations</h1>
         <p className="mt-2 text-theme-secondary">
-          Manage your API credentials for external services. Keys are encrypted and stored securely.
+          Manage your integrations and API credentials for external services. Keys are encrypted and stored securely.
         </p>
       </div>
 
@@ -454,6 +455,17 @@ export default function ApiKeys() {
       <div className="space-y-4">
         {/* eBay Connection - OAuth Flow */}
         <EbayConnectionCard />
+
+        {/* OneDrive Integration */}
+        <div className="bg-theme-surface rounded-lg border border-theme p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-medium text-theme-primary">OneDrive Video Storage</h3>
+            <p className="mt-1 text-sm text-theme-tertiary">
+              Connect your OneDrive account to store product videos. Videos are uploaded directly to your OneDrive folder and linked to products in your CRM.
+            </p>
+          </div>
+          <OneDriveConnection />
+        </div>
 
         {/* Simple API Key Services */}
         {API_SERVICES.map(service => (
