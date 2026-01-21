@@ -51,7 +51,7 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
     try {
       const token = await userAPI.getAuthToken();
       
-      const response = await fetch(`/.netlify/functions/videos?videoId=${videoId}`, {
+      const response = await fetch(`/.netlify/functions/videos/${videoId}?deleteFromOneDrive=true`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -184,8 +184,8 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
             <div className="p-3 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-theme-primary truncate" title={video.file_name}>
-                    {video.file_name}
+                  <p className="text-sm font-medium text-theme-primary truncate" title={video.filename}>
+                    {video.filename}
                   </p>
                   <div className="flex items-center gap-2 mt-1 text-xs text-theme-tertiary">
                     <span>{formatFileSize(video.file_size)}</span>
@@ -243,7 +243,7 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
 
             {/* Video Info */}
             <div className="mt-4 text-white">
-              <h3 className="text-lg font-medium">{selectedVideo.file_name}</h3>
+              <h3 className="text-lg font-medium">{selectedVideo.filename}</h3>
               <div className="flex items-center gap-4 mt-2 text-sm text-gray-300">
                 <span>{formatFileSize(selectedVideo.file_size)}</span>
                 <span>•</span>
@@ -265,7 +265,7 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
               Are you sure you want to delete this video?
             </p>
             <p className="text-sm font-medium text-theme-primary mb-6 break-words">
-              {selectedVideo.file_name}
+              {selectedVideo.filename}
             </p>
             <p className="text-xs text-orange-600 dark:text-orange-400 mb-6">
               This will remove the video from OneDrive and cannot be undone.

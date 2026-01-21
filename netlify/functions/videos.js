@@ -95,7 +95,13 @@ async function handlePost(userId, body) {
       throw new Error(`Failed to update video: ${error.message}`);
     }
 
-    return updated;
+    // Auto-link video to approved tasks if product_id exists
+    let linkedTaskCount = 0;
+    if (updated.product_id) {
+      linkedTaskCount = await linkVideoToApprovedTasks(userId, updated.product_id, updated.id);
+    }
+
+    return { ...updated, linkedTaskCount };
   }
 
   // Otherwise, create new record
@@ -124,7 +130,80 @@ async function handlePost(userId, body) {
     throw new Error(`Failed to create video: ${insertError.message}`);
   }
 
-  return created;
+  // Auto-link video to approved tasks for this product
+  let linkedTaskCount = 0;
+  if (productId && created.id) {
+    linkedTaskCount = await linkVideoToApprovedTasks(userId, productId, created.id);
+  }
+
+  return { ...created, linkedTaskCount };
+}
+
+/**
+ * Link a video to all approved influencer tasks for the product
+ * Flow: product -> ASIN -> tasks with matching ASIN and approved feedback
+ */
+async function linkVideoToApprovedTasks(userId, productId, videoId) {
+  try {
+    // 1. Get the product's ASIN
+    const { data: product, error: productError } = await supabase
+      .from('sourced_products')
+      .select('asin')
+      .eq('id', productId)
+      .single();
+
+    if (productError || !product?.asin) {
+      console.log('No product or ASIN found for video linking:', productError?.message);
+      return 0;
+    }
+
+    // 2. Find tasks for this ASIN that don't have a video yet
+    // Join with feedback to filter for approved tasks only
+    const { data: tasksToLink, error: tasksError } = await supabase
+      .from('influencer_tasks')
+      .select(`
+        id,
+        feedback_id,
+        asin_correlation_feedback!inner (
+          decision
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('asin', product.asin)
+      .is('video_id', null)
+      .eq('asin_correlation_feedback.decision', 'accepted');
+
+    if (tasksError) {
+      console.error('Error finding tasks to link:', tasksError);
+      return 0;
+    }
+
+    if (!tasksToLink || tasksToLink.length === 0) {
+      console.log('No accepted tasks found for ASIN:', product.asin);
+      return 0;
+    }
+
+    const taskIds = tasksToLink.map(t => t.id);
+
+    // 3. Update tasks with the video_id
+    const { data: updatedTasks, error: updateError } = await supabase
+      .from('influencer_tasks')
+      .update({ video_id: videoId })
+      .in('id', taskIds)
+      .select('id');
+
+    if (updateError) {
+      console.error('Error linking video to tasks:', updateError);
+      return 0;
+    }
+
+    const linkedCount = updatedTasks?.length || 0;
+    console.log(`Linked video ${videoId} to ${linkedCount} approved task(s) for ASIN ${product.asin}`);
+    return linkedCount;
+  } catch (error) {
+    console.error('Error in linkVideoToApprovedTasks:', error);
+    return 0;
+  }
 }
 
 /**

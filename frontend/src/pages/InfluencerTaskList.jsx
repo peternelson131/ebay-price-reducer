@@ -14,7 +14,10 @@ import {
   RefreshCw,
   Trash2,
   RotateCcw,
-  Upload
+  Upload,
+  Film,
+  Languages,
+  Play
 } from 'lucide-react';
 
 // Marketplace flags and info
@@ -50,10 +53,124 @@ export default function InfluencerTaskList() {
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [filter, setFilter] = useState('pending'); // 'all', 'pending', 'completed'
+  const [dubbingTasks, setDubbingTasks] = useState(new Set()); // Track tasks being dubbed
+  const [checkingTasks, setCheckingTasks] = useState(new Set()); // Track tasks checking status
 
   useEffect(() => {
     loadTasks();
   }, []);
+
+  // Language code mapping
+  const LANGUAGE_CODES = {
+    'German': 'de',
+    'French': 'fr',
+    'Spanish': 'es',
+    'Italian': 'it',
+    'Japanese': 'ja'
+  };
+
+  // Handle dubbing a video
+  const handleDubVideo = async (task) => {
+    if (!task.video?.id || !task.language) {
+      alert('Video or language not available');
+      return;
+    }
+
+    const languageCode = LANGUAGE_CODES[task.language];
+    if (!languageCode) {
+      alert(`Unsupported language: ${task.language}`);
+      return;
+    }
+
+    // Mark task as dubbing
+    setDubbingTasks(prev => new Set([...prev, task.id]));
+
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/video-variants', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          videoId: task.video.id,
+          languageCode: languageCode
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start dubbing');
+      }
+
+      if (data.isExisting && data.variant?.dub_status === 'complete') {
+        alert(`${task.language} version already exists!`);
+      } else {
+        alert(`Dubbing to ${task.language} started! This may take a few minutes.`);
+      }
+    } catch (error) {
+      console.error('Dub error:', error);
+      alert(`Failed to start dubbing: ${error.message}`);
+    } finally {
+      // Remove dubbing state after a delay
+      setTimeout(() => {
+        setDubbingTasks(prev => {
+          const next = new Set(prev);
+          next.delete(task.id);
+          return next;
+        });
+      }, 2000);
+    }
+  };
+
+  // Check dub status and complete upload if ready
+  const handleCheckDubStatus = async (task) => {
+    if (!task.variant?.id) {
+      alert('No variant found to check');
+      return;
+    }
+
+    setCheckingTasks(prev => new Set([...prev, task.id]));
+
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/check-dub-status', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          variantId: task.variant.id
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.status === 'complete') {
+        alert(`✅ Dubbed video ready!\n\nSaved to: ${data.onedrive_path}`);
+        loadTasks(); // Refresh to show updated status
+      } else if (data.status === 'processing') {
+        alert('⏳ Still dubbing... Try again in a minute.');
+      } else if (data.status === 'failed') {
+        alert(`❌ Dubbing failed: ${data.message}`);
+        loadTasks();
+      } else {
+        alert(`Status: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Check status error:', error);
+      alert(`Error checking status: ${error.message}`);
+    } finally {
+      setCheckingTasks(prev => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
+    }
+  };
 
   const loadTasks = async () => {
     setLoading(true);
@@ -254,7 +371,11 @@ export default function InfluencerTaskList() {
 
               {/* Marketplace Tasks */}
               <div className="divide-y divide-theme">
-                {asinTasks.map(task => (
+                {asinTasks.map(task => ({ 
+                  ...task, 
+                  dubbing: dubbingTasks.has(task.id),
+                  checking: checkingTasks.has(task.id)
+                })).map(task => (
                   <div
                     key={task.id}
                     className={`flex items-center justify-between p-4 ${
@@ -266,12 +387,29 @@ export default function InfluencerTaskList() {
                       <div>
                         <p className={`font-medium text-theme-primary ${task.status === 'completed' ? 'line-through' : ''}`}>
                           {MARKETPLACES[task.marketplace]?.name}
+                          {task.requiresDubbing && (
+                            <span className="ml-2 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
+                              {task.language}
+                            </span>
+                          )}
                         </p>
-                        <p className="text-sm text-theme-tertiary">
+                        <p className="text-sm text-theme-tertiary flex items-center gap-2">
                           {task.status === 'completed' 
                             ? `Completed ${new Date(task.completed_at).toLocaleDateString()}`
                             : `Created ${new Date(task.created_at).toLocaleDateString()}`
                           }
+                          {/* Video indicator */}
+                          {task.hasVideo ? (
+                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                              <Film className="w-3 h-3" />
+                              <span className="text-xs">Video ready</span>
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-gray-400">
+                              <Film className="w-3 h-3" />
+                              <span className="text-xs">No video</span>
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -279,6 +417,83 @@ export default function InfluencerTaskList() {
                     <div className="flex items-center gap-2">
                       {task.status === 'pending' ? (
                         <>
+                          {/* Video preview button if video exists */}
+                          {task.hasVideo && task.video && (
+                            <button
+                              onClick={() => window.open(task.video.onedrive_path, '_blank')}
+                              className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors flex items-center gap-1"
+                              title={`View video: ${task.video.filename}`}
+                            >
+                              <Play className="w-3 h-3" /> Video
+                            </button>
+                          )}
+                          
+                          {/* Dub/Check Status button for non-English marketplaces with video */}
+                          {task.hasVideo && task.requiresDubbing && (
+                            <>
+                              {task.hasDubbedVideo ? (
+                                // Dubbed video ready
+                                <span className="px-3 py-2 bg-green-600 text-white text-sm rounded-lg flex items-center gap-1">
+                                  <CheckCircle className="w-3 h-3" /> {task.language} Ready
+                                </span>
+                              ) : task.dubStatus === 'processing' ? (
+                                // Check status button
+                                <button
+                                  onClick={() => handleCheckDubStatus(task)}
+                                  disabled={task.checking}
+                                  className={`px-3 py-2 text-white text-sm rounded-lg transition-colors flex items-center gap-1 ${
+                                    task.checking 
+                                      ? 'bg-yellow-400 cursor-not-allowed' 
+                                      : 'bg-yellow-600 hover:bg-yellow-700'
+                                  }`}
+                                  title="Check if dubbing is complete"
+                                >
+                                  {task.checking ? (
+                                    <>
+                                      <Loader className="w-3 h-3 animate-spin" /> Checking...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <RefreshCw className="w-3 h-3" /> Check Status
+                                    </>
+                                  )}
+                                </button>
+                              ) : task.dubStatus === 'failed' ? (
+                                // Retry button
+                                <button
+                                  onClick={() => handleDubVideo(task)}
+                                  disabled={task.dubbing}
+                                  className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors flex items-center gap-1"
+                                  title="Retry dubbing"
+                                >
+                                  <RotateCcw className="w-3 h-3" /> Retry Dub
+                                </button>
+                              ) : (
+                                // Start dubbing button
+                                <button
+                                  onClick={() => handleDubVideo(task)}
+                                  disabled={task.dubbing}
+                                  className={`px-3 py-2 text-white text-sm rounded-lg transition-colors flex items-center gap-1 ${
+                                    task.dubbing 
+                                      ? 'bg-purple-400 cursor-not-allowed' 
+                                      : 'bg-purple-600 hover:bg-purple-700'
+                                  }`}
+                                  title={`Dub video to ${task.language}`}
+                                >
+                                  {task.dubbing ? (
+                                    <>
+                                      <Loader className="w-3 h-3 animate-spin" /> Dubbing...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Languages className="w-3 h-3" /> Dub to {task.language}
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </>
+                          )}
+                          
                           <a
                             href={task.amazon_upload_url}
                             target="_blank"

@@ -65,6 +65,7 @@ export default function VideoUploader({ productId, asin, onUploadComplete }) {
 
   const uploadChunked = async (file, uploadUrl, onProgress) => {
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    let finalResponse = null;
 
     for (let i = 0; i < totalChunks; i++) {
       const start = i * CHUNK_SIZE;
@@ -85,9 +86,17 @@ export default function VideoUploader({ productId, asin, onUploadComplete }) {
         throw new Error(`Upload failed at chunk ${i + 1}/${totalChunks}: ${errorText}`);
       }
 
+      // The final chunk response contains the file metadata
+      if (i === totalChunks - 1) {
+        finalResponse = await response.json();
+      }
+
       const chunkProgress = ((i + 1) / totalChunks) * 100;
       onProgress(chunkProgress);
     }
+
+    // Return the OneDrive file info from the final chunk response
+    return finalResponse;
   };
 
   const handleUpload = async () => {
@@ -142,10 +151,14 @@ export default function VideoUploader({ productId, asin, onUploadComplete }) {
         throw new Error('No upload URL received');
       }
 
-      // Step 2: Upload file in chunks
-      await uploadChunked(file, sessionData.uploadUrl, setProgress);
+      // Step 2: Upload file in chunks - returns OneDrive file info on completion
+      const oneDriveFile = await uploadChunked(file, sessionData.uploadUrl, setProgress);
 
-      // Step 3: Save video metadata
+      if (!oneDriveFile || !oneDriveFile.id) {
+        throw new Error('Upload completed but no file ID returned from OneDrive');
+      }
+
+      // Step 3: Save video metadata with actual OneDrive file ID
       const metadataResponse = await fetch('/.netlify/functions/videos', {
         method: 'POST',
         headers: {
@@ -153,12 +166,15 @@ export default function VideoUploader({ productId, asin, onUploadComplete }) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          sessionId: sessionData.sessionId,  // Update existing pending record
           productId,
-          filename: uploadFilename,  // Use ASIN-based filename
-          fileSize: file.size,
-          oneDriveId: sessionData.oneDriveId,
-          oneDrivePath: sessionData.oneDrivePath,
-          originalFilename: file.name  // Keep original for reference
+          onedrive_file_id: oneDriveFile.id,  // Actual file ID from OneDrive
+          onedrive_path: oneDriveFile.parentReference?.path 
+            ? `${oneDriveFile.parentReference.path}/${oneDriveFile.name}`
+            : `/${oneDriveFile.name}`,
+          filename: uploadFilename,
+          file_size: file.size,
+          mime_type: file.type || null
         })
       });
 

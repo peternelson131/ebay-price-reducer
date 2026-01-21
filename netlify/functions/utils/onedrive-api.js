@@ -158,12 +158,22 @@ async function graphApiRequest(userId, endpoint, options = {}) {
       throw new Error(`Graph API request failed: ${retryResponse.status} ${error}`);
     }
 
+    // Handle empty responses (e.g., DELETE returns 204 No Content)
+    if (retryResponse.status === 204 || retryResponse.headers.get('content-length') === '0') {
+      return { success: true };
+    }
+
     return await retryResponse.json();
   }
 
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`Graph API request failed: ${response.status} ${error}`);
+  }
+
+  // Handle empty responses (e.g., DELETE returns 204 No Content)
+  if (response.status === 204 || response.headers.get('content-length') === '0') {
+    return { success: true };
   }
 
   return await response.json();
