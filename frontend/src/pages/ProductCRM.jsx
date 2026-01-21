@@ -13,6 +13,7 @@ import { userAPI, supabase } from '../lib/supabase';
 
 import CustomizableDropdown from '../components/crm/CustomizableDropdown';
 import OwnerSelector from '../components/crm/OwnerSelector';
+import { VideoUploader, VideoGallery } from '../components/onedrive';
 import {
   Package,
   Search,
@@ -44,7 +45,8 @@ import {
   GripVertical,
   Upload,
   Construction,
-  Download
+  Download,
+  Film
 } from 'lucide-react';
 
 // Status configuration with colors matching the database seed
@@ -2512,6 +2514,33 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
             <Zap className="w-4 h-4" />
             Find Similar Products
           </button>
+        </div>
+        
+        {/* Product Videos Section */}
+        <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+              <Film className="w-4 h-4" />
+              Product Videos
+            </h4>
+          </div>
+          
+          {/* Video Uploader */}
+          <VideoUploader 
+            productId={product.id}
+            onUploadComplete={() => {
+              // Trigger a refresh of the video gallery
+              // The VideoGallery component will handle its own refresh
+            }}
+          />
+          
+          {/* Video Gallery */}
+          <VideoGallery 
+            productId={product.id}
+            onVideoDeleted={() => {
+              // Optional: Handle any additional logic when video is deleted
+            }}
+          />
         </div>
         
         {/* Done button at bottom */}
