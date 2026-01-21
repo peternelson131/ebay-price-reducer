@@ -31,6 +31,7 @@ const EbayCentral = lazy(() => import('./pages/EbayCentral'))
 const ApiKeys = lazy(() => import('./pages/ApiKeys'))
 const WhatNotAnalysis = lazy(() => import('./pages/WhatNotAnalysis'))
 const ProductCRM = lazy(() => import('./pages/ProductCRM'))
+const Settings = lazy(() => import('./pages/Settings'))
 
 export default function App() {
   const { user, isAuthenticated, signOut } = useAuth()
@@ -260,6 +261,19 @@ export default function App() {
                   API Keys
                 </Link>
 
+                <Link
+                  to="/settings"
+                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                    location.pathname === '/settings'
+                      ? 'bg-accent text-white'
+                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <TrendingDown className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  Settings
+                </Link>
+
                 {/* Theme Toggle & Logout */}
                 <div className="pt-2 mt-2 border-t border-theme space-y-1">
                   <button
@@ -318,6 +332,7 @@ export default function App() {
               <Route path="/asin-lookup" element={<InfluencerCentral />} />
               <Route path="/whatnot" element={<WhatNotAnalysis />} />
               <Route path="/api-keys" element={<ApiKeys />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/whatnot" element={<WhatNotAnalysis />} />
               <Route path="/product-crm" element={<ProductCRM />} />
             </Routes>
