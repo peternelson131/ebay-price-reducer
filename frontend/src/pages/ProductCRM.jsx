@@ -3113,8 +3113,18 @@ export default function ProductCRM() {
             // No prefix set - just use product title
             fullTitle = productTitle;
           }
-          // Truncate to 60 characters max
-          videoTitle = fullTitle.length > 60 ? fullTitle.substring(0, 57) + '...' : fullTitle;
+          // Truncate to 60 characters max, at word boundary (no mid-word cuts)
+          if (fullTitle.length > 60) {
+            let truncated = fullTitle.substring(0, 60);
+            // Find last space to avoid cutting mid-word
+            const lastSpace = truncated.lastIndexOf(' ');
+            if (lastSpace > 20) { // Only if we have reasonable content
+              truncated = truncated.substring(0, lastSpace);
+            }
+            videoTitle = truncated;
+          } else {
+            videoTitle = fullTitle;
+          }
           
           // Save video title to database
           await supabase
