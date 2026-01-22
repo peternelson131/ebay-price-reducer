@@ -30,6 +30,8 @@ export default function Account() {
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState(null)
   const [deletingTemplateId, setDeletingTemplateId] = useState(null)
+  const [thumbnailFolderPath, setThumbnailFolderPath] = useState('/Thumbnails')
+  const [savingThumbnailPath, setSavingThumbnailPath] = useState(false)
   
   const queryClient = useQueryClient()
 
@@ -1077,6 +1079,51 @@ export default function Account() {
                   <Plus className="w-4 h-4" />
                   Add Template
                 </button>
+              </div>
+
+              {/* OneDrive Folder Setting */}
+              <div className="bg-theme-primary rounded-lg border border-theme p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-theme-primary">OneDrive Thumbnail Folder</label>
+                    <p className="text-xs text-theme-tertiary mt-1">
+                      Generated thumbnails will be saved to this folder in your OneDrive.
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-sm text-theme-secondary">/Apps/eBay Price Reducer</span>
+                      <input
+                        type="text"
+                        value={thumbnailFolderPath}
+                        onChange={(e) => setThumbnailFolderPath(e.target.value)}
+                        placeholder="/Thumbnails"
+                        className="flex-1 px-3 py-1.5 text-sm bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                      />
+                      <button
+                        onClick={async () => {
+                          setSavingThumbnailPath(true)
+                          try {
+                            const token = (await supabase.auth.getSession()).data.session?.access_token
+                            await fetch('/.netlify/functions/user-settings', {
+                              method: 'PUT',
+                              headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                              },
+                              body: JSON.stringify({ thumbnail_folder_path: thumbnailFolderPath })
+                            })
+                          } catch (err) {
+                            console.error('Failed to save path:', err)
+                          }
+                          setSavingThumbnailPath(false)
+                        }}
+                        disabled={savingThumbnailPath}
+                        className="px-3 py-1.5 text-sm bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50"
+                      >
+                        {savingThumbnailPath ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Templates Grid */}

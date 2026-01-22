@@ -44,13 +44,22 @@ exports.handler = async (event, context) => {
 
     console.log(`Looking up thumbnail for ASIN: ${asin}`);
 
+    // Get user's thumbnail folder preference
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('thumbnail_folder_path')
+      .eq('id', userId)
+      .single();
+    
+    const folderPath = userProfile?.thumbnail_folder_path || '/Thumbnails';
+
     // Look for thumbnail file in OneDrive thumbnails folder
     // Thumbnails are named {asin}_timestamp.jpg
     try {
       // List files in thumbnails folder
       const listResult = await graphApiRequest(
         userId,
-        `/me/drive/root:/Apps/eBay Price Reducer/thumbnails:/children?$filter=startswith(name,'${asin}_')`
+        `/me/drive/root:/Apps/eBay Price Reducer${folderPath}:/children?$filter=startswith(name,'${asin}_')`
       );
       
       if (listResult.value && listResult.value.length > 0) {

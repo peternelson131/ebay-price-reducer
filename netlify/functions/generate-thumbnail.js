@@ -90,8 +90,17 @@ async function uploadToOneDrive(userId, thumbnailBuffer, filename) {
     throw new Error('OneDrive not connected. Please connect OneDrive in settings.');
   }
   
-  // Upload to OneDrive in a thumbnails folder
-  const uploadPath = `/Apps/eBay Price Reducer/thumbnails/${filename}`;
+  // Get user's thumbnail folder preference
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('thumbnail_folder_path')
+    .eq('id', userId)
+    .single();
+  
+  const folderPath = userProfile?.thumbnail_folder_path || '/Thumbnails';
+  
+  // Upload to OneDrive in user's configured folder
+  const uploadPath = `/Apps/eBay Price Reducer${folderPath}/${filename}`;
   
   try {
     const result = await graphApiRequest(
