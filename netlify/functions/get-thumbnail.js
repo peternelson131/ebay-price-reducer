@@ -46,7 +46,7 @@ exports.handler = async (event, context) => {
 
     // Get user's OneDrive connection with thumbnail folder
     const { data: connection } = await supabase
-      .from('onedrive_connections')
+      .from('user_onedrive_connections')
       .select('thumbnail_folder_id, thumbnail_folder_path')
       .eq('user_id', userId)
       .single();

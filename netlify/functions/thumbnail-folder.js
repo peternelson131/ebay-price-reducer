@@ -35,7 +35,7 @@ exports.handler = async (event, context) => {
     // GET - Retrieve current folder setting
     if (method === 'GET') {
       const { data, error } = await supabase
-        .from('onedrive_connections')
+        .from('user_onedrive_connections')
         .select('thumbnail_folder_id, thumbnail_folder_path')
         .eq('user_id', userId)
         .single();
@@ -62,7 +62,7 @@ exports.handler = async (event, context) => {
       }
 
       const { error } = await supabase
-        .from('onedrive_connections')
+        .from('user_onedrive_connections')
         .update({
           thumbnail_folder_id: folder_id,
           thumbnail_folder_path: folder_path

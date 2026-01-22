@@ -83,7 +83,7 @@ async function uploadToOneDrive(userId, thumbnailBuffer, filename) {
   console.log('Looking up OneDrive connection for user:', userId);
   
   const { data: connection, error: connError } = await supabase
-    .from('onedrive_connections')
+    .from('user_onedrive_connections')
     .select('*')
     .eq('user_id', userId)
     .single();
@@ -93,7 +93,7 @@ async function uploadToOneDrive(userId, thumbnailBuffer, filename) {
   if (!connection) {
     // Debug: check all connections to see what user_ids exist
     const { data: allConns } = await supabase
-      .from('onedrive_connections')
+      .from('user_onedrive_connections')
       .select('user_id')
       .limit(5);
     console.log('Available connection user_ids:', allConns?.map(c => c.user_id));
