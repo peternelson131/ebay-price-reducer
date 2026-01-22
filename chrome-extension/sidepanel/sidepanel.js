@@ -217,7 +217,7 @@ function renderTasks() {
     btn.addEventListener('click', () => handleComplete(btn.dataset.taskId));
   });
   taskList.querySelectorAll('.btn-download').forEach(btn => {
-    btn.addEventListener('click', () => handleDownload(btn.dataset.videoId, btn.dataset.filename));
+    btn.addEventListener('click', () => handleDownloadAll(btn.dataset.videoId, btn.dataset.filename, btn.dataset.asins));
   });
   taskList.querySelectorAll('.task-asin').forEach(el => {
     el.addEventListener('click', () => copyToClipboard(el.textContent, 'ASIN copied!'));
@@ -273,8 +273,8 @@ function createVideoGroup(group) {
             <span class="video-filename">${escapeHtml(group.filename)}</span>
             ${multipleAsins ? `<span class="asin-count">${taskCount} ASINs</span>` : ''}
           </div>
-          <button class="btn btn-download btn-small" data-video-id="${group.videoId}" data-filename="${escapeHtml(group.filename)}">
-            ⬇️ Download
+          <button class="btn btn-download btn-small" data-video-id="${group.videoId}" data-filename="${escapeHtml(group.filename)}" data-asins="${group.tasks.map(t => t.asin).join(',')}">
+            ⬇️ Download All
           </button>
         </div>
       ` : ''}
@@ -410,35 +410,76 @@ async function handleComplete(taskId) {
   }
 }
 
-async function handleDownload(videoId, filename) {
-  showNotification('Requesting download link...', 'info');
+async function handleDownloadAll(videoId, filename, asinsStr) {
+  showNotification('Preparing downloads...', 'info');
+  
+  const asins = asinsStr ? asinsStr.split(',') : [];
+  let downloadedVideo = false;
+  let downloadedThumbnails = 0;
   
   try {
-    // Request download URL from backend
-    const response = await fetch(`${API_BASE}/video-download?videoId=${videoId}`, {
+    // 1. Download the video
+    const videoResponse = await fetch(`${API_BASE}/video-download?videoId=${videoId}`, {
       headers: {
         'Authorization': `Bearer ${currentUser.token}`
       }
     });
     
-    const data = await response.json();
+    const videoData = await videoResponse.json();
     
-    if (!data.success || !data.downloadUrl) {
-      throw new Error(data.error || 'Could not get download URL');
+    if (videoData.success && videoData.downloadUrl) {
+      chrome.downloads.download({
+        url: videoData.downloadUrl,
+        filename: filename,
+        saveAs: false
+      }, (downloadId) => {
+        if (!chrome.runtime.lastError) {
+          downloadedVideo = true;
+        }
+      });
     }
     
-    // Trigger download
-    chrome.downloads.download({
-      url: data.downloadUrl,
-      filename: filename,
-      saveAs: false // Auto-save to Downloads folder
-    }, (downloadId) => {
-      if (chrome.runtime.lastError) {
-        showNotification('Download failed: ' + chrome.runtime.lastError.message, 'error');
-      } else {
-        showNotification(`Downloading ${filename}...`, 'success');
+    // 2. Download thumbnails for each ASIN (if available)
+    for (const asin of asins) {
+      if (!asin) continue;
+      
+      try {
+        const thumbResponse = await fetch(`${API_BASE}/get-thumbnail?asin=${asin}`, {
+          headers: {
+            'Authorization': `Bearer ${currentUser.token}`
+          }
+        });
+        
+        const thumbData = await thumbResponse.json();
+        
+        if (thumbData.success && thumbData.downloadUrl) {
+          chrome.downloads.download({
+            url: thumbData.downloadUrl,
+            filename: `${asin}_thumbnail.jpg`,
+            saveAs: false
+          }, (downloadId) => {
+            if (!chrome.runtime.lastError) {
+              downloadedThumbnails++;
+            }
+          });
+        }
+      } catch (thumbErr) {
+        console.log(`No thumbnail for ${asin}:`, thumbErr.message);
       }
-    });
+    }
+    
+    // Show success message
+    setTimeout(() => {
+      const parts = [];
+      if (downloadedVideo) parts.push('video');
+      if (downloadedThumbnails > 0) parts.push(`${downloadedThumbnails} thumbnail(s)`);
+      
+      if (parts.length > 0) {
+        showNotification(`Downloading ${parts.join(' + ')}...`, 'success');
+      } else {
+        showNotification('Download started...', 'info');
+      }
+    }, 500);
     
   } catch (error) {
     console.error('Download error:', error);
