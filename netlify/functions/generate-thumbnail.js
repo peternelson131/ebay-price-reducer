@@ -56,9 +56,9 @@ async function generateThumbnail(templateBuffer, productImageBuffer, placementZo
   
   console.log(`Zone pixels: x=${zoneX}, y=${zoneY}, w=${zoneWidth}, h=${zoneHeight}`);
   
-  // Trim whitespace from product image
+  // Trim whitespace from product image (low threshold to only remove true white borders)
   const trimmed = await sharp(productImageBuffer)
-    .trim({ threshold: 20 })
+    .trim({ threshold: 5 })
     .toBuffer();
   
   const trimmedMeta = await sharp(trimmed).metadata();
