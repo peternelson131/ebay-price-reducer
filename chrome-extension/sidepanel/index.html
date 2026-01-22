@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Helper</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Login View -->
+    <div id="login-view" class="view">
+      <div class="header">
+        <h1>🎬 Upload Helper</h1>
+        <p class="subtitle">Amazon Influencer Video Uploads</p>
+      </div>
+      
+      <form id="login-form" class="form">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="your@email.com" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Password" required>
+        </div>
+        <button type="submit" id="login-btn" class="btn btn-primary">
+          Sign In
+        </button>
+        <p id="login-error" class="error-text"></p>
+      </form>
+    </div>
+
+    <!-- Tasks View -->
+    <div id="tasks-view" class="view hidden">
+      <div class="header">
+        <div class="header-row">
+          <h1>🎬 Upload Tasks</h1>
+          <button id="refresh-btn" class="btn btn-icon" title="Refresh">🔄</button>
+        </div>
+        <div class="user-info">
+          <span id="user-email"></span>
+          <button id="logout-btn" class="btn btn-link">Logout</button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <button class="filter-btn active" data-status="pending">
+          Pending <span id="pending-count" class="badge">0</span>
+        </button>
+        <button class="filter-btn" data-status="completed">
+          Completed
+        </button>
+      </div>
+
+      <!-- Task List -->
+      <div id="task-list" class="task-list">
+        <div class="loading">Loading tasks...</div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state hidden">
+        <p>🎉 No pending tasks!</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
