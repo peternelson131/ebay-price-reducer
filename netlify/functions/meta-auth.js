@@ -48,6 +48,7 @@ exports.handler = async (event, context) => {
     authUrl.searchParams.set('scope', SCOPES);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('state', state);
+    authUrl.searchParams.set('auth_type', 'rerequest'); // Force re-request permissions
 
     // Return the auth URL for frontend to redirect
     return {

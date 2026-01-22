@@ -93,7 +93,10 @@ exports.handler = async (event, context) => {
     }
 
     if (!pagesData.data || pagesData.data.length === 0) {
-      return redirect(`${FRONTEND_URL}/integrations?meta=error&message=No%20Facebook%20Pages%20found`);
+      console.error('No pages found. Response:', JSON.stringify(pagesData));
+      // Check if user denied page access
+      const hint = pagesData.data ? 'Grant page access during Facebook login' : 'Unknown error';
+      return redirect(`${FRONTEND_URL}/integrations?meta=error&message=${encodeURIComponent('No Facebook Pages found. ' + hint)}`);
     }
 
     // Use the first page (users typically have one business page)
