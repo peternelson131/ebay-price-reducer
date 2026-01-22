@@ -71,7 +71,7 @@ function AccordionSection({ category, isOpen, onToggle, children, connectedCount
 }
 
 // eBay Integration Card
-function EbayIntegration() {
+function EbayIntegration({ onStatusChange }) {
   const [status, setStatus] = useState('loading')
   const [message, setMessage] = useState('')
   const [connecting, setConnecting] = useState(false)
@@ -80,6 +80,11 @@ function EbayIntegration() {
   useEffect(() => {
     checkConnectionStatus()
   }, [])
+
+  // Notify parent when connection status changes
+  useEffect(() => {
+    onStatusChange?.(connectionStatus?.connected === true)
+  }, [connectionStatus, onStatusChange])
 
   const checkConnectionStatus = async () => {
     try {
@@ -229,7 +234,7 @@ function EbayIntegration() {
 }
 
 // Keepa Integration Card
-function KeepaIntegration() {
+function KeepaIntegration({ onStatusChange }) {
   const [apiKey, setApiKey] = useState('')
   const [existingKey, setExistingKey] = useState(null)
   const [showKey, setShowKey] = useState(false)
@@ -238,6 +243,11 @@ function KeepaIntegration() {
   useEffect(() => {
     loadKey()
   }, [])
+
+  // Notify parent when connection status changes
+  useEffect(() => {
+    onStatusChange?.(existingKey?.hasKey === true)
+  }, [existingKey, onStatusChange])
 
   const loadKey = async () => {
     try {
@@ -382,7 +392,7 @@ function KeepaIntegration() {
 }
 
 // Eleven Labs Integration Card
-function ElevenLabsIntegration() {
+function ElevenLabsIntegration({ onStatusChange }) {
   const [apiKey, setApiKey] = useState('')
   const [existingKey, setExistingKey] = useState(null)
   const [showKey, setShowKey] = useState(false)
@@ -391,6 +401,11 @@ function ElevenLabsIntegration() {
   useEffect(() => {
     loadKey()
   }, [])
+
+  // Notify parent when connection status changes
+  useEffect(() => {
+    onStatusChange?.(existingKey?.hasKey === true)
+  }, [existingKey, onStatusChange])
 
   const loadKey = async () => {
     try {
@@ -535,20 +550,20 @@ function ElevenLabsIntegration() {
 }
 
 // OneDrive Integration Card
-function OneDriveIntegrationCard() {
+function OneDriveIntegrationCard({ onStatusChange }) {
   return (
     <div className="bg-theme-primary rounded-lg border border-theme p-4">
       <div className="mb-3">
         <h4 className="font-medium text-theme-primary">OneDrive</h4>
         <p className="text-sm text-theme-tertiary">Cloud storage for product videos</p>
       </div>
-      <OneDriveConnection />
+      <OneDriveConnection onStatusChange={onStatusChange} />
     </div>
   )
 }
 
 // YouTube Integration Card
-function YouTubeIntegration() {
+function YouTubeIntegration({ onStatusChange }) {
   const [searchParams] = useSearchParams()
   const [youtubeSchedule, setYoutubeSchedule] = useState({ 
     post_time: '09:00', 
@@ -577,6 +592,11 @@ function YouTubeIntegration() {
       }
     }
   )
+
+  // Notify parent when connection status changes
+  useEffect(() => {
+    onStatusChange?.(youtubeStatus?.connected === true)
+  }, [youtubeStatus, onStatusChange])
 
   // Handle YouTube OAuth callback from URL params
   useEffect(() => {
@@ -766,7 +786,13 @@ function YouTubeIntegration() {
 export default function Integrations() {
   const [searchParams] = useSearchParams()
   const [openCategories, setOpenCategories] = useState([]) // All collapsed by default
-  const [connectionStatuses, setConnectionStatuses] = useState({})
+  const [connectionStatuses, setConnectionStatuses] = useState({
+    ebay: false,
+    keepa: false,
+    onedrive: false,
+    elevenlabs: false,
+    youtube: false
+  })
 
   // Check for OAuth callback success/error messages
   useEffect(() => {
@@ -785,10 +811,20 @@ export default function Integrations() {
     )
   }
 
+  const updateConnectionStatus = (integration, isConnected) => {
+    setConnectionStatuses(prev => ({
+      ...prev,
+      [integration]: isConnected
+    }))
+  }
+
   const getConnectedCount = (categoryId) => {
-    // This would be calculated based on actual connection statuses
-    // For now, returning 0 as placeholder
-    return 0
+    const category = CATEGORIES.find(cat => cat.id === categoryId)
+    if (!category) return 0
+    
+    return category.integrations.filter(
+      integration => connectionStatuses[integration]
+    ).length
   }
 
   return (
@@ -811,19 +847,29 @@ export default function Integrations() {
           >
             {category.id === 'marketplace' && (
               <>
-                <EbayIntegration />
-                <KeepaIntegration />
+                <EbayIntegration 
+                  onStatusChange={(connected) => updateConnectionStatus('ebay', connected)} 
+                />
+                <KeepaIntegration 
+                  onStatusChange={(connected) => updateConnectionStatus('keepa', connected)} 
+                />
               </>
             )}
             {category.id === 'influencer' && (
               <>
-                <OneDriveIntegrationCard />
-                <ElevenLabsIntegration />
+                <OneDriveIntegrationCard 
+                  onStatusChange={(connected) => updateConnectionStatus('onedrive', connected)} 
+                />
+                <ElevenLabsIntegration 
+                  onStatusChange={(connected) => updateConnectionStatus('elevenlabs', connected)} 
+                />
               </>
             )}
             {category.id === 'social' && (
               <>
-                <YouTubeIntegration />
+                <YouTubeIntegration 
+                  onStatusChange={(connected) => updateConnectionStatus('youtube', connected)} 
+                />
               </>
             )}
           </AccordionSection>

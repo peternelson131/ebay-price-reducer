@@ -8,7 +8,7 @@ import FolderPicker from './FolderPicker';
  * OneDriveConnection Component
  * Manages OneDrive OAuth connection and folder selection for video storage
  */
-export default function OneDriveConnection() {
+export default function OneDriveConnection({ onStatusChange }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -19,6 +19,11 @@ export default function OneDriveConnection() {
   useEffect(() => {
     fetchStatus();
   }, []);
+
+  // Notify parent when connection status changes
+  useEffect(() => {
+    onStatusChange?.(status?.connected === true);
+  }, [status, onStatusChange]);
 
   const fetchStatus = async () => {
     try {
