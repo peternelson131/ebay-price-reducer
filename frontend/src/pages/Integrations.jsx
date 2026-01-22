@@ -33,7 +33,7 @@ const CATEGORIES = [
 ]
 
 // Accordion Component
-function AccordionSection({ category, isOpen, onToggle, children, connectedCount }) {
+function AccordionSection({ category, isOpen, onToggle, children, connectedCount, isLoading }) {
   const IconComponent = category.icon
   
   return (
@@ -50,9 +50,16 @@ function AccordionSection({ category, isOpen, onToggle, children, connectedCount
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="px-2.5 py-1 bg-accent/10 text-accent text-sm rounded-full font-medium">
-            {connectedCount}/{category.integrations.length} connected
-          </span>
+          {isLoading ? (
+            <span className="px-2.5 py-1 bg-accent/10 text-accent text-sm rounded-full font-medium flex items-center gap-2">
+              <Loader className="w-3.5 h-3.5 animate-spin" />
+              Loading...
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 bg-accent/10 text-accent text-sm rounded-full font-medium">
+              {connectedCount}/{category.integrations.length} connected
+            </span>
+          )}
           {isOpen ? (
             <ChevronDown className="w-5 h-5 text-theme-tertiary" />
           ) : (
@@ -793,6 +800,7 @@ export default function Integrations() {
     elevenlabs: false,
     youtube: false
   })
+  const [isLoadingStatuses, setIsLoadingStatuses] = useState(true)
 
   // Check for OAuth callback success/error messages
   useEffect(() => {
@@ -806,9 +814,13 @@ export default function Integrations() {
   // Fetch all connection statuses on mount (independent of accordion state)
   useEffect(() => {
     const fetchAllConnectionStatuses = async () => {
+      setIsLoadingStatuses(true)
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        if (!session) return
+        if (!session) {
+          setIsLoadingStatuses(false)
+          return
+        }
 
         // Fetch eBay status
         try {
@@ -868,6 +880,8 @@ export default function Integrations() {
         }
       } catch (error) {
         console.error('Failed to fetch connection statuses:', error)
+      } finally {
+        setIsLoadingStatuses(false)
       }
     }
 
@@ -915,6 +929,7 @@ export default function Integrations() {
             isOpen={openCategories.includes(category.id)}
             onToggle={() => toggleCategory(category.id)}
             connectedCount={getConnectedCount(category.id)}
+            isLoading={isLoadingStatuses}
           >
             {category.id === 'marketplace' && (
               <>
