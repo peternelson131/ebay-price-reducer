@@ -30,9 +30,12 @@ const SECURITY_HEADERS = {
  */
 function getCorsHeaders(event) {
   const requestOrigin = event.headers.origin || event.headers.Origin;
-  const allowedOrigin = ALLOWED_ORIGINS.includes(requestOrigin)
-    ? requestOrigin
-    : ALLOWED_ORIGINS[0];
+  
+  // Allow Chrome extensions (chrome-extension://...) and listed origins
+  const isAllowed = ALLOWED_ORIGINS.includes(requestOrigin) || 
+    (requestOrigin && requestOrigin.startsWith('chrome-extension://'));
+  
+  const allowedOrigin = isAllowed ? requestOrigin : ALLOWED_ORIGINS[0];
 
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
