@@ -208,7 +208,7 @@ function renderTasks() {
   
   // Attach event listeners
   taskList.querySelectorAll('.btn-fill-title').forEach(btn => {
-    btn.addEventListener('click', () => handleFillTitle());
+    btn.addEventListener('click', () => handleFillTitle(btn.dataset.videoTitle));
   });
   taskList.querySelectorAll('.btn-fill-asin').forEach(btn => {
     btn.addEventListener('click', () => handleFillAsin(btn.dataset.asin));
@@ -316,7 +316,7 @@ function createTaskCard(task, groupHasVideo = false, isMultiAsin = false) {
       ` : ''}
       ${!isCompleted ? `
         <div class="task-actions">
-          <button class="btn btn-fill-title" data-task-id="${task.id}" title="Fill 'Product Review' in title field">
+          <button class="btn btn-fill-title" data-task-id="${task.id}" data-video-title="${escapeHtml(task.video_title || '')}" title="${task.video_title ? escapeHtml(task.video_title) : 'No title set - set owner in CRM'}">
             📝 Title
           </button>
           <button class="btn btn-fill-asin" data-task-id="${task.id}" data-asin="${task.asin}" title="Fill ASIN in search box">
@@ -355,9 +355,15 @@ async function sendToContentScript(action, data) {
   return await chrome.tabs.sendMessage(tab.id, { action, ...data });
 }
 
-async function handleFillTitle() {
+async function handleFillTitle(videoTitle) {
   try {
-    const response = await sendToContentScript('fillTitle', { title: 'Product Review' });
+    // Use video_title from CRM if available, otherwise show warning
+    if (!videoTitle) {
+      showNotification('No title set - assign an owner in CRM first', 'error');
+      return;
+    }
+    
+    const response = await sendToContentScript('fillTitle', { title: videoTitle });
     
     if (response?.success) {
       showNotification('Title filled!', 'success');

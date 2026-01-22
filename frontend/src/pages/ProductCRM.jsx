@@ -46,7 +46,8 @@ import {
   Upload,
   Construction,
   Download,
-  Film
+  Film,
+  Copy
 } from 'lucide-react';
 
 // Status configuration with colors matching the database seed
@@ -2414,6 +2415,29 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
           onChange={(newOwners) => onOwnersChange(product.id, newOwners)}
         />
         
+        {/* Video Title */}
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Video Title</h4>
+          <input
+            type="text"
+            value={product.video_title || ''}
+            onChange={e => onUpdate({ video_title: e.target.value })}
+            placeholder="Auto-generated when owner assigned..."
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          />
+          {product.video_title && (
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(product.video_title);
+                // Show brief toast/feedback
+              }}
+              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              <Copy className="w-3 h-3" /> Copy to clipboard
+            </button>
+          )}
+        </div>
+        
         {/* Collaboration Type */}
         <CustomizableDropdown
           table="crm_collaboration_types"
@@ -3041,33 +3065,63 @@ export default function ProductCRM() {
       // Fetch owner details to update local state with full info
       const ownerIds = newOwners.map(o => o.owner_id);
       let ownersWithDetails = [];
+      let primaryOwner = null;
       
       if (ownerIds.length > 0) {
         const { data: ownerDetails } = await supabase
           .from('crm_owners')
-          .select('id, name, email, avatar_color')
+          .select('id, name, email, avatar_color, title_prefix')
           .in('id', ownerIds);
         
         const ownerMap = new Map((ownerDetails || []).map(o => [o.id, o]));
         
         ownersWithDetails = newOwners.map(o => {
           const owner = ownerMap.get(o.owner_id);
+          if (o.is_primary) primaryOwner = owner;
           return {
             id: o.owner_id,
             is_primary: o.is_primary,
             name: owner?.name || 'Unknown',
             email: owner?.email,
-            avatar_color: owner?.avatar_color || '#3B82F6'
+            avatar_color: owner?.avatar_color || '#3B82F6',
+            title_prefix: owner?.title_prefix || 'Honest Review'
           };
         });
+        
+        // If no primary owner, use first owner
+        if (!primaryOwner && ownerDetails?.length > 0) {
+          primaryOwner = ownerDetails[0];
+        }
       }
       
-      // Update selectedProduct with new owners (immediate UI update)
-      setSelectedProduct(prev => prev ? { ...prev, owners: ownersWithDetails } : null);
+      // Auto-generate video title using primary owner's prefix
+      let videoTitle = null;
+      if (primaryOwner) {
+        // Get current product to find its title
+        const currentProduct = products.find(p => p.id === productId) || selectedProduct;
+        const productTitle = currentProduct?.title || currentProduct?.asin;
+        if (productTitle) {
+          const prefix = primaryOwner.title_prefix || 'Honest Review';
+          videoTitle = `${prefix} - ${productTitle}`;
+          
+          // Save video title to database
+          await supabase
+            .from('sourced_products')
+            .update({ video_title: videoTitle })
+            .eq('id', productId);
+        }
+      }
+      
+      // Update selectedProduct with new owners and video title (immediate UI update)
+      setSelectedProduct(prev => prev ? { 
+        ...prev, 
+        owners: ownersWithDetails,
+        video_title: videoTitle || prev.video_title
+      } : null);
       
       // Also update the products array for consistency
       setProducts(prev => prev.map(p => 
-        p.id === productId ? { ...p, owners: ownersWithDetails } : p
+        p.id === productId ? { ...p, owners: ownersWithDetails, video_title: videoTitle || p.video_title } : p
       ));
       
       // Auto-generate thumbnails for new owners (fire and forget)

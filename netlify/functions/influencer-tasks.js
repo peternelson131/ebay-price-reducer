@@ -85,6 +85,8 @@ exports.handler = async (event, context) => {
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
+      
+      // We'll fetch video_title from sourced_products separately by ASIN
 
       if (status) {
         query = query.eq('status', status);
@@ -130,6 +132,21 @@ exports.handler = async (event, context) => {
         console.log('variantsByVideo:', JSON.stringify(variantsByVideo));
       }
 
+      // Fetch video titles from sourced_products by ASIN
+      const asins = [...new Set((tasks || []).map(t => t.asin).filter(Boolean))];
+      let videoTitlesByAsin = {};
+      if (asins.length > 0) {
+        const { data: products } = await supabase
+          .from('sourced_products')
+          .select('asin, video_title')
+          .in('asin', asins)
+          .not('video_title', 'is', null);
+        
+        (products || []).forEach(p => {
+          videoTitlesByAsin[p.asin] = p.video_title;
+        });
+      }
+
       // Add helper fields for UI
       const enrichedTasks = (tasks || []).map(task => {
         const languageCode = getMarketplaceLanguageCode(task.marketplace);
@@ -146,7 +163,9 @@ exports.handler = async (event, context) => {
           // Variant info for this marketplace's language
           variant: variant || null,
           dubStatus: variant?.dub_status || null,
-          hasDubbedVideo: variant?.dub_status === 'complete'
+          hasDubbedVideo: variant?.dub_status === 'complete',
+          // Video title from CRM (auto-generated)
+          video_title: videoTitlesByAsin[task.asin] || null
         };
       });
 
