@@ -137,63 +137,78 @@ function findElement(selectorList) {
   return null;
 }
 
-// Find the title input by looking for label with "Title" text
+// Find the TITLE input - the large center input with placeholder about "what you love about this product"
 function findTitleInput() {
-  // Strategy 1: Find label containing "Title" and get associated input
-  const labels = document.querySelectorAll('label');
-  for (const label of labels) {
-    if (label.textContent.includes('Title')) {
-      // Check for 'for' attribute
-      if (label.htmlFor) {
-        const input = document.getElementById(label.htmlFor);
-        if (input) {
-          console.log('Found title input via label[for]:', input);
-          return input;
-        }
-      }
-      // Check for input as sibling or child
-      const parent = label.parentElement;
-      if (parent) {
-        const input = parent.querySelector('input[type="text"], input:not([type])');
-        if (input) {
-          console.log('Found title input as sibling of label:', input);
-          return input;
-        }
-      }
-    }
-  }
+  const inputs = document.querySelectorAll('input, textarea');
   
-  // Strategy 2: Find input with name/id containing "title" (case insensitive)
-  const inputs = document.querySelectorAll('input[type="text"], input:not([type])');
   for (const input of inputs) {
-    const name = (input.name || '').toLowerCase();
-    const id = (input.id || '').toLowerCase();
-    const ariaLabel = (input.getAttribute('aria-label') || '').toLowerCase();
+    const placeholder = (input.placeholder || '').toLowerCase();
     
-    if (name.includes('title') || id.includes('title') || ariaLabel.includes('title')) {
-      console.log('Found title input by name/id/aria:', input);
+    // Look for the specific placeholder text about describing the product
+    if (placeholder.includes('title') || 
+        placeholder.includes('love about') || 
+        placeholder.includes('recommend') ||
+        placeholder.includes('describe')) {
+      console.log('Found title input by placeholder:', input);
       return input;
     }
   }
   
-  // Strategy 3: Find inputs NOT in a search context (exclude inputs next to Search buttons)
+  // Fallback: find textarea (title might be a textarea for longer text)
+  const textareas = document.querySelectorAll('textarea');
+  for (const ta of textareas) {
+    const placeholder = (ta.placeholder || '').toLowerCase();
+    if (placeholder.includes('title') || placeholder.length > 50) {
+      console.log('Found title textarea:', ta);
+      return ta;
+    }
+  }
+  
+  // Fallback: input with name/id containing "title"
   for (const input of inputs) {
-    const parent = input.closest('div, form, section');
-    if (parent) {
-      const hasSearchButton = parent.querySelector('button') && 
-        parent.textContent.toLowerCase().includes('search');
-      if (!hasSearchButton) {
-        // Check if this input has hint text about characters
-        const container = input.closest('div');
-        if (container && container.textContent.includes('character')) {
-          console.log('Found title input by character hint:', input);
-          return input;
-        }
-      }
+    const name = (input.name || '').toLowerCase();
+    const id = (input.id || '').toLowerCase();
+    if (name.includes('title') || id.includes('title')) {
+      console.log('Found title input by name/id:', input);
+      return input;
     }
   }
   
   console.log('Could not find title input');
+  return null;
+}
+
+// Find the ASIN/Search input - the left panel "Search Amazon" input
+function findAsinSearchInput() {
+  const inputs = document.querySelectorAll('input');
+  
+  for (const input of inputs) {
+    const placeholder = (input.placeholder || '').toLowerCase();
+    const ariaLabel = (input.getAttribute('aria-label') || '').toLowerCase();
+    
+    // Look for "Search Amazon" or similar
+    if (placeholder.includes('search amazon') || 
+        placeholder.includes('search') ||
+        ariaLabel.includes('search amazon') ||
+        ariaLabel.includes('search')) {
+      // Make sure it's not a site-wide search (check if near a "Search" button)
+      const parent = input.closest('div, form');
+      if (parent) {
+        const btn = parent.querySelector('button, [role="button"]');
+        if (btn && btn.textContent.toLowerCase().includes('search')) {
+          console.log('Found ASIN search input:', input);
+          return input;
+        }
+      }
+      // Still return if it matches well
+      if (placeholder.includes('search amazon')) {
+        console.log('Found ASIN search input by placeholder:', input);
+        return input;
+      }
+    }
+  }
+  
+  console.log('Could not find ASIN search input');
   return null;
 }
 
@@ -216,7 +231,52 @@ function simulateTyping(element, text) {
   console.log('Typed into element:', text);
 }
 
-// Handle autofill request from side panel
+// Handle fill title request
+function handleFillTitle(title) {
+  console.log('Fill title requested:', title);
+  
+  const titleInput = findTitleInput();
+  if (titleInput) {
+    simulateTyping(titleInput, title);
+    return { success: true, message: 'Title filled!' };
+  } else {
+    console.warn('Title input not found. Available inputs:', 
+      Array.from(document.querySelectorAll('input, textarea')).map(i => ({
+        tag: i.tagName,
+        name: i.name,
+        id: i.id,
+        placeholder: i.placeholder?.slice(0, 50),
+        type: i.type,
+        'aria-label': i.getAttribute('aria-label')
+      }))
+    );
+    return { success: false, error: 'Could not find title input field. Check console for available inputs.' };
+  }
+}
+
+// Handle fill ASIN request
+function handleFillAsin(asin) {
+  console.log('Fill ASIN requested:', asin);
+  
+  const asinInput = findAsinSearchInput();
+  if (asinInput) {
+    simulateTyping(asinInput, asin);
+    return { success: true, message: 'ASIN filled in search!' };
+  } else {
+    console.warn('ASIN search input not found. Available inputs:', 
+      Array.from(document.querySelectorAll('input')).map(i => ({
+        name: i.name,
+        id: i.id,
+        placeholder: i.placeholder?.slice(0, 50),
+        type: i.type,
+        'aria-label': i.getAttribute('aria-label')
+      }))
+    );
+    return { success: false, error: 'Could not find search input field. Check console for available inputs.' };
+  }
+}
+
+// Legacy handler for backward compatibility
 function handleAutofill(data) {
   console.log('Autofill requested with data:', data);
   
@@ -226,36 +286,16 @@ function handleAutofill(data) {
     errors: []
   };
   
-  // Try to fill title
   if (data.title) {
-    const titleInput = findTitleInput();
-    if (titleInput) {
-      simulateTyping(titleInput, data.title);
-      results.titleFilled = true;
-    } else {
-      results.errors.push('Could not find title input field');
-      console.warn('Title input not found. Available inputs:', 
-        Array.from(document.querySelectorAll('input')).map(i => ({
-          name: i.name,
-          id: i.id,
-          placeholder: i.placeholder,
-          type: i.type,
-          'aria-label': i.getAttribute('aria-label'),
-          parentText: i.parentElement?.textContent?.slice(0, 50)
-        }))
-      );
-    }
+    const result = handleFillTitle(data.title);
+    results.titleFilled = result.success;
+    if (!result.success) results.errors.push(result.error);
   }
   
-  // Optionally fill ASIN search (if requested)
   if (data.asin && data.fillAsin) {
-    const asinInput = findElement(UPLOAD_SELECTORS.asinSearch);
-    if (asinInput) {
-      simulateTyping(asinInput, data.asin);
-      results.asinFilled = true;
-    } else {
-      results.errors.push('Could not find ASIN/product search field');
-    }
+    const result = handleFillAsin(data.asin);
+    results.asinFilled = result.success;
+    if (!result.success) results.errors.push(result.error);
   }
   
   return {
@@ -276,6 +316,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   if (message.action === 'autofill') {
     const result = handleAutofill(message.data);
+    sendResponse(result);
+    return true;
+  }
+  
+  if (message.action === 'fillTitle') {
+    const result = handleFillTitle(message.title || 'Product Review');
+    sendResponse(result);
+    return true;
+  }
+  
+  if (message.action === 'fillAsin') {
+    const result = handleFillAsin(message.asin);
     sendResponse(result);
     return true;
   }

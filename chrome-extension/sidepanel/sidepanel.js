@@ -207,8 +207,11 @@ function renderTasks() {
   taskList.innerHTML = videoGroups.map(group => createVideoGroup(group)).join('');
   
   // Attach event listeners
-  taskList.querySelectorAll('.btn-autofill').forEach(btn => {
-    btn.addEventListener('click', () => handleAutofill(btn.dataset.taskId));
+  taskList.querySelectorAll('.btn-fill-title').forEach(btn => {
+    btn.addEventListener('click', () => handleFillTitle());
+  });
+  taskList.querySelectorAll('.btn-fill-asin').forEach(btn => {
+    btn.addEventListener('click', () => handleFillAsin(btn.dataset.asin));
   });
   taskList.querySelectorAll('.btn-complete').forEach(btn => {
     btn.addEventListener('click', () => handleComplete(btn.dataset.taskId));
@@ -313,11 +316,14 @@ function createTaskCard(task, groupHasVideo = false, isMultiAsin = false) {
       ` : ''}
       ${!isCompleted ? `
         <div class="task-actions">
-          <button class="btn btn-autofill" data-task-id="${task.id}" ${!hasVideo ? 'disabled' : ''}>
-            ✨ Autofill
+          <button class="btn btn-fill-title" data-task-id="${task.id}" title="Fill 'Product Review' in title field">
+            📝 Title
+          </button>
+          <button class="btn btn-fill-asin" data-task-id="${task.id}" data-asin="${task.asin}" title="Fill ASIN in search box">
+            🏷️ ASIN
           </button>
           <button class="btn btn-complete" data-task-id="${task.id}">
-            ✓ Complete
+            ✓ Done
           </button>
         </div>
       ` : `
@@ -330,45 +336,52 @@ function createTaskCard(task, groupHasVideo = false, isMultiAsin = false) {
 }
 
 // Action Handlers
-async function handleAutofill(taskId) {
-  const task = tasks.find(t => t.id === taskId);
-  if (!task) return;
+
+// Helper to inject content script and send message
+async function sendToContentScript(action, data) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   
-  // Send message to content script
+  if (!tab?.url?.includes('amazon')) {
+    throw new Error('Please navigate to Amazon Influencer upload page first.');
+  }
+  
+  // Inject content script if not already
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ['content/amazon-autofill.js']
+  });
+  
+  // Send command
+  return await chrome.tabs.sendMessage(tab.id, { action, ...data });
+}
+
+async function handleFillTitle() {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
-    if (!tab?.url?.includes('amazon')) {
-      showNotification('Please navigate to Amazon Influencer upload page first.', 'error');
-      return;
-    }
-    
-    // Inject content script if not already
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['content/amazon-autofill.js']
-    });
-    
-    // Send autofill command
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      action: 'autofill',
-      data: {
-        title: 'Product Review', // Blanket title for MVP
-        asin: task.asin,
-        productTitle: task.product_title
-      }
-    });
+    const response = await sendToContentScript('fillTitle', { title: 'Product Review' });
     
     if (response?.success) {
-      showNotification('Form autofilled! ASIN copied to clipboard.', 'success');
-      await copyToClipboard(task.asin);
+      showNotification('Title filled!', 'success');
     } else {
-      showNotification(response?.error || 'Could not find form fields.', 'error');
+      showNotification(response?.error || 'Could not find title field.', 'error');
     }
-    
   } catch (error) {
-    console.error('Autofill error:', error);
-    showNotification('Failed to autofill. Make sure you\'re on the upload page.', 'error');
+    console.error('Fill title error:', error);
+    showNotification(error.message || 'Failed to fill title.', 'error');
+  }
+}
+
+async function handleFillAsin(asin) {
+  try {
+    const response = await sendToContentScript('fillAsin', { asin });
+    
+    if (response?.success) {
+      showNotification('ASIN filled in search!', 'success');
+    } else {
+      showNotification(response?.error || 'Could not find search field.', 'error');
+    }
+  } catch (error) {
+    console.error('Fill ASIN error:', error);
+    showNotification(error.message || 'Failed to fill ASIN.', 'error');
   }
 }
 

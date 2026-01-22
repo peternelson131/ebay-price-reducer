@@ -385,22 +385,31 @@ body {
   font-size: 12px;
 }
 
-.btn-autofill {
+.btn-fill-title {
+  background: #9c27b0;
+  color: white;
+}
+
+.btn-fill-title:hover {
+  background: #7b1fa2;
+}
+
+.btn-fill-asin {
+  background: #ff9800;
+  color: white;
+}
+
+.btn-fill-asin:hover {
+  background: #f57c00;
+}
+
+.btn-complete {
   background: #4caf50;
   color: white;
 }
 
-.btn-autofill:hover {
-  background: #43a047;
-}
-
-.btn-complete {
-  background: #2196f3;
-  color: white;
-}
-
 .btn-complete:hover {
-  background: #1e88e5;
+  background: #43a047;
 }
 
 /* Status indicators */
