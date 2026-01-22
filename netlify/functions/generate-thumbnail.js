@@ -56,12 +56,12 @@ async function generateThumbnail(templateBuffer, productImageBuffer, placementZo
   
   console.log(`Zone pixels: x=${zoneX}, y=${zoneY}, w=${zoneWidth}, h=${zoneHeight}`);
   
-  // Trim whitespace from product image, then resize to fit zone
+  // Trim whitespace from product image, then resize to fill zone
   const productImage = await sharp(productImageBuffer)
-    .trim({ threshold: 10 })  // Remove white/near-white borders
+    .trim({ threshold: 15 })  // Remove white/near-white borders aggressively
     .resize(zoneWidth, zoneHeight, {
-      fit: 'contain',
-      background: { r: 0, g: 0, b: 0, alpha: 0 }  // Transparent background
+      fit: 'cover',  // Fill the entire zone (may crop edges)
+      position: 'center'
     })
     .toBuffer();
   
