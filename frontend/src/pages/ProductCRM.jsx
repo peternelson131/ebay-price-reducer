@@ -3113,15 +3113,19 @@ export default function ProductCRM() {
             // No prefix set - just use product title
             fullTitle = productTitle;
           }
-          // Truncate to 60 characters max, at word boundary (no mid-word cuts)
+          // Truncate to 60 characters max, keeping only complete words
           if (fullTitle.length > 60) {
-            let truncated = fullTitle.substring(0, 60);
-            // Find last space to avoid cutting mid-word
-            const lastSpace = truncated.lastIndexOf(' ');
-            if (lastSpace > 20) { // Only if we have reasonable content
-              truncated = truncated.substring(0, lastSpace);
+            const words = fullTitle.split(' ');
+            let result = '';
+            for (const word of words) {
+              const test = result ? `${result} ${word}` : word;
+              if (test.length <= 60) {
+                result = test;
+              } else {
+                break;
+              }
             }
-            videoTitle = truncated;
+            videoTitle = result;
           } else {
             videoTitle = fullTitle;
           }
