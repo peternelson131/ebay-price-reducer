@@ -3094,15 +3094,25 @@ export default function ProductCRM() {
         }
       }
       
-      // Auto-generate video title using primary owner's prefix (max 60 chars)
+      // Auto-generate video title using user's prefix (max 60 chars)
       let videoTitle = null;
-      if (primaryOwner) {
+      if (newOwners.length > 0) {
+        // Get user's video title prefix from their profile
+        const userProfile = await userAPI.getProfile();
+        const userPrefix = userProfile?.video_title_prefix;
+        
         // Get current product to find its title
         const currentProduct = products.find(p => p.id === productId) || selectedProduct;
         const productTitle = currentProduct?.title || currentProduct?.asin;
+        
         if (productTitle) {
-          const prefix = primaryOwner.title_prefix || 'Honest Review';
-          let fullTitle = `${prefix} - ${productTitle}`;
+          let fullTitle;
+          if (userPrefix) {
+            fullTitle = `${userPrefix} - ${productTitle}`;
+          } else {
+            // No prefix set - just use product title
+            fullTitle = productTitle;
+          }
           // Truncate to 60 characters max
           videoTitle = fullTitle.length > 60 ? fullTitle.substring(0, 57) + '...' : fullTitle;
           
