@@ -751,7 +751,7 @@ export default function Account() {
                             type="time"
                             value={youtubeSchedule.post_time}
                             onChange={(e) => setYoutubeSchedule(prev => ({ ...prev, post_time: e.target.value }))}
-                            className="w-full border border-theme rounded-lg px-3 py-2"
+                            className="w-full border border-theme rounded-lg px-3 py-2 bg-theme-surface text-theme-primary"
                           />
                         </div>
                         <div>
@@ -759,7 +759,7 @@ export default function Account() {
                           <select
                             value={youtubeSchedule.timezone}
                             onChange={(e) => setYoutubeSchedule(prev => ({ ...prev, timezone: e.target.value }))}
-                            className="w-full border border-theme rounded-lg px-3 py-2"
+                            className="w-full border border-theme rounded-lg px-3 py-2 bg-theme-surface text-theme-primary"
                           >
                             <option value="America/New_York">Eastern (ET)</option>
                             <option value="America/Chicago">Central (CT)</option>
