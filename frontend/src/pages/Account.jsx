@@ -1132,7 +1132,11 @@ export default function Account() {
               {showThumbnailFolderPicker && (
                 <FolderPicker
                   onClose={() => setShowThumbnailFolderPicker(false)}
-                  onSelect={async ({ folderId, folderPath }) => {
+                  onSelect={async (selectedFolder) => {
+                    console.log('Folder selected:', selectedFolder)
+                    const folderId = selectedFolder.id
+                    const folderPath = selectedFolder.path
+                    
                     setThumbnailFolderId(folderId)
                     setThumbnailFolderPath(folderPath)
                     setShowThumbnailFolderPicker(false)
@@ -1140,7 +1144,7 @@ export default function Account() {
                     // Save to user profile
                     try {
                       const token = (await supabase.auth.getSession()).data.session?.access_token
-                      await fetch('/.netlify/functions/thumbnail-folder', {
+                      const response = await fetch('/.netlify/functions/thumbnail-folder', {
                         method: 'POST',
                         headers: {
                           'Authorization': `Bearer ${token}`,
@@ -1151,6 +1155,8 @@ export default function Account() {
                           folder_path: folderPath 
                         })
                       })
+                      const result = await response.json()
+                      console.log('Save result:', result)
                     } catch (err) {
                       console.error('Failed to save folder:', err)
                     }
