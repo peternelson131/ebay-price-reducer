@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI, supabase } from '../lib/supabase'
-import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle, Undo2 } from 'lucide-react'
+import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle, Undo2, ImagePlus, Edit, Plus } from 'lucide-react'
+import ThumbnailTemplateModal from '../components/ThumbnailTemplateModal'
 
 export default function Account() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -24,6 +25,12 @@ export default function Account() {
   const [feedbackStatus, setFeedbackStatus] = useState({ type: '', message: '' })
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [selectedFeedback, setSelectedFeedback] = useState(null)
+  
+  // Thumbnail Templates state
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState(null)
+  const [deletingTemplateId, setDeletingTemplateId] = useState(null)
+  
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading } = useQuery(
@@ -91,6 +98,40 @@ export default function Account() {
     }
   )
 
+  // Thumbnail Templates query
+  const { data: thumbnailTemplates = [], isLoading: isLoadingTemplates, refetch: refetchTemplates } = useQuery(
+    ['thumbnailTemplates'],
+    async () => {
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      const response = await fetch('/.netlify/functions/thumbnail-templates', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!response.ok) throw new Error('Failed to fetch templates')
+      const data = await response.json()
+      return data.templates || []
+    },
+    {
+      refetchOnWindowFocus: false
+    }
+  )
+
+  // Delete template mutation
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (templateId) => {
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      const response = await fetch(`/.netlify/functions/thumbnail-templates?id=${templateId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!response.ok) throw new Error('Failed to delete template')
+      return response.json()
+    },
+    onSuccess: () => {
+      refetchTemplates()
+      setDeletingTemplateId(null)
+    }
+  })
+
   // Initialize form states when profile data loads
   useEffect(() => {
     if (profile && !isEditing) {
@@ -115,7 +156,7 @@ export default function Account() {
   // Handle URL parameter for tab selection
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['profile', 'preferences', 'security', 'feedback'].includes(tab)) {
+    if (tab && ['profile', 'preferences', 'security', 'feedback', 'thumbnail-templates'].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -342,7 +383,8 @@ export default function Account() {
     { id: 'profile', name: 'Profile', icon: '👤' },
     { id: 'preferences', name: 'Preferences', icon: '⚙️' },
     { id: 'security', name: 'Security', icon: '🔒' },
-    { id: 'feedback', name: 'Feedback', icon: '💬' }
+    { id: 'feedback', name: 'Feedback', icon: '💬' },
+    { id: 'thumbnail-templates', name: 'Thumbnails', icon: '🖼️' }
   ]
 
   return (
@@ -991,8 +1033,164 @@ export default function Account() {
               </div>
             </div>
           )}
+
+          {/* Thumbnail Templates Tab */}
+          {activeTab === 'thumbnail-templates' && (
+            <div className="p-6 space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-theme-primary">Thumbnail Templates</h3>
+                  <p className="text-sm text-theme-secondary mt-1">
+                    Create base templates for auto-generating video thumbnails. Define where the product image should appear.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingTemplate(null)
+                    setShowTemplateModal(true)
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Template
+                </button>
+              </div>
+
+              {/* Templates Grid */}
+              {isLoadingTemplates ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader className="w-8 h-8 animate-spin text-accent" />
+                </div>
+              ) : thumbnailTemplates.length === 0 ? (
+                <div className="text-center py-12 bg-theme-surface rounded-lg border border-theme">
+                  <ImagePlus className="w-12 h-12 mx-auto text-theme-tertiary mb-4" />
+                  <h4 className="text-lg font-medium text-theme-primary mb-2">No templates yet</h4>
+                  <p className="text-theme-secondary mb-4">
+                    Create your first thumbnail template to auto-generate thumbnails for your videos.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setEditingTemplate(null)
+                      setShowTemplateModal(true)
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create Template
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {thumbnailTemplates.map((template) => (
+                    <div
+                      key={template.id}
+                      className="bg-theme-surface rounded-lg border border-theme overflow-hidden group"
+                    >
+                      {/* Template Preview */}
+                      <div className="relative aspect-video bg-theme-hover">
+                        {template.template_url ? (
+                          <img
+                            src={template.template_url}
+                            alt={template.owner_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImagePlus className="w-8 h-8 text-theme-tertiary" />
+                          </div>
+                        )}
+                        {/* Zone Overlay */}
+                        {template.placement_zone && (
+                          <div
+                            className="absolute border-2 border-accent border-dashed bg-accent/20"
+                            style={{
+                              left: `${template.placement_zone.x}%`,
+                              top: `${template.placement_zone.y}%`,
+                              width: `${template.placement_zone.width}%`,
+                              height: `${template.placement_zone.height}%`
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Template Info */}
+                      <div className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium text-theme-primary">{template.owner_name}</h4>
+                            <p className="text-xs text-theme-tertiary mt-1">
+                              Zone: {template.placement_zone ? 
+                                `${Math.round(template.placement_zone.width)}% × ${Math.round(template.placement_zone.height)}%` : 
+                                'Not set'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingTemplate(template)
+                                setShowTemplateModal(true)
+                              }}
+                              className="p-2 text-theme-secondary hover:text-accent hover:bg-accent/10 rounded-lg transition-colors"
+                              title="Edit template"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setDeletingTemplateId(template.id)}
+                              className="p-2 text-theme-secondary hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                              title="Delete template"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Delete Confirmation */}
+                      {deletingTemplateId === template.id && (
+                        <div className="px-4 pb-4">
+                          <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                            <span className="text-sm text-red-500 flex-1">Delete this template?</span>
+                            <button
+                              onClick={() => deleteTemplateMutation.mutate(template.id)}
+                              className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => setDeletingTemplateId(null)}
+                              className="px-3 py-1 bg-theme-hover text-theme-secondary text-sm rounded hover:bg-theme-border"
+                            >
+                              No
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Thumbnail Template Modal */}
+      {showTemplateModal && (
+        <ThumbnailTemplateModal
+          template={editingTemplate}
+          onClose={() => {
+            setShowTemplateModal(false)
+            setEditingTemplate(null)
+          }}
+          onSave={() => {
+            refetchTemplates()
+            setShowTemplateModal(false)
+            setEditingTemplate(null)
+          }}
+        />
+      )}
     </div>
   )
 }
