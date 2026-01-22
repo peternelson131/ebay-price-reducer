@@ -80,14 +80,25 @@ async function generateThumbnail(templateBuffer, productImageBuffer, placementZo
  */
 async function uploadToOneDrive(userId, thumbnailBuffer, filename) {
   // Check if user has OneDrive connected
-  const { data: connection } = await supabase
+  console.log('Looking up OneDrive connection for user:', userId);
+  
+  const { data: connection, error: connError } = await supabase
     .from('onedrive_connections')
     .select('*')
     .eq('user_id', userId)
     .single();
   
+  console.log('OneDrive connection lookup result:', { found: !!connection, error: connError?.message });
+  
   if (!connection) {
-    throw new Error('OneDrive not connected. Please connect OneDrive in settings.');
+    // Debug: check all connections to see what user_ids exist
+    const { data: allConns } = await supabase
+      .from('onedrive_connections')
+      .select('user_id')
+      .limit(5);
+    console.log('Available connection user_ids:', allConns?.map(c => c.user_id));
+    
+    throw new Error(`OneDrive not connected. User ID: ${userId}`);
   }
   
   // Get user's thumbnail folder preference
