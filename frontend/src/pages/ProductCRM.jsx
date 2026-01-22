@@ -3084,7 +3084,7 @@ export default function ProductCRM() {
             name: owner?.name || 'Unknown',
             email: owner?.email,
             avatar_color: owner?.avatar_color || '#3B82F6',
-            title_prefix: owner?.title_prefix || 'Honest Review'
+            title_prefix: owner?.title_prefix || null
           };
         });
         
@@ -3094,12 +3094,11 @@ export default function ProductCRM() {
         }
       }
       
-      // Auto-generate video title using user's prefix (max 60 chars)
+      // Auto-generate video title using primary owner's prefix (max 60 chars)
       let videoTitle = null;
-      if (newOwners.length > 0) {
-        // Get user's video title prefix from their profile
-        const userProfile = await userAPI.getProfile();
-        const userPrefix = userProfile?.video_title_prefix;
+      if (primaryOwner) {
+        // Use the primary owner's title prefix
+        const ownerPrefix = primaryOwner.title_prefix;
         
         // Get current product to find its title
         const currentProduct = products.find(p => p.id === productId) || selectedProduct;
@@ -3107,8 +3106,8 @@ export default function ProductCRM() {
         
         if (productTitle) {
           let fullTitle;
-          if (userPrefix) {
-            fullTitle = `${userPrefix} - ${productTitle}`;
+          if (ownerPrefix) {
+            fullTitle = `${ownerPrefix} - ${productTitle}`;
           } else {
             // No prefix set - just use product title
             fullTitle = productTitle;

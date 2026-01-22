@@ -527,32 +527,6 @@ export default function Account() {
               </div>
 
               <div className="border-t border-theme pt-4">
-                <h4 className="text-md font-medium text-theme-primary mb-3">Video Title Settings</h4>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-theme-secondary mb-1">Video Title Prefix</label>
-                  {isEditing ? (
-                    <div>
-                      <input
-                        type="text"
-                        value={profileData.video_title_prefix || ''}
-                        onChange={(e) => setProfileData(prev => ({ ...prev, video_title_prefix: e.target.value }))}
-                        placeholder="e.g., Honest Review"
-                        className="w-full border border-theme rounded-lg px-3 py-2"
-                        maxLength={30}
-                      />
-                      <p className="text-xs text-theme-secondary mt-1">
-                        Auto-generates titles like: "{profileData.video_title_prefix || 'Prefix'} - Product Name"
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-theme-primary">
-                      {profile?.video_title_prefix || <span className="text-theme-secondary italic">Not set</span>}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="border-t border-theme pt-4">
                 <h4 className="text-md font-medium text-theme-primary mb-3">Default Reduction Settings</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>

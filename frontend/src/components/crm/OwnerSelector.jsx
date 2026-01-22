@@ -30,6 +30,7 @@ const AVATAR_COLORS = [
 const AddOwnerModal = ({ isOpen, onClose, onSave, isSaving }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [titlePrefix, setTitlePrefix] = useState('');
   const [color, setColor] = useState('#3B82F6');
   const [error, setError] = useState('');
 
@@ -46,10 +47,12 @@ const AddOwnerModal = ({ isOpen, onClose, onSave, isSaving }) => {
       await onSave({ 
         name: name.trim(), 
         email: email.trim() || null, 
-        avatar_color: color
+        avatar_color: color,
+        title_prefix: titlePrefix.trim() || null
       });
       setName('');
       setEmail('');
+      setTitlePrefix('');
       setColor('#3B82F6');
       onClose();
     } catch (err) {
@@ -60,6 +63,7 @@ const AddOwnerModal = ({ isOpen, onClose, onSave, isSaving }) => {
   const handleClose = () => {
     setName('');
     setEmail('');
+    setTitlePrefix('');
     setColor('#3B82F6');
     setError('');
     onClose();
@@ -115,6 +119,24 @@ const AddOwnerModal = ({ isOpen, onClose, onSave, isSaving }) => {
                 placeholder="owner@example.com"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+            </div>
+
+            {/* Title Prefix */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Video Title Prefix
+              </label>
+              <input
+                type="text"
+                value={titlePrefix}
+                onChange={(e) => setTitlePrefix(e.target.value)}
+                placeholder="e.g., Honest Review"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                maxLength={30}
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {titlePrefix ? `Titles: "${titlePrefix} - Product Name"` : 'Leave blank to use just the product name'}
+              </p>
             </div>
 
             {/* Color Picker */}
