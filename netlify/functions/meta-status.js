@@ -34,7 +34,7 @@ exports.handler = async (event, context) => {
       // Get connection
       const { data: connection } = await supabase
         .from('social_connections')
-        .select('account_id, account_name, account_avatar, connected_at, is_active, token_expires_at, access_token')
+        .select('account_id, account_name, account_avatar, connected_at, is_active, token_expires_at, access_token, instagram_account_id, instagram_username')
         .eq('user_id', userId)
         .eq('platform', 'meta')
         .single();
@@ -82,7 +82,9 @@ exports.handler = async (event, context) => {
           pageName: connection.account_name,
           pageAvatar: connection.account_avatar,
           connectedAt: connection.connected_at,
-          tokenExpiresAt: connection.token_expires_at
+          tokenExpiresAt: connection.token_expires_at,
+          instagramAccountId: connection.instagram_account_id,
+          instagramUsername: connection.instagram_username
         } : null,
         schedule: schedule || { post_time: '09:00', timezone: 'America/Chicago', is_active: false },
         recentPosts: recentPosts || []

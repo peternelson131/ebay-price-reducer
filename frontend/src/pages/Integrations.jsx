@@ -28,7 +28,7 @@ const CATEGORIES = [
     name: 'Social Media Integrations',
     icon: Share2,
     description: 'Connect social platforms for content distribution',
-    integrations: ['youtube', 'facebook', 'instagram']
+    integrations: ['youtube', 'meta']
   }
 ]
 
@@ -570,18 +570,18 @@ function OneDriveIntegrationCard({ onStatusChange }) {
 }
 
 // Facebook Integration Card
-function FacebookIntegration({ onStatusChange }) {
+function MetaIntegration({ onStatusChange }) {
   const [searchParams] = useSearchParams()
   const [isConnecting, setIsConnecting] = useState(false)
   
-  const { data: facebookStatus, isLoading, refetch: refetchFacebook } = useQuery(
-    ['facebookStatus'],
+  const { data: metaStatus, isLoading, refetch: refetchMeta } = useQuery(
+    ['metaStatus'],
     async () => {
       const token = await userAPI.getAuthToken()
       const response = await fetch('/.netlify/functions/meta-status', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (!response.ok) throw new Error('Failed to fetch Facebook status')
+      if (!response.ok) throw new Error('Failed to fetch Meta status')
       return response.json()
     },
     {
@@ -591,18 +591,18 @@ function FacebookIntegration({ onStatusChange }) {
 
   // Notify parent when connection status changes
   useEffect(() => {
-    const isConnected = facebookStatus?.connected === true
+    const isConnected = metaStatus?.connected === true
     onStatusChange?.(isConnected)
-  }, [facebookStatus, onStatusChange])
+  }, [metaStatus, onStatusChange])
 
   // Handle Meta OAuth callback from URL params
   useEffect(() => {
     const metaParam = searchParams.get('meta')
     if (metaParam === 'connected') {
-      refetchFacebook()
-      toast.success('Facebook connected successfully!')
+      refetchMeta()
+      toast.success('Meta connected successfully!')
     } else if (metaParam === 'error') {
-      toast.error('Facebook connection failed')
+      toast.error('Meta connection failed')
     }
   }, [searchParams])
 
@@ -618,39 +618,41 @@ function FacebookIntegration({ onStatusChange }) {
         window.location.href = data.authUrl
       }
     } catch (error) {
-      console.error('Failed to start Facebook auth:', error)
-      toast.error('Failed to start Facebook connection')
+      console.error('Failed to start Meta auth:', error)
+      toast.error('Failed to start Meta connection')
     } finally {
       setIsConnecting(false)
     }
   }
 
   const handleDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect your Facebook Page?')) return
+    if (!confirm('Are you sure you want to disconnect your Meta accounts?')) return
     try {
       const token = await userAPI.getAuthToken()
       await fetch('/.netlify/functions/meta-disconnect', {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })
-      refetchFacebook()
-      toast.success('Facebook Page disconnected')
+      refetchMeta()
+      toast.success('Meta accounts disconnected')
     } catch (error) {
-      console.error('Failed to disconnect Facebook:', error)
-      toast.error('Failed to disconnect Facebook')
+      console.error('Failed to disconnect Meta:', error)
+      toast.error('Failed to disconnect Meta')
     }
   }
+
+  const connection = metaStatus?.connection
 
   return (
     <div className="bg-theme-primary rounded-lg border border-theme p-4">
       <div className="flex items-center gap-3 mb-4">
         <div className="flex-1">
-          <h4 className="font-medium text-theme-primary">Facebook Pages</h4>
-          <p className="text-sm text-theme-tertiary">Post content to your Facebook Page</p>
+          <h4 className="font-medium text-theme-primary">Meta (Facebook & Instagram)</h4>
+          <p className="text-sm text-theme-tertiary">Post content to Facebook Page and Instagram</p>
         </div>
         {isLoading ? (
           <Loader className="w-5 h-5 animate-spin text-theme-secondary" />
-        ) : facebookStatus?.connected ? (
+        ) : metaStatus?.connected ? (
           <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm rounded-full flex items-center gap-1">
             <CheckCircle className="w-4 h-4" /> Connected
           </span>
@@ -661,45 +663,89 @@ function FacebookIntegration({ onStatusChange }) {
         )}
       </div>
 
-      {facebookStatus?.connected ? (
+      {metaStatus?.connected ? (
         <div className="space-y-4">
-          {/* Connected Account Info */}
+          {/* Connected Accounts Info */}
           <div className="space-y-2">
-            {facebookStatus.connection?.pageName && (
+            {connection?.pageName && (
               <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                  f
+                </div>
                 <div className="flex-1">
-                  <p className="font-medium text-theme-primary">{facebookStatus.connection.pageName}</p>
+                  <p className="font-medium text-theme-primary">{connection.pageName}</p>
                   <p className="text-sm text-theme-secondary">Facebook Page</p>
+                </div>
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              </div>
+            )}
+            {connection?.instagramUsername ? (
+              <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                  IG
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-theme-primary">@{connection.instagramUsername}</p>
+                  <p className="text-sm text-theme-secondary">Instagram Business</p>
+                </div>
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg opacity-60">
+                <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                  IG
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-theme-primary">Instagram not linked</p>
+                  <p className="text-sm text-theme-secondary">Link in Meta Business Suite</p>
                 </div>
               </div>
             )}
-            {facebookStatus.connection?.connectedAt && (
+            {connection?.connectedAt && (
               <p className="text-sm text-theme-secondary px-3">
-                Connected {new Date(facebookStatus.connection.connectedAt).toLocaleDateString()}
+                Connected {new Date(connection.connectedAt).toLocaleDateString()}
               </p>
             )}
           </div>
 
-          <button
-            onClick={handleDisconnect}
-            className="text-red-500 hover:text-red-600 text-sm"
-          >
-            Disconnect
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleDisconnect}
+              className="text-red-500 hover:text-red-600 text-sm"
+            >
+              Disconnect
+            </button>
+            <a
+              href="/docs/meta-connection-guide"
+              target="_blank"
+              className="text-accent hover:underline text-sm flex items-center gap-1"
+            >
+              <ExternalLink className="w-4 h-4" /> Setup Guide
+            </a>
+          </div>
         </div>
       ) : (
-        <button
-          onClick={handleConnect}
-          disabled={isConnecting}
-          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {isConnecting ? (
-            <Loader className="w-5 h-5 animate-spin" />
-          ) : (
-            <Share2 className="w-5 h-5" />
-          )}
-          Connect Facebook Page
-        </button>
+        <div className="space-y-3">
+          <button
+            onClick={handleConnect}
+            disabled={isConnecting}
+            className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isConnecting ? (
+              <Loader className="w-5 h-5 animate-spin" />
+            ) : (
+              <Share2 className="w-5 h-5" />
+            )}
+            Connect Meta Accounts
+          </button>
+          <a
+            href="/docs/meta-connection-guide"
+            target="_blank"
+            className="block text-center text-accent hover:underline text-sm"
+          >
+            View Setup Guide
+          </a>
+        </div>
       )}
     </div>
   )
@@ -1252,11 +1298,8 @@ export default function Integrations() {
                 <YouTubeIntegration 
                   onStatusChange={(connected) => updateConnectionStatus('youtube', connected)} 
                 />
-                <FacebookIntegration 
-                  onStatusChange={(connected) => updateConnectionStatus('facebook', connected)} 
-                />
-                <InstagramIntegration 
-                  onStatusChange={(connected) => updateConnectionStatus('instagram', connected)} 
+                <MetaIntegration 
+                  onStatusChange={(connected) => updateConnectionStatus('meta', connected)} 
                 />
               </>
             )}

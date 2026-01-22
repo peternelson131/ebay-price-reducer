@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meta Connection Guide - Marketplace Central</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #e5e5e5;
+      --text-secondary: #a0a0a0;
+      --accent: #8b5cf6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: var(--accent);
+    }
+    h2 {
+      font-size: 1.4rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 {
+      font-size: 1.1rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-secondary);
+    }
+    .subtitle {
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+    }
+    ol, ul {
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    li {
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+    }
+    .step-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .step-number {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 28px;
+      font-weight: bold;
+      margin-right: 0.75rem;
+    }
+    .step-title {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+    .warning-box {
+      background: #422006;
+      border: 1px solid #854d0e;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    .warning-box strong {
+      color: #fbbf24;
+    }
+    .success-box {
+      background: #052e16;
+      border: 1px solid #166534;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    .success-box strong {
+      color: #4ade80;
+    }
+    code {
+      background: var(--surface);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 2rem;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/integrations" class="back-link">← Back to Integrations</a>
+    
+    <h1>📱 Meta Connection Guide</h1>
+    <p class="subtitle">Connect your Facebook Page and Instagram Business account to Marketplace Central</p>
+
+    <h2>Prerequisites</h2>
+    <p>Before connecting, make sure you have:</p>
+    <ul>
+      <li><strong>A Facebook Page</strong> for your business (not a personal profile)</li>
+      <li><strong>An Instagram Professional Account</strong> (Business or Creator account)</li>
+      <li><strong>Instagram linked to your Facebook Page</strong> in Meta Business Suite</li>
+    </ul>
+
+    <h2>Step-by-Step Setup</h2>
+
+    <div class="step-box">
+      <div class="step-title"><span class="step-number">1</span>Convert Instagram to Professional Account</div>
+      <p>If your Instagram isn't already a Professional account:</p>
+      <ol>
+        <li>Open the <strong>Instagram app</strong></li>
+        <li>Go to <strong>Profile → Settings → Account</strong></li>
+        <li>Tap <strong>"Switch to Professional Account"</strong></li>
+        <li>Choose <strong>"Business"</strong></li>
+        <li>Select a category (e.g., "Shopping & retail")</li>
+      </ol>
+    </div>
+
+    <div class="step-box">
+      <div class="step-title"><span class="step-number">2</span>Link Instagram to Your Facebook Page</div>
+      <p>Your Instagram must be connected to your Facebook Page:</p>
+      <ol>
+        <li>Go to <a href="https://business.facebook.com/settings/instagram-accounts" target="_blank">Meta Business Suite → Instagram Accounts</a></li>
+        <li>Click <strong>"Add"</strong></li>
+        <li>Log into your Instagram account</li>
+        <li>Select your Facebook Page to link</li>
+        <li>Click <strong>"Confirm connection"</strong></li>
+      </ol>
+      <div class="warning-box">
+        <strong>⚠️ Troubleshooting:</strong> If you see "Request Sent" and it's pending, check your Instagram app for a notification to approve the connection request.
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-title"><span class="step-number">3</span>Connect in Marketplace Central</div>
+      <ol>
+        <li>Go to <a href="/integrations">Integrations</a> in Marketplace Central</li>
+        <li>Find <strong>"Meta (Facebook & Instagram)"</strong> in Social Media</li>
+        <li>Click <strong>"Connect Meta Accounts"</strong></li>
+        <li>Log into Facebook when prompted</li>
+        <li><strong>Important:</strong> When asked which Pages to share, make sure your Page is <strong>checked ✓</strong></li>
+        <li>When asked about Instagram accounts, make sure it's <strong>checked ✓</strong></li>
+        <li>Click through to complete the authorization</li>
+      </ol>
+    </div>
+
+    <div class="success-box">
+      <strong>✅ Success!</strong> Once connected, you'll see both your Facebook Page and Instagram account listed in the Meta integration card.
+    </div>
+
+    <h2>Common Issues</h2>
+
+    <h3>"No Facebook Pages found"</h3>
+    <p>This happens when Page access isn't granted during OAuth:</p>
+    <ul>
+      <li>Make sure you're logged into the Facebook account that <strong>owns</strong> the Page</li>
+      <li>During the OAuth flow, look for "What Pages can this app access?" and <strong>select your Page</strong></li>
+      <li>If you previously denied access, remove the app from <a href="https://www.facebook.com/settings?tab=business_tools" target="_blank">Facebook Settings → Business Integrations</a>, then try again</li>
+    </ul>
+
+    <h3>"Instagram not linked"</h3>
+    <p>This means your Instagram isn't connected to your Facebook Page:</p>
+    <ul>
+      <li>Complete Step 2 above to link them in Meta Business Suite</li>
+      <li>Then disconnect and reconnect in Marketplace Central</li>
+    </ul>
+
+    <h3>"Request Couldn't be Processed"</h3>
+    <p>This is usually a temporary Meta issue:</p>
+    <ul>
+      <li>Wait a few minutes and try again</li>
+      <li>Make sure you're not hitting any rate limits</li>
+      <li>Check if Instagram has a commerce/shop connection that needs to be removed first</li>
+    </ul>
+
+    <h2>Need Help?</h2>
+    <p>If you're still having trouble, reach out via Discord and we'll help you get connected!</p>
+  </div>
+</body>
+</html>
