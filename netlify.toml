@@ -96,11 +96,11 @@ timeout = 26
 schedule = "0 */4 * * *"
 timeout = 60
 
-# YouTube scheduled posting - runs every hour
+# YouTube scheduled posting - DISABLED (using manual posting now)
 # Posts one video per user at their configured daily time
-[functions."youtube-scheduled-post"]
-schedule = "0 * * * *"
-timeout = 60
+# [functions."youtube-scheduled-post"]
+# schedule = "0 * * * *"
+# timeout = 60
 
 # YouTube upload - extended timeout for video uploads
 [functions."youtube-post"]
