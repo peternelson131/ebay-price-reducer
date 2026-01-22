@@ -53,29 +53,36 @@ exports.handler = async (event, context) => {
       return errorResponse(404, 'Video not found', headers);
     }
 
-    // Check if video has an OneDrive path
-    if (!video.onedrive_item_id && !video.onedrive_path) {
+    // Check if video has an OneDrive path or file ID
+    if (!video.onedrive_file_id && !video.onedrive_path) {
       return errorResponse(400, 'Video not stored in OneDrive', headers);
     }
 
     // Get download URL from OneDrive
-    // Use item ID if available (more reliable), otherwise use path
+    // Use file ID if available (more reliable), otherwise use path
     let downloadUrl;
     
-    if (video.onedrive_item_id) {
-      // Use item ID
+    console.log('Video record:', { 
+      id: video.id, 
+      onedrive_file_id: video.onedrive_file_id, 
+      onedrive_path: video.onedrive_path 
+    });
+    
+    if (video.onedrive_file_id) {
+      // Use file ID - this is the OneDrive item ID
       const result = await graphApiRequest(
         userId, 
-        `/me/drive/items/${video.onedrive_item_id}`
+        `/me/drive/items/${video.onedrive_file_id}`
       );
       
       downloadUrl = result['@microsoft.graph.downloadUrl'];
     } else if (video.onedrive_path) {
-      // Use path - need to encode it properly
-      const encodedPath = video.onedrive_path.split('/').map(encodeURIComponent).join('/');
+      // Use path - need to encode special characters but preserve slashes
+      // OneDrive path format: /path/to/file.mp4
+      const pathWithoutLeadingSlash = video.onedrive_path.replace(/^\//, '');
       const result = await graphApiRequest(
         userId,
-        `/me/drive/root:/${encodedPath}`
+        `/me/drive/root:/${pathWithoutLeadingSlash}`
       );
       
       downloadUrl = result['@microsoft.graph.downloadUrl'];
