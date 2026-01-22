@@ -99,14 +99,17 @@ function init() {
 
 // Common selectors for Amazon Influencer upload form
 const UPLOAD_SELECTORS = {
-  // Title input field - try multiple possible selectors
+  // Title input field - must be specific to avoid hitting search box
+  // The title field is in the right panel, has label "Title *" and helper text about 60 chars
   titleInput: [
     'input[name="title"]',
-    'input[placeholder*="title" i]',
-    'input[aria-label*="title" i]',
-    '#video-title',
-    '[data-testid="video-title-input"]',
-    'input[type="text"]' // Fallback - first text input
+    'input#title',
+    // Look for input near a label containing "Title"
+    'label:has-text("Title") + input',
+    'label:has-text("Title") ~ input',
+    // Aria-based
+    'input[aria-label="Title"]',
+    'input[aria-labelledby*="title" i]'
   ],
   // ASIN/Product search field
   asinSearch: [
@@ -114,7 +117,6 @@ const UPLOAD_SELECTORS = {
     'input[placeholder*="ASIN" i]',
     'input[placeholder*="product" i]',
     'input[aria-label*="product" i]',
-    'input[aria-label*="search" i]',
     '[data-testid="product-search-input"]'
   ]
 };
@@ -122,12 +124,76 @@ const UPLOAD_SELECTORS = {
 // Find element by trying multiple selectors
 function findElement(selectorList) {
   for (const selector of selectorList) {
-    const el = document.querySelector(selector);
-    if (el) {
-      console.log('Found element with selector:', selector);
-      return el;
+    try {
+      const el = document.querySelector(selector);
+      if (el) {
+        console.log('Found element with selector:', selector);
+        return el;
+      }
+    } catch (e) {
+      // Invalid selector, skip
     }
   }
+  return null;
+}
+
+// Find the title input by looking for label with "Title" text
+function findTitleInput() {
+  // Strategy 1: Find label containing "Title" and get associated input
+  const labels = document.querySelectorAll('label');
+  for (const label of labels) {
+    if (label.textContent.includes('Title')) {
+      // Check for 'for' attribute
+      if (label.htmlFor) {
+        const input = document.getElementById(label.htmlFor);
+        if (input) {
+          console.log('Found title input via label[for]:', input);
+          return input;
+        }
+      }
+      // Check for input as sibling or child
+      const parent = label.parentElement;
+      if (parent) {
+        const input = parent.querySelector('input[type="text"], input:not([type])');
+        if (input) {
+          console.log('Found title input as sibling of label:', input);
+          return input;
+        }
+      }
+    }
+  }
+  
+  // Strategy 2: Find input with name/id containing "title" (case insensitive)
+  const inputs = document.querySelectorAll('input[type="text"], input:not([type])');
+  for (const input of inputs) {
+    const name = (input.name || '').toLowerCase();
+    const id = (input.id || '').toLowerCase();
+    const ariaLabel = (input.getAttribute('aria-label') || '').toLowerCase();
+    
+    if (name.includes('title') || id.includes('title') || ariaLabel.includes('title')) {
+      console.log('Found title input by name/id/aria:', input);
+      return input;
+    }
+  }
+  
+  // Strategy 3: Find inputs NOT in a search context (exclude inputs next to Search buttons)
+  for (const input of inputs) {
+    const parent = input.closest('div, form, section');
+    if (parent) {
+      const hasSearchButton = parent.querySelector('button') && 
+        parent.textContent.toLowerCase().includes('search');
+      if (!hasSearchButton) {
+        // Check if this input has hint text about characters
+        const container = input.closest('div');
+        if (container && container.textContent.includes('character')) {
+          console.log('Found title input by character hint:', input);
+          return input;
+        }
+      }
+    }
+  }
+  
+  console.log('Could not find title input');
   return null;
 }
 
@@ -162,7 +228,7 @@ function handleAutofill(data) {
   
   // Try to fill title
   if (data.title) {
-    const titleInput = findElement(UPLOAD_SELECTORS.titleInput);
+    const titleInput = findTitleInput();
     if (titleInput) {
       simulateTyping(titleInput, data.title);
       results.titleFilled = true;
@@ -171,9 +237,11 @@ function handleAutofill(data) {
       console.warn('Title input not found. Available inputs:', 
         Array.from(document.querySelectorAll('input')).map(i => ({
           name: i.name,
+          id: i.id,
           placeholder: i.placeholder,
           type: i.type,
-          'aria-label': i.getAttribute('aria-label')
+          'aria-label': i.getAttribute('aria-label'),
+          parentText: i.parentElement?.textContent?.slice(0, 50)
         }))
       );
     }
