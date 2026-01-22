@@ -7,7 +7,7 @@ import { Folder, ChevronRight, ChevronDown, RefreshCw, X, Check } from 'lucide-r
  * FolderPicker Component
  * Modal for browsing and selecting OneDrive folders
  */
-export default function FolderPicker({ onClose, onSelect }) {
+export default function FolderPicker({ onClose, onSelect, skipSave = false }) {
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPath, setCurrentPath] = useState([]);
@@ -98,6 +98,14 @@ export default function FolderPicker({ onClose, onSelect }) {
     setSaving(true);
 
     try {
+      // If skipSave is true, just call onSelect without saving to default folder
+      if (skipSave) {
+        toast.success('Folder selected successfully');
+        onSelect(selectedFolder);
+        setSaving(false);
+        return;
+      }
+
       const token = await userAPI.getAuthToken();
       const response = await fetch('/.netlify/functions/onedrive-set-folder', {
         method: 'POST',

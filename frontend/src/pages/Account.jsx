@@ -1132,6 +1132,7 @@ export default function Account() {
               {showThumbnailFolderPicker && (
                 <FolderPicker
                   onClose={() => setShowThumbnailFolderPicker(false)}
+                  skipSave={true}
                   onSelect={async (selectedFolder) => {
                     console.log('Folder selected:', selectedFolder)
                     const folderId = selectedFolder.id
