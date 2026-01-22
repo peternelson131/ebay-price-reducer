@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI, supabase } from '../lib/supabase'
-import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle, Undo2, ImagePlus, Edit, Plus, Youtube, ExternalLink, Clock } from 'lucide-react'
+import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle, Undo2, ImagePlus, Edit, Plus, Youtube, ExternalLink, Clock, Lock } from 'lucide-react'
 import ThumbnailTemplateModal from '../components/ThumbnailTemplateModal'
 import FolderPicker from '../components/onedrive/FolderPicker'
 
@@ -503,11 +503,11 @@ export default function Account() {
   }
 
   const tabs = [
-    { id: 'profile', name: 'Account', icon: '👤' },
-    { id: 'social', name: 'Social', icon: '📺' },
-    { id: 'security', name: 'Security', icon: '🔒' },
-    { id: 'feedback', name: 'Feedback', icon: '💬' },
-    { id: 'thumbnail-templates', name: 'Thumbnails', icon: '🖼️' }
+    { id: 'profile', name: 'Account', icon: User },
+    { id: 'social', name: 'Social', icon: Youtube },
+    { id: 'security', name: 'Security', icon: Lock },
+    { id: 'feedback', name: 'Feedback', icon: MessageSquare },
+    { id: 'thumbnail-templates', name: 'Thumbnails', icon: Image }
   ]
 
   return (
@@ -528,7 +528,7 @@ export default function Account() {
           >
             {tabs.map((tab) => (
               <option key={tab.id} value={tab.id}>
-                {tab.icon} {tab.name}
+                {tab.name}
               </option>
             ))}
           </select>
@@ -537,20 +537,23 @@ export default function Account() {
         {/* Desktop Tab Navigation */}
         <div className="hidden sm:block border-b border-theme">
           <nav className="flex flex-wrap" aria-label="Tabs">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-accent bg-accent/10'
-                    : 'border-transparent text-theme-tertiary hover:text-theme-secondary hover:border-theme'
-                } whitespace-nowrap py-4 px-4 sm:px-6 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors`}
-              >
-                <span className="text-lg">{tab.icon}</span>
-                <span className="hidden md:inline">{tab.name}</span>
-              </button>
-            ))}
+            {tabs.map((tab) => {
+              const IconComponent = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-accent bg-accent/10'
+                      : 'border-transparent text-theme-tertiary hover:text-theme-secondary hover:border-theme'
+                  } whitespace-nowrap py-4 px-4 sm:px-6 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors`}
+                >
+                  <IconComponent className="w-5 h-5" />
+                  <span className="hidden md:inline">{tab.name}</span>
+                </button>
+              )
+            })}
             
             {/* Admin Tab - only show if user is admin */}
             {profile?.is_admin && (
