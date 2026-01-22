@@ -8,22 +8,33 @@ import ThumbnailZoneEditor from './ThumbnailZoneEditor';
  * Modal for uploading and configuring thumbnail templates
  * 
  * Features:
- * - Owner name input
+ * - Owner dropdown (from CRM owners)
  * - Drag & drop image upload
  * - Image preview
  * - Triggers zone editor after upload
  */
 export default function ThumbnailTemplateModal({ 
   existingTemplate = null, 
+  crmOwners = [],  // List of {id, name} from crm_owners table
   onClose, 
   onSave 
 }) {
-  const [ownerName, setOwnerName] = useState(existingTemplate?.owner_name || '');
+  const [ownerId, setOwnerId] = useState(existingTemplate?.owner_id || '');
   const [templateImage, setTemplateImage] = useState(existingTemplate?.template_url || null);
   const [imagePreview, setImagePreview] = useState(existingTemplate?.template_url || null);
   const [showZoneEditor, setShowZoneEditor] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Filter out owners that already have templates (unless editing that owner's template)
+  const availableOwners = crmOwners.filter(owner => {
+    if (existingTemplate && owner.id === existingTemplate.owner_id) {
+      return true; // Keep current owner when editing
+    }
+    return !owner.hasTemplate;
+  });
+
+  const selectedOwner = crmOwners.find(o => o.id === ownerId);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -84,8 +95,8 @@ export default function ThumbnailTemplateModal({
 
   const handleContinue = () => {
     // Validate inputs
-    if (!ownerName.trim()) {
-      toast.error('Please enter an owner name');
+    if (!ownerId) {
+      toast.error('Please select an owner');
       return;
     }
 
@@ -101,7 +112,8 @@ export default function ThumbnailTemplateModal({
   const handleZoneSave = (zone) => {
     // Call the parent's onSave with all template data
     onSave({
-      owner_name: ownerName.trim(),
+      owner_id: ownerId,
+      owner_name: selectedOwner?.name, // Include for display purposes
       template_image: templateImage,
       placement_zone: zone,
       id: existingTemplate?.id
@@ -145,20 +157,38 @@ export default function ThumbnailTemplateModal({
 
         {/* Body */}
         <div className="p-6 space-y-6">
-          {/* Owner Name Input */}
+          {/* Owner Dropdown */}
           <div className="form-group">
-            <label className="form-label">Owner Name</label>
-            <input
-              type="text"
-              value={ownerName}
-              onChange={(e) => setOwnerName(e.target.value)}
-              placeholder="e.g., Peter, Sarah, John"
-              className="form-input"
-              autoFocus
-            />
-            <p className="text-xs text-theme-tertiary mt-1">
-              Each owner can have one template. This will be used to automatically generate thumbnails.
-            </p>
+            <label className="form-label">Owner</label>
+            {availableOwners.length === 0 && !existingTemplate ? (
+              <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-sm text-yellow-500">
+                  All your CRM owners already have templates, or you haven't created any owners yet.
+                </p>
+                <p className="text-xs text-theme-tertiary mt-1">
+                  Go to Product CRM to add owners first.
+                </p>
+              </div>
+            ) : (
+              <>
+                <select
+                  value={ownerId}
+                  onChange={(e) => setOwnerId(e.target.value)}
+                  className="form-input"
+                  disabled={existingTemplate} // Can't change owner when editing
+                >
+                  <option value="">Select an owner...</option>
+                  {availableOwners.map(owner => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-theme-tertiary mt-1">
+                  Each owner can have one template. Thumbnails auto-generate when this owner is assigned to a product.
+                </p>
+              </>
+            )}
           </div>
 
           {/* Image Upload */}
@@ -243,7 +273,7 @@ export default function ThumbnailTemplateModal({
           <button 
             onClick={handleContinue} 
             className="btn-primary"
-            disabled={!ownerName.trim() || !templateImage}
+            disabled={!ownerId || !templateImage}
           >
             Continue to Zone Editor
           </button>

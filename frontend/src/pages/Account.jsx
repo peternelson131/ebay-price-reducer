@@ -98,6 +98,22 @@ export default function Account() {
     }
   )
 
+  // CRM Owners query (for thumbnail template dropdown)
+  const { data: crmOwners = [] } = useQuery(
+    ['crmOwners'],
+    async () => {
+      const { data, error } = await supabase
+        .from('crm_owners')
+        .select('id, name')
+        .order('name')
+      if (error) throw error
+      return data || []
+    },
+    {
+      refetchOnWindowFocus: false
+    }
+  )
+
   // Thumbnail Templates query
   const { data: thumbnailTemplates = [], isLoading: isLoadingTemplates, refetch: refetchTemplates } = useQuery(
     ['thumbnailTemplates'],
@@ -114,6 +130,12 @@ export default function Account() {
       refetchOnWindowFocus: false
     }
   )
+
+  // Merge owners with template info (to show which have templates)
+  const ownersWithTemplateInfo = crmOwners.map(owner => ({
+    ...owner,
+    hasTemplate: thumbnailTemplates.some(t => t.owner_id === owner.id)
+  }))
 
   // Delete template mutation
   const deleteTemplateMutation = useMutation({
@@ -1118,7 +1140,9 @@ export default function Account() {
                       <div className="p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h4 className="font-medium text-theme-primary">{template.owner_name}</h4>
+                            <h4 className="font-medium text-theme-primary">
+                              {template.owner_name || crmOwners.find(o => o.id === template.owner_id)?.name || 'Unknown Owner'}
+                            </h4>
                             <p className="text-xs text-theme-tertiary mt-1">
                               Zone: {template.placement_zone ? 
                                 `${Math.round(template.placement_zone.width)}% × ${Math.round(template.placement_zone.height)}%` : 
@@ -1179,15 +1203,37 @@ export default function Account() {
       {/* Thumbnail Template Modal */}
       {showTemplateModal && (
         <ThumbnailTemplateModal
-          template={editingTemplate}
+          existingTemplate={editingTemplate}
+          crmOwners={ownersWithTemplateInfo}
           onClose={() => {
             setShowTemplateModal(false)
             setEditingTemplate(null)
           }}
-          onSave={() => {
-            refetchTemplates()
-            setShowTemplateModal(false)
-            setEditingTemplate(null)
+          onSave={async (templateData) => {
+            try {
+              const token = (await supabase.auth.getSession()).data.session?.access_token
+              const method = templateData.id ? 'PUT' : 'POST'
+              const url = templateData.id 
+                ? `/.netlify/functions/thumbnail-templates?id=${templateData.id}`
+                : '/.netlify/functions/thumbnail-templates'
+              
+              const response = await fetch(url, {
+                method,
+                headers: { 
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(templateData)
+              })
+              
+              if (!response.ok) throw new Error('Failed to save template')
+              
+              refetchTemplates()
+              setShowTemplateModal(false)
+              setEditingTemplate(null)
+            } catch (error) {
+              console.error('Save template error:', error)
+            }
           }}
         />
       )}

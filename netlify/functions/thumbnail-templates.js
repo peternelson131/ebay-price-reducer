@@ -3,8 +3,8 @@
  * 
  * GET    /thumbnail-templates - List user's templates (with signed URLs)
  * POST   /thumbnail-templates - Upload new template
- * PUT    /thumbnail-templates/:id - Update template (zone, owner_name)
- * DELETE /thumbnail-templates/:id - Delete template and storage file
+ * PUT    /thumbnail-templates?id=xxx - Update template (zone)
+ * DELETE /thumbnail-templates?id=xxx - Delete template and storage file
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -39,9 +39,16 @@ exports.handler = async (event, context) => {
     // GET - List user's templates
     // ─────────────────────────────────────────────────────────
     if (method === 'GET') {
+      // Join with crm_owners to get owner names
       const { data: templates, error: fetchError } = await supabase
         .from('thumbnail_templates')
-        .select('*')
+        .select(`
+          *,
+          crm_owners (
+            id,
+            name
+          )
+        `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -53,13 +60,19 @@ exports.handler = async (event, context) => {
       // Generate signed URLs for each template
       const templatesWithUrls = await Promise.all(
         templates.map(async (template) => {
-          const { data: urlData } = await supabase.storage
-            .from('thumbnail-templates')
-            .createSignedUrl(template.template_storage_path, 60 * 60 * 24); // 24 hour expiry
+          let templateUrl = null;
+          
+          if (template.template_storage_path) {
+            const { data: urlData } = await supabase.storage
+              .from('thumbnail-templates')
+              .createSignedUrl(template.template_storage_path, 60 * 60 * 24); // 24 hour expiry
+            templateUrl = urlData?.signedUrl || null;
+          }
 
           return {
             ...template,
-            template_url: urlData?.signedUrl || null
+            owner_name: template.crm_owners?.name || 'Unknown',
+            template_url: templateUrl
           };
         })
       );
@@ -75,34 +88,47 @@ exports.handler = async (event, context) => {
     // ─────────────────────────────────────────────────────────
     if (method === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const { owner_name, image_base64, placement_zone } = body;
+      const { owner_id, template_image, placement_zone } = body;
 
       // Validation
-      if (!owner_name || !image_base64 || !placement_zone) {
-        return errorResponse(400, 'Missing required fields: owner_name, image_base64, placement_zone', headers);
+      if (!owner_id || !template_image || !placement_zone) {
+        return errorResponse(400, 'Missing required fields: owner_id, template_image, placement_zone', headers);
       }
 
       // Validate placement_zone structure
-      if (!placement_zone.x || !placement_zone.y || !placement_zone.width || !placement_zone.height) {
+      if (placement_zone.x === undefined || placement_zone.y === undefined || 
+          placement_zone.width === undefined || placement_zone.height === undefined) {
         return errorResponse(400, 'placement_zone must include x, y, width, height (as percentages)', headers);
       }
 
-      // Check for duplicate owner_name
+      // Verify owner exists and belongs to user
+      const { data: owner, error: ownerError } = await supabase
+        .from('crm_owners')
+        .select('id, name')
+        .eq('id', owner_id)
+        .eq('user_id', userId)
+        .single();
+
+      if (ownerError || !owner) {
+        return errorResponse(404, 'Owner not found', headers);
+      }
+
+      // Check for duplicate template for this owner
       const { data: existingTemplate } = await supabase
         .from('thumbnail_templates')
         .select('id')
         .eq('user_id', userId)
-        .eq('owner_name', owner_name)
+        .eq('owner_id', owner_id)
         .single();
 
       if (existingTemplate) {
-        return errorResponse(409, `Template for owner "${owner_name}" already exists`, headers);
+        return errorResponse(409, `Template for owner "${owner.name}" already exists`, headers);
       }
 
       // Decode base64 image
       let imageBuffer;
       try {
-        const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, '');
+        const base64Data = template_image.replace(/^data:image\/\w+;base64,/, '');
         imageBuffer = Buffer.from(base64Data, 'base64');
       } catch (error) {
         console.error('Base64 decode error:', error);
@@ -111,7 +137,8 @@ exports.handler = async (event, context) => {
 
       // Generate storage path
       const timestamp = Date.now();
-      const storagePath = `${userId}/${timestamp}_${owner_name.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`;
+      const safeName = owner.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const storagePath = `${userId}/${timestamp}_${safeName}.jpg`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -131,7 +158,7 @@ exports.handler = async (event, context) => {
         .from('thumbnail_templates')
         .insert({
           user_id: userId,
-          owner_name,
+          owner_id,
           template_storage_path: storagePath,
           placement_zone
         })
@@ -158,17 +185,19 @@ exports.handler = async (event, context) => {
         success: true,
         template: {
           ...newTemplate,
+          owner_name: owner.name,
           template_url: urlData?.signedUrl || null
         }
       }, headers, 201);
     }
 
     // ─────────────────────────────────────────────────────────
-    // PUT - Update template (zone and/or owner_name)
+    // PUT - Update template (zone only - can't change owner)
     // ─────────────────────────────────────────────────────────
     if (method === 'PUT') {
+      const id = event.queryStringParameters?.id;
       const body = JSON.parse(event.body || '{}');
-      const { id, owner_name, placement_zone } = body;
+      const { placement_zone, template_image } = body;
 
       if (!id) {
         return errorResponse(400, 'Missing template id', headers);
@@ -188,8 +217,40 @@ exports.handler = async (event, context) => {
 
       // Build update object
       const updates = { updated_at: new Date().toISOString() };
-      if (owner_name) updates.owner_name = owner_name;
       if (placement_zone) updates.placement_zone = placement_zone;
+
+      // Handle new image upload if provided
+      if (template_image && template_image.startsWith('data:image')) {
+        try {
+          const base64Data = template_image.replace(/^data:image\/\w+;base64,/, '');
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+
+          // Delete old image
+          if (existingTemplate.template_storage_path) {
+            await supabase.storage
+              .from('thumbnail-templates')
+              .remove([existingTemplate.template_storage_path]);
+          }
+
+          // Upload new image
+          const timestamp = Date.now();
+          const storagePath = `${userId}/${timestamp}_template.jpg`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('thumbnail-templates')
+            .upload(storagePath, imageBuffer, {
+              contentType: 'image/jpeg',
+              upsert: false
+            });
+
+          if (uploadError) throw uploadError;
+          
+          updates.template_storage_path = storagePath;
+        } catch (error) {
+          console.error('Image update error:', error);
+          return errorResponse(500, 'Failed to update template image', headers);
+        }
+      }
 
       // Update template
       const { data: updatedTemplate, error: updateError } = await supabase
@@ -242,13 +303,15 @@ exports.handler = async (event, context) => {
       }
 
       // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('thumbnail-templates')
-        .remove([template.template_storage_path]);
+      if (template.template_storage_path) {
+        const { error: storageError } = await supabase.storage
+          .from('thumbnail-templates')
+          .remove([template.template_storage_path]);
 
-      if (storageError) {
-        console.error('Storage deletion error:', storageError);
-        // Continue anyway - orphaned files are less critical than DB consistency
+        if (storageError) {
+          console.error('Storage deletion error:', storageError);
+          // Continue anyway - orphaned files are less critical than DB consistency
+        }
       }
 
       // Delete from database

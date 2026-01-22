@@ -8,7 +8,14 @@
 
 ## Overview
 
-Users upload base thumbnail templates (one per owner), define a "landing zone" for the product image via a visual editor, and the system auto-generates thumbnails when influencer tasks are created.
+Users upload base thumbnail templates (one per CRM owner), define a "landing zone" for the product image via a visual editor, and the system auto-generates thumbnails when an owner is assigned to a product in the CRM.
+
+## Key Design Decisions (Updated)
+
+1. **Owner = CRM Owner** - Dropdown from `crm_owners` table, not free text
+2. **Trigger = Owner assignment in CRM** - Not task creation
+3. **Storage = OneDrive** - User's connected OneDrive, not Supabase Storage
+4. **No UI display needed** - Just store for download later
 
 ---
 

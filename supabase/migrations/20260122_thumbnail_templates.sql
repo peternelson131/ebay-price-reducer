@@ -1,20 +1,21 @@
 -- Thumbnail Templates for auto-generation
 -- Stores user-uploaded base templates for compositing product images
+-- Each template is linked to a CRM owner (from crm_owners table)
 
 CREATE TABLE IF NOT EXISTS thumbnail_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  owner_name TEXT NOT NULL,
-  template_storage_path TEXT NOT NULL,
+  owner_id UUID REFERENCES crm_owners(id) ON DELETE CASCADE NOT NULL,  -- Links to CRM owner
+  template_storage_path TEXT NOT NULL,  -- OneDrive path or Supabase storage path
   placement_zone JSONB NOT NULL,  -- {x, y, width, height} as percentages (0-100)
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, owner_name)
+  UNIQUE(user_id, owner_id)  -- One template per owner per user
 );
 
 -- Create indexes
 CREATE INDEX idx_thumbnail_templates_user_id ON thumbnail_templates(user_id);
-CREATE INDEX idx_thumbnail_templates_owner_name ON thumbnail_templates(owner_name);
+CREATE INDEX idx_thumbnail_templates_owner_id ON thumbnail_templates(owner_id);
 
 -- Enable RLS
 ALTER TABLE thumbnail_templates ENABLE ROW LEVEL SECURITY;
