@@ -765,7 +765,7 @@ function YouTubeIntegration() {
 // Main Integrations Page
 export default function Integrations() {
   const [searchParams] = useSearchParams()
-  const [openCategories, setOpenCategories] = useState(['marketplace', 'influencer', 'social'])
+  const [openCategories, setOpenCategories] = useState([]) // All collapsed by default
   const [connectionStatuses, setConnectionStatuses] = useState({})
 
   // Check for OAuth callback success/error messages
