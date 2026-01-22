@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronDown, ChevronRight, ShoppingCart, Video, Share2, CheckCircle, XCircle, Eye, EyeOff, ExternalLink, Loader, Link2, Unlink, Clock, Youtube } from 'lucide-react'
+import { ChevronDown, ChevronRight, ShoppingCart, Video, Share2, CheckCircle, XCircle, Eye, EyeOff, ExternalLink, Loader, Link2, Unlink, Clock, Youtube, Facebook, Instagram } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { userAPI, supabase } from '../lib/supabase'
 import { OneDriveConnection } from '../components/onedrive'
@@ -646,6 +646,9 @@ function MetaIntegration({ onStatusChange }) {
   return (
     <div className="bg-theme-primary rounded-lg border border-theme p-4">
       <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+          <Facebook className="w-6 h-6 text-white" />
+        </div>
         <div className="flex-1">
           <h4 className="font-medium text-theme-primary">Meta (Facebook & Instagram)</h4>
           <p className="text-sm text-theme-tertiary">Post content to Facebook Page and Instagram</p>
@@ -669,8 +672,8 @@ function MetaIntegration({ onStatusChange }) {
           <div className="space-y-2">
             {connection?.pageName && (
               <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  f
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Facebook className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-theme-primary">{connection.pageName}</p>
@@ -681,8 +684,8 @@ function MetaIntegration({ onStatusChange }) {
             )}
             {connection?.instagramUsername ? (
               <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  IG
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 rounded-lg flex items-center justify-center">
+                  <Instagram className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-theme-primary">@{connection.instagramUsername}</p>
@@ -692,8 +695,8 @@ function MetaIntegration({ onStatusChange }) {
               </div>
             ) : (
               <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg opacity-60">
-                <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  IG
+                <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
+                  <Instagram className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-theme-primary">Instagram not linked</p>
