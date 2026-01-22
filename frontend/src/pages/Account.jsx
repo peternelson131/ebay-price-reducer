@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI, supabase } from '../lib/supabase'
-import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle, Undo2, ImagePlus, Edit, Plus, Youtube, ExternalLink, Clock, Lock } from 'lucide-react'
+import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle, Undo2, ImagePlus, Edit, Plus, ExternalLink, Clock, Lock } from 'lucide-react'
 import ThumbnailTemplateModal from '../components/ThumbnailTemplateModal'
 import FolderPicker from '../components/onedrive/FolderPicker'
 
@@ -42,103 +42,6 @@ export default function Account() {
       refetchOnWindowFocus: false
     }
   )
-
-  // YouTube connection status
-  const [youtubeSchedule, setYoutubeSchedule] = useState({ post_time: '09:00', timezone: 'America/Chicago', is_active: false })
-  const [isConnectingYoutube, setIsConnectingYoutube] = useState(false)
-  const [isSavingYoutubeSchedule, setIsSavingYoutubeSchedule] = useState(false)
-  
-  const { data: youtubeStatus, isLoading: isLoadingYoutube, refetch: refetchYoutube } = useQuery(
-    ['youtubeStatus'],
-    async () => {
-      const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/youtube-status', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!response.ok) throw new Error('Failed to fetch YouTube status')
-      return response.json()
-    },
-    {
-      refetchOnWindowFocus: false,
-      onSuccess: (data) => {
-        if (data.schedule) {
-          setYoutubeSchedule(data.schedule)
-        }
-      }
-    }
-  )
-
-  // Handle YouTube OAuth callback from URL params
-  useEffect(() => {
-    const youtubeParam = searchParams.get('youtube')
-    if (youtubeParam === 'connected') {
-      setActiveTab('social')
-      refetchYoutube()
-      // Clear the URL params
-      searchParams.delete('youtube')
-      searchParams.delete('channel')
-      setSearchParams(searchParams)
-    } else if (youtubeParam === 'error') {
-      setActiveTab('social')
-      // Show error toast/message
-      console.error('YouTube connection error:', searchParams.get('message'))
-      searchParams.delete('youtube')
-      searchParams.delete('message')
-      setSearchParams(searchParams)
-    }
-  }, [searchParams])
-
-  const handleConnectYoutube = async () => {
-    setIsConnectingYoutube(true)
-    try {
-      const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/youtube-auth', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      const data = await response.json()
-      if (data.authUrl) {
-        window.location.href = data.authUrl
-      }
-    } catch (error) {
-      console.error('Failed to start YouTube auth:', error)
-    } finally {
-      setIsConnectingYoutube(false)
-    }
-  }
-
-  const handleDisconnectYoutube = async () => {
-    if (!confirm('Are you sure you want to disconnect YouTube?')) return
-    try {
-      const token = await userAPI.getAuthToken()
-      await fetch('/.netlify/functions/youtube-status', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      refetchYoutube()
-    } catch (error) {
-      console.error('Failed to disconnect YouTube:', error)
-    }
-  }
-
-  const handleSaveYoutubeSchedule = async () => {
-    setIsSavingYoutubeSchedule(true)
-    try {
-      const token = await userAPI.getAuthToken()
-      await fetch('/.netlify/functions/youtube-status', {
-        method: 'PUT',
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(youtubeSchedule)
-      })
-      refetchYoutube()
-    } catch (error) {
-      console.error('Failed to save schedule:', error)
-    } finally {
-      setIsSavingYoutubeSchedule(false)
-    }
-  }
 
   // Admin feedback query - only fetch if user is admin
   const { data: allFeedback, isLoading: isLoadingFeedback, error: feedbackError, refetch: refetchFeedback } = useQuery(
@@ -290,7 +193,7 @@ export default function Account() {
   // Handle URL parameter for tab selection
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['profile', 'social', 'security', 'feedback', 'thumbnail-templates'].includes(tab)) {
+    if (tab && ['profile', 'security', 'feedback', 'thumbnail-templates'].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -504,7 +407,6 @@ export default function Account() {
 
   const tabs = [
     { id: 'profile', name: 'Account', icon: User },
-    { id: 'social', name: 'Social', icon: Youtube },
     { id: 'security', name: 'Security', icon: Lock },
     { id: 'feedback', name: 'Feedback', icon: MessageSquare },
     { id: 'thumbnail-templates', name: 'Thumbnails', icon: Image }
@@ -683,186 +585,6 @@ export default function Account() {
                     Edit Profile
                   </button>
                 )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'social' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-theme-primary">Social Media Connections</h3>
-                <p className="text-sm text-theme-secondary">Connect your social accounts for automated video posting.</p>
-              </div>
-
-              {/* YouTube Connection */}
-              <div className="border border-theme rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-                    <Youtube className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-theme-primary">YouTube</h4>
-                    <p className="text-sm text-theme-secondary">Post videos as YouTube Shorts</p>
-                  </div>
-                  {isLoadingYoutube ? (
-                    <Loader className="w-5 h-5 animate-spin text-theme-secondary" />
-                  ) : youtubeStatus?.connected ? (
-                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm rounded-full flex items-center gap-1">
-                      <CheckCircle className="w-4 h-4" /> Connected
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm rounded-full">
-                      Not connected
-                    </span>
-                  )}
-                </div>
-
-                {youtubeStatus?.connected ? (
-                  <div className="space-y-4">
-                    {/* Connected Channel Info */}
-                    <div className="flex items-center gap-3 p-3 bg-theme-surface-alt rounded-lg">
-                      {youtubeStatus.connection.channelAvatar && (
-                        <img 
-                          src={youtubeStatus.connection.channelAvatar} 
-                          alt="" 
-                          className="w-10 h-10 rounded-full"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <p className="font-medium text-theme-primary">{youtubeStatus.connection.channelName}</p>
-                        <p className="text-sm text-theme-secondary">
-                          Connected {new Date(youtubeStatus.connection.connectedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleDisconnectYoutube}
-                        className="text-red-500 hover:text-red-600 text-sm"
-                      >
-                        Disconnect
-                      </button>
-                    </div>
-
-                    {/* Posting Schedule */}
-                    <div className="border-t border-theme pt-4">
-                      <h5 className="font-medium text-theme-primary mb-3 flex items-center gap-2">
-                        <Clock className="w-4 h-4" /> Daily Posting Schedule
-                      </h5>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-sm text-theme-secondary mb-1">Post Time</label>
-                          <input
-                            type="time"
-                            value={youtubeSchedule.post_time}
-                            onChange={(e) => setYoutubeSchedule(prev => ({ ...prev, post_time: e.target.value }))}
-                            className="w-full border border-theme rounded-lg px-3 py-2 bg-theme-surface text-theme-primary"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm text-theme-secondary mb-1">Timezone</label>
-                          <select
-                            value={youtubeSchedule.timezone}
-                            onChange={(e) => setYoutubeSchedule(prev => ({ ...prev, timezone: e.target.value }))}
-                            className="w-full border border-theme rounded-lg px-3 py-2 bg-theme-surface text-theme-primary"
-                          >
-                            <option value="America/New_York">Eastern (ET)</option>
-                            <option value="America/Chicago">Central (CT)</option>
-                            <option value="America/Denver">Mountain (MT)</option>
-                            <option value="America/Los_Angeles">Pacific (PT)</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm text-theme-secondary mb-1">Status</label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={youtubeSchedule.is_active}
-                              onChange={(e) => setYoutubeSchedule(prev => ({ ...prev, is_active: e.target.checked }))}
-                              className="w-4 h-4 rounded"
-                            />
-                            <span className="text-theme-primary">Enable auto-posting</span>
-                          </label>
-                        </div>
-                      </div>
-                      <button
-                        onClick={handleSaveYoutubeSchedule}
-                        disabled={isSavingYoutubeSchedule}
-                        className="mt-4 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50"
-                      >
-                        {isSavingYoutubeSchedule ? 'Saving...' : 'Save Schedule'}
-                      </button>
-                    </div>
-
-                    {/* Recent Posts */}
-                    {youtubeStatus.recentPosts?.length > 0 && (
-                      <div className="border-t border-theme pt-4">
-                        <h5 className="font-medium text-theme-primary mb-3">Recent Posts</h5>
-                        <div className="space-y-2">
-                          {youtubeStatus.recentPosts.slice(0, 5).map(post => (
-                            <div key={post.id} className="flex items-center gap-3 p-2 bg-theme-surface-alt rounded">
-                              <span className={`w-2 h-2 rounded-full ${
-                                post.status === 'posted' ? 'bg-green-500' :
-                                post.status === 'failed' ? 'bg-red-500' :
-                                'bg-yellow-500'
-                              }`} />
-                              <span className="flex-1 text-sm text-theme-primary truncate">{post.title}</span>
-                              {post.platform_url && (
-                                <a 
-                                  href={post.platform_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-accent hover:text-accent-hover"
-                                >
-                                  <ExternalLink className="w-4 h-4" />
-                                </a>
-                              )}
-                              <span className="text-xs text-theme-secondary">
-                                {new Date(post.scheduled_for).toLocaleDateString()}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleConnectYoutube}
-                    disabled={isConnectingYoutube}
-                    className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isConnectingYoutube ? (
-                      <Loader className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Youtube className="w-5 h-5" />
-                    )}
-                    Connect YouTube Channel
-                  </button>
-                )}
-              </div>
-
-              {/* Placeholder for future platforms */}
-              <div className="border border-dashed border-theme rounded-lg p-4 opacity-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold">IG</span>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-theme-primary">Instagram</h4>
-                    <p className="text-sm text-theme-secondary">Coming soon...</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border border-dashed border-theme rounded-lg p-4 opacity-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-xs">TT</span>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-theme-primary">TikTok</h4>
-                    <p className="text-sm text-theme-secondary">Coming soon...</p>
-                  </div>
-                </div>
               </div>
             </div>
           )}

@@ -14,7 +14,8 @@ import {
   X,
   Sun,
   Moon,
-  TrendingUp
+  TrendingUp,
+  Plug
 } from 'lucide-react'
 
 // Lazy load all page components for code splitting
@@ -29,6 +30,7 @@ const ListingSettings = lazy(() => import('./pages/ListingSettings'))
 const InfluencerCentral = lazy(() => import('./pages/InfluencerCentral'))
 const EbayCentral = lazy(() => import('./pages/EbayCentral'))
 const ApiKeys = lazy(() => import('./pages/ApiKeys'))
+const Integrations = lazy(() => import('./pages/Integrations'))
 const WhatNotAnalysis = lazy(() => import('./pages/WhatNotAnalysis'))
 const ProductCRM = lazy(() => import('./pages/ProductCRM'))
 const Settings = lazy(() => import('./pages/Settings'))
@@ -129,6 +131,16 @@ export default function App() {
                 Influencer Central
               </Link>
               <Link
+                to="/integrations"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === '/integrations'
+                    ? 'bg-accent text-white'
+                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                }`}
+              >
+                Integrations
+              </Link>
+              <Link
                 to="/account"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   location.pathname === '/account'
@@ -137,16 +149,6 @@ export default function App() {
                 }`}
               >
                 Account
-              </Link>
-              <Link
-                to="/api-keys"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === '/api-keys'
-                    ? 'bg-accent text-white'
-                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                }`}
-              >
-                Integrations
               </Link>
               {/* Theme Toggle */}
               <button
@@ -236,28 +238,15 @@ export default function App() {
                 </Link>
 
                 <Link
-                  to="/account"
+                  to="/integrations"
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    location.pathname === '/account'
+                    location.pathname === '/integrations'
                       ? 'bg-accent text-white'
                       : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <User className="mr-3 h-5 w-5" strokeWidth={1.5} />
-                  Account
-                </Link>
-
-                <Link
-                  to="/api-keys"
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    location.pathname === '/api-keys'
-                      ? 'bg-accent text-white'
-                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Key className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  <Plug className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   Integrations
                 </Link>
 
@@ -270,7 +259,7 @@ export default function App() {
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <TrendingDown className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  <User className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   Account
                 </Link>
 
@@ -331,9 +320,9 @@ export default function App() {
               <Route path="/admin-settings" element={<AdminSettings />} />
               <Route path="/asin-lookup" element={<InfluencerCentral />} />
               <Route path="/whatnot" element={<WhatNotAnalysis />} />
-              <Route path="/api-keys" element={<ApiKeys />} />
+              <Route path="/integrations" element={<Integrations />} />
+              <Route path="/api-keys" element={<Navigate to="/integrations" replace />} />
               <Route path="/settings" element={<Navigate to="/account" replace />} />
-              <Route path="/whatnot" element={<WhatNotAnalysis />} />
               <Route path="/product-crm" element={<ProductCRM />} />
             </Routes>
           </Suspense>
