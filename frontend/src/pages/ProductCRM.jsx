@@ -3094,7 +3094,7 @@ export default function ProductCRM() {
         }
       }
       
-      // Auto-generate video title using primary owner's prefix
+      // Auto-generate video title using primary owner's prefix (max 60 chars)
       let videoTitle = null;
       if (primaryOwner) {
         // Get current product to find its title
@@ -3102,7 +3102,9 @@ export default function ProductCRM() {
         const productTitle = currentProduct?.title || currentProduct?.asin;
         if (productTitle) {
           const prefix = primaryOwner.title_prefix || 'Honest Review';
-          videoTitle = `${prefix} - ${productTitle}`;
+          let fullTitle = `${prefix} - ${productTitle}`;
+          // Truncate to 60 characters max
+          videoTitle = fullTitle.length > 60 ? fullTitle.substring(0, 57) + '...' : fullTitle;
           
           // Save video title to database
           await supabase

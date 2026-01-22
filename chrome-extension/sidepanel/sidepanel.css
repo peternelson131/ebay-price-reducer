@@ -406,6 +406,37 @@ body {
   overflow: hidden;
 }
 
+.task-video-title {
+  margin-bottom: 8px;
+}
+
+.video-title-input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.video-title-input:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.video-title-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.task-video-title.no-title .warning {
+  font-size: 11px;
+  color: var(--warning);
+}
+
 .task-video {
   font-size: 11px;
   color: var(--text-secondary);
