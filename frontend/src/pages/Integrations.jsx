@@ -803,6 +803,77 @@ export default function Integrations() {
     }
   }, [searchParams])
 
+  // Fetch all connection statuses on mount (independent of accordion state)
+  useEffect(() => {
+    const fetchAllConnectionStatuses = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+
+        // Fetch eBay status
+        try {
+          const ebayResponse = await fetch('/.netlify/functions/ebay-connection-status', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+          })
+          const ebayData = await ebayResponse.json()
+          updateConnectionStatus('ebay', ebayData.connected === true)
+        } catch (error) {
+          console.error('Failed to fetch eBay status:', error)
+        }
+
+        // Fetch Keepa API key status
+        try {
+          const { data: keepaData } = await supabase
+            .from('user_api_keys')
+            .select('*')
+            .eq('service', 'keepa')
+            .maybeSingle()
+          updateConnectionStatus('keepa', keepaData?.api_key_encrypted ? true : false)
+        } catch (error) {
+          console.error('Failed to fetch Keepa status:', error)
+        }
+
+        // Fetch Eleven Labs API key status
+        try {
+          const { data: elevenLabsData } = await supabase
+            .from('user_api_keys')
+            .select('*')
+            .eq('service', 'elevenlabs')
+            .maybeSingle()
+          updateConnectionStatus('elevenlabs', elevenLabsData?.api_key_encrypted ? true : false)
+        } catch (error) {
+          console.error('Failed to fetch Eleven Labs status:', error)
+        }
+
+        // Fetch OneDrive status
+        try {
+          const onedriveResponse = await fetch('/.netlify/functions/onedrive-status', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+          })
+          const onedriveData = await onedriveResponse.json()
+          updateConnectionStatus('onedrive', onedriveData.connected === true)
+        } catch (error) {
+          console.error('Failed to fetch OneDrive status:', error)
+        }
+
+        // Fetch YouTube status
+        try {
+          const youtubeResponse = await fetch('/.netlify/functions/youtube-status', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+          })
+          const youtubeData = await youtubeResponse.json()
+          updateConnectionStatus('youtube', youtubeData.connected === true)
+        } catch (error) {
+          console.error('Failed to fetch YouTube status:', error)
+        }
+      } catch (error) {
+        console.error('Failed to fetch connection statuses:', error)
+      }
+    }
+
+    fetchAllConnectionStatuses()
+  }, [])
+
   const toggleCategory = (categoryId) => {
     setOpenCategories(prev =>
       prev.includes(categoryId)
