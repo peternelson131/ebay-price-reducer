@@ -28,7 +28,7 @@ const CATEGORIES = [
     name: 'Social Media Integrations',
     icon: Share2,
     description: 'Connect social platforms for content distribution',
-    integrations: ['youtube', 'instagram', 'facebook']
+    integrations: ['youtube', 'facebook', 'instagram']
   }
 ]
 
@@ -569,19 +569,19 @@ function OneDriveIntegrationCard({ onStatusChange }) {
   )
 }
 
-// Meta (Facebook + Instagram) Integration Card
-function MetaIntegration({ onStatusChange }) {
+// Facebook Integration Card
+function FacebookIntegration({ onStatusChange }) {
   const [searchParams] = useSearchParams()
   const [isConnecting, setIsConnecting] = useState(false)
   
-  const { data: metaStatus, isLoading, refetch: refetchMeta } = useQuery(
-    ['metaStatus'],
+  const { data: facebookStatus, isLoading, refetch: refetchFacebook } = useQuery(
+    ['facebookStatus'],
     async () => {
       const token = await userAPI.getAuthToken()
       const response = await fetch('/.netlify/functions/meta-status', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (!response.ok) throw new Error('Failed to fetch Meta status')
+      if (!response.ok) throw new Error('Failed to fetch Facebook status')
       return response.json()
     },
     {
@@ -589,20 +589,20 @@ function MetaIntegration({ onStatusChange }) {
     }
   )
 
-  // Notify parent when connection status changes (affects both Instagram and Facebook)
+  // Notify parent when connection status changes
   useEffect(() => {
-    const isConnected = metaStatus?.connected === true
+    const isConnected = facebookStatus?.connected === true
     onStatusChange?.(isConnected)
-  }, [metaStatus, onStatusChange])
+  }, [facebookStatus, onStatusChange])
 
   // Handle Meta OAuth callback from URL params
   useEffect(() => {
     const metaParam = searchParams.get('meta')
     if (metaParam === 'connected') {
-      refetchMeta()
-      toast.success('Facebook and Instagram connected successfully!')
+      refetchFacebook()
+      toast.success('Facebook connected successfully!')
     } else if (metaParam === 'error') {
-      toast.error('Meta connection failed')
+      toast.error('Facebook connection failed')
     }
   }, [searchParams])
 
@@ -618,26 +618,26 @@ function MetaIntegration({ onStatusChange }) {
         window.location.href = data.authUrl
       }
     } catch (error) {
-      console.error('Failed to start Meta auth:', error)
-      toast.error('Failed to start Meta connection')
+      console.error('Failed to start Facebook auth:', error)
+      toast.error('Failed to start Facebook connection')
     } finally {
       setIsConnecting(false)
     }
   }
 
   const handleDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect Facebook and Instagram?')) return
+    if (!confirm('Are you sure you want to disconnect your Facebook Page?')) return
     try {
       const token = await userAPI.getAuthToken()
       await fetch('/.netlify/functions/meta-disconnect', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       })
-      refetchMeta()
-      toast.success('Facebook and Instagram disconnected')
+      refetchFacebook()
+      toast.success('Facebook Page disconnected')
     } catch (error) {
-      console.error('Failed to disconnect Meta:', error)
-      toast.error('Failed to disconnect Meta')
+      console.error('Failed to disconnect Facebook:', error)
+      toast.error('Failed to disconnect Facebook')
     }
   }
 
@@ -645,12 +645,12 @@ function MetaIntegration({ onStatusChange }) {
     <div className="bg-theme-primary rounded-lg border border-theme p-4">
       <div className="flex items-center gap-3 mb-4">
         <div className="flex-1">
-          <h4 className="font-medium text-theme-primary">Facebook & Instagram</h4>
-          <p className="text-sm text-theme-tertiary">Post content to Facebook Page and Instagram</p>
+          <h4 className="font-medium text-theme-primary">Facebook Pages</h4>
+          <p className="text-sm text-theme-tertiary">Post content to your Facebook Page</p>
         </div>
         {isLoading ? (
           <Loader className="w-5 h-5 animate-spin text-theme-secondary" />
-        ) : metaStatus?.connected ? (
+        ) : facebookStatus?.connected ? (
           <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm rounded-full flex items-center gap-1">
             <CheckCircle className="w-4 h-4" /> Connected
           </span>
@@ -661,29 +661,21 @@ function MetaIntegration({ onStatusChange }) {
         )}
       </div>
 
-      {metaStatus?.connected ? (
+      {facebookStatus?.connected ? (
         <div className="space-y-4">
           {/* Connected Account Info */}
           <div className="space-y-2">
-            {metaStatus.connection?.pageName && (
+            {facebookStatus.connection?.pageName && (
               <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg">
                 <div className="flex-1">
-                  <p className="font-medium text-theme-primary">{metaStatus.connection.pageName}</p>
+                  <p className="font-medium text-theme-primary">{facebookStatus.connection.pageName}</p>
                   <p className="text-sm text-theme-secondary">Facebook Page</p>
                 </div>
               </div>
             )}
-            {metaStatus.connection?.instagramUsername && (
-              <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg">
-                <div className="flex-1">
-                  <p className="font-medium text-theme-primary">@{metaStatus.connection.instagramUsername}</p>
-                  <p className="text-sm text-theme-secondary">Instagram Account</p>
-                </div>
-              </div>
-            )}
-            {metaStatus.connection?.connectedAt && (
+            {facebookStatus.connection?.connectedAt && (
               <p className="text-sm text-theme-secondary px-3">
-                Connected {new Date(metaStatus.connection.connectedAt).toLocaleDateString()}
+                Connected {new Date(facebookStatus.connection.connectedAt).toLocaleDateString()}
               </p>
             )}
           </div>
@@ -706,7 +698,143 @@ function MetaIntegration({ onStatusChange }) {
           ) : (
             <Share2 className="w-5 h-5" />
           )}
-          Connect Facebook & Instagram
+          Connect Facebook Page
+        </button>
+      )}
+    </div>
+  )
+}
+
+// Instagram Integration Card
+function InstagramIntegration({ onStatusChange }) {
+  const [searchParams] = useSearchParams()
+  const [isConnecting, setIsConnecting] = useState(false)
+  
+  const { data: instagramStatus, isLoading, refetch: refetchInstagram } = useQuery(
+    ['instagramStatus'],
+    async () => {
+      const token = await userAPI.getAuthToken()
+      const response = await fetch('/.netlify/functions/instagram-status', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!response.ok) throw new Error('Failed to fetch Instagram status')
+      return response.json()
+    },
+    {
+      refetchOnWindowFocus: false
+    }
+  )
+
+  // Notify parent when connection status changes
+  useEffect(() => {
+    const isConnected = instagramStatus?.connected === true
+    onStatusChange?.(isConnected)
+  }, [instagramStatus, onStatusChange])
+
+  // Handle Instagram OAuth callback from URL params
+  useEffect(() => {
+    const instagramParam = searchParams.get('instagram')
+    if (instagramParam === 'connected') {
+      refetchInstagram()
+      toast.success('Instagram connected successfully!')
+    } else if (instagramParam === 'error') {
+      toast.error('Instagram connection failed')
+    }
+  }, [searchParams])
+
+  const handleConnect = async () => {
+    setIsConnecting(true)
+    try {
+      const token = await userAPI.getAuthToken()
+      const response = await fetch('/.netlify/functions/instagram-auth', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await response.json()
+      if (data.authUrl) {
+        window.location.href = data.authUrl
+      }
+    } catch (error) {
+      console.error('Failed to start Instagram auth:', error)
+      toast.error('Failed to start Instagram connection')
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
+  const handleDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect Instagram?')) return
+    try {
+      const token = await userAPI.getAuthToken()
+      await fetch('/.netlify/functions/instagram-disconnect', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      refetchInstagram()
+      toast.success('Instagram disconnected')
+    } catch (error) {
+      console.error('Failed to disconnect Instagram:', error)
+      toast.error('Failed to disconnect Instagram')
+    }
+  }
+
+  return (
+    <div className="bg-theme-primary rounded-lg border border-theme p-4">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex-1">
+          <h4 className="font-medium text-theme-primary">Instagram</h4>
+          <p className="text-sm text-theme-tertiary">Post content to Instagram</p>
+        </div>
+        {isLoading ? (
+          <Loader className="w-5 h-5 animate-spin text-theme-secondary" />
+        ) : instagramStatus?.connected ? (
+          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm rounded-full flex items-center gap-1">
+            <CheckCircle className="w-4 h-4" /> Connected
+          </span>
+        ) : (
+          <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm rounded-full">
+            Not connected
+          </span>
+        )}
+      </div>
+
+      {instagramStatus?.connected ? (
+        <div className="space-y-4">
+          {/* Connected Account Info */}
+          <div className="space-y-2">
+            {instagramStatus.connection?.username && (
+              <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg">
+                <div className="flex-1">
+                  <p className="font-medium text-theme-primary">@{instagramStatus.connection.username}</p>
+                  <p className="text-sm text-theme-secondary">Instagram Account</p>
+                </div>
+              </div>
+            )}
+            {instagramStatus.connection?.connectedAt && (
+              <p className="text-sm text-theme-secondary px-3">
+                Connected {new Date(instagramStatus.connection.connectedAt).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={handleDisconnect}
+            className="text-red-500 hover:text-red-600 text-sm"
+          >
+            Disconnect
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={handleConnect}
+          disabled={isConnecting}
+          className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {isConnecting ? (
+            <Loader className="w-5 h-5 animate-spin" />
+          ) : (
+            <Share2 className="w-5 h-5" />
+          )}
+          Connect Instagram
         </button>
       )}
     </div>
@@ -1025,17 +1153,26 @@ export default function Integrations() {
           console.error('Failed to fetch YouTube status:', error)
         }
 
-        // Fetch Meta (Facebook + Instagram) status
+        // Fetch Facebook status
         try {
-          const metaResponse = await fetch('/.netlify/functions/meta-status', {
+          const facebookResponse = await fetch('/.netlify/functions/meta-status', {
             headers: { 'Authorization': `Bearer ${session.access_token}` }
           })
-          const metaData = await metaResponse.json()
-          const isConnected = metaData.connected === true
-          updateConnectionStatus('instagram', isConnected)
-          updateConnectionStatus('facebook', isConnected)
+          const facebookData = await facebookResponse.json()
+          updateConnectionStatus('facebook', facebookData.connected === true)
         } catch (error) {
-          console.error('Failed to fetch Meta status:', error)
+          console.error('Failed to fetch Facebook status:', error)
+        }
+
+        // Fetch Instagram status
+        try {
+          const instagramResponse = await fetch('/.netlify/functions/instagram-status', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+          })
+          const instagramData = await instagramResponse.json()
+          updateConnectionStatus('instagram', instagramData.connected === true)
+        } catch (error) {
+          console.error('Failed to fetch Instagram status:', error)
         }
       } catch (error) {
         console.error('Failed to fetch connection statuses:', error)
@@ -1115,11 +1252,11 @@ export default function Integrations() {
                 <YouTubeIntegration 
                   onStatusChange={(connected) => updateConnectionStatus('youtube', connected)} 
                 />
-                <MetaIntegration 
-                  onStatusChange={(connected) => {
-                    updateConnectionStatus('instagram', connected)
-                    updateConnectionStatus('facebook', connected)
-                  }} 
+                <FacebookIntegration 
+                  onStatusChange={(connected) => updateConnectionStatus('facebook', connected)} 
+                />
+                <InstagramIntegration 
+                  onStatusChange={(connected) => updateConnectionStatus('instagram', connected)} 
                 />
               </>
             )}
