@@ -44,23 +44,32 @@ exports.handler = async (event, context) => {
 
     console.log(`Looking up thumbnail for ASIN: ${asin}`);
 
-    // Get user's thumbnail folder preference
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('thumbnail_folder_path')
-      .eq('id', userId)
+    // Get user's OneDrive connection with thumbnail folder
+    const { data: connection } = await supabase
+      .from('onedrive_connections')
+      .select('thumbnail_folder_id, thumbnail_folder_path')
+      .eq('user_id', userId)
       .single();
     
-    const folderPath = userProfile?.thumbnail_folder_path || '/Thumbnails';
+    const folderId = connection?.thumbnail_folder_id;
+    const folderPath = connection?.thumbnail_folder_path || '/Apps/eBay Price Reducer/Thumbnails';
 
     // Look for thumbnail file in OneDrive thumbnails folder
     // Thumbnails are named {asin}_timestamp.jpg
     try {
       // List files in thumbnails folder
-      const listResult = await graphApiRequest(
-        userId,
-        `/me/drive/root:/Apps/eBay Price Reducer${folderPath}:/children?$filter=startswith(name,'${asin}_')`
-      );
+      let listResult;
+      if (folderId) {
+        listResult = await graphApiRequest(
+          userId,
+          `/me/drive/items/${folderId}/children?$filter=startswith(name,'${asin}_')`
+        );
+      } else {
+        listResult = await graphApiRequest(
+          userId,
+          `/me/drive/root:${folderPath}:/children?$filter=startswith(name,'${asin}_')`
+        );
+      }
       
       if (listResult.value && listResult.value.length > 0) {
         // Get the most recent thumbnail (they have timestamps)

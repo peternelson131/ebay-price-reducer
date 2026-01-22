@@ -101,34 +101,45 @@ async function uploadToOneDrive(userId, thumbnailBuffer, filename) {
     throw new Error(`OneDrive not connected. User ID: ${userId}`);
   }
   
-  // Get user's thumbnail folder preference
-  const { data: userProfile } = await supabase
-    .from('users')
-    .select('thumbnail_folder_path')
-    .eq('id', userId)
-    .single();
-  
-  const folderPath = userProfile?.thumbnail_folder_path || '/Thumbnails';
-  
-  // Upload to OneDrive in user's configured folder
-  const uploadPath = `/Apps/eBay Price Reducer${folderPath}/${filename}`;
+  // Use user's configured thumbnail folder, or default
+  const folderId = connection.thumbnail_folder_id;
+  const folderPath = connection.thumbnail_folder_path || '/Apps/eBay Price Reducer/Thumbnails';
   
   try {
-    const result = await graphApiRequest(
-      userId,
-      `/me/drive/root:${uploadPath}:/content`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'image/jpeg'
-        },
-        body: thumbnailBuffer
-      }
-    );
+    let result;
+    
+    if (folderId) {
+      // Upload using folder ID (more reliable)
+      result = await graphApiRequest(
+        userId,
+        `/me/drive/items/${folderId}:/${filename}:/content`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'image/jpeg'
+          },
+          body: thumbnailBuffer
+        }
+      );
+    } else {
+      // Fallback to path-based upload
+      const uploadPath = `${folderPath}/${filename}`;
+      result = await graphApiRequest(
+        userId,
+        `/me/drive/root:${uploadPath}:/content`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'image/jpeg'
+          },
+          body: thumbnailBuffer
+        }
+      );
+    }
     
     return {
       onedrive_file_id: result.id,
-      onedrive_path: uploadPath,
+      onedrive_path: folderPath + '/' + filename,
       web_url: result.webUrl
     };
   } catch (error) {

@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI, supabase } from '../lib/supabase'
 import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle, Undo2, ImagePlus, Edit, Plus } from 'lucide-react'
 import ThumbnailTemplateModal from '../components/ThumbnailTemplateModal'
+import FolderPicker from '../components/onedrive/FolderPicker'
 
 export default function Account() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -30,8 +31,9 @@ export default function Account() {
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState(null)
   const [deletingTemplateId, setDeletingTemplateId] = useState(null)
-  const [thumbnailFolderPath, setThumbnailFolderPath] = useState('/Thumbnails')
-  const [savingThumbnailPath, setSavingThumbnailPath] = useState(false)
+  const [thumbnailFolderPath, setThumbnailFolderPath] = useState('')
+  const [thumbnailFolderId, setThumbnailFolderId] = useState('')
+  const [showThumbnailFolderPicker, setShowThumbnailFolderPicker] = useState(false)
   
   const queryClient = useQueryClient()
 
@@ -1089,42 +1091,50 @@ export default function Account() {
                     <p className="text-xs text-theme-tertiary mt-1">
                       Generated thumbnails will be saved to this folder in your OneDrive.
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-sm text-theme-secondary">/Apps/eBay Price Reducer</span>
-                      <input
-                        type="text"
-                        value={thumbnailFolderPath}
-                        onChange={(e) => setThumbnailFolderPath(e.target.value)}
-                        placeholder="/Thumbnails"
-                        className="flex-1 px-3 py-1.5 text-sm bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                      />
+                    <div className="flex items-center gap-3 mt-3">
+                      <div className="flex-1 px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm">
+                        {thumbnailFolderPath || <span className="text-theme-tertiary">No folder selected</span>}
+                      </div>
                       <button
-                        onClick={async () => {
-                          setSavingThumbnailPath(true)
-                          try {
-                            const token = (await supabase.auth.getSession()).data.session?.access_token
-                            await fetch('/.netlify/functions/user-settings', {
-                              method: 'PUT',
-                              headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                              },
-                              body: JSON.stringify({ thumbnail_folder_path: thumbnailFolderPath })
-                            })
-                          } catch (err) {
-                            console.error('Failed to save path:', err)
-                          }
-                          setSavingThumbnailPath(false)
-                        }}
-                        disabled={savingThumbnailPath}
-                        className="px-3 py-1.5 text-sm bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50"
+                        onClick={() => setShowThumbnailFolderPicker(true)}
+                        className="px-4 py-2 text-sm bg-accent text-white rounded-lg hover:bg-accent-hover"
                       >
-                        {savingThumbnailPath ? 'Saving...' : 'Save'}
+                        Browse OneDrive
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Folder Picker Modal */}
+              {showThumbnailFolderPicker && (
+                <FolderPicker
+                  onClose={() => setShowThumbnailFolderPicker(false)}
+                  onSelect={async ({ folderId, folderPath }) => {
+                    setThumbnailFolderId(folderId)
+                    setThumbnailFolderPath(folderPath)
+                    setShowThumbnailFolderPicker(false)
+                    
+                    // Save to user profile
+                    try {
+                      const token = (await supabase.auth.getSession()).data.session?.access_token
+                      await fetch('/.netlify/functions/thumbnail-folder', {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                          folder_id: folderId,
+                          folder_path: folderPath 
+                        })
+                      })
+                    } catch (err) {
+                      console.error('Failed to save folder:', err)
+                    }
+                  }}
+                />
+              )}
 
               {/* Templates Grid */}
               {isLoadingTemplates ? (
