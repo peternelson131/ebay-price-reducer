@@ -11,8 +11,6 @@ export default function Account() {
   const [activeTab, setActiveTab] = useState('profile')
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({})
-  const [isEditingPreferences, setIsEditingPreferences] = useState(false)
-  const [preferencesData, setPreferencesData] = useState({})
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -267,15 +265,6 @@ export default function Account() {
     }
   }, [profile, isEditing])
 
-  useEffect(() => {
-    if (profile && !isEditingPreferences) {
-      setPreferencesData({
-        email_notifications: profile.email_notifications ?? true,
-        price_reduction_alerts: profile.price_reduction_alerts ?? true
-      })
-    }
-  }, [profile, isEditingPreferences])
-
   // Load thumbnail folder setting
   useEffect(() => {
     const loadThumbnailFolder = async () => {
@@ -301,7 +290,7 @@ export default function Account() {
   // Handle URL parameter for tab selection
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['profile', 'preferences', 'social', 'security', 'feedback', 'thumbnail-templates'].includes(tab)) {
+    if (tab && ['profile', 'social', 'security', 'feedback', 'thumbnail-templates'].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -316,17 +305,6 @@ export default function Account() {
 
   const handleProfileSave = async () => {
     updateProfileMutation.mutate(profileData)
-  }
-
-  const handlePreferencesSave = async () => {
-    try {
-      await userAPI.updateProfile(preferencesData)
-      queryClient.invalidateQueries(['profile'])
-      setIsEditingPreferences(false)
-    } catch (error) {
-      console.error('Failed to update preferences:', error)
-      alert('Failed to update preferences. Please try again.')
-    }
   }
 
   const handlePasswordChange = async (e) => {
@@ -525,8 +503,7 @@ export default function Account() {
   }
 
   const tabs = [
-    { id: 'profile', name: 'Profile', icon: '👤' },
-    { id: 'preferences', name: 'Preferences', icon: '⚙️' },
+    { id: 'profile', name: 'Account', icon: '👤' },
     { id: 'social', name: 'Social', icon: '📺' },
     { id: 'security', name: 'Security', icon: '🔒' },
     { id: 'feedback', name: 'Feedback', icon: '💬' },
@@ -701,71 +678,6 @@ export default function Account() {
                     className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
                   >
                     Edit Profile
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'preferences' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-theme-primary">Notification Preferences</h3>
-                <p className="text-sm text-theme-secondary">Manage how you receive notifications.</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium text-theme-primary">Email Notifications</label>
-                    <p className="text-sm text-theme-secondary">Receive email updates about your account</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isEditingPreferences ? preferencesData.email_notifications : (profile?.email_notifications ?? true)}
-                    onChange={(e) => setPreferencesData(prev => ({ ...prev, email_notifications: e.target.checked }))}
-                    disabled={!isEditingPreferences}
-                    className="h-4 w-4 text-accent focus:ring-accent border-theme rounded"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium text-theme-primary">Price Reduction Alerts</label>
-                    <p className="text-sm text-theme-secondary">Get notified when prices are automatically reduced</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isEditingPreferences ? preferencesData.price_reduction_alerts : (profile?.price_reduction_alerts ?? true)}
-                    onChange={(e) => setPreferencesData(prev => ({ ...prev, price_reduction_alerts: e.target.checked }))}
-                    disabled={!isEditingPreferences}
-                    className="h-4 w-4 text-accent focus:ring-accent border-theme rounded"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                {isEditingPreferences ? (
-                  <>
-                    <button
-                      onClick={handlePreferencesSave}
-                      className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
-                    >
-                      Save Preferences
-                    </button>
-                    <button
-                      onClick={() => setIsEditingPreferences(false)}
-                      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setIsEditingPreferences(true)}
-                    className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
-                  >
-                    Edit Preferences
                   </button>
                 )}
               </div>
