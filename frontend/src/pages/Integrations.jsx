@@ -630,7 +630,7 @@ function FacebookIntegration({ onStatusChange }) {
     try {
       const token = await userAPI.getAuthToken()
       await fetch('/.netlify/functions/meta-disconnect', {
-        method: 'POST',
+        method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })
       refetchFacebook()
@@ -766,7 +766,7 @@ function InstagramIntegration({ onStatusChange }) {
     try {
       const token = await userAPI.getAuthToken()
       await fetch('/.netlify/functions/instagram-disconnect', {
-        method: 'POST',
+        method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })
       refetchInstagram()
