@@ -1,42 +1,120 @@
 /**
- * Generate Thumbnail - Composite product image onto template
+ * Generate Thumbnail - Auto-generate thumbnail when owner assigned to product
  * 
  * POST /generate-thumbnail
- * Body: { 
- *   template_id: UUID,
- *   asin: string,
- *   product_image_url?: string (optional, defaults to Keepa pattern)
- * }
+ * Body: { product_id, owner_id }
  * 
- * Returns: { success: true, thumbnail_url: string }
+ * Flow:
+ * 1. Get owner's thumbnail template
+ * 2. Get product's image URL (from sourced_products or Keepa)
+ * 3. Composite product image onto template
+ * 4. Upload to OneDrive (user's connected drive)
+ * 5. Return thumbnail URL
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const sharp = require('sharp');
 const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = require('./utils/cors');
 const { verifyAuth } = require('./utils/auth');
-const fetch = require('node-fetch');
-const sharp = require('sharp');
+const { graphApiRequest } = require('./utils/onedrive-api');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Thumbnail output settings
-const OUTPUT_WIDTH = 1280;
-const OUTPUT_HEIGHT = 720;
-const OUTPUT_QUALITY = 85;
+// Thumbnail dimensions
+const THUMBNAIL_WIDTH = 1280;
+const THUMBNAIL_HEIGHT = 720;
 
 /**
- * Extract ASIN image code from URL or construct Keepa URL
+ * Fetch image from URL and return as buffer
  */
-function getProductImageUrl(asin, providedUrl) {
-  if (providedUrl) return providedUrl;
+async function fetchImageBuffer(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+/**
+ * Generate composite thumbnail
+ */
+async function generateThumbnail(templateBuffer, productImageBuffer, placementZone) {
+  // Load template
+  const template = sharp(templateBuffer);
+  const templateMeta = await template.metadata();
   
-  // Default Keepa pattern: https://m.media-amazon.com/images/I/{asin}._SL1000_.jpg
-  // Note: ASIN isn't the image code - need to fetch from Keepa API or use provided URL
-  // For now, we'll require the product_image_url to be provided
-  return null;
+  // Calculate actual pixel positions from percentages
+  const zoneX = Math.round((placementZone.x / 100) * templateMeta.width);
+  const zoneY = Math.round((placementZone.y / 100) * templateMeta.height);
+  const zoneWidth = Math.round((placementZone.width / 100) * templateMeta.width);
+  const zoneHeight = Math.round((placementZone.height / 100) * templateMeta.height);
+  
+  // Resize product image to fit zone while maintaining aspect ratio
+  const productImage = await sharp(productImageBuffer)
+    .resize(zoneWidth, zoneHeight, {
+      fit: 'contain',
+      background: { r: 255, g: 255, b: 255, alpha: 0 }
+    })
+    .toBuffer();
+  
+  // Composite product onto template
+  const composited = await template
+    .composite([{
+      input: productImage,
+      left: zoneX,
+      top: zoneY
+    }])
+    .resize(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, {
+      fit: 'fill'
+    })
+    .jpeg({ quality: 85 })
+    .toBuffer();
+  
+  return composited;
+}
+
+/**
+ * Upload thumbnail to OneDrive
+ */
+async function uploadToOneDrive(userId, thumbnailBuffer, filename) {
+  // Check if user has OneDrive connected
+  const { data: connection } = await supabase
+    .from('onedrive_connections')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+  
+  if (!connection) {
+    throw new Error('OneDrive not connected. Please connect OneDrive in settings.');
+  }
+  
+  // Upload to OneDrive in a thumbnails folder
+  const uploadPath = `/Apps/eBay Price Reducer/thumbnails/${filename}`;
+  
+  try {
+    const result = await graphApiRequest(
+      userId,
+      `/me/drive/root:${uploadPath}:/content`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'image/jpeg'
+        },
+        body: thumbnailBuffer
+      }
+    );
+    
+    return {
+      onedrive_file_id: result.id,
+      onedrive_path: uploadPath,
+      web_url: result.webUrl
+    };
+  } catch (error) {
+    console.error('OneDrive upload error:', error);
+    throw new Error(`Failed to upload to OneDrive: ${error.message}`);
+  }
 }
 
 exports.handler = async (event, context) => {
@@ -51,9 +129,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // ─────────────────────────────────────────────────────────
-    // SECURITY: Verify authentication
-    // ─────────────────────────────────────────────────────────
+    // Verify auth
     const authResult = await verifyAuth(event);
     if (!authResult.success) {
       return errorResponse(authResult.statusCode, authResult.error, headers);
@@ -61,154 +137,127 @@ exports.handler = async (event, context) => {
     
     const userId = authResult.userId;
     const body = JSON.parse(event.body || '{}');
-    const { template_id, asin, product_image_url } = body;
+    const { product_id, owner_id } = body;
 
-    // Validation
-    if (!template_id || !asin) {
-      return errorResponse(400, 'Missing required fields: template_id, asin', headers);
+    if (!product_id || !owner_id) {
+      return errorResponse(400, 'Missing required fields: product_id, owner_id', headers);
     }
 
-    if (!product_image_url) {
-      return errorResponse(400, 'product_image_url is required (Amazon/Keepa product image URL)', headers);
-    }
+    console.log(`Generating thumbnail for product ${product_id} with owner ${owner_id}`);
 
-    // ─────────────────────────────────────────────────────────
-    // Fetch template from database
-    // ─────────────────────────────────────────────────────────
+    // 1. Get owner's thumbnail template
     const { data: template, error: templateError } = await supabase
       .from('thumbnail_templates')
       .select('*')
-      .eq('id', template_id)
       .eq('user_id', userId)
+      .eq('owner_id', owner_id)
       .single();
 
     if (templateError || !template) {
-      return errorResponse(404, 'Template not found', headers);
+      console.log('No template found for owner', owner_id);
+      return successResponse({
+        success: false,
+        skipped: true,
+        reason: 'No thumbnail template configured for this owner'
+      }, headers);
     }
 
-    console.log(`🎨 Generating thumbnail for ASIN ${asin} using template "${template.owner_name}"`);
+    // 2. Get product info (for image URL)
+    const { data: product, error: productError } = await supabase
+      .from('sourced_products')
+      .select('id, asin, title, image_url')
+      .eq('id', product_id)
+      .single();
 
-    // ─────────────────────────────────────────────────────────
-    // Download template image from Supabase Storage
-    // ─────────────────────────────────────────────────────────
-    const { data: templateData, error: downloadError } = await supabase.storage
+    if (productError || !product) {
+      return errorResponse(404, 'Product not found', headers);
+    }
+
+    // Get product image URL - use stored image_url or construct from ASIN
+    let productImageUrl = product.image_url;
+    if (!productImageUrl && product.asin) {
+      // Try Amazon image URL pattern
+      productImageUrl = `https://m.media-amazon.com/images/I/${product.asin}._SL1000_.jpg`;
+    }
+
+    if (!productImageUrl) {
+      return successResponse({
+        success: false,
+        skipped: true,
+        reason: 'Product has no image available'
+      }, headers);
+    }
+
+    console.log('Product image URL:', productImageUrl);
+
+    // 3. Fetch template image from Supabase Storage
+    const { data: templateUrlData } = await supabase.storage
       .from('thumbnail-templates')
-      .download(template.template_storage_path);
+      .createSignedUrl(template.template_storage_path, 300);
 
-    if (downloadError || !templateData) {
-      console.error('Template download error:', downloadError);
-      return errorResponse(500, 'Failed to download template image', headers);
+    if (!templateUrlData?.signedUrl) {
+      return errorResponse(500, 'Failed to get template image', headers);
     }
 
-    const templateBuffer = Buffer.from(await templateData.arrayBuffer());
-
-    // ─────────────────────────────────────────────────────────
-    // Download product image
-    // ─────────────────────────────────────────────────────────
-    console.log(`📥 Fetching product image from: ${product_image_url}`);
-    
-    const productResponse = await fetch(product_image_url);
-    if (!productResponse.ok) {
-      console.error('Product image fetch failed:', productResponse.status);
-      return errorResponse(400, `Failed to fetch product image: ${productResponse.statusText}`, headers);
+    // 4. Fetch both images
+    let templateBuffer, productImageBuffer;
+    try {
+      [templateBuffer, productImageBuffer] = await Promise.all([
+        fetchImageBuffer(templateUrlData.signedUrl),
+        fetchImageBuffer(productImageUrl)
+      ]);
+    } catch (error) {
+      console.error('Image fetch error:', error);
+      return errorResponse(500, `Failed to fetch images: ${error.message}`, headers);
     }
 
-    const productBuffer = Buffer.from(await productResponse.arrayBuffer());
+    // 5. Generate composite thumbnail
+    let thumbnailBuffer;
+    try {
+      thumbnailBuffer = await generateThumbnail(
+        templateBuffer,
+        productImageBuffer,
+        template.placement_zone
+      );
+    } catch (error) {
+      console.error('Thumbnail generation error:', error);
+      return errorResponse(500, `Failed to generate thumbnail: ${error.message}`, headers);
+    }
 
-    // ─────────────────────────────────────────────────────────
-    // Image Compositing with Sharp
-    // ─────────────────────────────────────────────────────────
-    
-    // Get template dimensions to calculate pixel positions from percentages
-    const templateMetadata = await sharp(templateBuffer).metadata();
-    const templateWidth = templateMetadata.width;
-    const templateHeight = templateMetadata.height;
+    console.log('Thumbnail generated, size:', thumbnailBuffer.length);
 
-    // Convert percentage-based placement zone to pixels
-    const zone = template.placement_zone;
-    const zonePixels = {
-      left: Math.round((zone.x / 100) * templateWidth),
-      top: Math.round((zone.y / 100) * templateHeight),
-      width: Math.round((zone.width / 100) * templateWidth),
-      height: Math.round((zone.height / 100) * templateHeight)
-    };
-
-    console.log(`📐 Placement zone: ${JSON.stringify(zone)}% → ${JSON.stringify(zonePixels)}px`);
-
-    // Resize product image to fit within zone (maintain aspect ratio)
-    const resizedProduct = await sharp(productBuffer)
-      .resize(zonePixels.width, zonePixels.height, {
-        fit: 'inside',
-        background: { r: 0, g: 0, b: 0, alpha: 0 }
-      })
-      .toBuffer();
-
-    // Get resized product dimensions to center it in the zone
-    const productMetadata = await sharp(resizedProduct).metadata();
-    const productWidth = productMetadata.width;
-    const productHeight = productMetadata.height;
-
-    // Center product in zone
-    const centeredLeft = zonePixels.left + Math.round((zonePixels.width - productWidth) / 2);
-    const centeredTop = zonePixels.top + Math.round((zonePixels.height - productHeight) / 2);
-
-    console.log(`🖼️  Product: ${productWidth}x${productHeight} centered at (${centeredLeft}, ${centeredTop})`);
-
-    // Composite product onto template
-    const compositeBuffer = await sharp(templateBuffer)
-      .composite([{
-        input: resizedProduct,
-        left: centeredLeft,
-        top: centeredTop
-      }])
-      .resize(OUTPUT_WIDTH, OUTPUT_HEIGHT, { fit: 'cover' })
-      .jpeg({ quality: OUTPUT_QUALITY })
-      .toBuffer();
-
-    console.log(`✅ Generated thumbnail: ${compositeBuffer.length} bytes`);
-
-    // ─────────────────────────────────────────────────────────
-    // Upload to Supabase Storage
-    // ─────────────────────────────────────────────────────────
+    // 6. Upload to OneDrive
     const timestamp = Date.now();
-    const storagePath = `${userId}/${timestamp}_${asin}.jpg`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('generated-thumbnails')
-      .upload(storagePath, compositeBuffer, {
-        contentType: 'image/jpeg',
-        upsert: true
-      });
-
-    if (uploadError) {
-      console.error('Thumbnail upload error:', uploadError);
-      return errorResponse(500, `Failed to upload thumbnail: ${uploadError.message}`, headers);
+    const filename = `${product.asin || product_id}_${timestamp}.jpg`;
+    
+    let uploadResult;
+    try {
+      uploadResult = await uploadToOneDrive(userId, thumbnailBuffer, filename);
+    } catch (error) {
+      console.error('Upload error:', error);
+      return errorResponse(500, error.message, headers);
     }
 
-    // Get signed URL (3 days expiry)
-    const { data: urlData } = await supabase.storage
-      .from('generated-thumbnails')
-      .createSignedUrl(storagePath, 60 * 60 * 24 * 3);
+    console.log('Uploaded to OneDrive:', uploadResult);
 
-    if (!urlData?.signedUrl) {
-      return errorResponse(500, 'Failed to generate signed URL', headers);
-    }
-
-    console.log(`🎉 Thumbnail ready: ${storagePath}`);
+    // 7. Store reference in product_thumbnails table (or update sourced_products)
+    // For now, we'll store in a new table or return the URL
+    // The caller can decide where to store it
 
     return successResponse({
       success: true,
-      thumbnail_url: urlData.signedUrl,
-      storage_path: storagePath,
-      template_used: template.owner_name,
-      dimensions: {
-        width: OUTPUT_WIDTH,
-        height: OUTPUT_HEIGHT
+      thumbnail: {
+        product_id,
+        owner_id,
+        filename,
+        onedrive_file_id: uploadResult.onedrive_file_id,
+        onedrive_path: uploadResult.onedrive_path,
+        web_url: uploadResult.web_url
       }
     }, headers);
 
   } catch (error) {
-    console.error('Thumbnail generation error:', error);
+    console.error('Generate thumbnail error:', error);
     return errorResponse(500, error.message || 'Internal server error', headers);
   }
 };

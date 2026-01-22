@@ -2881,12 +2881,58 @@ export default function ProductCRM() {
         }
       }
       
+      // Auto-generate thumbnails for products with newly assigned owners
+      if ((changes.ownerAction === 'set' || changes.ownerAction === 'add') && changes.ownerIds?.length > 0) {
+        // Fire and forget - don't block the UI
+        generateThumbnailsForProducts(productIds, changes.ownerIds).catch(err => {
+          console.error('Background thumbnail generation error:', err);
+        });
+      }
+      
       setSelectedProducts(new Set());
       setShowBulkEditModal(false);
       fetchProducts();
     } catch (err) {
       console.error('Bulk edit error:', err);
       alert('Failed to update products: ' + err.message);
+    }
+  };
+
+  // Auto-generate thumbnails for products when owners are assigned
+  const generateThumbnailsForProducts = async (productIds, ownerIds) => {
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
+    if (!token) return;
+    
+    console.log(`Generating thumbnails for ${productIds.length} products with ${ownerIds.length} owners`);
+    
+    // Generate thumbnail for each product-owner combination
+    for (const productId of productIds) {
+      for (const ownerId of ownerIds) {
+        try {
+          const response = await fetch('/.netlify/functions/generate-thumbnail', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              product_id: productId,
+              owner_id: ownerId
+            })
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            console.log(`✓ Thumbnail generated for product ${productId} with owner ${ownerId}`);
+          } else if (result.skipped) {
+            console.log(`○ Skipped: ${result.reason}`);
+          } else {
+            console.error(`✗ Failed: ${result.error || 'Unknown error'}`);
+          }
+        } catch (err) {
+          console.error(`Thumbnail generation error for ${productId}:`, err);
+        }
+      }
     }
   };
 
