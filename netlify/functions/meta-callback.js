@@ -176,7 +176,9 @@ exports.handler = async (event, context) => {
 
   } catch (error) {
     console.error('Meta callback error:', error);
-    return redirect(`${FRONTEND_URL}/integrations?meta=error&message=Unexpected%20error`);
+    console.error('Error stack:', error.stack);
+    const errorMsg = error.message || 'Unexpected error';
+    return redirect(`${FRONTEND_URL}/integrations?meta=error&message=${encodeURIComponent(errorMsg)}`);
   }
 };
 
