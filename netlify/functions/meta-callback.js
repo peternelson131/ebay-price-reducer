@@ -1,5 +1,5 @@
 /**
- * Meta (Facebook/Instagram) OAuth Callback - Handle Facebook's response
+ * Meta (Facebook) OAuth Callback - Handle Facebook's response
  * GET /meta-callback - Exchanges code for tokens, stores connection
  */
 
@@ -82,7 +82,7 @@ exports.handler = async (event, context) => {
     // Step 3: Get user's Facebook Pages
     const pagesUrl = new URL('https://graph.facebook.com/v18.0/me/accounts');
     pagesUrl.searchParams.set('access_token', accessToken);
-    pagesUrl.searchParams.set('fields', 'id,name,access_token,instagram_business_account');
+    pagesUrl.searchParams.set('fields', 'id,name,access_token');
 
     const pagesResponse = await fetch(pagesUrl.toString());
     const pagesData = await pagesResponse.json();
@@ -103,30 +103,7 @@ exports.handler = async (event, context) => {
     const pageName = page.name;
     const pageAccessToken = page.access_token; // Page-specific token
 
-    // Step 4: Check if page has connected Instagram Business Account
-    let instagramId = null;
-    let instagramUsername = null;
-
-    if (page.instagram_business_account) {
-      const igAccountId = page.instagram_business_account.id;
-      
-      // Fetch Instagram account details
-      const igUrl = new URL(`https://graph.facebook.com/v18.0/${igAccountId}`);
-      igUrl.searchParams.set('access_token', pageAccessToken);
-      igUrl.searchParams.set('fields', 'id,username');
-
-      const igResponse = await fetch(igUrl.toString());
-      const igData = await igResponse.json();
-
-      if (!igData.error) {
-        instagramId = igData.id;
-        instagramUsername = igData.username;
-      } else {
-        console.warn('Instagram account fetch error:', igData.error);
-      }
-    }
-
-    // Step 5: Store connection in database
+    // Step 4: Store connection in database
     // Use page access token as it's better for long-term API access
     const { error: dbError } = await supabase
       .from('social_connections')
@@ -139,8 +116,6 @@ exports.handler = async (event, context) => {
         account_id: pageId,
         account_name: pageName,
         account_avatar: null, // Could fetch page profile picture if needed
-        instagram_account_id: instagramId,
-        instagram_username: instagramUsername,
         connected_at: new Date().toISOString(),
         is_active: true,
         updated_at: new Date().toISOString()
@@ -168,11 +143,7 @@ exports.handler = async (event, context) => {
       });
 
     // Success - redirect back to integrations
-    const connectedAccounts = instagramUsername 
-      ? `${pageName} + @${instagramUsername}`
-      : pageName;
-    
-    return redirect(`${FRONTEND_URL}/integrations?meta=connected&account=${encodeURIComponent(connectedAccounts)}`);
+    return redirect(`${FRONTEND_URL}/integrations?meta=connected&account=${encodeURIComponent(pageName)}`);
 
   } catch (error) {
     console.error('Meta callback error:', error);

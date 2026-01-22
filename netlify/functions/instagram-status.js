@@ -1,7 +1,7 @@
 /**
- * Meta Status - Get connection status and manage schedule
- * GET /meta-status - Returns connection status and schedule
- * PUT /meta-status - Update posting schedule
+ * Instagram Status - Get connection status and manage schedule
+ * GET /instagram-status - Returns connection status and schedule
+ * PUT /instagram-status - Update posting schedule
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -36,7 +36,7 @@ exports.handler = async (event, context) => {
         .from('social_connections')
         .select('account_id, account_name, account_avatar, connected_at, is_active, token_expires_at, access_token')
         .eq('user_id', userId)
-        .eq('platform', 'meta')
+        .eq('platform', 'instagram')
         .single();
 
       // Verify token is still valid if connection exists
@@ -44,7 +44,8 @@ exports.handler = async (event, context) => {
       if (connection && connection.access_token) {
         try {
           // Make a simple API call to verify token
-          const verifyUrl = new URL('https://graph.facebook.com/v18.0/me');
+          const verifyUrl = new URL(`https://graph.instagram.com/${connection.account_id}`);
+          verifyUrl.searchParams.set('fields', 'id,username');
           verifyUrl.searchParams.set('access_token', connection.access_token);
           
           const verifyResponse = await fetch(verifyUrl.toString());
@@ -62,7 +63,7 @@ exports.handler = async (event, context) => {
         .from('posting_schedules')
         .select('post_time, timezone, is_active')
         .eq('user_id', userId)
-        .eq('platform', 'meta')
+        .eq('platform', 'instagram')
         .single();
 
       // Get recent posts
@@ -70,7 +71,7 @@ exports.handler = async (event, context) => {
         .from('scheduled_posts')
         .select('id, title, status, scheduled_for, posted_at, platform_url, error_message')
         .eq('user_id', userId)
-        .eq('platform', 'meta')
+        .eq('platform', 'instagram')
         .order('scheduled_for', { ascending: false })
         .limit(10);
 
@@ -78,13 +79,13 @@ exports.handler = async (event, context) => {
         connected: !!connection,
         tokenValid,
         connection: connection ? {
-          pageId: connection.account_id,
-          pageName: connection.account_name,
-          pageAvatar: connection.account_avatar,
+          accountId: connection.account_id,
+          username: connection.account_name,
+          avatar: connection.account_avatar,
           connectedAt: connection.connected_at,
           tokenExpiresAt: connection.token_expires_at
         } : null,
-        schedule: schedule || { post_time: '09:00', timezone: 'America/Chicago', is_active: false },
+        schedule: schedule || { post_time: '10:00', timezone: 'America/Chicago', is_active: false },
         recentPosts: recentPosts || []
       }, headers);
     }
@@ -97,8 +98,8 @@ exports.handler = async (event, context) => {
         .from('posting_schedules')
         .upsert({
           user_id: userId,
-          platform: 'meta',
-          post_time: post_time || '09:00',
+          platform: 'instagram',
+          post_time: post_time || '10:00',
           timezone: timezone || 'America/Chicago',
           is_active: is_active ?? false,
           updated_at: new Date().toISOString()
@@ -117,7 +118,7 @@ exports.handler = async (event, context) => {
     return errorResponse(405, 'Method not allowed', headers);
 
   } catch (error) {
-    console.error('Meta status error:', error);
+    console.error('Instagram status error:', error);
     return errorResponse(500, 'Internal server error', headers);
   }
 };
