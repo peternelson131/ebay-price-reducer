@@ -179,6 +179,28 @@ export default function Account() {
     }
   }, [profile, isEditingPreferences])
 
+  // Load thumbnail folder setting
+  useEffect(() => {
+    const loadThumbnailFolder = async () => {
+      try {
+        const token = (await supabase.auth.getSession()).data.session?.access_token
+        if (!token) return
+        
+        const response = await fetch('/.netlify/functions/thumbnail-folder', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          if (data.folder_path) setThumbnailFolderPath(data.folder_path)
+          if (data.folder_id) setThumbnailFolderId(data.folder_id)
+        }
+      } catch (err) {
+        console.error('Failed to load thumbnail folder:', err)
+      }
+    }
+    loadThumbnailFolder()
+  }, [])
+
   // Handle URL parameter for tab selection
   useEffect(() => {
     const tab = searchParams.get('tab')
