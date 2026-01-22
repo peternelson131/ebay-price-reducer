@@ -41,34 +41,37 @@ async function fetchImageBuffer(url) {
  * Generate composite thumbnail
  */
 async function generateThumbnail(templateBuffer, productImageBuffer, placementZone) {
-  // Load template
-  const template = sharp(templateBuffer);
-  const templateMeta = await template.metadata();
+  console.log('Placement zone:', placementZone);
   
-  // Calculate actual pixel positions from percentages
-  const zoneX = Math.round((placementZone.x / 100) * templateMeta.width);
-  const zoneY = Math.round((placementZone.y / 100) * templateMeta.height);
-  const zoneWidth = Math.round((placementZone.width / 100) * templateMeta.width);
-  const zoneHeight = Math.round((placementZone.height / 100) * templateMeta.height);
+  // First resize template to final dimensions
+  const resizedTemplate = await sharp(templateBuffer)
+    .resize(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, { fit: 'fill' })
+    .toBuffer();
   
-  // Resize product image to fit zone while maintaining aspect ratio
+  // Calculate actual pixel positions from percentages (now based on final size)
+  const zoneX = Math.round((placementZone.x / 100) * THUMBNAIL_WIDTH);
+  const zoneY = Math.round((placementZone.y / 100) * THUMBNAIL_HEIGHT);
+  const zoneWidth = Math.round((placementZone.width / 100) * THUMBNAIL_WIDTH);
+  const zoneHeight = Math.round((placementZone.height / 100) * THUMBNAIL_HEIGHT);
+  
+  console.log(`Zone pixels: x=${zoneX}, y=${zoneY}, w=${zoneWidth}, h=${zoneHeight}`);
+  
+  // Trim whitespace from product image, then resize to fit zone
   const productImage = await sharp(productImageBuffer)
+    .trim({ threshold: 10 })  // Remove white/near-white borders
     .resize(zoneWidth, zoneHeight, {
       fit: 'contain',
-      background: { r: 255, g: 255, b: 255, alpha: 0 }
+      background: { r: 0, g: 0, b: 0, alpha: 0 }  // Transparent background
     })
     .toBuffer();
   
-  // Composite product onto template
-  const composited = await template
+  // Composite product onto resized template
+  const composited = await sharp(resizedTemplate)
     .composite([{
       input: productImage,
       left: zoneX,
       top: zoneY
     }])
-    .resize(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, {
-      fit: 'fill'
-    })
     .jpeg({ quality: 85 })
     .toBuffer();
   
