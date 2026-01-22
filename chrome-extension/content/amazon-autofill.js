@@ -137,44 +137,100 @@ function findElement(selectorList) {
   return null;
 }
 
-// Find the TITLE input - the large center input with placeholder about "what you love about this product"
+// Find the TITLE input in the Amazon Influencer Edit Draft dialog
 function findTitleInput() {
+  // Strategy 1: Look for input/textarea with maxlength="60" (the title field has 60 char limit)
+  const maxLengthInputs = document.querySelectorAll('input[maxlength="60"], textarea[maxlength="60"]');
+  if (maxLengthInputs.length > 0) {
+    console.log('Found title input by maxlength=60:', maxLengthInputs[0]);
+    return maxLengthInputs[0];
+  }
+  
+  // Strategy 2: Look for a label with "Title" and find its associated input
+  const labels = document.querySelectorAll('label');
+  for (const label of labels) {
+    const labelText = label.textContent.toLowerCase();
+    if (labelText.includes('title') && !labelText.includes('subtitle')) {
+      // Try htmlFor first
+      if (label.htmlFor) {
+        const input = document.getElementById(label.htmlFor);
+        if (input) {
+          console.log('Found title input via label htmlFor:', input);
+          return input;
+        }
+      }
+      // Try next sibling or parent's children
+      const parent = label.parentElement;
+      if (parent) {
+        const input = parent.querySelector('input, textarea');
+        if (input) {
+          console.log('Found title input via label parent:', input);
+          return input;
+        }
+      }
+    }
+  }
+  
+  // Strategy 3: Look for text "Title" followed by an input in the DOM
+  const allText = document.body.innerText;
+  const titleLabels = document.querySelectorAll('div, span, p');
+  for (const el of titleLabels) {
+    if (el.textContent.trim() === 'Title' || el.textContent.trim() === 'Title *') {
+      const parent = el.closest('div');
+      if (parent) {
+        const input = parent.querySelector('input, textarea') || 
+                      parent.nextElementSibling?.querySelector('input, textarea');
+        if (input) {
+          console.log('Found title input near Title text:', input);
+          return input;
+        }
+      }
+    }
+  }
+  
+  // Strategy 4: Look in modal/dialog context for input near "60 characters" text
+  const charCountTexts = document.querySelectorAll('*');
+  for (const el of charCountTexts) {
+    if (el.textContent.includes('60 characters') || el.textContent.match(/\d+\/60/)) {
+      const parent = el.closest('div');
+      if (parent) {
+        // Look up the tree for an input
+        let searchEl = parent;
+        for (let i = 0; i < 5 && searchEl; i++) {
+          const input = searchEl.querySelector('input, textarea');
+          if (input) {
+            console.log('Found title input near char count:', input);
+            return input;
+          }
+          searchEl = searchEl.parentElement;
+        }
+      }
+    }
+  }
+  
+  // Strategy 5: Fallback - input with name/id containing "title"
   const inputs = document.querySelectorAll('input, textarea');
-  
-  for (const input of inputs) {
-    const placeholder = (input.placeholder || '').toLowerCase();
-    
-    // Look for the specific placeholder text about describing the product
-    if (placeholder.includes('title') || 
-        placeholder.includes('love about') || 
-        placeholder.includes('recommend') ||
-        placeholder.includes('describe')) {
-      console.log('Found title input by placeholder:', input);
-      return input;
-    }
-  }
-  
-  // Fallback: find textarea (title might be a textarea for longer text)
-  const textareas = document.querySelectorAll('textarea');
-  for (const ta of textareas) {
-    const placeholder = (ta.placeholder || '').toLowerCase();
-    if (placeholder.includes('title') || placeholder.length > 50) {
-      console.log('Found title textarea:', ta);
-      return ta;
-    }
-  }
-  
-  // Fallback: input with name/id containing "title"
   for (const input of inputs) {
     const name = (input.name || '').toLowerCase();
     const id = (input.id || '').toLowerCase();
-    if (name.includes('title') || id.includes('title')) {
-      console.log('Found title input by name/id:', input);
+    const ariaLabel = (input.getAttribute('aria-label') || '').toLowerCase();
+    if (name.includes('title') || id.includes('title') || ariaLabel.includes('title')) {
+      console.log('Found title input by name/id/aria:', input);
       return input;
     }
   }
   
-  console.log('Could not find title input');
+  console.log('Could not find title input. Available inputs:', 
+    Array.from(document.querySelectorAll('input, textarea')).map(i => ({
+      tag: i.tagName,
+      name: i.name,
+      id: i.id,
+      placeholder: i.placeholder?.slice(0, 50),
+      type: i.type,
+      maxlength: i.maxLength,
+      'aria-label': i.getAttribute('aria-label')
+    }))
+  );
   return null;
 }
 

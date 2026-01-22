@@ -222,12 +222,6 @@ function renderTasks() {
   taskList.querySelectorAll('.task-asin').forEach(el => {
     el.addEventListener('click', () => copyToClipboard(el.textContent, 'ASIN copied!'));
   });
-  taskList.querySelectorAll('.video-title-input').forEach(el => {
-    el.addEventListener('click', () => {
-      el.select();
-      copyToClipboard(el.dataset.title, 'Title copied!');
-    });
-  });
 }
 
 function groupTasksByVideo(tasks) {
@@ -315,15 +309,6 @@ function createTaskCard(task, groupHasVideo = false, isMultiAsin = false) {
         <span class="task-marketplace">${task.marketplace || 'US'}</span>
       </div>
       <div class="task-title">${escapeHtml(task.product_title || 'Untitled Product')}</div>
-      ${task.video_title ? `
-        <div class="task-video-title">
-          <input type="text" class="video-title-input" value="${escapeHtml(task.video_title)}" readonly title="Click to copy" data-title="${escapeHtml(task.video_title)}" />
-        </div>
-      ` : `
-        <div class="task-video-title no-title">
-          <span class="warning">⚠️ No title - assign owner in CRM</span>
-        </div>
-      `}
       ${!groupHasVideo ? `
         <div class="task-video no-video">
           ⚠️ No video attached
@@ -372,13 +357,15 @@ async function sendToContentScript(action, data) {
 
 async function handleFillTitle(videoTitle) {
   try {
-    // Use video_title from CRM if available, otherwise show warning
-    if (!videoTitle) {
-      showNotification('No title set - assign an owner in CRM first', 'error');
+    // Use video_title from CRM if available, otherwise warn but allow product title fallback
+    const titleToUse = videoTitle || null;
+    
+    if (!titleToUse) {
+      showNotification('No title set - assign owner in CRM to auto-generate', 'error');
       return;
     }
     
-    const response = await sendToContentScript('fillTitle', { title: videoTitle });
+    const response = await sendToContentScript('fillTitle', { title: titleToUse });
     
     if (response?.success) {
       showNotification('Title filled!', 'success');
