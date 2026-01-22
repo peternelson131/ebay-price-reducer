@@ -149,6 +149,22 @@ body {
   margin-top: 4px;
 }
 
+/* Marketplace Indicator */
+.marketplace-indicator {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.marketplace-indicator.hidden {
+  display: none;
+}
+
 /* Filters */
 .filters {
   display: flex;

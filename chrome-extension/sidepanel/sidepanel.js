@@ -5,10 +5,33 @@
 // Configuration
 const API_BASE = 'https://dainty-horse-49c336.netlify.app/.netlify/functions';
 
+// Marketplace detection from Amazon URL
+const MARKETPLACE_MAP = {
+  'amazon.com': 'US',
+  'amazon.ca': 'CA',
+  'amazon.co.uk': 'UK',
+  'amazon.de': 'DE',
+  'amazon.fr': 'FR',
+  'amazon.es': 'ES',
+  'amazon.it': 'IT',
+  'amazon.co.jp': 'JP',
+  'amazon.com.mx': 'MX',
+  'amazon.com.au': 'AU'
+};
+
+function detectMarketplace(url) {
+  if (!url) return null;
+  for (const [domain, code] of Object.entries(MARKETPLACE_MAP)) {
+    if (url.includes(domain)) return code;
+  }
+  return null;
+}
+
 // State
 let currentUser = null;
 let tasks = [];
 let currentFilter = 'pending';
+let detectedMarketplace = null;
 
 // DOM Elements
 const loginView = document.getElementById('login-view');
@@ -118,6 +141,15 @@ async function loadTasks() {
   taskList.innerHTML = '<div class="loading">Loading tasks...</div>';
   emptyState.classList.add('hidden');
   
+  // Detect marketplace from active tab
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    detectedMarketplace = detectMarketplace(tab?.url);
+    updateMarketplaceIndicator();
+  } catch (e) {
+    console.log('Could not detect marketplace:', e);
+  }
+  
   try {
     const response = await fetch(`${API_BASE}/influencer-tasks`, {
       headers: {
@@ -148,13 +180,21 @@ async function loadTasks() {
 }
 
 function renderTasks() {
-  const filtered = tasks.filter(t => t.status === currentFilter);
+  // Filter by status AND marketplace (if detected)
+  let filtered = tasks.filter(t => t.status === currentFilter);
+  
+  if (detectedMarketplace) {
+    filtered = filtered.filter(t => t.marketplace === detectedMarketplace);
+  }
   
   if (filtered.length === 0) {
     taskList.innerHTML = '';
     emptyState.classList.remove('hidden');
+    const mpText = detectedMarketplace ? ` for ${detectedMarketplace}` : '';
     emptyState.querySelector('p').textContent = 
-      currentFilter === 'pending' ? '🎉 No pending tasks!' : 'No completed tasks yet.';
+      currentFilter === 'pending' 
+        ? `🎉 No pending tasks${mpText}!` 
+        : `No completed tasks${mpText} yet.`;
     return;
   }
   
@@ -173,9 +213,23 @@ function renderTasks() {
   });
 }
 
+function updateMarketplaceIndicator() {
+  const indicator = document.getElementById('marketplace-indicator');
+  if (indicator) {
+    if (detectedMarketplace) {
+      indicator.textContent = `📍 ${detectedMarketplace}`;
+      indicator.classList.remove('hidden');
+    } else {
+      indicator.textContent = '📍 All';
+      indicator.classList.remove('hidden');
+    }
+  }
+}
+
 function createTaskCard(task) {
   const isCompleted = task.status === 'completed';
-  const hasVideo = task.hasVideo && task.video?.upload_status === 'completed';
+  // Video is available if hasVideo is true (API already checks upload_status)
+  const hasVideo = task.hasVideo;
   
   return `
     <div class="task-card ${isCompleted ? 'completed' : ''}" data-task-id="${task.id}">
