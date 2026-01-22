@@ -95,6 +95,107 @@ function init() {
   setTimeout(notifyProductDetected, 1000);
 }
 
+// ===== AUTOFILL FUNCTIONALITY FOR INFLUENCER UPLOAD PAGE =====
+
+// Common selectors for Amazon Influencer upload form
+const UPLOAD_SELECTORS = {
+  // Title input field - try multiple possible selectors
+  titleInput: [
+    'input[name="title"]',
+    'input[placeholder*="title" i]',
+    'input[aria-label*="title" i]',
+    '#video-title',
+    '[data-testid="video-title-input"]',
+    'input[type="text"]' // Fallback - first text input
+  ],
+  // ASIN/Product search field
+  asinSearch: [
+    'input[name="asin"]',
+    'input[placeholder*="ASIN" i]',
+    'input[placeholder*="product" i]',
+    'input[aria-label*="product" i]',
+    'input[aria-label*="search" i]',
+    '[data-testid="product-search-input"]'
+  ]
+};
+
+// Find element by trying multiple selectors
+function findElement(selectorList) {
+  for (const selector of selectorList) {
+    const el = document.querySelector(selector);
+    if (el) {
+      console.log('Found element with selector:', selector);
+      return el;
+    }
+  }
+  return null;
+}
+
+// Simulate human-like typing
+function simulateTyping(element, text) {
+  element.focus();
+  element.value = '';
+  
+  // Dispatch events to ensure React/Angular picks up the change
+  element.dispatchEvent(new Event('focus', { bubbles: true }));
+  
+  // Set value
+  element.value = text;
+  
+  // Dispatch input events
+  element.dispatchEvent(new Event('input', { bubbles: true }));
+  element.dispatchEvent(new Event('change', { bubbles: true }));
+  element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+  
+  console.log('Typed into element:', text);
+}
+
+// Handle autofill request from side panel
+function handleAutofill(data) {
+  console.log('Autofill requested with data:', data);
+  
+  const results = {
+    titleFilled: false,
+    asinFilled: false,
+    errors: []
+  };
+  
+  // Try to fill title
+  if (data.title) {
+    const titleInput = findElement(UPLOAD_SELECTORS.titleInput);
+    if (titleInput) {
+      simulateTyping(titleInput, data.title);
+      results.titleFilled = true;
+    } else {
+      results.errors.push('Could not find title input field');
+      console.warn('Title input not found. Available inputs:', 
+        Array.from(document.querySelectorAll('input')).map(i => ({
+          name: i.name,
+          placeholder: i.placeholder,
+          type: i.type,
+          'aria-label': i.getAttribute('aria-label')
+        }))
+      );
+    }
+  }
+  
+  // Optionally fill ASIN search (if requested)
+  if (data.asin && data.fillAsin) {
+    const asinInput = findElement(UPLOAD_SELECTORS.asinSearch);
+    if (asinInput) {
+      simulateTyping(asinInput, data.asin);
+      results.asinFilled = true;
+    } else {
+      results.errors.push('Could not find ASIN/product search field');
+    }
+  }
+  
+  return {
+    success: results.titleFilled || results.asinFilled,
+    ...results
+  };
+}
+
 // Listen for messages from side panel
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Content script received message:', message);
@@ -102,6 +203,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'EXTRACT_PRODUCT_DATA') {
     const data = extractProductData();
     sendResponse({ success: true, data });
+    return true;
+  }
+  
+  if (message.action === 'autofill') {
+    const result = handleAutofill(message.data);
+    sendResponse(result);
+    return true;
   }
 
   return true; // Keep channel open for async response
