@@ -48,7 +48,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.ebay.com https://api.sandbox.ebay.com https://*.microsoftpersonalcontent.com https://*.sharepoint.com https://graph.microsoft.com; img-src 'self' data: https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.ebay.com https://api.sandbox.ebay.com https://*.microsoftpersonalcontent.com https://*.sharepoint.com https://graph.microsoft.com https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://youtube.googleapis.com; img-src 'self' data: https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';"
 
 # Scheduled function to refresh popular category aspects daily
 # Configured in Netlify UI: scheduled-aspect-refresh runs daily at 2 AM UTC
@@ -94,4 +94,14 @@ timeout = 26
 
 [functions."aftership-sync-scheduled"]
 schedule = "0 */4 * * *"
+timeout = 60
+
+# YouTube scheduled posting - runs every hour
+# Posts one video per user at their configured daily time
+[functions."youtube-scheduled-post"]
+schedule = "0 * * * *"
+timeout = 60
+
+# YouTube upload - extended timeout for video uploads
+[functions."youtube-post"]
 timeout = 60
