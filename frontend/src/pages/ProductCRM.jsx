@@ -3070,6 +3070,12 @@ export default function ProductCRM() {
         p.id === productId ? { ...p, owners: ownersWithDetails } : p
       ));
       
+      // Auto-generate thumbnails for new owners (fire and forget)
+      if (newOwners.length > 0) {
+        const ownerIds = newOwners.map(o => o.owner_id);
+        generateThumbnailsForProducts([productId], ownerIds);
+      }
+      
     } catch (err) {
       console.error('Failed to update owners:', err);
     }

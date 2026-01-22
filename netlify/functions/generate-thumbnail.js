@@ -106,6 +106,26 @@ async function uploadToOneDrive(userId, thumbnailBuffer, filename) {
   const folderPath = connection.thumbnail_folder_path || '/Apps/eBay Price Reducer/Thumbnails';
   
   try {
+    // Delete any existing thumbnails for this ASIN first
+    const asin = filename.split('_')[0]; // filename is {asin}_{timestamp}.jpg
+    if (asin && folderId) {
+      try {
+        const existingFiles = await graphApiRequest(
+          userId,
+          `/me/drive/items/${folderId}/children?$filter=startswith(name,'${asin}_')`
+        );
+        
+        if (existingFiles.value && existingFiles.value.length > 0) {
+          console.log(`Deleting ${existingFiles.value.length} existing thumbnail(s) for ${asin}`);
+          for (const file of existingFiles.value) {
+            await graphApiRequest(userId, `/me/drive/items/${file.id}`, { method: 'DELETE' });
+          }
+        }
+      } catch (deleteErr) {
+        console.log('No existing thumbnails to delete or error:', deleteErr.message);
+      }
+    }
+    
     let result;
     
     if (folderId) {
