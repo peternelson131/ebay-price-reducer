@@ -43,6 +43,12 @@ export default function Account() {
     }
   )
 
+  // eBay connection status
+  const [ebayStatus, setEbayStatus] = useState(null)
+  const [isLoadingEbay, setIsLoadingEbay] = useState(false)
+  const [isConnectingEbay, setIsConnectingEbay] = useState(false)
+  const [isDisconnectingEbay, setIsDisconnectingEbay] = useState(false)
+
   // YouTube connection status
   const [youtubeSchedule, setYoutubeSchedule] = useState({ post_time: '09:00', timezone: 'America/Chicago', is_active: false })
   const [isConnectingYoutube, setIsConnectingYoutube] = useState(false)
@@ -139,6 +145,71 @@ export default function Account() {
       setIsSavingYoutubeSchedule(false)
     }
   }
+
+  // eBay connection functions
+  const fetchEbayStatus = async () => {
+    try {
+      setIsLoadingEbay(true)
+      const token = await userAPI.getAuthToken()
+      const response = await fetch('/.netlify/functions/ebay-oauth?action=status', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await response.json()
+      setEbayStatus(data)
+    } catch (error) {
+      console.error('Failed to fetch eBay status:', error)
+    } finally {
+      setIsLoadingEbay(false)
+    }
+  }
+
+  const connectEbay = async () => {
+    try {
+      setIsConnectingEbay(true)
+      const token = await userAPI.getAuthToken()
+      const response = await fetch('/.netlify/functions/ebay-oauth-start', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await response.json()
+      
+      if (data.authUrl) {
+        const authWindow = window.open(data.authUrl, 'ebay-auth', 'width=600,height=700,scrollbars=yes')
+        
+        // Poll for window close and refresh status
+        const checkWindow = setInterval(() => {
+          if (authWindow?.closed) {
+            clearInterval(checkWindow)
+            setIsConnectingEbay(false)
+            fetchEbayStatus()
+          }
+        }, 1000)
+      }
+    } catch (error) {
+      console.error('Failed to connect eBay:', error)
+      setIsConnectingEbay(false)
+    }
+  }
+
+  const disconnectEbay = async () => {
+    if (!confirm('Disconnect your eBay account?')) return
+    try {
+      setIsDisconnectingEbay(true)
+      const token = await userAPI.getAuthToken()
+      await fetch('/.netlify/functions/ebay-oauth?action=disconnect', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      fetchEbayStatus()
+    } catch (error) {
+      console.error('Failed to disconnect eBay:', error)
+    } finally {
+      setIsDisconnectingEbay(false)
+    }
+  }
+
+  // Fetch eBay status on mount
+  useEffect(() => {
+    fetchEbayStatus()
+  }, [])
 
   // Admin feedback query - only fetch if user is admin
   const { data: allFeedback, isLoading: isLoadingFeedback, error: feedbackError, refetch: refetchFeedback } = useQuery(
@@ -290,7 +361,7 @@ export default function Account() {
   // Handle URL parameter for tab selection
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['profile', 'social', 'security', 'feedback', 'thumbnail-templates'].includes(tab)) {
+    if (tab && ['profile', 'ebay', 'social', 'security', 'feedback', 'thumbnail-templates'].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -504,6 +575,7 @@ export default function Account() {
 
   const tabs = [
     { id: 'profile', name: 'Account', icon: '👤' },
+    { id: 'ebay', name: 'eBay', icon: '🛒' },
     { id: 'social', name: 'Social', icon: '📺' },
     { id: 'security', name: 'Security', icon: '🔒' },
     { id: 'feedback', name: 'Feedback', icon: '💬' },
@@ -678,6 +750,71 @@ export default function Account() {
                     className="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover"
                   >
                     Edit Profile
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'ebay' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-theme-primary">eBay Integration</h3>
+                <p className="text-sm text-theme-secondary">Connect your eBay seller account for price management.</p>
+              </div>
+
+              <div className="border border-theme rounded-lg p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+                    eBay
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-theme-primary">eBay Seller Account</h4>
+                    <p className="text-sm text-theme-secondary">Manage your listings and pricing</p>
+                  </div>
+                  {isLoadingEbay ? (
+                    <Loader className="w-5 h-5 animate-spin text-theme-secondary" />
+                  ) : ebayStatus?.connected ? (
+                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm rounded-full flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4" /> Connected
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm rounded-full">
+                      Not connected
+                    </span>
+                  )}
+                </div>
+
+                {ebayStatus?.connected ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-3 bg-theme-surface-alt rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium text-theme-primary">{ebayStatus.userId || 'eBay Seller'}</p>
+                        <p className="text-sm text-theme-secondary">
+                          Token expires: {ebayStatus.tokenExpiry ? new Date(ebayStatus.tokenExpiry).toLocaleDateString() : 'Unknown'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={disconnectEbay}
+                        disabled={isDisconnectingEbay}
+                        className="text-red-500 hover:text-red-600 text-sm disabled:opacity-50"
+                      >
+                        {isDisconnectingEbay ? 'Disconnecting...' : 'Disconnect'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={connectEbay}
+                    disabled={isConnectingEbay}
+                    className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isConnectingEbay ? (
+                      <Loader className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <span>🛒</span>
+                    )}
+                    Connect eBay Account
                   </button>
                 )}
               </div>

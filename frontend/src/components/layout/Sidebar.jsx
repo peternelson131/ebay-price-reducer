@@ -11,7 +11,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
   { name: 'Listings', href: '/listings', icon: ListBulletIcon },
   { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
-  { name: 'Settings', href: '/settings', icon: CogIcon },
+  { name: 'Account', href: '/account', icon: CogIcon },
 ]
 
 export default function Sidebar({ isOpen, onClose }) {

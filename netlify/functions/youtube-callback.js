@@ -23,11 +23,11 @@ exports.handler = async (event, context) => {
     // Handle OAuth errors
     if (oauthError) {
       console.error('OAuth error:', oauthError);
-      return redirect(`${FRONTEND_URL}/settings?youtube=error&message=${encodeURIComponent(oauthError)}`);
+      return redirect(`${FRONTEND_URL}/account?youtube=error&message=${encodeURIComponent(oauthError)}`);
     }
 
     if (!code || !state) {
-      return redirect(`${FRONTEND_URL}/settings?youtube=error&message=Missing%20authorization%20code`);
+      return redirect(`${FRONTEND_URL}/account?youtube=error&message=Missing%20authorization%20code`);
     }
 
     // Decode state to get user ID
@@ -35,12 +35,12 @@ exports.handler = async (event, context) => {
     try {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString());
     } catch (e) {
-      return redirect(`${FRONTEND_URL}/settings?youtube=error&message=Invalid%20state`);
+      return redirect(`${FRONTEND_URL}/account?youtube=error&message=Invalid%20state`);
     }
 
     const { userId } = stateData;
     if (!userId) {
-      return redirect(`${FRONTEND_URL}/settings?youtube=error&message=Invalid%20user`);
+      return redirect(`${FRONTEND_URL}/account?youtube=error&message=Invalid%20user`);
     }
 
     // Exchange code for tokens
@@ -60,7 +60,7 @@ exports.handler = async (event, context) => {
     
     if (tokens.error) {
       console.error('Token exchange error:', tokens);
-      return redirect(`${FRONTEND_URL}/settings?youtube=error&message=${encodeURIComponent(tokens.error_description || tokens.error)}`);
+      return redirect(`${FRONTEND_URL}/account?youtube=error&message=${encodeURIComponent(tokens.error_description || tokens.error)}`);
     }
 
     const { access_token, refresh_token, expires_in } = tokens;
@@ -75,7 +75,7 @@ exports.handler = async (event, context) => {
     const channelData = await channelResponse.json();
     
     if (!channelData.items || channelData.items.length === 0) {
-      return redirect(`${FRONTEND_URL}/settings?youtube=error&message=No%20YouTube%20channel%20found`);
+      return redirect(`${FRONTEND_URL}/account?youtube=error&message=No%20YouTube%20channel%20found`);
     }
 
     const channel = channelData.items[0];
@@ -104,7 +104,7 @@ exports.handler = async (event, context) => {
 
     if (dbError) {
       console.error('Database error:', dbError);
-      return redirect(`${FRONTEND_URL}/settings?youtube=error&message=Failed%20to%20save%20connection`);
+      return redirect(`${FRONTEND_URL}/account?youtube=error&message=Failed%20to%20save%20connection`);
     }
 
     // Create default posting schedule if not exists
@@ -122,11 +122,11 @@ exports.handler = async (event, context) => {
       });
 
     // Success - redirect back to settings
-    return redirect(`${FRONTEND_URL}/settings?youtube=connected&channel=${encodeURIComponent(channelName)}`);
+    return redirect(`${FRONTEND_URL}/account?youtube=connected&channel=${encodeURIComponent(channelName)}`);
 
   } catch (error) {
     console.error('YouTube callback error:', error);
-    return redirect(`${FRONTEND_URL}/settings?youtube=error&message=Unexpected%20error`);
+    return redirect(`${FRONTEND_URL}/account?youtube=error&message=Unexpected%20error`);
   }
 };
 

@@ -93,7 +93,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 302,
         headers: {
-          Location: `${FRONTEND_URL}/settings?onedrive_error=${encodeURIComponent(error_description || error)}`
+          Location: `${FRONTEND_URL}/account?onedrive_error=${encodeURIComponent(error_description || error)}`
         },
         body: ''
       };
@@ -104,7 +104,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 302,
         headers: {
-          Location: `${FRONTEND_URL}/settings?onedrive_error=${encodeURIComponent('Missing authorization code or state')}`
+          Location: `${FRONTEND_URL}/account?onedrive_error=${encodeURIComponent('Missing authorization code or state')}`
         },
         body: ''
       };
@@ -116,7 +116,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 302,
         headers: {
-          Location: `${FRONTEND_URL}/settings?onedrive_error=${encodeURIComponent('Server configuration error')}`
+          Location: `${FRONTEND_URL}/account?onedrive_error=${encodeURIComponent('Server configuration error')}`
         },
         body: ''
       };
@@ -135,7 +135,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 302,
         headers: {
-          Location: `${FRONTEND_URL}/settings?onedrive_error=${encodeURIComponent('Invalid or expired authorization request')}`
+          Location: `${FRONTEND_URL}/account?onedrive_error=${encodeURIComponent('Invalid or expired authorization request')}`
         },
         body: ''
       };
@@ -186,7 +186,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 302,
         headers: {
-          Location: `${FRONTEND_URL}/settings?onedrive_error=${encodeURIComponent('Failed to save connection')}`
+          Location: `${FRONTEND_URL}/account?onedrive_error=${encodeURIComponent('Failed to save connection')}`
         },
         body: ''
       };
@@ -202,7 +202,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 302,
       headers: {
-        Location: `${FRONTEND_URL}/settings?onedrive_connected=true${userEmail ? '&email=' + encodeURIComponent(userEmail) : ''}`
+        Location: `${FRONTEND_URL}/account?onedrive_connected=true${userEmail ? '&email=' + encodeURIComponent(userEmail) : ''}`
       },
       body: ''
     };
@@ -212,7 +212,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 302,
       headers: {
-        Location: `${FRONTEND_URL}/settings?onedrive_error=${encodeURIComponent('Connection failed. Please try again.')}`
+        Location: `${FRONTEND_URL}/account?onedrive_error=${encodeURIComponent('Connection failed. Please try again.')}`
       },
       body: ''
     };
