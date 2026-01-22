@@ -76,7 +76,7 @@ exports.handler = async (event, context) => {
     }
 
     const accessToken = longLivedData.access_token;
-    const expiresIn = longLivedData.expires_in; // seconds, ~60 days
+    const expiresIn = longLivedData.expires_in || 5184000; // Default to 60 days if not provided
     const tokenExpiresAt = new Date(Date.now() + (expiresIn * 1000));
 
     // Step 3: Get user's Facebook Pages
