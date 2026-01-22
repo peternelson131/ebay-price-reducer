@@ -118,7 +118,7 @@ export default function App() {
                     : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
                 }`}
               >
-                eBay Central
+                Marketplace Central
               </Link>
               <Link
                 to="/asin-lookup"
@@ -221,7 +221,7 @@ export default function App() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <LayoutList className="mr-3 h-5 w-5" strokeWidth={1.5} />
-                  eBay Central
+                  Marketplace Central
                 </Link>
 
                 <Link
