@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { userAPI } from '../lib/supabase'
+import ThumbnailTemplateModal from '../components/ThumbnailTemplateModal'
+import { Trash2, Edit, Plus } from 'lucide-react'
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('general')
@@ -222,6 +224,9 @@ export default function Settings() {
     if (activeTab === 'ai-matching') {
       fetchAiSettings()
     }
+    if (activeTab === 'thumbnail-templates') {
+      fetchTemplates()
+    }
   }, [activeTab])
 
   const tabs = [
@@ -229,6 +234,7 @@ export default function Settings() {
     { id: 'ebay', name: 'eBay Integration' },
     { id: 'notifications', name: 'Notifications' },
     { id: 'ai-matching', name: 'AI Matching' },
+    { id: 'thumbnail-templates', name: 'Thumbnail Templates' },
   ]
   
   // AI Matching state
@@ -236,6 +242,13 @@ export default function Settings() {
   const [generatingPrompt, setGeneratingPrompt] = useState(false)
   const [feedbackStats, setFeedbackStats] = useState(null)
   const [loadingAiSettings, setLoadingAiSettings] = useState(false)
+  
+  // Thumbnail Templates state
+  const [templates, setTemplates] = useState([])
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState(null)
+  const [deletingTemplateId, setDeletingTemplateId] = useState(null)
   
   // Fetch AI matching settings
   const fetchAiSettings = async () => {
@@ -320,6 +333,107 @@ export default function Settings() {
     } finally {
       setGeneratingPrompt(false)
     }
+  }
+  
+  // Fetch thumbnail templates
+  const fetchTemplates = async () => {
+    try {
+      setLoadingTemplates(true)
+      const token = await userAPI.getAuthToken()
+      
+      const response = await fetch('/.netlify/functions/thumbnail-templates', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setTemplates(data.templates || [])
+      } else {
+        throw new Error('Failed to fetch templates')
+      }
+    } catch (error) {
+      console.error('Error fetching templates:', error)
+      toast.error('Failed to load thumbnail templates')
+    } finally {
+      setLoadingTemplates(false)
+    }
+  }
+  
+  // Save template (create or update)
+  const handleSaveTemplate = async (templateData) => {
+    try {
+      const token = await userAPI.getAuthToken()
+      const isUpdate = !!templateData.id
+      
+      const url = isUpdate 
+        ? `/.netlify/functions/thumbnail-templates?id=${templateData.id}`
+        : '/.netlify/functions/thumbnail-templates'
+      
+      const response = await fetch(url, {
+        method: isUpdate ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          owner_name: templateData.owner_name,
+          template_image: templateData.template_image,
+          placement_zone: templateData.placement_zone
+        })
+      })
+      
+      if (response.ok) {
+        toast.success(isUpdate ? 'Template updated!' : 'Template created!')
+        setShowTemplateModal(false)
+        setEditingTemplate(null)
+        fetchTemplates()
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to save template')
+      }
+    } catch (error) {
+      console.error('Error saving template:', error)
+      toast.error(error.message || 'Failed to save template')
+    }
+  }
+  
+  // Delete template
+  const handleDeleteTemplate = async (templateId) => {
+    if (!confirm('Are you sure you want to delete this template? This cannot be undone.')) {
+      return
+    }
+    
+    try {
+      setDeletingTemplateId(templateId)
+      const token = await userAPI.getAuthToken()
+      
+      const response = await fetch(`/.netlify/functions/thumbnail-templates?id=${templateId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        toast.success('Template deleted')
+        fetchTemplates()
+      } else {
+        throw new Error('Failed to delete template')
+      }
+    } catch (error) {
+      console.error('Error deleting template:', error)
+      toast.error('Failed to delete template')
+    } finally {
+      setDeletingTemplateId(null)
+    }
+  }
+  
+  // Edit template
+  const handleEditTemplate = (template) => {
+    setEditingTemplate(template)
+    setShowTemplateModal(true)
   }
 
   return (
@@ -808,8 +922,133 @@ export default function Settings() {
               )}
             </div>
           )}
+
+          {/* Thumbnail Templates */}
+          {activeTab === 'thumbnail-templates' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-theme-primary mb-2">
+                    Thumbnail Templates
+                  </h3>
+                  <p className="text-sm text-theme-tertiary">
+                    Upload custom templates and define where product images should be placed. 
+                    Each owner can have one template for auto-generating thumbnails.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingTemplate(null)
+                    setShowTemplateModal(true)
+                  }}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Plus size={18} />
+                  Add Template
+                </button>
+              </div>
+
+              {loadingTemplates ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ebay-blue"></div>
+                </div>
+              ) : templates.length === 0 ? (
+                <div className="text-center py-12 bg-theme-primary rounded-lg border-2 border-dashed border-theme">
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="p-4 bg-theme-surface rounded-full">
+                      <svg className="w-12 h-12 text-theme-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-theme-primary font-medium">No templates yet</p>
+                      <p className="text-sm text-theme-tertiary mt-1">
+                        Click "Add Template" to create your first thumbnail template
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {templates.map((template) => (
+                    <div
+                      key={template.id}
+                      className="bg-theme-primary rounded-lg border border-theme overflow-hidden hover:border-accent/50 transition-colors"
+                    >
+                      {/* Template Preview */}
+                      <div className="relative aspect-video bg-theme-surface">
+                        {template.template_url ? (
+                          <img
+                            src={template.template_url}
+                            alt={`${template.owner_name} template`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg className="w-12 h-12 text-theme-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Template Info */}
+                      <div className="p-4">
+                        <h4 className="font-medium text-theme-primary mb-2">
+                          {template.owner_name}
+                        </h4>
+                        {template.placement_zone && (
+                          <div className="text-xs text-theme-tertiary mb-3">
+                            Zone: {template.placement_zone.x}%, {template.placement_zone.y}% 
+                            ({template.placement_zone.width}×{template.placement_zone.height}%)
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEditTemplate(template)}
+                            className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm py-2"
+                          >
+                            <Edit size={14} />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTemplate(template.id)}
+                            disabled={deletingTemplateId === template.id}
+                            className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          >
+                            {deletingTemplateId === template.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                            ) : (
+                              <>
+                                <Trash2 size={14} />
+                                Delete
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Template Modal */}
+      {showTemplateModal && (
+        <ThumbnailTemplateModal
+          existingTemplate={editingTemplate}
+          onClose={() => {
+            setShowTemplateModal(false)
+            setEditingTemplate(null)
+          }}
+          onSave={handleSaveTemplate}
+        />
+      )}
     </div>
   )
 }
