@@ -205,7 +205,7 @@ body {
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .loading {
@@ -222,6 +222,95 @@ body {
 
 .empty-state.hidden {
   display: none;
+}
+
+/* Video Groups */
+.video-group {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.video-group.no-video-group {
+  background: transparent;
+  box-shadow: none;
+}
+
+.video-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.video-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.video-icon {
+  font-size: 16px;
+}
+
+.video-filename {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asin-count {
+  font-size: 10px;
+  background: rgba(255,255,255,0.25);
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.btn-download {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.btn-download:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.btn-small {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.video-tasks {
+  padding: 0;
+}
+
+.video-tasks.multi-asin .task-card {
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 1px solid #eee;
+}
+
+.video-tasks.multi-asin .task-card:last-child {
+  border-bottom: none;
+}
+
+.video-tasks.multi-asin .task-card.compact {
+  padding: 10px 12px;
+}
+
+.no-video-group .task-card {
+  margin-bottom: 0;
 }
 
 /* Task Card */
@@ -353,6 +442,11 @@ body {
 .notification.error {
   background: #ffebee;
   color: #c62828;
+}
+
+.notification.info {
+  background: #e3f2fd;
+  color: #1565c0;
 }
 
 @keyframes slideUp {

@@ -199,7 +199,12 @@ function renderTasks() {
   }
   
   emptyState.classList.add('hidden');
-  taskList.innerHTML = filtered.map(task => createTaskCard(task)).join('');
+  
+  // Group tasks by video ID
+  const videoGroups = groupTasksByVideo(filtered);
+  
+  // Render grouped tasks
+  taskList.innerHTML = videoGroups.map(group => createVideoGroup(group)).join('');
   
   // Attach event listeners
   taskList.querySelectorAll('.btn-autofill').forEach(btn => {
@@ -208,9 +213,73 @@ function renderTasks() {
   taskList.querySelectorAll('.btn-complete').forEach(btn => {
     btn.addEventListener('click', () => handleComplete(btn.dataset.taskId));
   });
+  taskList.querySelectorAll('.btn-download').forEach(btn => {
+    btn.addEventListener('click', () => handleDownload(btn.dataset.videoId, btn.dataset.filename));
+  });
   taskList.querySelectorAll('.task-asin').forEach(el => {
     el.addEventListener('click', () => copyToClipboard(el.textContent, 'ASIN copied!'));
   });
+}
+
+function groupTasksByVideo(tasks) {
+  const groups = {};
+  const noVideoTasks = [];
+  
+  tasks.forEach(task => {
+    if (task.video?.id) {
+      if (!groups[task.video.id]) {
+        groups[task.video.id] = {
+          videoId: task.video.id,
+          filename: task.video.filename,
+          onedrivePath: task.video.onedrive_path,
+          tasks: []
+        };
+      }
+      groups[task.video.id].tasks.push(task);
+    } else {
+      noVideoTasks.push(task);
+    }
+  });
+  
+  // Convert to array - video groups first, then no-video tasks
+  const result = Object.values(groups);
+  
+  // Add no-video tasks as individual "groups"
+  noVideoTasks.forEach(task => {
+    result.push({
+      videoId: null,
+      filename: null,
+      tasks: [task]
+    });
+  });
+  
+  return result;
+}
+
+function createVideoGroup(group) {
+  const hasVideo = group.videoId !== null;
+  const taskCount = group.tasks.length;
+  const multipleAsins = taskCount > 1;
+  
+  return `
+    <div class="video-group ${hasVideo ? '' : 'no-video-group'}">
+      ${hasVideo ? `
+        <div class="video-header">
+          <div class="video-info">
+            <span class="video-icon">📹</span>
+            <span class="video-filename">${escapeHtml(group.filename)}</span>
+            ${multipleAsins ? `<span class="asin-count">${taskCount} ASINs</span>` : ''}
+          </div>
+          <button class="btn btn-download btn-small" data-video-id="${group.videoId}" data-filename="${escapeHtml(group.filename)}">
+            ⬇️ Download
+          </button>
+        </div>
+      ` : ''}
+      <div class="video-tasks ${multipleAsins ? 'multi-asin' : ''}">
+        ${group.tasks.map(task => createTaskCard(task, hasVideo, multipleAsins)).join('')}
+      </div>
+    </div>
+  `;
 }
 
 function updateMarketplaceIndicator() {
@@ -226,23 +295,22 @@ function updateMarketplaceIndicator() {
   }
 }
 
-function createTaskCard(task) {
+function createTaskCard(task, groupHasVideo = false, isMultiAsin = false) {
   const isCompleted = task.status === 'completed';
-  // Video is available if hasVideo is true (API already checks upload_status)
-  const hasVideo = task.hasVideo;
+  const hasVideo = task.hasVideo || groupHasVideo;
   
   return `
-    <div class="task-card ${isCompleted ? 'completed' : ''}" data-task-id="${task.id}">
+    <div class="task-card ${isCompleted ? 'completed' : ''} ${isMultiAsin ? 'compact' : ''}" data-task-id="${task.id}">
       <div class="task-header">
         <span class="task-asin" title="Click to copy">${task.asin}</span>
         <span class="task-marketplace">${task.marketplace || 'US'}</span>
       </div>
       <div class="task-title">${escapeHtml(task.product_title || 'Untitled Product')}</div>
-      <div class="task-video ${hasVideo ? '' : 'no-video'}">
-        ${hasVideo 
-          ? `📹 ${task.video.filename}` 
-          : '⚠️ No video attached'}
-      </div>
+      ${!groupHasVideo ? `
+        <div class="task-video no-video">
+          ⚠️ No video attached
+        </div>
+      ` : ''}
       ${!isCompleted ? `
         <div class="task-actions">
           <button class="btn btn-autofill" data-task-id="${task.id}" ${!hasVideo ? 'disabled' : ''}>
@@ -326,6 +394,42 @@ async function handleComplete(taskId) {
     
   } catch (error) {
     showNotification(error.message, 'error');
+  }
+}
+
+async function handleDownload(videoId, filename) {
+  showNotification('Requesting download link...', 'info');
+  
+  try {
+    // Request download URL from backend
+    const response = await fetch(`${API_BASE}/video-download?videoId=${videoId}`, {
+      headers: {
+        'Authorization': `Bearer ${currentUser.token}`
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (!data.success || !data.downloadUrl) {
+      throw new Error(data.error || 'Could not get download URL');
+    }
+    
+    // Trigger download
+    chrome.downloads.download({
+      url: data.downloadUrl,
+      filename: filename,
+      saveAs: false // Auto-save to Downloads folder
+    }, (downloadId) => {
+      if (chrome.runtime.lastError) {
+        showNotification('Download failed: ' + chrome.runtime.lastError.message, 'error');
+      } else {
+        showNotification(`Downloading ${filename}...`, 'success');
+      }
+    });
+    
+  } catch (error) {
+    console.error('Download error:', error);
+    showNotification(error.message || 'Download failed', 'error');
   }
 }
 
