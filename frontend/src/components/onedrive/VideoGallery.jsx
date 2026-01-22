@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { userAPI } from '../../lib/supabase';
-import { Film, Play, Trash2, X, RefreshCw, ExternalLink, Download } from 'lucide-react';
+import { Film, Play, Trash2, X, RefreshCw, ExternalLink, Download, Share2, Youtube, Facebook, Instagram } from 'lucide-react';
+import PostToSocialModal from '../PostToSocialModal';
 
 /**
  * VideoGallery Component
@@ -13,6 +14,8 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingVideoId, setDeletingVideoId] = useState(null);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [videoToPost, setVideoToPost] = useState(null);
 
   useEffect(() => {
     if (productId) {
@@ -127,6 +130,27 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
     });
   };
 
+  const handlePostClick = (e, video) => {
+    e.stopPropagation();
+    setVideoToPost(video);
+    setShowPostModal(true);
+  };
+
+  const handlePostSuccess = () => {
+    // Refresh videos to get updated post history
+    fetchVideos();
+  };
+
+  const getPlatformBadges = (video) => {
+    // Show badges for platforms video has been posted to
+    // This will be populated from scheduled_posts table
+    const badges = [];
+    if (video.posted_to_youtube) badges.push({ platform: 'youtube', icon: Youtube, color: 'text-red-500' });
+    if (video.posted_to_facebook) badges.push({ platform: 'facebook', icon: Facebook, color: 'text-blue-500' });
+    if (video.posted_to_instagram) badges.push({ platform: 'instagram', icon: Instagram, color: 'text-pink-500' });
+    return badges;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -192,19 +216,43 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
                     <span>•</span>
                     <span>{formatDate(video.created_at)}</span>
                   </div>
+                  
+                  {/* Platform Badges */}
+                  {getPlatformBadges(video).length > 0 && (
+                    <div className="flex items-center gap-1 mt-2">
+                      {getPlatformBadges(video).map(({ platform, icon: Icon, color }) => (
+                        <div
+                          key={platform}
+                          className="flex items-center gap-1 px-1.5 py-0.5 bg-theme-surface rounded text-xs"
+                          title={`Posted to ${platform}`}
+                        >
+                          <Icon className={`w-3 h-3 ${color}`} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedVideo(video);
-                    setShowDeleteModal(true);
-                  }}
-                  className="text-theme-tertiary hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                  title="Delete video"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={(e) => handlePostClick(e, video)}
+                    className="text-theme-tertiary hover:text-accent transition-colors p-1"
+                    title="Post to social media"
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedVideo(video);
+                      setShowDeleteModal(true);
+                    }}
+                    className="text-theme-tertiary hover:text-red-600 dark:hover:text-red-400 transition-colors p-1"
+                    title="Delete video"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -301,6 +349,18 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Post to Social Media Modal */}
+      {showPostModal && videoToPost && (
+        <PostToSocialModal
+          video={videoToPost}
+          onClose={() => {
+            setShowPostModal(false);
+            setVideoToPost(null);
+          }}
+          onSuccess={handlePostSuccess}
+        />
       )}
     </>
   );

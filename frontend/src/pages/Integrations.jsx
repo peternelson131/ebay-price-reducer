@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronDown, ChevronRight, ShoppingCart, Video, Share2, CheckCircle, XCircle, Eye, EyeOff, ExternalLink, Loader, Link2, Unlink, Clock, Youtube, Facebook, Instagram } from 'lucide-react'
+import { ChevronDown, ChevronRight, ShoppingCart, Video, Share2, CheckCircle, XCircle, Eye, EyeOff, ExternalLink, Loader, Link2, Unlink, Youtube, Facebook, Instagram } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { userAPI, supabase } from '../lib/supabase'
 import { OneDriveConnection } from '../components/onedrive'
@@ -711,6 +711,13 @@ function MetaIntegration({ onStatusChange }) {
             )}
           </div>
 
+          {/* Manual Posting Note */}
+          <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
+            <p className="text-sm text-theme-secondary">
+              Manual posting from CRM records. Use the "Post" button on videos in your product records.
+            </p>
+          </div>
+
           <div className="flex items-center gap-4">
             <button
               onClick={handleDisconnect}
@@ -893,13 +900,7 @@ function InstagramIntegration({ onStatusChange }) {
 // YouTube Integration Card
 function YouTubeIntegration({ onStatusChange }) {
   const [searchParams] = useSearchParams()
-  const [youtubeSchedule, setYoutubeSchedule] = useState({ 
-    post_time: '09:00', 
-    timezone: 'America/Chicago', 
-    is_active: false 
-  })
   const [isConnectingYoutube, setIsConnectingYoutube] = useState(false)
-  const [isSavingYoutubeSchedule, setIsSavingYoutubeSchedule] = useState(false)
   
   const { data: youtubeStatus, isLoading: isLoadingYoutube, refetch: refetchYoutube } = useQuery(
     ['youtubeStatus'],
@@ -912,12 +913,7 @@ function YouTubeIntegration({ onStatusChange }) {
       return response.json()
     },
     {
-      refetchOnWindowFocus: false,
-      onSuccess: (data) => {
-        if (data.schedule) {
-          setYoutubeSchedule(data.schedule)
-        }
-      }
+      refetchOnWindowFocus: false
     }
   )
 
@@ -972,28 +968,6 @@ function YouTubeIntegration({ onStatusChange }) {
     }
   }
 
-  const handleSaveYoutubeSchedule = async () => {
-    setIsSavingYoutubeSchedule(true)
-    try {
-      const token = await userAPI.getAuthToken()
-      await fetch('/.netlify/functions/youtube-status', {
-        method: 'PUT',
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(youtubeSchedule)
-      })
-      refetchYoutube()
-      toast.success('Schedule saved!')
-    } catch (error) {
-      console.error('Failed to save schedule:', error)
-      toast.error('Failed to save schedule')
-    } finally {
-      setIsSavingYoutubeSchedule(false)
-    }
-  }
-
   return (
     <div className="bg-theme-primary rounded-lg border border-theme p-4">
       <div className="flex items-center gap-3 mb-4">
@@ -1042,54 +1016,11 @@ function YouTubeIntegration({ onStatusChange }) {
             </button>
           </div>
 
-          {/* Posting Schedule */}
-          <div className="border-t border-theme pt-4">
-            <h5 className="font-medium text-theme-primary mb-3 flex items-center gap-2">
-              <Clock className="w-4 h-4" /> Daily Posting Schedule
-            </h5>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm text-theme-secondary mb-1">Post Time</label>
-                <input
-                  type="time"
-                  value={youtubeSchedule.post_time}
-                  onChange={(e) => setYoutubeSchedule(prev => ({ ...prev, post_time: e.target.value }))}
-                  className="w-full border border-theme rounded-lg px-3 py-2 bg-theme-surface text-theme-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-theme-secondary mb-1">Timezone</label>
-                <select
-                  value={youtubeSchedule.timezone}
-                  onChange={(e) => setYoutubeSchedule(prev => ({ ...prev, timezone: e.target.value }))}
-                  className="w-full border border-theme rounded-lg px-3 py-2 bg-theme-surface text-theme-primary"
-                >
-                  <option value="America/New_York">Eastern (ET)</option>
-                  <option value="America/Chicago">Central (CT)</option>
-                  <option value="America/Denver">Mountain (MT)</option>
-                  <option value="America/Los_Angeles">Pacific (PT)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-theme-secondary mb-1">Status</label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={youtubeSchedule.is_active}
-                    onChange={(e) => setYoutubeSchedule(prev => ({ ...prev, is_active: e.target.checked }))}
-                    className="w-4 h-4 rounded"
-                  />
-                  <span className="text-theme-primary">Enable auto-posting</span>
-                </label>
-              </div>
-            </div>
-            <button
-              onClick={handleSaveYoutubeSchedule}
-              disabled={isSavingYoutubeSchedule}
-              className="mt-4 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50"
-            >
-              {isSavingYoutubeSchedule ? 'Saving...' : 'Save Schedule'}
-            </button>
+          {/* Manual Posting Note */}
+          <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
+            <p className="text-sm text-theme-secondary">
+              Manual posting from CRM records. Use the "Post" button on videos in your product records.
+            </p>
           </div>
         </div>
       ) : (
