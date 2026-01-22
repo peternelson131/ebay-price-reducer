@@ -12,11 +12,12 @@ const META_REDIRECT_URI = process.env.META_REDIRECT_URI ||
 
 // Scopes needed for Facebook Pages only
 const SCOPES = [
+  'pages_show_list',
+  'pages_read_engagement', 
+  'pages_manage_posts',
   'instagram_basic',
   'instagram_content_publish',
-  'pages_show_list',
-  'pages_read_engagement',
-  'pages_manage_posts'
+  'business_management'
 ].join(',');
 
 exports.handler = async (event, context) => {
