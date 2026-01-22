@@ -56,21 +56,40 @@ async function generateThumbnail(templateBuffer, productImageBuffer, placementZo
   
   console.log(`Zone pixels: x=${zoneX}, y=${zoneY}, w=${zoneWidth}, h=${zoneHeight}`);
   
-  // Trim whitespace from product image, then resize to fill zone
-  const productImage = await sharp(productImageBuffer)
-    .trim({ threshold: 15 })  // Remove white/near-white borders aggressively
-    .resize(zoneWidth, zoneHeight, {
-      fit: 'cover',  // Fill the entire zone (may crop edges)
-      position: 'center'
-    })
+  // Trim whitespace from product image
+  const trimmed = await sharp(productImageBuffer)
+    .trim({ threshold: 20 })
     .toBuffer();
   
-  // Composite product onto resized template
+  const trimmedMeta = await sharp(trimmed).metadata();
+  console.log(`Trimmed: ${trimmedMeta.width}x${trimmedMeta.height}`);
+  
+  // Calculate scale to fit within zone (use the smaller scale to fit entirely)
+  const scaleX = zoneWidth / trimmedMeta.width;
+  const scaleY = zoneHeight / trimmedMeta.height;
+  const scale = Math.min(scaleX, scaleY);
+  
+  const finalWidth = Math.round(trimmedMeta.width * scale);
+  const finalHeight = Math.round(trimmedMeta.height * scale);
+  
+  // Center the product within the zone
+  const offsetX = zoneX + Math.round((zoneWidth - finalWidth) / 2);
+  const offsetY = zoneY + Math.round((zoneHeight - finalHeight) / 2);
+  
+  console.log(`Final product: ${finalWidth}x${finalHeight} at (${offsetX}, ${offsetY})`);
+  
+  // Resize product (no background - will be transparent)
+  const productImage = await sharp(trimmed)
+    .resize(finalWidth, finalHeight)
+    .png()
+    .toBuffer();
+  
+  // Composite product onto resized template (centered in zone)
   const composited = await sharp(resizedTemplate)
     .composite([{
       input: productImage,
-      left: zoneX,
-      top: zoneY
+      left: offsetX,
+      top: offsetY
     }])
     .jpeg({ quality: 85 })
     .toBuffer();
