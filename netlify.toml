@@ -109,3 +109,9 @@ timeout = 60
 # Social media posting - extended timeout for video transcoding and uploads
 [functions."social-post"]
 timeout = 60
+
+# Social post processor - runs every minute to process scheduled posts
+# Picks up posts where scheduled_at <= NOW() and status = 'scheduled'
+[functions."social-post-processor"]
+schedule = "* * * * *"
+timeout = 60

@@ -15,7 +15,8 @@ import {
   Sun,
   Moon,
   TrendingUp,
-  Plug
+  Plug,
+  Share2
 } from 'lucide-react'
 
 // Lazy load all page components for code splitting
@@ -34,6 +35,7 @@ const Integrations = lazy(() => import('./pages/Integrations'))
 const WhatNotAnalysis = lazy(() => import('./pages/WhatNotAnalysis'))
 const ProductCRM = lazy(() => import('./pages/ProductCRM'))
 const Settings = lazy(() => import('./pages/Settings'))
+const SocialPosts = lazy(() => import('./pages/SocialPosts'))
 
 export default function App() {
   const { user, isAuthenticated, signOut } = useAuth()
@@ -129,6 +131,16 @@ export default function App() {
                 }`}
               >
                 Influencer Central
+              </Link>
+              <Link
+                to="/posts"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === '/posts'
+                    ? 'bg-accent text-white'
+                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                }`}
+              >
+                Posts
               </Link>
               <Link
                 to="/integrations"
@@ -238,6 +250,19 @@ export default function App() {
                 </Link>
 
                 <Link
+                  to="/posts"
+                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                    location.pathname === '/posts'
+                      ? 'bg-accent text-white'
+                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Share2 className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  Posts
+                </Link>
+
+                <Link
                   to="/integrations"
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                     location.pathname === '/integrations'
@@ -322,8 +347,9 @@ export default function App() {
               <Route path="/whatnot" element={<WhatNotAnalysis />} />
               <Route path="/integrations" element={<Integrations />} />
               <Route path="/api-keys" element={<Navigate to="/integrations" replace />} />
-              <Route path="/settings" element={<Navigate to="/account" replace />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/product-crm" element={<ProductCRM />} />
+              <Route path="/posts" element={<SocialPosts />} />
             </Routes>
           </Suspense>
         </div>

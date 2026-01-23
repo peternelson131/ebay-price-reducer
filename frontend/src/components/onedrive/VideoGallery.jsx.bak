@@ -16,37 +16,12 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
   const [deletingVideoId, setDeletingVideoId] = useState(null);
   const [showPostModal, setShowPostModal] = useState(false);
   const [videoToPost, setVideoToPost] = useState(null);
-  const [hasConnectedAccounts, setHasConnectedAccounts] = useState(null); // null = loading, true/false = status
 
   useEffect(() => {
     if (productId) {
       fetchVideos();
     }
-    checkConnectedAccounts();
   }, [productId]);
-
-  const checkConnectedAccounts = async () => {
-    try {
-      const token = await userAPI.getAuthToken();
-      
-      const response = await fetch('/.netlify/functions/social-accounts-list', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const activeAccounts = (data.accounts || []).filter(acc => acc.isActive);
-        setHasConnectedAccounts(activeAccounts.length > 0);
-      } else {
-        setHasConnectedAccounts(false);
-      }
-    } catch (error) {
-      console.error('Error checking connected accounts:', error);
-      setHasConnectedAccounts(false);
-    }
-  };
 
   const fetchVideos = async () => {
     try {
@@ -157,13 +132,6 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
 
   const handlePostClick = (e, video) => {
     e.stopPropagation();
-    
-    // Check if accounts are connected
-    if (!hasConnectedAccounts) {
-      toast.error('Please connect your social media accounts first. Go to Settings > Social Accounts.');
-      return;
-    }
-    
     setVideoToPost(video);
     setShowPostModal(true);
   };
@@ -230,6 +198,52 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
           textColor: 'text-gray-600 dark:text-gray-400',
           tooltip: 'Waiting to process'
         };
+    }
+  };
+
+  const getSocialReadyBadge = (video) => {
+    const status = video.social_ready_status || 'pending';
+    
+    switch (status) {
+      case 'pending':
+        return {
+          label: 'Queued',
+          icon: Clock,
+          bgColor: 'bg-gray-100 dark:bg-gray-800',
+          textColor: 'text-gray-600 dark:text-gray-400',
+          iconColor: 'text-gray-500',
+          tooltip: 'Waiting to process'
+        };
+      case 'processing':
+        return {
+          label: 'Processing...',
+          icon: Loader2,
+          bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+          textColor: 'text-yellow-700 dark:text-yellow-400',
+          iconColor: 'text-yellow-600 dark:text-yellow-500',
+          tooltip: 'Preparing for social media',
+          animate: true
+        };
+      case 'ready':
+        return {
+          label: 'Ready to Post',
+          icon: CheckCircle,
+          bgColor: 'bg-green-100 dark:bg-green-900/30',
+          textColor: 'text-green-700 dark:text-green-400',
+          iconColor: 'text-green-600 dark:text-green-500',
+          tooltip: 'Ready to post instantly'
+        };
+      case 'failed':
+        return {
+          label: 'Transcode Failed',
+          icon: XCircle,
+          bgColor: 'bg-red-100 dark:bg-red-900/30',
+          textColor: 'text-red-700 dark:text-red-400',
+          iconColor: 'text-red-600 dark:text-red-500',
+          tooltip: video.social_ready_error || 'Transcoding failed'
+        };
+      default:
+        return null;
     }
   };
 
@@ -334,23 +348,15 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={(e) => handlePostClick(e, video)}
-                    disabled={video.social_ready_status === 'processing' || hasConnectedAccounts === false}
+                    disabled={video.social_ready_status === 'processing'}
                     className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium shadow-sm ${
-                      video.social_ready_status === 'processing' || hasConnectedAccounts === false
+                      video.social_ready_status === 'processing'
                         ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                        : hasConnectedAccounts === null
-                        ? 'bg-gray-400 text-gray-200 cursor-wait'
                         : 'bg-purple-600 text-white hover:bg-purple-700'
                     }`}
-                    title={
-                      hasConnectedAccounts === null
-                        ? 'Checking account status...'
-                        : hasConnectedAccounts === false
-                        ? 'No social accounts connected. Go to Settings > Social Accounts to connect.'
-                        : video.social_ready_status === 'processing' 
-                        ? 'Video is still being prepared...' 
-                        : 'Post to social media'
-                    }
+                    title={video.social_ready_status === 'processing' 
+                      ? 'Video is still being prepared...' 
+                      : 'Post to social media'}
                   >
                     <Share2 className="w-3.5 h-3.5" />
                     Post
