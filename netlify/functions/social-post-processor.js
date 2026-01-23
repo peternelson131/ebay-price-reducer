@@ -181,26 +181,36 @@ async function processPost(post) {
  * Main handler - processes all due posts
  */
 exports.handler = async (event, context) => {
-  console.log('[Processor] Scheduled post processor triggered');
-  console.log('[Processor] Event type:', event.httpMethod || 'SCHEDULED');
-  
-  // For Netlify scheduled functions, skip webhook auth
-  // Scheduled functions are triggered by Netlify internally (not HTTP)
-  const isScheduledTrigger = !event.httpMethod || event.httpMethod === 'SCHEDULE';
-  
-  if (!isScheduledTrigger) {
-    // Verify webhook secret for manual HTTP triggers
-    const authResult = verifyWebhookSecret(event);
-    if (!authResult.success) {
-      console.error('[Processor] Unauthorized access attempt');
+  try {
+    console.log('[Processor] Scheduled post processor triggered');
+    console.log('[Processor] Event type:', event.httpMethod || 'SCHEDULED');
+    console.log('[Processor] Supabase URL:', supabaseUrl ? 'SET' : 'MISSING');
+    console.log('[Processor] Supabase Key:', supabaseServiceKey ? 'SET' : 'MISSING');
+    
+    // For Netlify scheduled functions, skip webhook auth
+    // Scheduled functions are triggered by Netlify internally (not HTTP)
+    const isScheduledTrigger = !event.httpMethod || event.httpMethod === 'SCHEDULE';
+    
+    if (!isScheduledTrigger) {
+      // Verify webhook secret for manual HTTP triggers
+      const authResult = verifyWebhookSecret(event);
+      if (!authResult.success) {
+        console.error('[Processor] Unauthorized access attempt');
+        return {
+          statusCode: authResult.statusCode,
+          body: JSON.stringify({ error: authResult.error })
+        };
+      }
+    }
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[Processor] Missing Supabase configuration');
       return {
-        statusCode: authResult.statusCode,
-        body: JSON.stringify({ error: authResult.error })
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Missing Supabase configuration' })
       };
     }
-  }
-  
-  try {
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Find posts that are due for processing
