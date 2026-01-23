@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { X, Youtube, Facebook, Instagram, CheckCircle, XCircle, Loader, ExternalLink } from 'lucide-react';
+import { X, Youtube, Facebook, Instagram, XCircle, Loader } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { userAPI } from '../lib/supabase';
 
 /**
  * PostToSocialModal Component
  * Modal for manually posting videos to social media platforms
+ * Uses optimistic UI - closes immediately after job creation
  */
 export default function PostToSocialModal({ video, onClose, onSuccess }) {
   const [loading, setLoading] = useState(true);
@@ -15,60 +16,11 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
     facebook: { connected: false, checked: false },
     instagram: { connected: false, checked: false }
   });
-  const [results, setResults] = useState(null);
-  
-  // Async job polling state
-  const [jobId, setJobId] = useState(null);
-  const [jobStatus, setJobStatus] = useState(null); // pending, processing, completed, failed
-  const [jobStage, setJobStage] = useState(null); // downloading, transcoding, uploading, etc.
-  const [jobProgress, setJobProgress] = useState(0); // 0-100
-  const [polling, setPolling] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchConnectionStatuses();
   }, []);
-
-  // Polling effect for async job status
-  useEffect(() => {
-    if (!polling || !jobId) return;
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const token = await userAPI.getAuthToken();
-        const res = await fetch(`/.netlify/functions/social-post-status?jobId=${jobId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!res.ok) {
-          throw new Error('Failed to fetch job status');
-        }
-
-        const job = await res.json();
-        setJobStatus(job.status);
-        setJobStage(job.stage || null);
-        setJobProgress(job.progress || 0);
-
-        if (job.status === 'completed') {
-          setJobProgress(100);
-          handleJobCompletion(job);
-        } else if (job.status === 'failed') {
-          setError(job.error || 'Job failed');
-          setPosting(false);
-          setPolling(false);
-          toast.error(job.error || 'Failed to post to social media');
-        }
-      } catch (err) {
-        console.error('Error polling job status:', err);
-        setError(err.message);
-        setPosting(false);
-        setPolling(false);
-        toast.error(`Failed to check job status: ${err.message}`);
-      }
-    }, 3000); // Poll every 3 seconds
-
-    return () => clearInterval(pollInterval);
-  }, [polling, jobId]);
 
   const fetchConnectionStatuses = async () => {
     try {
@@ -132,9 +84,7 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
     }
 
     setPosting(true);
-    setResults(null);
     setError(null);
-    setJobStatus('starting');
 
     try {
       const token = await userAPI.getAuthToken();
@@ -152,55 +102,29 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start social media post');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create post job');
       }
 
-      const data = await response.json();
+      // OPTIMISTIC UI: Close modal immediately after job creation
+      // Background function handles the actual posting
+      toast.success('Post queued! Processing in background.');
       
-      // If backend returns a jobId, start polling
-      if (data.jobId) {
-        setJobId(data.jobId);
-        setJobStatus('pending');
-        setPolling(true);
-        toast.info('Job queued - processing in background...');
-      } else if (data.results) {
-        // Legacy synchronous response - handle immediately
-        handleJobCompletion(data);
+      // Notify parent to refresh video list
+      if (onSuccess) {
+        onSuccess();
       }
+      
+      // Close modal after brief delay to show success message
+      setTimeout(() => {
+        onClose();
+      }, 500);
+      
     } catch (error) {
       console.error('Error posting to social media:', error);
-      toast.error(`Failed to post: ${error.message}`);
+      setError(error.message);
+      toast.error(`Failed to queue post: ${error.message}`);
       setPosting(false);
-      setJobStatus(null);
-    }
-  };
-
-  const handleJobCompletion = (data) => {
-    // Convert results object to array if needed
-    let resultsArray = data.results;
-    if (data.results && !Array.isArray(data.results)) {
-      resultsArray = Object.entries(data.results).map(([platform, result]) => ({
-        platform,
-        ...result
-      }));
-    }
-    
-    setResults(resultsArray);
-    setPosting(false);
-    setPolling(false);
-    setJobStatus('completed');
-
-    // Check if any posts succeeded
-    const hasSuccess = resultsArray && resultsArray.some(r => r.success);
-    const hasFailure = resultsArray && resultsArray.some(r => !r.success);
-
-    if (hasSuccess && !hasFailure) {
-      toast.success('Posted to all selected platforms successfully!');
-      if (onSuccess) onSuccess();
-    } else if (hasSuccess && hasFailure) {
-      toast.warning('Posted to some platforms, but some failed');
-    } else {
-      toast.error('Failed to post to all platforms');
     }
   };
 
@@ -222,23 +146,6 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
     }
   };
 
-  const getProgressMessage = (stage) => {
-    switch (stage) {
-      case 'queued': return 'Queued...';
-      case 'starting': return 'Starting...';
-      case 'downloading': return 'Downloading from OneDrive...';
-      case 'transcoding': return 'Transcoding video...';
-      case 'uploading': return 'Uploading to Instagram...';
-      case 'uploading_youtube': return 'Uploading to YouTube...';
-      case 'uploading_facebook': return 'Uploading to Facebook...';
-      case 'instagram_processing': return 'Instagram processing...';
-      case 'publishing': return 'Publishing...';
-      case 'completed': return 'Complete!';
-      case 'failed': return 'Failed';
-      default: return 'Processing...';
-    }
-  };
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-theme-primary rounded-lg max-w-lg w-full p-6">
@@ -254,7 +161,8 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
           </div>
           <button
             onClick={onClose}
-            className="text-theme-tertiary hover:text-theme-primary transition-colors"
+            disabled={posting}
+            className="text-theme-tertiary hover:text-theme-primary transition-colors disabled:opacity-50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -286,7 +194,7 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
                     <input
                       type="checkbox"
                       checked={status.checked}
-                      disabled={!status.connected}
+                      disabled={!status.connected || posting}
                       onChange={() => handleTogglePlatform(platform)}
                       className="w-4 h-4 rounded accent-accent disabled:opacity-50"
                     />
@@ -306,32 +214,8 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
               })}
             </div>
 
-            {/* Progress Indicator */}
-            {posting && jobStatus && jobStatus !== 'completed' && !results && (
-              <div className="mb-6 p-4 rounded-lg border border-accent bg-accent/10">
-                <div className="flex items-center gap-3 mb-3">
-                  <Loader className="w-5 h-5 animate-spin text-accent" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-theme-primary">
-                      {getProgressMessage(jobStage || jobStatus)}
-                    </p>
-                  </div>
-                  <span className="text-sm font-medium text-accent">
-                    {jobProgress}%
-                  </span>
-                </div>
-                {/* Progress Bar */}
-                <div className="w-full bg-theme-surface rounded-full h-2.5 overflow-hidden">
-                  <div 
-                    className="bg-accent h-2.5 rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${jobProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Error Display */}
-            {error && !results && (
+            {error && (
               <div className="mb-6 p-4 rounded-lg border border-red-500/30 bg-red-500/10">
                 <div className="flex items-center gap-3">
                   <XCircle className="w-5 h-5 text-red-500" />
@@ -347,72 +231,6 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
               </div>
             )}
 
-            {/* Results Display */}
-            {results && (
-              <div className="mb-6 space-y-3">
-                {/* Success Banner */}
-                {results.some(r => r.success) && (
-                  <div className="p-4 rounded-lg border border-green-500/30 bg-green-500/10">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-6 h-6 text-green-500" />
-                      <div>
-                        <p className="text-sm font-semibold text-green-600 dark:text-green-400">
-                          🎉 Successfully Posted!
-                        </p>
-                        <p className="text-xs text-theme-secondary mt-1">
-                          Your video is now live on {results.filter(r => r.success).map(r => r.platform).join(', ')}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <h4 className="text-sm font-medium text-theme-primary">Details:</h4>
-                {results.map((result, index) => {
-                  const Icon = getPlatformIcon(result.platform);
-                  const StatusIcon = result.success ? CheckCircle : XCircle;
-                  
-                  return (
-                    <div
-                      key={index}
-                      className={`flex items-center gap-3 p-3 rounded-lg border ${
-                        result.success
-                          ? 'border-green-500/30 bg-green-500/10'
-                          : 'border-red-500/30 bg-red-500/10'
-                      }`}
-                    >
-                      <Icon className={`w-5 h-5 ${getPlatformColor(result.platform)}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <StatusIcon className={`w-4 h-4 ${
-                            result.success ? 'text-green-500' : 'text-red-500'
-                          }`} />
-                          <span className="text-sm font-medium capitalize text-theme-primary">
-                            {result.platform}
-                          </span>
-                        </div>
-                        {result.success && result.url && (
-                          <a
-                            href={result.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-accent hover:text-accent-hover flex items-center gap-1 mt-1"
-                          >
-                            View post <ExternalLink className="w-3 h-3" />
-                          </a>
-                        )}
-                        {!result.success && result.error && (
-                          <p className="text-xs text-red-500 mt-1">
-                            {result.error}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
             {/* Actions */}
             <div className="flex justify-end gap-3">
               <button
@@ -420,24 +238,22 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
                 disabled={posting}
                 className="px-4 py-2 text-sm text-theme-secondary hover:text-theme-primary transition-colors disabled:opacity-50"
               >
-                {results ? 'Close' : 'Cancel'}
+                Cancel
               </button>
-              {!results && (
-                <button
-                  onClick={handlePost}
-                  disabled={posting || Object.values(platformStatuses).every(s => !s.checked)}
-                  className="px-4 py-2 text-sm bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {posting ? (
-                    <>
-                      <Loader className="w-4 h-4 animate-spin" />
-                      Posting...
-                    </>
-                  ) : (
-                    'Post Now'
-                  )}
-                </button>
-              )}
+              <button
+                onClick={handlePost}
+                disabled={posting || Object.values(platformStatuses).every(s => !s.checked)}
+                className="px-4 py-2 text-sm bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {posting ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Posting...
+                  </>
+                ) : (
+                  'Post Now'
+                )}
+              </button>
             </div>
           </>
         )}

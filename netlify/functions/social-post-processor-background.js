@@ -318,40 +318,57 @@ async function postToFacebook(userId, video, connection, accessToken, title, des
 // ============= Instagram =============
 async function postToInstagram(jobId, userId, video, connection, accessToken, title, description) {
   try {
-    if (!TRANSCODER_URL) {
-      throw new Error('TRANSCODER_URL not configured');
+    let transcodedUrl;
+    let fileName = null;
+
+    // NEW: Check for pre-transcoded URL first
+    if (video.social_ready_url && video.social_ready_status === 'ready') {
+      console.log('✨ Using pre-transcoded URL (fast path):', video.social_ready_url);
+      transcodedUrl = video.social_ready_url;
+      
+      // Skip download/transcode stages - jump directly to Instagram upload
+      await updateJobProgress(jobId, 'uploading', 55);
+    } else {
+      // FALLBACK: On-demand transcoding (slower but works when pre-transcode not ready)
+      console.log('⏳ Pre-transcoded URL not available, using on-demand transcoding');
+      
+      if (!TRANSCODER_URL) {
+        throw new Error('TRANSCODER_URL not configured');
+      }
+
+      // Stage 1: Downloading from OneDrive
+      await updateJobProgress(jobId, 'downloading', 15);
+      
+      const { accessToken: onedriveToken } = await getValidAccessToken(userId);
+      const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/content`;
+
+      // Stage 2: Transcoding
+      await updateJobProgress(jobId, 'transcoding', 30);
+      console.log('Calling transcoder for Instagram...');
+      
+      // Call transcoder (can take several minutes for large files)
+      const transcodeResponse = await fetch(`${TRANSCODER_URL}/transcode`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${onedriveToken}`
+        },
+        body: JSON.stringify({ videoUrl: downloadUrl })
+      });
+
+      if (!transcodeResponse.ok) {
+        const errText = await transcodeResponse.text();
+        throw new Error(`Transcoding failed: ${errText}`);
+      }
+
+      const transcodeData = await transcodeResponse.json();
+      transcodedUrl = transcodeData.transcodedUrl;
+      fileName = transcodeData.fileName;
+      console.log('Transcoded URL:', transcodedUrl);
+
+      // Stage 3: Uploading to Instagram
+      await updateJobProgress(jobId, 'uploading', 55);
     }
-
-    // Stage 1: Downloading from OneDrive
-    await updateJobProgress(jobId, 'downloading', 15);
-    
-    const { accessToken: onedriveToken } = await getValidAccessToken(userId);
-    const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/content`;
-
-    // Stage 2: Transcoding
-    await updateJobProgress(jobId, 'transcoding', 30);
-    console.log('Calling transcoder for Instagram...');
-    
-    // Call transcoder (can take several minutes for large files)
-    const transcodeResponse = await fetch(`${TRANSCODER_URL}/transcode`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${onedriveToken}`
-      },
-      body: JSON.stringify({ videoUrl: downloadUrl })
-    });
-
-    if (!transcodeResponse.ok) {
-      const errText = await transcodeResponse.text();
-      throw new Error(`Transcoding failed: ${errText}`);
-    }
-
-    const { transcodedUrl, fileName } = await transcodeResponse.json();
-    console.log('Transcoded URL:', transcodedUrl);
-
-    // Stage 3: Uploading to Instagram
-    await updateJobProgress(jobId, 'uploading', 55);
 
     // Create Instagram container
     const createUrl = new URL(`https://graph.facebook.com/v18.0/${connection.instagram_account_id}/media`);
@@ -416,14 +433,21 @@ async function postToInstagram(jobId, userId, video, connection, accessToken, ti
       throw new Error(`Instagram publish: ${publishData.error.message}`);
     }
 
-    // Cleanup transcoded file
-    try {
-      if (fileName) {
-        const { createClient } = require('@supabase/supabase-js');
-        const cleanupSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-        await cleanupSupabase.storage.from('social-media-temp').remove([fileName]);
+    // Cleanup on-demand transcoded file (only if we did on-demand transcoding)
+    if (fileName) {
+      try {
+        console.log('Cleaning up on-demand transcoded file:', fileName);
+        await fetch(`${TRANSCODER_URL}/cleanup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName })
+        });
+      } catch (e) { 
+        console.log('Cleanup failed (non-critical):', e); 
       }
-    } catch (e) { console.log('Cleanup failed:', e); }
+    } else {
+      console.log('Using pre-transcoded URL, no cleanup needed');
+    }
 
     return {
       platform: 'instagram',

@@ -18,6 +18,23 @@ const supabase = createClient(
 );
 
 /**
+ * Trigger background transcode job (fire and forget)
+ * Called after video creation to pre-transcode for social posting
+ */
+function triggerBackgroundTranscode(videoId) {
+  const functionUrl = `${process.env.URL}/.netlify/functions/video-transcode-background`;
+  
+  // Fire and forget - don't await, don't block response
+  fetch(functionUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ videoId })
+  })
+    .then(() => console.log(`Triggered background transcode for video ${videoId}`))
+    .catch(err => console.error(`Failed to trigger transcode for video ${videoId}:`, err.message));
+}
+
+/**
  * GET - List videos
  */
 async function handleGet(userId, params) {
@@ -101,6 +118,9 @@ async function handlePost(userId, body) {
       linkedTaskCount = await linkVideoToApprovedTasks(userId, updated.product_id, updated.id);
     }
 
+    // Trigger background transcode (fire and forget)
+    triggerBackgroundTranscode(updated.id);
+
     return { ...updated, linkedTaskCount };
   }
 
@@ -135,6 +155,9 @@ async function handlePost(userId, body) {
   if (productId && created.id) {
     linkedTaskCount = await linkVideoToApprovedTasks(userId, productId, created.id);
   }
+
+  // Trigger background transcode (fire and forget)
+  triggerBackgroundTranscode(created.id);
 
   return { ...created, linkedTaskCount };
 }
@@ -214,7 +237,8 @@ async function handlePatch(userId, videoId, body) {
     'product_id',
     'thumbnail_url',
     'duration_seconds',
-    'upload_status'
+    'upload_status',
+    'social_ready_status' // Allow manual retry of failed transcodes by setting to 'pending'
   ];
 
   // Filter to only allowed fields

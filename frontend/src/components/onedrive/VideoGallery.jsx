@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { userAPI } from '../../lib/supabase';
-import { Film, Play, Trash2, X, RefreshCw, ExternalLink, Download, Share2, Youtube, Facebook, Instagram } from 'lucide-react';
+import { Film, Play, Trash2, X, RefreshCw, ExternalLink, Download, Share2, Youtube, Facebook, Instagram, Clock, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import PostToSocialModal from '../PostToSocialModal';
 
 /**
@@ -151,6 +151,56 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
     return badges;
   };
 
+  /**
+   * Get social-ready status badge configuration
+   * Shows transcoding status for pre-upload architecture
+   */
+  const getSocialReadyBadge = (video) => {
+    switch (video.social_ready_status) {
+      case 'processing':
+        return {
+          show: true,
+          icon: Loader2,
+          iconClass: 'animate-spin',
+          text: 'Processing...',
+          bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+          textColor: 'text-yellow-700 dark:text-yellow-400',
+          tooltip: 'Preparing for social media posting'
+        };
+      case 'ready':
+        return {
+          show: true,
+          icon: CheckCircle,
+          iconClass: '',
+          text: 'Ready to Post',
+          bgColor: 'bg-green-100 dark:bg-green-900/30',
+          textColor: 'text-green-700 dark:text-green-400',
+          tooltip: 'Video ready for instant posting'
+        };
+      case 'failed':
+        return {
+          show: true,
+          icon: XCircle,
+          iconClass: '',
+          text: 'Transcode Failed',
+          bgColor: 'bg-red-100 dark:bg-red-900/30',
+          textColor: 'text-red-700 dark:text-red-400',
+          tooltip: video.social_ready_error || 'Transcoding failed - will retry on post'
+        };
+      case 'pending':
+      default:
+        return {
+          show: true,
+          icon: Clock,
+          iconClass: '',
+          text: 'Queued',
+          bgColor: 'bg-gray-100 dark:bg-gray-800',
+          textColor: 'text-gray-600 dark:text-gray-400',
+          tooltip: 'Waiting to process'
+        };
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -217,6 +267,22 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
                     <span>{formatDate(video.created_at)}</span>
                   </div>
                   
+                  {/* Social Ready Status Badge */}
+                  {(() => {
+                    const badge = getSocialReadyBadge(video);
+                    if (!badge.show) return null;
+                    const BadgeIcon = badge.icon;
+                    return (
+                      <div
+                        className={`flex items-center gap-1 mt-2 px-2 py-1 rounded text-xs ${badge.bgColor} ${badge.textColor}`}
+                        title={badge.tooltip}
+                      >
+                        <BadgeIcon className={`w-3 h-3 ${badge.iconClass}`} />
+                        <span>{badge.text}</span>
+                      </div>
+                    );
+                  })()}
+
                   {/* Platform Badges */}
                   {getPlatformBadges(video).length > 0 && (
                     <div className="flex items-center gap-1 mt-2">
@@ -236,8 +302,15 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={(e) => handlePostClick(e, video)}
-                    className="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1.5 text-xs font-medium shadow-sm"
-                    title="Post to social media"
+                    disabled={video.social_ready_status === 'processing'}
+                    className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium shadow-sm ${
+                      video.social_ready_status === 'processing'
+                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                    }`}
+                    title={video.social_ready_status === 'processing' 
+                      ? 'Video is still being prepared...' 
+                      : 'Post to social media'}
                   >
                     <Share2 className="w-3.5 h-3.5" />
                     Post
