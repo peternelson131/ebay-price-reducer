@@ -34,7 +34,6 @@ const ApiKeys = lazy(() => import('./pages/ApiKeys'))
 const Integrations = lazy(() => import('./pages/Integrations'))
 const WhatNotAnalysis = lazy(() => import('./pages/WhatNotAnalysis'))
 const ProductCRM = lazy(() => import('./pages/ProductCRM'))
-const Settings = lazy(() => import('./pages/Settings'))
 const SocialPosts = lazy(() => import('./pages/SocialPosts'))
 
 export default function App() {
@@ -347,7 +346,7 @@ export default function App() {
               <Route path="/whatnot" element={<WhatNotAnalysis />} />
               <Route path="/integrations" element={<Integrations />} />
               <Route path="/api-keys" element={<Navigate to="/integrations" replace />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/settings" element={<Navigate to="/integrations" replace />} />
               <Route path="/product-crm" element={<ProductCRM />} />
               <Route path="/posts" element={<SocialPosts />} />
             </Routes>
