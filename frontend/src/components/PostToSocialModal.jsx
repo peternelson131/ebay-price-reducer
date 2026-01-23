@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Youtube, Instagram, XCircle, Loader, Clock, Zap, Calendar } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { userAPI } from '../lib/supabase';
@@ -11,6 +11,7 @@ import { userAPI } from '../lib/supabase';
 export default function PostToSocialModal({ video, onClose, onSuccess }) {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
+  const isSubmittingRef = useRef(false); // Prevent double submission
   const [connectedAccounts, setConnectedAccounts] = useState([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState([]);
   const [caption, setCaption] = useState('');
@@ -117,9 +118,17 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
   };
 
   const handleSubmit = async () => {
+    // Prevent double submission
+    if (isSubmittingRef.current || posting) {
+      console.log('Submission already in progress, ignoring');
+      return;
+    }
+    isSubmittingRef.current = true;
+    
     setError(null);
 
     if (!validateForm()) {
+      isSubmittingRef.current = false;
       return;
     }
 
@@ -194,6 +203,7 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
       toast.error(`Failed to create post: ${error.message}`);
     } finally {
       setPosting(false);
+      isSubmittingRef.current = false;
     }
   };
 
