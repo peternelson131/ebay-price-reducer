@@ -621,12 +621,18 @@ function FacebookIntegration({ onStatusChange }) {
         body: JSON.stringify({ platform: 'facebook' })
       })
       const data = await response.json()
+      console.log('Facebook connect response:', data)
+      if (!response.ok) {
+        throw new Error(data.error || 'Connection failed')
+      }
       if (data.authUrl) {
         window.location.href = data.authUrl
+      } else {
+        throw new Error('No authorization URL returned')
       }
     } catch (error) {
       console.error('Failed to start Facebook auth:', error)
-      toast.error('Failed to start Facebook connection')
+      toast.error(error.message || 'Failed to start Facebook connection')
     } finally {
       setIsConnecting(false)
     }
@@ -764,12 +770,18 @@ function InstagramIntegration({ onStatusChange }) {
         body: JSON.stringify({ platform: 'instagram' })
       })
       const data = await response.json()
+      console.log('Instagram connect response:', data)
+      if (!response.ok) {
+        throw new Error(data.error || 'Connection failed')
+      }
       if (data.authUrl) {
         window.location.href = data.authUrl
+      } else {
+        throw new Error('No authorization URL returned')
       }
     } catch (error) {
       console.error('Failed to start Instagram auth:', error)
-      toast.error('Failed to start Instagram connection')
+      toast.error(error.message || 'Failed to start Instagram connection')
     } finally {
       setIsConnecting(false)
     }
@@ -906,12 +918,18 @@ function YouTubeIntegration({ onStatusChange }) {
         body: JSON.stringify({ platform: 'youtube' })
       })
       const data = await response.json()
+      console.log('YouTube connect response:', data)
+      if (!response.ok) {
+        throw new Error(data.error || 'Connection failed')
+      }
       if (data.authUrl) {
         window.location.href = data.authUrl
+      } else {
+        throw new Error('No authorization URL returned')
       }
     } catch (error) {
       console.error('Failed to start YouTube auth:', error)
-      toast.error('Failed to start YouTube connection')
+      toast.error(error.message || 'Failed to start YouTube connection')
     } finally {
       setIsConnecting(false)
     }
