@@ -672,16 +672,34 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
     const { accessToken: onedriveToken } = await getValidAccessToken(userId);
     const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/content`;
     
-    // Call transcoding service with OneDrive URL
-    console.log('Sending video to transcoding service...');
-    const transcodeResponse = await fetch(`${TRANSCODER_URL}/transcode`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${onedriveToken}` // Pass OneDrive token for download
-      },
-      body: JSON.stringify({ videoUrl: downloadUrl })
-    });
+    // Call transcoding service with OneDrive URL (55s timeout to stay under Netlify 60s limit)
+    console.log('Sending video to transcoding service:', TRANSCODER_URL);
+    console.log('OneDrive download URL:', downloadUrl);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 second timeout
+    
+    let transcodeResponse;
+    try {
+      transcodeResponse = await fetch(`${TRANSCODER_URL}/transcode`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${onedriveToken}` // Pass OneDrive token for download
+        },
+        body: JSON.stringify({ videoUrl: downloadUrl }),
+        signal: controller.signal
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error('Transcoding request timed out after 55s');
+        throw new Error('Video transcoding timed out. Try a smaller video (under 20MB) or wait and retry.');
+      }
+      console.error('Transcoding fetch error:', fetchError);
+      throw new Error(`Transcoding service unavailable: ${fetchError.message}`);
+    }
+    clearTimeout(timeoutId);
 
     if (!transcodeResponse.ok) {
       const errorText = await transcodeResponse.text();
