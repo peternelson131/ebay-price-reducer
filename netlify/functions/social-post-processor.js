@@ -175,15 +175,22 @@ async function processPost(post) {
  */
 exports.handler = async (event, context) => {
   console.log('[Processor] Scheduled post processor triggered');
+  console.log('[Processor] Event type:', event.httpMethod || 'SCHEDULED');
   
-  // Verify webhook secret (for scheduled functions)
-  const authResult = verifyWebhookSecret(event);
-  if (!authResult.success) {
-    console.error('[Processor] Unauthorized access attempt');
-    return {
-      statusCode: authResult.statusCode,
-      body: JSON.stringify({ error: authResult.error })
-    };
+  // For Netlify scheduled functions, skip webhook auth
+  // Scheduled functions are triggered by Netlify internally (not HTTP)
+  const isScheduledTrigger = !event.httpMethod || event.httpMethod === 'SCHEDULE';
+  
+  if (!isScheduledTrigger) {
+    // Verify webhook secret for manual HTTP triggers
+    const authResult = verifyWebhookSecret(event);
+    if (!authResult.success) {
+      console.error('[Processor] Unauthorized access attempt');
+      return {
+        statusCode: authResult.statusCode,
+        body: JSON.stringify({ error: authResult.error })
+      };
+    }
   }
   
   try {
