@@ -55,26 +55,28 @@ exports.handler = async (event, context) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Check if post is still in a valid state to process (prevent duplicates)
-    const { data: post, error: postError } = await supabase
+    // Atomically claim this post for processing (prevent duplicates)
+    // Only succeeds if status is 'processing' or 'scheduled' (not already 'posted' or 'posting')
+    const { data: claimResult, error: claimError } = await supabase
       .from('social_posts')
-      .select('id, status')
+      .update({ 
+        status: 'posting',  // New intermediate status
+        updated_at: new Date().toISOString()
+      })
       .eq('id', postId)
-      .single();
+      .in('status', ['processing', 'scheduled'])
+      .select('id');
     
-    if (postError || !post) {
-      return errorResponse(404, 'Post not found', headers);
-    }
-    
-    // Only process if status is 'processing' or 'scheduled' (not already 'posted')
-    if (post.status === 'posted') {
-      console.log(`[Worker] Post ${postId} already posted, skipping`);
+    if (claimError || !claimResult || claimResult.length === 0) {
+      console.log(`[Worker] Post ${postId} already claimed or posted, skipping`);
       return successResponse({ 
         postId, 
         status: 'skipped', 
-        reason: 'Already posted' 
+        reason: 'Already being processed or posted' 
       }, headers);
     }
+    
+    console.log(`[Worker] Claimed post ${postId} for posting`);
     
     // Get video details
     const { data: video, error: videoError } = await supabase
