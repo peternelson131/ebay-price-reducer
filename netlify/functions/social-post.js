@@ -108,23 +108,31 @@ exports.handler = async (event, context) => {
 
     console.log('Created job:', job.id);
 
-    // Invoke background function via HTTP (fire and forget)
-    // Background functions in Netlify have suffix "-background" and can run up to 15 minutes
+    // Invoke background function via HTTP
+    // Background functions return 202 immediately and process in background (up to 15 min)
     const siteUrl = process.env.URL || 'https://dainty-horse-49c336.netlify.app';
-    fetch(`${siteUrl}/.netlify/functions/social-post-processor-background`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jobId: job.id,
-        userId,
-        video,
-        platforms,
-        title: videoTitle,
-        description: videoDescription
-      })
-    }).catch(err => {
+    try {
+      const bgResponse = await fetch(`${siteUrl}/.netlify/functions/social-post-processor-background`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: job.id,
+          userId,
+          video,
+          platforms,
+          title: videoTitle,
+          description: videoDescription
+        })
+      });
+      console.log('Background function invoked, status:', bgResponse.status);
+    } catch (err) {
       console.error('Failed to invoke background function:', err);
-    });
+      // Update job as failed if we couldn't invoke the background processor
+      await supabase
+        .from('social_post_jobs')
+        .update({ status: 'failed', error: 'Failed to start background processor' })
+        .eq('id', job.id);
+    }
 
     // Return immediately with job ID
     return {
