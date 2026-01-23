@@ -301,16 +301,26 @@ async function postToYouTube(userId, video, title, description) {
     // Get video file from OneDrive
     const { accessToken: onedriveToken } = await getValidAccessToken(userId);
     
+    if (!video.onedrive_id) {
+      return {
+        platform: 'youtube',
+        success: false,
+        error: 'Video has no OneDrive ID'
+      };
+    }
+    
     const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_id}/content`;
     const videoResponse = await fetch(downloadUrl, {
       headers: { Authorization: `Bearer ${onedriveToken}` }
     });
 
     if (!videoResponse.ok) {
+      const errorText = await videoResponse.text();
+      console.error('OneDrive download failed:', videoResponse.status, errorText);
       return {
         platform: 'youtube',
         success: false,
-        error: 'Failed to download video from OneDrive'
+        error: `Failed to download video from OneDrive: ${videoResponse.status} ${errorText.substring(0, 100)}`
       };
     }
 
@@ -499,6 +509,10 @@ async function refreshMetaToken(userId, currentToken) {
  */
 async function postToFacebook(userId, video, connection, accessToken, title, description) {
   try {
+    if (!video.onedrive_id) {
+      throw new Error('Video has no OneDrive ID');
+    }
+    
     const { accessToken: onedriveToken } = await getValidAccessToken(userId);
     
     const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_id}/content`;
@@ -507,7 +521,9 @@ async function postToFacebook(userId, video, connection, accessToken, title, des
     });
 
     if (!videoResponse.ok) {
-      throw new Error('Failed to download video from OneDrive');
+      const errorText = await videoResponse.text();
+      console.error('OneDrive download failed for Facebook:', videoResponse.status, errorText);
+      throw new Error(`Failed to download video from OneDrive: ${videoResponse.status} ${errorText.substring(0, 100)}`);
     }
 
     const videoBuffer = await videoResponse.arrayBuffer();
@@ -623,6 +639,10 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
     if (!videoUrl) {
       console.log('Uploading to Supabase Storage for Instagram');
       
+      if (!video.onedrive_id) {
+        throw new Error('Video has no OneDrive ID');
+      }
+      
       const { accessToken: onedriveToken } = await getValidAccessToken(userId);
       
       const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_id}/content`;
@@ -631,7 +651,9 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
       });
 
       if (!videoResponse.ok) {
-        throw new Error('Failed to download video from OneDrive');
+        const errorText = await videoResponse.text();
+        console.error('OneDrive download failed for Instagram:', videoResponse.status, errorText);
+        throw new Error(`Failed to download video from OneDrive: ${videoResponse.status} ${errorText.substring(0, 100)}`);
       }
 
       const videoBuffer = await videoResponse.arrayBuffer();
@@ -722,13 +744,14 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
 
     // Clean up temp storage
     if (tempStoragePath) {
+      console.log('Cleaning up temp storage file:', tempStoragePath);
       try {
         await supabase.storage
           .from('social-media-temp')
           .remove([tempStoragePath]);
-        console.log('Cleaned up temp storage file');
+        console.log('Cleaned up temp storage file successfully');
       } catch (cleanupError) {
-        console.warn('Failed to cleanup temp file:', cleanupError);
+        console.warn('Failed to cleanup temp file:', cleanupError.message);
       }
     }
 
@@ -741,13 +764,16 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
   } catch (error) {
     console.error('Instagram post error:', error);
     
-    if (tempStoragePath) {
+    // Cleanup temp storage on error
+    if (typeof tempStoragePath !== 'undefined' && tempStoragePath) {
+      console.log('Cleaning up temp storage file after error:', tempStoragePath);
       try {
         await supabase.storage
           .from('social-media-temp')
           .remove([tempStoragePath]);
+        console.log('Cleaned up temp storage file after error');
       } catch (cleanupError) {
-        console.warn('Failed to cleanup temp file on error:', cleanupError);
+        console.warn('Failed to cleanup temp file on error:', cleanupError.message);
       }
     }
     
