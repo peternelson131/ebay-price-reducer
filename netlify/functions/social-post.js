@@ -651,14 +651,14 @@ async function postToFacebook(userId, video, connection, accessToken, title, des
  * - CLOUDINARY_API_SECRET
  */
 async function postToInstagram(userId, video, connection, accessToken, title, description) {
-  let cloudinaryPublicId = null;
+  let transcodedFileName = null;
   
   try {
-    // Check if Cloudinary is configured
-    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+    // Check if transcoder service is configured
+    const TRANSCODER_URL = process.env.TRANSCODER_URL;
+    if (!TRANSCODER_URL) {
       throw new Error(
-        'Instagram requires video transcoding. Please configure Cloudinary environment variables ' +
-        '(CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) or export videos as MP4 with H.264/AAC codecs.'
+        'Instagram requires video transcoding. Please configure TRANSCODER_URL environment variable.'
       );
     }
 
@@ -666,60 +666,32 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
       throw new Error('Video has no OneDrive ID');
     }
 
-    console.log('Starting Instagram post with Cloudinary transcoding');
+    console.log('Starting Instagram post with Railway transcoding service');
 
-    // Download video from OneDrive
+    // Get OneDrive download URL
     const { accessToken: onedriveToken } = await getValidAccessToken(userId);
-    
     const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/content`;
-    const videoResponse = await fetch(downloadUrl, {
-      headers: { Authorization: `Bearer ${onedriveToken}` }
+    
+    // Call transcoding service with OneDrive URL
+    console.log('Sending video to transcoding service...');
+    const transcodeResponse = await fetch(`${TRANSCODER_URL}/transcode`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${onedriveToken}` // Pass OneDrive token for download
+      },
+      body: JSON.stringify({ videoUrl: downloadUrl })
     });
 
-    if (!videoResponse.ok) {
-      const errorText = await videoResponse.text();
-      console.error('OneDrive download failed:', videoResponse.status, errorText);
-      throw new Error(`Failed to download video from OneDrive: ${videoResponse.status} ${errorText.substring(0, 100)}`);
+    if (!transcodeResponse.ok) {
+      const errorText = await transcodeResponse.text();
+      console.error('Transcoding failed:', transcodeResponse.status, errorText);
+      throw new Error(`Transcoding service error: ${transcodeResponse.status} ${errorText.substring(0, 100)}`);
     }
 
-    const videoBuffer = await videoResponse.arrayBuffer();
-    console.log(`Downloaded video: ${videoBuffer.byteLength} bytes`);
-
-    // Upload to Cloudinary with transcoding transformation
-    console.log('Uploading to Cloudinary for transcoding...');
-    
-    const uploadResult = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'video',
-          format: 'mp4',
-          transformation: [
-            {
-              video_codec: 'h264',
-              audio_codec: 'aac',
-              quality: 'auto:good'
-            }
-          ],
-          folder: `instagram/${userId}`,
-          public_id: `video_${Date.now()}`
-        },
-        (error, result) => {
-          if (error) {
-            console.error('Cloudinary upload error:', error);
-            reject(error);
-          } else {
-            console.log('Cloudinary upload success:', result.public_id);
-            resolve(result);
-          }
-        }
-      );
-
-      // Write video buffer to upload stream
-      uploadStream.end(Buffer.from(videoBuffer));
-    });
-
-    cloudinaryPublicId = uploadResult.public_id;
-    const videoUrl = uploadResult.secure_url;
+    const transcodeData = await transcodeResponse.json();
+    transcodedFileName = transcodeData.fileName;
+    const videoUrl = transcodeData.transcodedUrl;
     
     console.log('Transcoded video URL:', videoUrl);
 
@@ -791,15 +763,21 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
 
     console.log('Instagram post success:', postId);
 
-    // Clean up Cloudinary file (optional - can keep for later use)
-    if (cloudinaryPublicId) {
+    // Clean up transcoded file from Supabase (optional - can keep for later use)
+    if (transcodedFileName) {
       try {
-        console.log('Cleaning up Cloudinary file:', cloudinaryPublicId);
-        await cloudinary.uploader.destroy(cloudinaryPublicId, { resource_type: 'video' });
-        console.log('Cloudinary file cleanup successful');
-      } catch (cleanupError) {
-        console.warn('Failed to cleanup Cloudinary file:', cleanupError.message);
+        console.log('Cleaning up transcoded file:', transcodedFileName);
+        const { error } = await supabase.storage
+          .from('social-media-temp')
+          .remove([transcodedFileName]);
+        if (error) {
+          console.warn('Failed to cleanup transcoded file:', error.message);
+        } else {
+          console.log('Transcoded file cleanup successful');
+        }
         // Don't fail the whole operation if cleanup fails
+      } catch (cleanupError) {
+        console.warn('Failed to cleanup transcoded file:', cleanupError.message);
       }
     }
 
@@ -812,14 +790,20 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
   } catch (error) {
     console.error('Instagram post error:', error);
     
-    // Cleanup Cloudinary file on error
-    if (cloudinaryPublicId) {
+    // Cleanup transcoded file on error
+    if (transcodedFileName) {
       try {
-        console.log('Cleaning up Cloudinary file after error:', cloudinaryPublicId);
-        await cloudinary.uploader.destroy(cloudinaryPublicId, { resource_type: 'video' });
-        console.log('Cloudinary cleanup after error successful');
+        console.log('Cleaning up transcoded file after error:', transcodedFileName);
+        const { error } = await supabase.storage
+          .from('social-media-temp')
+          .remove([transcodedFileName]);
+        if (error) {
+          console.warn('Failed to cleanup transcoded file on error:', error.message);
+        } else {
+          console.log('Transcoded file cleanup after error successful');
+        }
       } catch (cleanupError) {
-        console.warn('Failed to cleanup Cloudinary file on error:', cleanupError.message);
+        console.warn('Failed to cleanup transcoded file on error:', cleanupError.message);
       }
     }
     
