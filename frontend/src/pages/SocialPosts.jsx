@@ -247,7 +247,7 @@ export default function SocialPosts() {
         </nav>
       </div>
 
-      {/* Posts Grid */}
+      {/* Posts List */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader className="w-8 h-8 animate-spin text-accent" />
@@ -255,163 +255,118 @@ export default function SocialPosts() {
       ) : posts.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {posts.map((post) => {
-            const isDeleting = deletingPostId === post.id;
-            const isPublishing = publishingPostId === post.id;
-            const canEdit = post.status === 'draft' || post.status === 'scheduled';
-            const canPublish = post.status === 'draft' || post.status === 'scheduled';
+        <div className="bg-theme-primary border border-theme rounded-lg overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-theme-surface border-b border-theme">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-theme-tertiary uppercase tracking-wider">Video</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-theme-tertiary uppercase tracking-wider">Caption</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-theme-tertiary uppercase tracking-wider">Platforms</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-theme-tertiary uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-theme-tertiary uppercase tracking-wider">Date</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-theme-tertiary uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-theme">
+              {posts.map((post) => {
+                const isDeleting = deletingPostId === post.id;
+                const isPublishing = publishingPostId === post.id;
+                const canPublish = post.status === 'draft' || post.status === 'scheduled';
 
-            return (
-              <div
-                key={post.id}
-                className="bg-theme-primary border border-theme rounded-lg overflow-hidden hover:border-accent transition-colors"
-              >
-                {/* Video Thumbnail */}
-                {post.video?.thumbnailUrl ? (
-                  <div className="aspect-video bg-theme-surface relative">
-                    <img
-                      src={post.video.thumbnailUrl}
-                      alt={post.video.title || 'Video thumbnail'}
-                      className="w-full h-full object-cover"
-                    />
-                    {/* Status Badge Overlay */}
-                    <div className="absolute top-2 right-2">
-                      {getStatusBadge(post.status)}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="aspect-video bg-theme-surface flex items-center justify-center relative">
-                    <div className="text-4xl">🎬</div>
-                    <div className="absolute top-2 right-2">
-                      {getStatusBadge(post.status)}
-                    </div>
-                  </div>
-                )}
-
-                {/* Content */}
-                <div className="p-4 space-y-3">
-                  {/* Video Title */}
-                  {post.video?.title && (
-                    <h3 className="font-medium text-theme-primary truncate">
-                      {post.video.title}
-                    </h3>
-                  )}
-
-                  {/* Caption Preview */}
-                  {post.caption && (
-                    <p className="text-sm text-theme-secondary line-clamp-2">
-                      {truncateCaption(post.caption)}
-                    </p>
-                  )}
-
-                  {/* Platforms */}
-                  <div className="flex items-center gap-2">
-                    {post.platforms?.map((platform) => {
-                      const Icon = getPlatformIcon(platform);
-                      const colorClass = platform === 'youtube' 
-                        ? 'text-red-600' 
-                        : 'text-pink-600';
-                      
-                      return Icon ? (
-                        <div
-                          key={platform}
-                          className={`flex items-center gap-1 text-xs ${colorClass}`}
-                        >
-                          <Icon className="w-4 h-4" />
-                          <span className="capitalize">{platform}</span>
-                        </div>
-                      ) : null;
-                    })}
-                  </div>
-
-                  {/* Scheduled Time */}
-                  {post.scheduledAt && post.status !== 'posted' && (
-                    <div className="flex items-center gap-2 text-xs text-theme-tertiary">
-                      <Calendar className="w-3 h-3" />
-                      <span>{formatDate(post.scheduledAt)}</span>
-                    </div>
-                  )}
-
-                  {/* Posted Time */}
-                  {post.status === 'posted' && post.results?.length > 0 && (
-                    <div className="flex items-center gap-2 text-xs text-green-600">
-                      <CheckCircle className="w-3 h-3" />
-                      <span>Posted {formatDate(post.results[0].postedAt)}</span>
-                    </div>
-                  )}
-
-                  {/* Results */}
-                  {post.results && post.results.length > 0 && (
-                    <div className="space-y-1">
-                      {post.results.map((result, idx) => (
-                        <div
-                          key={idx}
-                          className={`text-xs flex items-center gap-2 ${
-                            result.success ? 'text-green-600' : 'text-red-600'
-                          }`}
-                        >
-                          {result.success ? (
-                            <CheckCircle className="w-3 h-3" />
-                          ) : (
-                            <XCircle className="w-3 h-3" />
-                          )}
-                          <span className="capitalize">{result.platform}: </span>
-                          {result.success ? (
-                            result.platformPostUrl ? (
-                              <a
-                                href={result.platformPostUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline hover:no-underline"
-                              >
-                                View
-                              </a>
-                            ) : (
-                              'Posted'
-                            )
-                          ) : (
-                            <span className="text-xs">{result.error || 'Failed'}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-theme">
-                    {canPublish && (
-                      <button
-                        onClick={() => handlePublishNow(post.id)}
-                        disabled={isPublishing}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs bg-accent text-white rounded hover:bg-accent-hover transition-colors disabled:opacity-50"
-                      >
-                        {isPublishing ? (
-                          <Loader className="w-3 h-3 animate-spin" />
+                return (
+                  <tr key={post.id} className="hover:bg-theme-surface/50 transition-colors">
+                    {/* Video */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {post.video?.thumbnailUrl ? (
+                          <img
+                            src={post.video.thumbnailUrl}
+                            alt=""
+                            className="w-16 h-10 object-cover rounded"
+                          />
                         ) : (
-                          <Zap className="w-3 h-3" />
+                          <div className="w-16 h-10 bg-theme-surface rounded flex items-center justify-center text-lg">
+                            🎬
+                          </div>
                         )}
-                        Post Now
-                      </button>
-                    )}
-                    
-                    <button
-                      onClick={() => handleDelete(post.id)}
-                      disabled={isDeleting}
-                      className="flex items-center justify-center gap-1 px-3 py-1.5 text-xs border border-red-500 text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-                    >
-                      {isDeleting ? (
-                        <Loader className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-3 h-3" />
-                      )}
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                        <span className="text-sm text-theme-primary font-medium truncate max-w-[150px]">
+                          {post.video?.title || 'Untitled'}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Caption */}
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-theme-secondary truncate block max-w-[200px]">
+                        {truncateCaption(post.caption, 50) || '-'}
+                      </span>
+                    </td>
+
+                    {/* Platforms */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {post.platforms?.map((platform) => {
+                          const Icon = getPlatformIcon(platform);
+                          const colorClass = platform === 'youtube' ? 'text-red-600' : 'text-pink-600';
+                          return Icon ? (
+                            <Icon key={platform} className={`w-4 h-4 ${colorClass}`} title={platform} />
+                          ) : null;
+                        })}
+                      </div>
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-4 py-3">
+                      {getStatusBadge(post.status)}
+                    </td>
+
+                    {/* Date */}
+                    <td className="px-4 py-3">
+                      <span className="text-xs text-theme-tertiary">
+                        {post.status === 'posted' && post.results?.[0]?.postedAt
+                          ? formatDate(post.results[0].postedAt)
+                          : post.scheduledAt
+                            ? formatDate(post.scheduledAt)
+                            : formatDate(post.createdAt)
+                        }
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {canPublish && (
+                          <button
+                            onClick={() => handlePublishNow(post.id)}
+                            disabled={isPublishing}
+                            className="flex items-center gap-1 px-2 py-1 text-xs bg-accent text-white rounded hover:bg-accent-hover transition-colors disabled:opacity-50"
+                          >
+                            {isPublishing ? (
+                              <Loader className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Zap className="w-3 h-3" />
+                            )}
+                            Post
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(post.id)}
+                          disabled={isDeleting}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50"
+                        >
+                          {isDeleting ? (
+                            <Loader className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
