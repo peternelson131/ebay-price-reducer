@@ -543,24 +543,40 @@ async function postToFacebook(userId, video, connection, accessToken, title, des
 
     const uploadSessionId = initData.upload_session_id;
 
-    // Transfer video bytes
-    const transferUrl = new URL(`https://graph.facebook.com/v18.0/${connection.account_id}/videos`);
-    transferUrl.searchParams.set('access_token', accessToken);
-    transferUrl.searchParams.set('upload_phase', 'transfer');
-    transferUrl.searchParams.set('upload_session_id', uploadSessionId);
-    transferUrl.searchParams.set('start_offset', '0');
+    // Transfer video bytes in chunks (4MB max per chunk for Facebook API)
+    const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks
+    let offset = 0;
 
-    const transferResponse = await fetch(transferUrl.toString(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/octet-stream' },
-      body: videoBuffer
-    });
+    console.log(`Uploading ${videoBuffer.byteLength} bytes in chunks of ${CHUNK_SIZE}`);
 
-    const transferData = await transferResponse.json();
+    while (offset < videoBuffer.byteLength) {
+      const chunkEnd = Math.min(offset + CHUNK_SIZE, videoBuffer.byteLength);
+      const chunk = videoBuffer.slice(offset, chunkEnd);
+      
+      console.log(`Uploading chunk: offset=${offset}, size=${chunk.byteLength}`);
 
-    if (transferData.error) {
-      throw new Error(`Facebook transfer error: ${transferData.error.message}`);
+      const transferUrl = new URL(`https://graph.facebook.com/v18.0/${connection.account_id}/videos`);
+      transferUrl.searchParams.set('access_token', accessToken);
+      transferUrl.searchParams.set('upload_phase', 'transfer');
+      transferUrl.searchParams.set('upload_session_id', uploadSessionId);
+      transferUrl.searchParams.set('start_offset', offset.toString());
+
+      const transferResponse = await fetch(transferUrl.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: chunk
+      });
+
+      const transferData = await transferResponse.json();
+
+      if (transferData.error) {
+        throw new Error(`Facebook transfer error at offset ${offset}: ${transferData.error.message}`);
+      }
+
+      offset = chunkEnd;
     }
+
+    console.log('All chunks uploaded successfully');
 
     // Finalize upload
     const finalizeUrl = new URL(`https://graph.facebook.com/v18.0/${connection.account_id}/videos`);
@@ -698,6 +714,8 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
     console.log('Instagram container created:', containerId);
 
     // Wait for processing
+    // Note: Instagram Reels require specific format: MP4 container, H.264 video codec, AAC audio codec
+    // Ensure videos are properly encoded before upload to avoid processing errors
     let isReady = false;
     let statusCheckCount = 0;
     const maxChecks = 12;
@@ -707,15 +725,19 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
       
       const statusUrl = new URL(`https://graph.facebook.com/v18.0/${containerId}`);
       statusUrl.searchParams.set('access_token', accessToken);
-      statusUrl.searchParams.set('fields', 'status_code');
+      statusUrl.searchParams.set('fields', 'status_code,status');
 
       const statusResponse = await fetch(statusUrl.toString());
       const statusData = await statusResponse.json();
 
+      console.log('Instagram processing status:', JSON.stringify(statusData));
+
       if (statusData.status_code === 'FINISHED') {
         isReady = true;
       } else if (statusData.status_code === 'ERROR') {
-        throw new Error('Instagram processing failed');
+        console.error('Instagram status error:', JSON.stringify(statusData));
+        const errorMessage = statusData.error_message || statusData.status || 'Unknown error';
+        throw new Error(`Instagram processing failed: ${errorMessage}. Ensure video is MP4 with H.264 video and AAC audio codecs.`);
       }
       
       statusCheckCount++;
