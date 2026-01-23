@@ -16,7 +16,8 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // OAuth Token Exchange Configuration
 const TOKEN_CONFIG = {
   instagram: {
-    tokenUrl: 'https://api.instagram.com/oauth/access_token',
+    // Instagram Graph API uses Facebook OAuth token endpoint
+    tokenUrl: 'https://graph.facebook.com/v18.0/oauth/access_token',
     clientId: process.env.META_APP_ID,
     clientSecret: process.env.META_APP_SECRET,
     grantType: 'authorization_code'
@@ -34,15 +35,39 @@ const TOKEN_CONFIG = {
  */
 async function getAccountInfo(platform, accessToken) {
   if (platform === 'instagram') {
-    // Get Instagram account info
-    const response = await fetch(
-      `https://graph.instagram.com/me?fields=id,username,account_type&access_token=${accessToken}`
+    // Instagram Graph API: Get Instagram account via Facebook Pages
+    // Step 1: Get user's Facebook Pages
+    const pagesResponse = await fetch(
+      `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,instagram_business_account&access_token=${accessToken}`
     );
-    const data = await response.json();
+    const pagesData = await pagesResponse.json();
+    console.log('Facebook Pages:', JSON.stringify(pagesData));
+    
+    // Find a page with Instagram Business Account
+    const pageWithInstagram = pagesData.data?.find(p => p.instagram_business_account);
+    
+    if (!pageWithInstagram || !pageWithInstagram.instagram_business_account) {
+      throw new Error('No Instagram Business Account found. Make sure your Instagram is linked to a Facebook Page.');
+    }
+    
+    const igAccountId = pageWithInstagram.instagram_business_account.id;
+    
+    // Step 2: Get Instagram account details
+    const igResponse = await fetch(
+      `https://graph.facebook.com/v18.0/${igAccountId}?fields=id,username,profile_picture_url,followers_count&access_token=${accessToken}`
+    );
+    const igData = await igResponse.json();
+    console.log('Instagram Account:', JSON.stringify(igData));
+    
     return {
-      accountId: data.id,
-      username: data.username,
-      metadata: { accountType: data.account_type }
+      accountId: igData.id,
+      username: igData.username || `ig_${igData.id}`,
+      metadata: { 
+        profilePicture: igData.profile_picture_url,
+        followers: igData.followers_count,
+        facebookPageId: pageWithInstagram.id,
+        facebookPageName: pageWithInstagram.name
+      }
     };
   } else if (platform === 'youtube') {
     // Get YouTube channel info

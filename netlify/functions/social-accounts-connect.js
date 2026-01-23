@@ -19,10 +19,10 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // OAuth Configuration
 const OAUTH_CONFIG = {
   instagram: {
-    // Instagram Business/Creator direct OAuth (per Post-Bridge analysis)
-    authUrl: 'https://www.instagram.com/oauth/authorize/third_party/',
+    // Instagram Graph API uses Facebook Login OAuth
+    authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
     clientId: process.env.META_APP_ID,
-    scopes: ['instagram_business_basic', 'instagram_business_content_publish'],
+    scopes: ['instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement', 'business_management'],
     responseType: 'code'
   },
   youtube: {
