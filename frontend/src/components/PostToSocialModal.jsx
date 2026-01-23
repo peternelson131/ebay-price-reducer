@@ -349,8 +349,25 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
 
             {/* Results Display */}
             {results && (
-              <div className="mb-6 space-y-2">
-                <h4 className="text-sm font-medium text-theme-primary">Results:</h4>
+              <div className="mb-6 space-y-3">
+                {/* Success Banner */}
+                {results.some(r => r.success) && (
+                  <div className="p-4 rounded-lg border border-green-500/30 bg-green-500/10">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-6 h-6 text-green-500" />
+                      <div>
+                        <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                          🎉 Successfully Posted!
+                        </p>
+                        <p className="text-xs text-theme-secondary mt-1">
+                          Your video is now live on {results.filter(r => r.success).map(r => r.platform).join(', ')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <h4 className="text-sm font-medium text-theme-primary">Details:</h4>
                 {results.map((result, index) => {
                   const Icon = getPlatformIcon(result.platform);
                   const StatusIcon = result.success ? CheckCircle : XCircle;
