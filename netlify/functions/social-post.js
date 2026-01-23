@@ -108,9 +108,22 @@ exports.handler = async (event, context) => {
 
     console.log('Created job:', job.id);
 
-    // Process in background (don't await)
-    processJobInBackground(job.id, userId, video, platforms, videoTitle, videoDescription).catch(err => {
-      console.error('Background processing error:', err);
+    // Invoke background function via HTTP (fire and forget)
+    // Background functions in Netlify have suffix "-background" and can run up to 15 minutes
+    const siteUrl = process.env.URL || 'https://dainty-horse-49c336.netlify.app';
+    fetch(`${siteUrl}/.netlify/functions/social-post-processor-background`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobId: job.id,
+        userId,
+        video,
+        platforms,
+        title: videoTitle,
+        description: videoDescription
+      })
+    }).catch(err => {
+      console.error('Failed to invoke background function:', err);
     });
 
     // Return immediately with job ID

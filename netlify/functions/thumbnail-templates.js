@@ -1,10 +1,11 @@
 /**
- * Thumbnail Templates - CRUD operations for thumbnail templates
+ * Thumbnail Templates - Manage user-uploaded base templates for auto-thumbnail generation
  * 
- * GET    /thumbnail-templates - List user's templates (with signed URLs)
- * POST   /thumbnail-templates - Upload new template
- * PUT    /thumbnail-templates?id=xxx - Update template (zone)
- * DELETE /thumbnail-templates?id=xxx - Delete template and storage file
+ * GET /thumbnail-templates - List user's templates
+ * GET /thumbnail-templates/:id - Get single template
+ * POST /thumbnail-templates - Create new template (upload)
+ * PUT /thumbnail-templates/:id - Update template (zone, owner)
+ * DELETE /thumbnail-templates/:id - Delete template
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -24,88 +25,106 @@ exports.handler = async (event, context) => {
   if (preflight) return preflight;
 
   try {
-    // ─────────────────────────────────────────────────────────
-    // SECURITY: Verify authentication
-    // ─────────────────────────────────────────────────────────
+    // Verify authentication
     const authResult = await verifyAuth(event);
     if (!authResult.success) {
       return errorResponse(authResult.statusCode, authResult.error, headers);
     }
     
     const userId = authResult.userId;
-    const method = event.httpMethod;
 
-    // ─────────────────────────────────────────────────────────
-    // GET - List user's templates
-    // ─────────────────────────────────────────────────────────
-    if (method === 'GET') {
-      // Join with crm_owners to get owner names
-      const { data: templates, error: fetchError } = await supabase
-        .from('thumbnail_templates')
-        .select(`
-          *,
-          crm_owners (
-            id,
-            name
-          )
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+    // GET - List templates or get single template
+    if (event.httpMethod === 'GET') {
+      const pathMatch = event.path.match(/\/([^\/]+)$/);
+      const templateId = pathMatch && pathMatch[1] !== 'thumbnail-templates' ? pathMatch[1] : null;
 
-      if (fetchError) {
-        console.error('Error fetching templates:', fetchError);
-        return errorResponse(500, 'Failed to fetch templates', headers);
-      }
+      if (templateId) {
+        // Get single template
+        const { data: template, error } = await supabase
+          .from('thumbnail_templates')
+          .select(`
+            *,
+            owner:crm_owners(id, name)
+          `)
+          .eq('id', templateId)
+          .eq('user_id', userId)
+          .single();
 
-      // Generate signed URLs for each template
-      const templatesWithUrls = await Promise.all(
-        templates.map(async (template) => {
-          let templateUrl = null;
-          
-          if (template.template_storage_path) {
-            const { data: urlData } = await supabase.storage
-              .from('thumbnail-templates')
-              .createSignedUrl(template.template_storage_path, 60 * 60 * 24); // 24 hour expiry
-            templateUrl = urlData?.signedUrl || null;
+        if (error) {
+          console.error('Failed to fetch template:', error);
+          return errorResponse(404, 'Template not found', headers);
+        }
+
+        // Generate signed URL for template image
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from('thumbnail-templates')
+          .createSignedUrl(template.template_storage_path, 3600); // 1 hour
+
+        if (!signedError && signedData?.signedUrl) {
+          template.template_url = signedData.signedUrl;
+        }
+
+        return successResponse({
+          success: true,
+          template
+        }, headers);
+      } else {
+        // List all templates
+        const { data: templates, error } = await supabase
+          .from('thumbnail_templates')
+          .select(`
+            *,
+            owner:crm_owners(id, name)
+          `)
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Failed to fetch templates:', error);
+          return errorResponse(500, 'Failed to fetch templates', headers);
+        }
+
+        // Generate signed URLs for all template images
+        const templatesWithUrls = await Promise.all((templates || []).map(async (template) => {
+          const { data: signedData, error: signedError } = await supabase.storage
+            .from('thumbnail-templates')
+            .createSignedUrl(template.template_storage_path, 3600);
+
+          if (!signedError && signedData?.signedUrl) {
+            template.template_url = signedData.signedUrl;
           }
+          return template;
+        }));
 
-          return {
-            ...template,
-            owner_name: template.crm_owners?.name || 'Unknown',
-            template_url: templateUrl
-          };
-        })
-      );
-
-      return successResponse({
-        success: true,
-        templates: templatesWithUrls
-      }, headers);
+        return successResponse({
+          success: true,
+          templates: templatesWithUrls
+        }, headers);
+      }
     }
 
-    // ─────────────────────────────────────────────────────────
-    // POST - Upload new template
-    // ─────────────────────────────────────────────────────────
-    if (method === 'POST') {
-      const body = JSON.parse(event.body || '{}');
-      const { owner_id, template_image, placement_zone } = body;
+    // POST - Create new template
+    if (event.httpMethod === 'POST') {
+      const { 
+        ownerId, 
+        placementZone, 
+        templateFile // Base64-encoded image data
+      } = JSON.parse(event.body || '{}');
 
-      // Validation
-      if (!owner_id || !template_image || !placement_zone) {
-        return errorResponse(400, 'Missing required fields: owner_id, template_image, placement_zone', headers);
+      if (!ownerId || !placementZone || !templateFile) {
+        return errorResponse(400, 'ownerId, placementZone, and templateFile required', headers);
       }
 
-      // Validate placement_zone structure
-      if (placement_zone.x === undefined || placement_zone.y === undefined || 
-          placement_zone.width === undefined || placement_zone.height === undefined) {
-        return errorResponse(400, 'placement_zone must include x, y, width, height (as percentages)', headers);
+      // Validate placement zone format
+      if (!placementZone.x || !placementZone.y || !placementZone.width || !placementZone.height) {
+        return errorResponse(400, 'placementZone must contain x, y, width, height', headers);
       }
 
-      // Verify owner exists and belongs to user
+      // Verify owner belongs to user
       const { data: owner, error: ownerError } = await supabase
         .from('crm_owners')
         .select('id, name')
-        .eq('id', owner_id)
+        .eq('id', ownerId)
         .eq('user_id', userId)
         .single();
 
@@ -113,188 +132,191 @@ exports.handler = async (event, context) => {
         return errorResponse(404, 'Owner not found', headers);
       }
 
-      // Check for duplicate template for this owner
-      const { data: existingTemplate } = await supabase
+      // Check if template already exists for this owner
+      const { data: existing } = await supabase
         .from('thumbnail_templates')
         .select('id')
         .eq('user_id', userId)
-        .eq('owner_id', owner_id)
+        .eq('owner_id', ownerId)
         .single();
 
-      if (existingTemplate) {
-        return errorResponse(409, `Template for owner "${owner.name}" already exists`, headers);
+      if (existing) {
+        return errorResponse(409, 'Template already exists for this owner', headers);
       }
 
-      // Decode base64 image
-      let imageBuffer;
-      try {
-        const base64Data = template_image.replace(/^data:image\/\w+;base64,/, '');
-        imageBuffer = Buffer.from(base64Data, 'base64');
-      } catch (error) {
-        console.error('Base64 decode error:', error);
-        return errorResponse(400, 'Invalid base64 image data', headers);
-      }
-
-      // Generate storage path
-      const timestamp = Date.now();
-      const safeName = owner.name.replace(/[^a-zA-Z0-9]/g, '_');
-      const storagePath = `${userId}/${timestamp}_${safeName}.jpg`;
-
-      // Upload to Supabase Storage
+      // Upload template image to Supabase Storage
+      const fileName = `${userId}/${ownerId}_${Date.now()}.jpg`;
+      const buffer = Buffer.from(templateFile.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      
       const { error: uploadError } = await supabase.storage
         .from('thumbnail-templates')
-        .upload(storagePath, imageBuffer, {
+        .upload(fileName, buffer, {
           contentType: 'image/jpeg',
           upsert: false
         });
 
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        return errorResponse(500, `Failed to upload template: ${uploadError.message}`, headers);
+        console.error('Failed to upload template:', uploadError);
+        return errorResponse(500, 'Failed to upload template image', headers);
       }
 
-      // Insert template record
-      const { data: newTemplate, error: insertError } = await supabase
+      // Create database record
+      const { data: template, error: insertError } = await supabase
         .from('thumbnail_templates')
         .insert({
           user_id: userId,
-          owner_id,
-          template_storage_path: storagePath,
-          placement_zone
+          owner_id: ownerId,
+          template_storage_path: fileName,
+          placement_zone: placementZone
         })
-        .select()
+        .select(`
+          *,
+          owner:crm_owners(id, name)
+        `)
         .single();
 
       if (insertError) {
-        console.error('Database insert error:', insertError);
-        
+        console.error('Failed to create template:', insertError);
         // Clean up uploaded file
         await supabase.storage
           .from('thumbnail-templates')
-          .remove([storagePath]);
-        
-        return errorResponse(500, `Failed to create template: ${insertError.message}`, headers);
+          .remove([fileName]);
+        return errorResponse(500, 'Failed to create template', headers);
       }
 
-      // Get signed URL for response
-      const { data: urlData } = await supabase.storage
+      // Generate signed URL
+      const { data: signedData } = await supabase.storage
         .from('thumbnail-templates')
-        .createSignedUrl(storagePath, 60 * 60 * 24);
+        .createSignedUrl(fileName, 3600);
+
+      if (signedData?.signedUrl) {
+        template.template_url = signedData.signedUrl;
+      }
 
       return successResponse({
         success: true,
-        template: {
-          ...newTemplate,
-          owner_name: owner.name,
-          template_url: urlData?.signedUrl || null
-        }
+        template,
+        message: 'Template created successfully'
       }, headers, 201);
     }
 
-    // ─────────────────────────────────────────────────────────
-    // PUT - Update template (zone only - can't change owner)
-    // ─────────────────────────────────────────────────────────
-    if (method === 'PUT') {
-      const id = event.queryStringParameters?.id;
-      const body = JSON.parse(event.body || '{}');
-      const { placement_zone, template_image } = body;
+    // PUT - Update template
+    if (event.httpMethod === 'PUT') {
+      const pathMatch = event.path.match(/\/([^\/]+)$/);
+      const templateId = pathMatch && pathMatch[1] !== 'thumbnail-templates' ? pathMatch[1] : null;
 
-      if (!id) {
-        return errorResponse(400, 'Missing template id', headers);
+      if (!templateId) {
+        return errorResponse(400, 'Template ID required', headers);
       }
 
-      // Verify ownership
-      const { data: existingTemplate, error: fetchError } = await supabase
+      const { ownerId, placementZone } = JSON.parse(event.body || '{}');
+
+      if (!ownerId && !placementZone) {
+        return errorResponse(400, 'ownerId or placementZone required', headers);
+      }
+
+      // Verify template belongs to user
+      const { data: existingTemplate } = await supabase
         .from('thumbnail_templates')
-        .select('*')
-        .eq('id', id)
+        .select('id, owner_id')
+        .eq('id', templateId)
         .eq('user_id', userId)
         .single();
 
-      if (fetchError || !existingTemplate) {
+      if (!existingTemplate) {
         return errorResponse(404, 'Template not found', headers);
       }
 
-      // Build update object
-      const updates = { updated_at: new Date().toISOString() };
-      if (placement_zone) updates.placement_zone = placement_zone;
+      const updates = {};
+      
+      if (ownerId) {
+        // Verify new owner belongs to user
+        const { data: owner, error: ownerError } = await supabase
+          .from('crm_owners')
+          .select('id')
+          .eq('id', ownerId)
+          .eq('user_id', userId)
+          .single();
 
-      // Handle new image upload if provided
-      if (template_image && template_image.startsWith('data:image')) {
-        try {
-          const base64Data = template_image.replace(/^data:image\/\w+;base64,/, '');
-          const imageBuffer = Buffer.from(base64Data, 'base64');
-
-          // Delete old image
-          if (existingTemplate.template_storage_path) {
-            await supabase.storage
-              .from('thumbnail-templates')
-              .remove([existingTemplate.template_storage_path]);
-          }
-
-          // Upload new image
-          const timestamp = Date.now();
-          const storagePath = `${userId}/${timestamp}_template.jpg`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('thumbnail-templates')
-            .upload(storagePath, imageBuffer, {
-              contentType: 'image/jpeg',
-              upsert: false
-            });
-
-          if (uploadError) throw uploadError;
-          
-          updates.template_storage_path = storagePath;
-        } catch (error) {
-          console.error('Image update error:', error);
-          return errorResponse(500, 'Failed to update template image', headers);
+        if (ownerError || !owner) {
+          return errorResponse(404, 'Owner not found', headers);
         }
+
+        // Check for conflicts if changing owner
+        if (ownerId !== existingTemplate.owner_id) {
+          const { data: conflict } = await supabase
+            .from('thumbnail_templates')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('owner_id', ownerId)
+            .neq('id', templateId)
+            .single();
+
+          if (conflict) {
+            return errorResponse(409, 'Another template already exists for this owner', headers);
+          }
+        }
+
+        updates.owner_id = ownerId;
       }
 
+      if (placementZone) {
+        // Validate placement zone format
+        if (!placementZone.x || !placementZone.y || !placementZone.width || !placementZone.height) {
+          return errorResponse(400, 'placementZone must contain x, y, width, height', headers);
+        }
+        updates.placement_zone = placementZone;
+      }
+
+      updates.updated_at = new Date().toISOString();
+
       // Update template
-      const { data: updatedTemplate, error: updateError } = await supabase
+      const { data: template, error: updateError } = await supabase
         .from('thumbnail_templates')
         .update(updates)
-        .eq('id', id)
+        .eq('id', templateId)
         .eq('user_id', userId)
-        .select()
+        .select(`
+          *,
+          owner:crm_owners(id, name)
+        `)
         .single();
 
       if (updateError) {
-        console.error('Update error:', updateError);
-        return errorResponse(500, `Failed to update template: ${updateError.message}`, headers);
+        console.error('Failed to update template:', updateError);
+        return errorResponse(500, 'Failed to update template', headers);
       }
 
-      // Get signed URL for response
-      const { data: urlData } = await supabase.storage
+      // Generate signed URL
+      const { data: signedData } = await supabase.storage
         .from('thumbnail-templates')
-        .createSignedUrl(updatedTemplate.template_storage_path, 60 * 60 * 24);
+        .createSignedUrl(template.template_storage_path, 3600);
+
+      if (signedData?.signedUrl) {
+        template.template_url = signedData.signedUrl;
+      }
 
       return successResponse({
         success: true,
-        template: {
-          ...updatedTemplate,
-          template_url: urlData?.signedUrl || null
-        }
+        template,
+        message: 'Template updated successfully'
       }, headers);
     }
 
-    // ─────────────────────────────────────────────────────────
-    // DELETE - Remove template and storage file
-    // ─────────────────────────────────────────────────────────
-    if (method === 'DELETE') {
-      const id = event.queryStringParameters?.id;
+    // DELETE - Delete template
+    if (event.httpMethod === 'DELETE') {
+      const pathMatch = event.path.match(/\/([^\/]+)$/);
+      const templateId = pathMatch && pathMatch[1] !== 'thumbnail-templates' ? pathMatch[1] : null;
 
-      if (!id) {
-        return errorResponse(400, 'Missing template id', headers);
+      if (!templateId) {
+        return errorResponse(400, 'Template ID required', headers);
       }
 
-      // Verify ownership and get storage path
+      // Get template to verify ownership and get storage path
       const { data: template, error: fetchError } = await supabase
         .from('thumbnail_templates')
-        .select('*')
-        .eq('id', id)
+        .select('template_storage_path')
+        .eq('id', templateId)
         .eq('user_id', userId)
         .single();
 
@@ -302,28 +324,26 @@ exports.handler = async (event, context) => {
         return errorResponse(404, 'Template not found', headers);
       }
 
-      // Delete from storage
-      if (template.template_storage_path) {
-        const { error: storageError } = await supabase.storage
-          .from('thumbnail-templates')
-          .remove([template.template_storage_path]);
-
-        if (storageError) {
-          console.error('Storage deletion error:', storageError);
-          // Continue anyway - orphaned files are less critical than DB consistency
-        }
-      }
-
-      // Delete from database
+      // Delete from database first
       const { error: deleteError } = await supabase
         .from('thumbnail_templates')
         .delete()
-        .eq('id', id)
+        .eq('id', templateId)
         .eq('user_id', userId);
 
       if (deleteError) {
-        console.error('Database deletion error:', deleteError);
-        return errorResponse(500, `Failed to delete template: ${deleteError.message}`, headers);
+        console.error('Failed to delete template:', deleteError);
+        return errorResponse(500, 'Failed to delete template', headers);
+      }
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('thumbnail-templates')
+        .remove([template.template_storage_path]);
+
+      if (storageError) {
+        console.error('Failed to delete template file:', storageError);
+        // Don't fail the request - database record is already deleted
       }
 
       return successResponse({
@@ -335,7 +355,7 @@ exports.handler = async (event, context) => {
     return errorResponse(405, 'Method not allowed', headers);
 
   } catch (error) {
-    console.error('Thumbnail templates error:', error);
+    console.error('Error in thumbnail-templates:', error);
     return errorResponse(500, error.message || 'Internal server error', headers);
   }
 };
