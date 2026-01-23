@@ -87,7 +87,7 @@ exports.handler = async (event, context) => {
       .insert({
         state,
         user_id: userId,
-        platform,
+        provider: platform, // Table uses 'provider' column
         expires_at: expiresAt.toISOString()
       });
     

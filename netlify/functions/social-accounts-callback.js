@@ -161,7 +161,7 @@ exports.handler = async (event, context) => {
     
     const { data: stateData, error: stateError } = await supabase
       .from('oauth_states')
-      .select('user_id, platform, expires_at')
+      .select('user_id, provider, expires_at')
       .eq('state', state)
       .single();
     
@@ -175,7 +175,7 @@ exports.handler = async (event, context) => {
       return generatePopupResponse(false, { error: 'OAuth state expired' });
     }
     
-    const { user_id: userId, platform } = stateData;
+    const { user_id: userId, provider: platform } = stateData;
     const config = TOKEN_CONFIG[platform];
     
     if (!config) {
