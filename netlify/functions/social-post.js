@@ -301,7 +301,7 @@ async function postToYouTube(userId, video, title, description) {
     // Get video file from OneDrive
     const { accessToken: onedriveToken } = await getValidAccessToken(userId);
     
-    if (!video.onedrive_id) {
+    if (!video.onedrive_file_id) {
       return {
         platform: 'youtube',
         success: false,
@@ -309,7 +309,7 @@ async function postToYouTube(userId, video, title, description) {
       };
     }
     
-    const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_id}/content`;
+    const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/content`;
     const videoResponse = await fetch(downloadUrl, {
       headers: { Authorization: `Bearer ${onedriveToken}` }
     });
@@ -509,13 +509,13 @@ async function refreshMetaToken(userId, currentToken) {
  */
 async function postToFacebook(userId, video, connection, accessToken, title, description) {
   try {
-    if (!video.onedrive_id) {
+    if (!video.onedrive_file_id) {
       throw new Error('Video has no OneDrive ID');
     }
     
     const { accessToken: onedriveToken } = await getValidAccessToken(userId);
     
-    const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_id}/content`;
+    const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/content`;
     const videoResponse = await fetch(downloadUrl, {
       headers: { Authorization: `Bearer ${onedriveToken}` }
     });
@@ -609,7 +609,7 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
     try {
       const { accessToken: onedriveToken } = await getValidAccessToken(userId);
       
-      const shareUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_id}/createLink`;
+      const shareUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/createLink`;
       const shareResponse = await fetch(shareUrl, {
         method: 'POST',
         headers: {
@@ -639,13 +639,13 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
     if (!videoUrl) {
       console.log('Uploading to Supabase Storage for Instagram');
       
-      if (!video.onedrive_id) {
+      if (!video.onedrive_file_id) {
         throw new Error('Video has no OneDrive ID');
       }
       
       const { accessToken: onedriveToken } = await getValidAccessToken(userId);
       
-      const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_id}/content`;
+      const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/content`;
       const videoResponse = await fetch(downloadUrl, {
         headers: { Authorization: `Bearer ${onedriveToken}` }
       });
