@@ -109,116 +109,33 @@ const worker = new Worker('social-posts', async (job) => {
   console.log(`🔄 Processing post ${postId} for platforms: ${platforms.join(', ')}`);
   
   try {
-    // Get video details
-    const { data: video, error: videoError } = await supabase
-      .from('product_videos')
-      .select('id, social_ready_url, duration_seconds')
-      .eq('id', videoId)
-      .single();
+    // Call the unified publish endpoint (handles all platforms)
+    console.log(`📤 Calling publish endpoint for post ${postId}...`);
     
-    if (videoError || !video) {
-      throw new Error('Video not found');
-    }
-    
-    // Get social accounts
-    const { data: accounts, error: accountError } = await supabase
-      .from('social_accounts')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .in('platform', platforms);
-    
-    if (accountError) {
-      throw new Error('Failed to fetch social accounts');
-    }
-    
-    // Process each platform
-    const results = {};
-    let overallSuccess = true;
-    
-    for (const platform of platforms) {
-      const account = accounts.find(a => a.platform === platform);
-      
-      if (!account) {
-        results[platform] = { success: false, error: 'Account not found' };
-        overallSuccess = false;
-        continue;
-      }
-      
-      try {
-        // Call the platform-specific posting endpoint
-        const response = await fetch(`${NETLIFY_BASE_URL}/.netlify/functions/${platform}-post`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Webhook-Secret': WEBHOOK_SECRET
-          },
-          body: JSON.stringify({
-            accountId: account.id,
-            videoUrl: video.social_ready_url,
-            caption: caption,
-            duration: video.duration_seconds
-          })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-          results[platform] = {
-            success: true,
-            platformPostId: data.postId,
-            platformUrl: data.url
-          };
-          
-          // Store success result
-          await supabase.from('post_results').insert({
-            post_id: postId,
-            social_account_id: account.id,
-            platform: platform,
-            success: true,
-            platform_post_id: data.postId,
-            platform_post_url: data.url,
-            posted_at: new Date().toISOString()
-          });
-          
-          console.log(`✅ ${platform}: Posted successfully`);
-        } else {
-          throw new Error(data.error || 'Posting failed');
-        }
-        
-      } catch (platformError) {
-        console.error(`❌ ${platform}: ${platformError.message}`);
-        
-        results[platform] = {
-          success: false,
-          error: platformError.message
-        };
-        overallSuccess = false;
-        
-        // Store error result
-        await supabase.from('post_results').insert({
-          post_id: postId,
-          social_account_id: account?.id,
-          platform: platform,
-          success: false,
-          error_message: platformError.message,
-          posted_at: new Date().toISOString()
-        });
-      }
-    }
-    
-    // Update post status
-    await supabase
-      .from('social_posts')
-      .update({
-        status: overallSuccess ? 'posted' : 'failed',
-        updated_at: new Date().toISOString()
+    const response = await fetch(`${NETLIFY_BASE_URL}/.netlify/functions/social-post-worker`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Webhook-Secret': WEBHOOK_SECRET
+      },
+      body: JSON.stringify({
+        postId: postId,
+        userId: userId,
+        videoId: videoId,
+        caption: caption,
+        platforms: platforms
       })
-      .eq('id', postId);
+    });
     
-    console.log(`📝 Post ${postId} complete: ${overallSuccess ? 'SUCCESS' : 'PARTIAL/FAILED'}`);
+    const data = await response.json();
     
-    return results;
+    if (!response.ok) {
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    
+    console.log(`📝 Post ${postId} complete:`, data);
+    
+    return data;
     
   } catch (error) {
     console.error(`❌ Job failed for post ${postId}:`, error);
