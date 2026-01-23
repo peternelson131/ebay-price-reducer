@@ -8,7 +8,8 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = require('./utils/cors');
-const { verifyAuth, decryptToken } = require('./utils/auth');
+const { verifyAuth } = require('./utils/auth');
+const { decryptToken } = require('./utils/social-token-encryption');
 const InstagramWorker = require('./utils/social-worker-instagram');
 const YouTubeWorker = require('./utils/social-worker-youtube');
 
