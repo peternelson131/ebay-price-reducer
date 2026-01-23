@@ -8,7 +8,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = require('./utils/cors');
-const { verifyAuth } = require('./utils/auth');
+const { verifyAuth, decryptToken } = require('./utils/auth');
 const InstagramWorker = require('./utils/social-worker-instagram');
 const YouTubeWorker = require('./utils/social-worker-youtube');
 
@@ -173,9 +173,15 @@ exports.handler = async (event, context) => {
       }
       
       try {
+        // Decrypt access token for the worker
+        const decryptedAccount = {
+          ...account,
+          access_token: decryptToken(account.access_token)
+        };
+        
         console.log(`[PublishNow] Posting to ${platform}...`);
         const postResult = await worker.postToPlatform(
-          account,
+          decryptedAccount,
           { caption: post.caption, id: post.id },
           {
             id: video.id,
