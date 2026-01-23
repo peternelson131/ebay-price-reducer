@@ -104,15 +104,19 @@ exports.handler = async (event, context) => {
       return errorResponse(400, `Cannot publish: not connected to ${missingPlatforms.join(', ')}. Please reconnect these accounts.`, headers);
     }
     
-    // Verify video exists
+    // Verify video exists and is ready for social posting
     const { data: video, error: videoError } = await supabase
       .from('product_videos')
-      .select('id, url, duration, file_size')
+      .select('id, social_ready_url, duration_seconds, file_size')
       .eq('id', post.video_id)
       .single();
     
     if (videoError || !video) {
       return errorResponse(404, 'Video not found for this post', headers);
+    }
+    
+    if (!video.social_ready_url) {
+      return errorResponse(400, 'Video is not yet ready for social posting. Please wait for processing to complete.', headers);
     }
     
     // Update post to schedule for immediate processing
