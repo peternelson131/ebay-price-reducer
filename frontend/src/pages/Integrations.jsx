@@ -574,14 +574,14 @@ function FacebookIntegration({ onStatusChange }) {
   const [searchParams] = useSearchParams()
   const [isConnecting, setIsConnecting] = useState(false)
   
-  const { data: metaStatus, isLoading, refetch: refetchMeta } = useQuery(
-    ['metaStatus'],
+  const { data: socialAccounts, isLoading, refetch: refetchAccounts } = useQuery(
+    ['socialAccounts'],
     async () => {
       const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/meta-status', {
+      const response = await fetch('/.netlify/functions/social-accounts-list', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (!response.ok) throw new Error('Failed to fetch Meta status')
+      if (!response.ok) throw new Error('Failed to fetch social accounts')
       return response.json()
     },
     {
@@ -589,19 +589,21 @@ function FacebookIntegration({ onStatusChange }) {
     }
   )
 
+  const account = socialAccounts?.accounts?.find(a => a.platform === 'facebook' && a.isActive)
+  const isConnected = !!account
+
   // Notify parent when connection status changes
   useEffect(() => {
-    const isConnected = metaStatus?.connected === true && metaStatus?.connection?.pageName
     onStatusChange?.(isConnected)
-  }, [metaStatus, onStatusChange])
+  }, [isConnected, onStatusChange])
 
-  // Handle Meta OAuth callback from URL params
+  // Handle OAuth callback from URL params
   useEffect(() => {
-    const metaParam = searchParams.get('meta')
-    if (metaParam === 'connected') {
-      refetchMeta()
+    const socialParam = searchParams.get('social')
+    if (socialParam === 'connected') {
+      refetchAccounts()
       toast.success('Facebook connected successfully!')
-    } else if (metaParam === 'error') {
+    } else if (socialParam === 'error') {
       toast.error('Facebook connection failed')
     }
   }, [searchParams])
@@ -610,8 +612,13 @@ function FacebookIntegration({ onStatusChange }) {
     setIsConnecting(true)
     try {
       const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/meta-auth', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await fetch('/.netlify/functions/social-accounts-connect', {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ platform: 'facebook' })
       })
       const data = await response.json()
       if (data.authUrl) {
@@ -629,20 +636,21 @@ function FacebookIntegration({ onStatusChange }) {
     if (!confirm('Are you sure you want to disconnect your Facebook account?')) return
     try {
       const token = await userAPI.getAuthToken()
-      await fetch('/.netlify/functions/meta-disconnect', {
+      await fetch('/.netlify/functions/social-accounts-disconnect', {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ accountId: account.id })
       })
-      refetchMeta()
+      refetchAccounts()
       toast.success('Facebook account disconnected')
     } catch (error) {
       console.error('Failed to disconnect Facebook:', error)
       toast.error('Failed to disconnect Facebook')
     }
   }
-
-  const connection = metaStatus?.connection
-  const isConnected = metaStatus?.connected === true && connection?.pageName
 
   return (
     <div className={`border rounded-lg p-6 ${
@@ -666,10 +674,10 @@ function FacebookIntegration({ onStatusChange }) {
               </p>
             ) : isConnected ? (
               <>
-                <p className="text-sm text-theme-secondary">Connected as: {connection.pageName}</p>
-                {connection?.connectedAt && (
+                <p className="text-sm text-theme-secondary">Connected as: {account.username}</p>
+                {account?.connectedAt && (
                   <p className="text-sm text-theme-tertiary">
-                    Connected on {new Date(connection.connectedAt).toLocaleDateString()}
+                    Connected on {new Date(account.connectedAt).toLocaleDateString()}
                   </p>
                 )}
               </>
@@ -709,14 +717,14 @@ function InstagramIntegration({ onStatusChange }) {
   const [searchParams] = useSearchParams()
   const [isConnecting, setIsConnecting] = useState(false)
   
-  const { data: metaStatus, isLoading, refetch: refetchMeta } = useQuery(
-    ['metaStatus'],
+  const { data: socialAccounts, isLoading, refetch: refetchAccounts } = useQuery(
+    ['socialAccounts'],
     async () => {
       const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/meta-status', {
+      const response = await fetch('/.netlify/functions/social-accounts-list', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (!response.ok) throw new Error('Failed to fetch Meta status')
+      if (!response.ok) throw new Error('Failed to fetch social accounts')
       return response.json()
     },
     {
@@ -724,19 +732,21 @@ function InstagramIntegration({ onStatusChange }) {
     }
   )
 
+  const account = socialAccounts?.accounts?.find(a => a.platform === 'instagram' && a.isActive)
+  const isConnected = !!account
+
   // Notify parent when connection status changes
   useEffect(() => {
-    const isConnected = metaStatus?.connected === true && metaStatus?.connection?.instagramUsername
     onStatusChange?.(isConnected)
-  }, [metaStatus, onStatusChange])
+  }, [isConnected, onStatusChange])
 
-  // Handle Meta OAuth callback from URL params (Instagram uses same Meta OAuth)
+  // Handle OAuth callback from URL params
   useEffect(() => {
-    const metaParam = searchParams.get('meta')
-    if (metaParam === 'connected') {
-      refetchMeta()
+    const socialParam = searchParams.get('social')
+    if (socialParam === 'connected') {
+      refetchAccounts()
       toast.success('Instagram connected successfully!')
-    } else if (metaParam === 'error') {
+    } else if (socialParam === 'error') {
       toast.error('Instagram connection failed')
     }
   }, [searchParams])
@@ -745,8 +755,13 @@ function InstagramIntegration({ onStatusChange }) {
     setIsConnecting(true)
     try {
       const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/meta-auth', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await fetch('/.netlify/functions/social-accounts-connect', {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ platform: 'instagram' })
       })
       const data = await response.json()
       if (data.authUrl) {
@@ -764,20 +779,21 @@ function InstagramIntegration({ onStatusChange }) {
     if (!confirm('Are you sure you want to disconnect Instagram?')) return
     try {
       const token = await userAPI.getAuthToken()
-      await fetch('/.netlify/functions/meta-disconnect', {
+      await fetch('/.netlify/functions/social-accounts-disconnect', {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ accountId: account.id })
       })
-      refetchMeta()
+      refetchAccounts()
       toast.success('Instagram disconnected')
     } catch (error) {
       console.error('Failed to disconnect Instagram:', error)
       toast.error('Failed to disconnect Instagram')
     }
   }
-
-  const connection = metaStatus?.connection
-  const isConnected = metaStatus?.connected === true && connection?.instagramUsername
 
   return (
     <div className={`border rounded-lg p-6 ${
@@ -801,10 +817,10 @@ function InstagramIntegration({ onStatusChange }) {
               </p>
             ) : isConnected ? (
               <>
-                <p className="text-sm text-theme-secondary">Connected as: @{connection.instagramUsername}</p>
-                {connection?.connectedAt && (
+                <p className="text-sm text-theme-secondary">Connected as: {account.username}</p>
+                {account?.connectedAt && (
                   <p className="text-sm text-theme-tertiary">
-                    Connected on {new Date(connection.connectedAt).toLocaleDateString()}
+                    Connected on {new Date(account.connectedAt).toLocaleDateString()}
                   </p>
                 )}
               </>
@@ -843,14 +859,14 @@ function YouTubeIntegration({ onStatusChange }) {
   const [searchParams] = useSearchParams()
   const [isConnecting, setIsConnecting] = useState(false)
   
-  const { data: youtubeStatus, isLoading, refetch: refetchYoutube } = useQuery(
-    ['youtubeStatus'],
+  const { data: socialAccounts, isLoading, refetch: refetchAccounts } = useQuery(
+    ['socialAccounts'],
     async () => {
       const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/youtube-status', {
+      const response = await fetch('/.netlify/functions/social-accounts-list', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (!response.ok) throw new Error('Failed to fetch YouTube status')
+      if (!response.ok) throw new Error('Failed to fetch social accounts')
       return response.json()
     },
     {
@@ -858,18 +874,21 @@ function YouTubeIntegration({ onStatusChange }) {
     }
   )
 
+  const account = socialAccounts?.accounts?.find(a => a.platform === 'youtube' && a.isActive)
+  const isConnected = !!account
+
   // Notify parent when connection status changes
   useEffect(() => {
-    onStatusChange?.(youtubeStatus?.connected === true)
-  }, [youtubeStatus, onStatusChange])
+    onStatusChange?.(isConnected)
+  }, [isConnected, onStatusChange])
 
-  // Handle YouTube OAuth callback from URL params
+  // Handle OAuth callback from URL params
   useEffect(() => {
-    const youtubeParam = searchParams.get('youtube')
-    if (youtubeParam === 'connected') {
-      refetchYoutube()
+    const socialParam = searchParams.get('social')
+    if (socialParam === 'connected') {
+      refetchAccounts()
       toast.success('YouTube connected successfully!')
-    } else if (youtubeParam === 'error') {
+    } else if (socialParam === 'error') {
       toast.error('YouTube connection failed')
     }
   }, [searchParams])
@@ -878,8 +897,13 @@ function YouTubeIntegration({ onStatusChange }) {
     setIsConnecting(true)
     try {
       const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/youtube-auth', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await fetch('/.netlify/functions/social-accounts-connect', {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ platform: 'youtube' })
       })
       const data = await response.json()
       if (data.authUrl) {
@@ -897,20 +921,21 @@ function YouTubeIntegration({ onStatusChange }) {
     if (!confirm('Are you sure you want to disconnect YouTube?')) return
     try {
       const token = await userAPI.getAuthToken()
-      await fetch('/.netlify/functions/youtube-status', {
+      await fetch('/.netlify/functions/social-accounts-disconnect', {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ accountId: account.id })
       })
-      refetchYoutube()
+      refetchAccounts()
       toast.success('YouTube disconnected')
     } catch (error) {
       console.error('Failed to disconnect YouTube:', error)
       toast.error('Failed to disconnect YouTube')
     }
   }
-
-  const connection = youtubeStatus?.connection
-  const isConnected = youtubeStatus?.connected === true
 
   return (
     <div className={`border rounded-lg p-6 ${
@@ -934,10 +959,10 @@ function YouTubeIntegration({ onStatusChange }) {
               </p>
             ) : isConnected ? (
               <>
-                <p className="text-sm text-theme-secondary">Connected as: {connection?.channelName || 'YouTube Channel'}</p>
-                {connection?.connectedAt && (
+                <p className="text-sm text-theme-secondary">Connected as: {account.username}</p>
+                {account?.connectedAt && (
                   <p className="text-sm text-theme-tertiary">
-                    Connected on {new Date(connection.connectedAt).toLocaleDateString()}
+                    Connected on {new Date(account.connectedAt).toLocaleDateString()}
                   </p>
                 )}
               </>
@@ -1053,29 +1078,20 @@ export default function Integrations() {
           console.error('Failed to fetch OneDrive status:', error)
         }
 
-        // Fetch YouTube status
+        // Fetch social accounts status (YouTube, Facebook, Instagram)
         try {
-          const youtubeResponse = await fetch('/.netlify/functions/youtube-status', {
+          const socialResponse = await fetch('/.netlify/functions/social-accounts-list', {
             headers: { 'Authorization': `Bearer ${session.access_token}` }
           })
-          const youtubeData = await youtubeResponse.json()
-          updateConnectionStatus('youtube', youtubeData.connected === true)
+          const socialData = await socialResponse.json()
+          const accounts = socialData.accounts || []
+          
+          // Check each social platform
+          updateConnectionStatus('youtube', accounts.some(a => a.platform === 'youtube' && a.isActive))
+          updateConnectionStatus('facebook', accounts.some(a => a.platform === 'facebook' && a.isActive))
+          updateConnectionStatus('instagram', accounts.some(a => a.platform === 'instagram' && a.isActive))
         } catch (error) {
-          console.error('Failed to fetch YouTube status:', error)
-        }
-
-        // Fetch Meta status (used by both Facebook and Instagram)
-        try {
-          const metaResponse = await fetch('/.netlify/functions/meta-status', {
-            headers: { 'Authorization': `Bearer ${session.access_token}` }
-          })
-          const metaData = await metaResponse.json()
-          // Facebook is connected if Meta is connected and has a page
-          updateConnectionStatus('facebook', metaData.connected === true && metaData.connection?.pageName)
-          // Instagram is connected if Meta is connected and has Instagram username
-          updateConnectionStatus('instagram', metaData.connected === true && metaData.connection?.instagramUsername)
-        } catch (error) {
-          console.error('Failed to fetch Meta status:', error)
+          console.error('Failed to fetch social accounts status:', error)
         }
       } catch (error) {
         console.error('Failed to fetch connection statuses:', error)
