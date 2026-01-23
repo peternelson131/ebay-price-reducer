@@ -233,13 +233,14 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
                   )}
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={(e) => handlePostClick(e, video)}
-                    className="text-theme-tertiary hover:text-accent transition-colors p-1"
+                    className="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1.5 text-xs font-medium shadow-sm"
                     title="Post to social media"
                   >
-                    <Share2 className="w-4 h-4" />
+                    <Share2 className="w-3.5 h-3.5" />
+                    Post
                   </button>
                   <button
                     onClick={(e) => {
