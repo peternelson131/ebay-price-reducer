@@ -10,6 +10,7 @@
     "apollo-server-lambda": "^3.13.0",
     "axios": "^1.13.2",
     "busboy": "^1.6.0",
+    "cloudinary": "^1.41.3",
     "dataloader": "^2.2.3",
     "dotenv": "^17.2.2",
     "form-data": "^4.0.0",
@@ -17,6 +18,7 @@
     "graphql-depth-limit": "^1.1.0",
     "graphql-query-complexity": "^1.1.0",
     "node-fetch": "^2.7.0",
+    "sharp": "^0.33.1",
     "xlsx": "^0.18.5",
     "xml2js": "^0.6.2"
   }

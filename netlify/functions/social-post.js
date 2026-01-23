@@ -7,6 +7,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = require('./utils/cors');
 const { verifyAuth } = require('./utils/auth');
 const { getValidAccessToken } = require('./utils/onedrive-api');
+const cloudinary = require('cloudinary').v2;
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -17,6 +18,29 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const META_APP_ID = process.env.META_APP_ID;
 const META_APP_SECRET = process.env.META_APP_SECRET;
+
+/**
+ * Cloudinary Configuration for Instagram Video Transcoding
+ * Required environment variables:
+ * - CLOUDINARY_CLOUD_NAME: Your Cloudinary cloud name
+ * - CLOUDINARY_API_KEY: Your Cloudinary API key
+ * - CLOUDINARY_API_SECRET: Your Cloudinary API secret
+ * 
+ * Instagram requires MP4 with H.264 video codec and AAC audio codec.
+ * Cloudinary transcodes .mov and other formats to meet these requirements.
+ */
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
+
+// Configure Cloudinary if credentials are available
+if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET) {
+  cloudinary.config({
+    cloud_name: CLOUDINARY_CLOUD_NAME,
+    api_key: CLOUDINARY_API_KEY,
+    api_secret: CLOUDINARY_API_SECRET
+  });
+}
 
 exports.handler = async (event, context) => {
   const headers = getCorsHeaders(event);
@@ -616,87 +640,88 @@ async function postToFacebook(userId, video, connection, accessToken, title, des
 }
 
 /**
- * Post to Instagram
+ * Post to Instagram with Cloudinary Video Transcoding
+ * 
+ * Instagram requires MP4 with H.264 video codec and AAC audio codec.
+ * This function uses Cloudinary to automatically transcode videos to meet these requirements.
+ * 
+ * Required environment variables:
+ * - CLOUDINARY_CLOUD_NAME
+ * - CLOUDINARY_API_KEY
+ * - CLOUDINARY_API_SECRET
  */
 async function postToInstagram(userId, video, connection, accessToken, title, description) {
+  let cloudinaryPublicId = null;
+  
   try {
-    let videoUrl;
-    let tempStoragePath = null;
+    // Check if Cloudinary is configured
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+      throw new Error(
+        'Instagram requires video transcoding. Please configure Cloudinary environment variables ' +
+        '(CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) or export videos as MP4 with H.264/AAC codecs.'
+      );
+    }
 
-    // Try OneDrive share link first
-    try {
-      const { accessToken: onedriveToken } = await getValidAccessToken(userId);
-      
-      const shareUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/createLink`;
-      const shareResponse = await fetch(shareUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${onedriveToken}`,
-          'Content-Type': 'application/json'
+    if (!video.onedrive_file_id) {
+      throw new Error('Video has no OneDrive ID');
+    }
+
+    console.log('Starting Instagram post with Cloudinary transcoding');
+
+    // Download video from OneDrive
+    const { accessToken: onedriveToken } = await getValidAccessToken(userId);
+    
+    const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/content`;
+    const videoResponse = await fetch(downloadUrl, {
+      headers: { Authorization: `Bearer ${onedriveToken}` }
+    });
+
+    if (!videoResponse.ok) {
+      const errorText = await videoResponse.text();
+      console.error('OneDrive download failed:', videoResponse.status, errorText);
+      throw new Error(`Failed to download video from OneDrive: ${videoResponse.status} ${errorText.substring(0, 100)}`);
+    }
+
+    const videoBuffer = await videoResponse.arrayBuffer();
+    console.log(`Downloaded video: ${videoBuffer.byteLength} bytes`);
+
+    // Upload to Cloudinary with transcoding transformation
+    console.log('Uploading to Cloudinary for transcoding...');
+    
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'video',
+          format: 'mp4',
+          transformation: [
+            {
+              video_codec: 'h264',
+              audio_codec: 'aac',
+              quality: 'auto:good'
+            }
+          ],
+          folder: `instagram/${userId}`,
+          public_id: `video_${Date.now()}`
         },
-        body: JSON.stringify({
-          type: 'view',
-          scope: 'anonymous'
-        })
-      });
-
-      if (shareResponse.ok) {
-        const shareData = await shareResponse.json();
-        videoUrl = shareData.link?.webUrl;
-        
-        if (videoUrl) {
-          videoUrl = videoUrl.replace('redir', 'download');
-          console.log('Using OneDrive share link:', videoUrl);
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary upload error:', error);
+            reject(error);
+          } else {
+            console.log('Cloudinary upload success:', result.public_id);
+            resolve(result);
+          }
         }
-      }
-    } catch (error) {
-      console.warn('OneDrive share link failed, will try Supabase Storage:', error.message);
-    }
+      );
 
-    // If OneDrive share didn't work, upload to Supabase Storage
-    if (!videoUrl) {
-      console.log('Uploading to Supabase Storage for Instagram');
-      
-      if (!video.onedrive_file_id) {
-        throw new Error('Video has no OneDrive ID');
-      }
-      
-      const { accessToken: onedriveToken } = await getValidAccessToken(userId);
-      
-      const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/content`;
-      const videoResponse = await fetch(downloadUrl, {
-        headers: { Authorization: `Bearer ${onedriveToken}` }
-      });
+      // Write video buffer to upload stream
+      uploadStream.end(Buffer.from(videoBuffer));
+    });
 
-      if (!videoResponse.ok) {
-        const errorText = await videoResponse.text();
-        console.error('OneDrive download failed for Instagram:', videoResponse.status, errorText);
-        throw new Error(`Failed to download video from OneDrive: ${videoResponse.status} ${errorText.substring(0, 100)}`);
-      }
-
-      const videoBuffer = await videoResponse.arrayBuffer();
-      
-      const fileName = `temp/${userId}/${Date.now()}-${video.filename}`;
-      tempStoragePath = fileName;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('social-media-temp')
-        .upload(fileName, videoBuffer, {
-          contentType: 'video/mp4',
-          upsert: false
-        });
-
-      if (uploadError) {
-        throw new Error(`Storage upload failed: ${uploadError.message}`);
-      }
-
-      const { data: urlData } = supabase.storage
-        .from('social-media-temp')
-        .getPublicUrl(fileName);
-
-      videoUrl = urlData.publicUrl;
-      console.log('Using Supabase Storage URL:', videoUrl);
-    }
+    cloudinaryPublicId = uploadResult.public_id;
+    const videoUrl = uploadResult.secure_url;
+    
+    console.log('Transcoded video URL:', videoUrl);
 
     // Create Instagram media container
     const createUrl = new URL(`https://graph.facebook.com/v18.0/${connection.instagram_account_id}/media`);
@@ -709,18 +734,17 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
     const createData = await createResponse.json();
 
     if (createData.error) {
-      throw new Error(`Instagram container creation error: ${createData.error.message}`);
+      console.error('Instagram container creation error:', createData.error);
+      throw new Error(`Instagram container creation error: ${createData.error.message} (Code: ${createData.error.code})`);
     }
 
     const containerId = createData.id;
     console.log('Instagram container created:', containerId);
 
-    // Wait for processing
-    // Note: Instagram Reels require specific format: MP4 container, H.264 video codec, AAC audio codec
-    // Ensure videos are properly encoded before upload to avoid processing errors
+    // Wait for Instagram processing
     let isReady = false;
     let statusCheckCount = 0;
-    const maxChecks = 12;
+    const maxChecks = 20; // Increased timeout since transcoding may take longer
 
     while (!isReady && statusCheckCount < maxChecks) {
       await new Promise(resolve => setTimeout(resolve, 5000));
@@ -732,24 +756,24 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
       const statusResponse = await fetch(statusUrl.toString());
       const statusData = await statusResponse.json();
 
-      console.log('Instagram processing status:', JSON.stringify(statusData));
+      console.log(`Instagram processing status (check ${statusCheckCount + 1}/${maxChecks}):`, JSON.stringify(statusData));
 
       if (statusData.status_code === 'FINISHED') {
         isReady = true;
       } else if (statusData.status_code === 'ERROR') {
-        console.error('Instagram status error:', JSON.stringify(statusData));
+        console.error('Instagram processing error:', JSON.stringify(statusData));
         const errorMessage = statusData.error_message || statusData.status || 'Unknown error';
-        throw new Error(`Instagram processing failed: ${errorMessage}. Ensure video is MP4 with H.264 video and AAC audio codecs.`);
+        throw new Error(`Instagram processing failed: ${errorMessage}`);
       }
       
       statusCheckCount++;
     }
 
     if (!isReady) {
-      throw new Error('Instagram processing timeout - video may still be processing');
+      throw new Error('Instagram processing timeout - video may still be processing. Try again in a few minutes.');
     }
 
-    // Publish
+    // Publish to Instagram
     const publishUrl = new URL(`https://graph.facebook.com/v18.0/${connection.instagram_account_id}/media_publish`);
     publishUrl.searchParams.set('access_token', accessToken);
     publishUrl.searchParams.set('creation_id', containerId);
@@ -758,6 +782,7 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
     const publishData = await publishResponse.json();
 
     if (publishData.error) {
+      console.error('Instagram publish error:', publishData.error);
       throw new Error(`Instagram publish error: ${publishData.error.message}`);
     }
 
@@ -766,16 +791,15 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
 
     console.log('Instagram post success:', postId);
 
-    // Clean up temp storage
-    if (tempStoragePath) {
-      console.log('Cleaning up temp storage file:', tempStoragePath);
+    // Clean up Cloudinary file (optional - can keep for later use)
+    if (cloudinaryPublicId) {
       try {
-        await supabase.storage
-          .from('social-media-temp')
-          .remove([tempStoragePath]);
-        console.log('Cleaned up temp storage file successfully');
+        console.log('Cleaning up Cloudinary file:', cloudinaryPublicId);
+        await cloudinary.uploader.destroy(cloudinaryPublicId, { resource_type: 'video' });
+        console.log('Cloudinary file cleanup successful');
       } catch (cleanupError) {
-        console.warn('Failed to cleanup temp file:', cleanupError.message);
+        console.warn('Failed to cleanup Cloudinary file:', cleanupError.message);
+        // Don't fail the whole operation if cleanup fails
       }
     }
 
@@ -788,16 +812,14 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
   } catch (error) {
     console.error('Instagram post error:', error);
     
-    // Cleanup temp storage on error
-    if (typeof tempStoragePath !== 'undefined' && tempStoragePath) {
-      console.log('Cleaning up temp storage file after error:', tempStoragePath);
+    // Cleanup Cloudinary file on error
+    if (cloudinaryPublicId) {
       try {
-        await supabase.storage
-          .from('social-media-temp')
-          .remove([tempStoragePath]);
-        console.log('Cleaned up temp storage file after error');
+        console.log('Cleaning up Cloudinary file after error:', cloudinaryPublicId);
+        await cloudinary.uploader.destroy(cloudinaryPublicId, { resource_type: 'video' });
+        console.log('Cloudinary cleanup after error successful');
       } catch (cleanupError) {
-        console.warn('Failed to cleanup temp file on error:', cleanupError.message);
+        console.warn('Failed to cleanup Cloudinary file on error:', cleanupError.message);
       }
     }
     
