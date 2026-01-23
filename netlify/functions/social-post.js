@@ -87,18 +87,79 @@ exports.handler = async (event, context) => {
     const videoDescription = description || 
       `Check out this product: https://amazon.com/dp/${video.sourced_products?.asin || ''}`;
 
+    // Create job record in database
+    const { data: job, error: jobError } = await supabase
+      .from('social_post_jobs')
+      .insert({
+        user_id: userId,
+        video_id: videoId,
+        platforms,
+        title: videoTitle,
+        description: videoDescription,
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (jobError) {
+      console.error('Failed to create job:', jobError);
+      return errorResponse(500, 'Failed to create post job', headers);
+    }
+
+    console.log('Created job:', job.id);
+
+    // Process in background (don't await)
+    processJobInBackground(job.id, userId, video, platforms, videoTitle, videoDescription).catch(err => {
+      console.error('Background processing error:', err);
+    });
+
+    // Return immediately with job ID
+    return {
+      statusCode: 202, // Accepted
+      headers,
+      body: JSON.stringify({
+        jobId: job.id,
+        status: 'pending',
+        message: 'Post job created and processing in background'
+      })
+    };
+
+  } catch (error) {
+    console.error('Social post error:', error);
+    return errorResponse(500, error.message || 'Failed to post to social media', headers);
+  }
+};
+
+/**
+ * Process job in background
+ * This runs asynchronously after the API response is sent
+ */
+async function processJobInBackground(jobId, userId, video, platforms, videoTitle, videoDescription) {
+  try {
+    console.log(`[Job ${jobId}] Starting background processing`);
+    
+    // Update status to processing
+    await supabase
+      .from('social_post_jobs')
+      .update({ 
+        status: 'processing',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', jobId);
+
     const results = [];
 
     // Post to YouTube if requested
     if (platforms.includes('youtube')) {
       try {
+        console.log(`[Job ${jobId}] Posting to YouTube`);
         const youtubeResult = await postToYouTube(userId, video, videoTitle, videoDescription);
         results.push(youtubeResult);
         
         // Record in database
         await supabase.from('scheduled_posts').insert({
           user_id: userId,
-          video_id: videoId,
+          video_id: video.id,
           platform: 'youtube',
           scheduled_for: new Date().toISOString(),
           title: videoTitle,
@@ -110,7 +171,7 @@ exports.handler = async (event, context) => {
           error_message: youtubeResult.error || null
         });
       } catch (error) {
-        console.error('YouTube post error:', error);
+        console.error(`[Job ${jobId}] YouTube post error:`, error);
         results.push({
           platform: 'youtube',
           success: false,
@@ -119,7 +180,7 @@ exports.handler = async (event, context) => {
         
         await supabase.from('scheduled_posts').insert({
           user_id: userId,
-          video_id: videoId,
+          video_id: video.id,
           platform: 'youtube',
           scheduled_for: new Date().toISOString(),
           title: videoTitle,
@@ -152,7 +213,7 @@ exports.handler = async (event, context) => {
           
           supabase.from('scheduled_posts').insert({
             user_id: userId,
-            video_id: videoId,
+            video_id: video.id,
             platform,
             scheduled_for: new Date().toISOString(),
             title: videoTitle,
@@ -168,7 +229,7 @@ exports.handler = async (event, context) => {
         const now = new Date();
         
         if (tokenExpiresAt < new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)) {
-          console.log('Meta token expiring soon, attempting refresh');
+          console.log(`[Job ${jobId}] Meta token expiring soon, attempting refresh`);
           const newToken = await refreshMetaToken(userId, metaConnection.access_token);
           if (newToken) {
             accessToken = newToken;
@@ -178,12 +239,13 @@ exports.handler = async (event, context) => {
         // Post to Facebook if requested
         if (metaPlatforms.includes('facebook')) {
           try {
+            console.log(`[Job ${jobId}] Posting to Facebook`);
             const fbResult = await postToFacebook(userId, video, metaConnection, accessToken, videoTitle, videoDescription);
             results.push(fbResult);
             
             await supabase.from('scheduled_posts').insert({
               user_id: userId,
-              video_id: videoId,
+              video_id: video.id,
               platform: 'facebook',
               scheduled_for: new Date().toISOString(),
               title: videoTitle,
@@ -195,7 +257,7 @@ exports.handler = async (event, context) => {
               error_message: fbResult.error || null
             });
           } catch (error) {
-            console.error('Facebook post error:', error);
+            console.error(`[Job ${jobId}] Facebook post error:`, error);
             results.push({
               platform: 'facebook',
               success: false,
@@ -204,7 +266,7 @@ exports.handler = async (event, context) => {
             
             await supabase.from('scheduled_posts').insert({
               user_id: userId,
-              video_id: videoId,
+              video_id: video.id,
               platform: 'facebook',
               scheduled_for: new Date().toISOString(),
               title: videoTitle,
@@ -226,7 +288,7 @@ exports.handler = async (event, context) => {
             
             await supabase.from('scheduled_posts').insert({
               user_id: userId,
-              video_id: videoId,
+              video_id: video.id,
               platform: 'instagram',
               scheduled_for: new Date().toISOString(),
               title: videoTitle,
@@ -236,12 +298,13 @@ exports.handler = async (event, context) => {
             });
           } else {
             try {
+              console.log(`[Job ${jobId}] Posting to Instagram`);
               const igResult = await postToInstagram(userId, video, metaConnection, accessToken, videoTitle, videoDescription);
               results.push(igResult);
               
               await supabase.from('scheduled_posts').insert({
                 user_id: userId,
-                video_id: videoId,
+                video_id: video.id,
                 platform: 'instagram',
                 scheduled_for: new Date().toISOString(),
                 title: videoTitle,
@@ -253,7 +316,7 @@ exports.handler = async (event, context) => {
                 error_message: igResult.error || null
               });
             } catch (error) {
-              console.error('Instagram post error:', error);
+              console.error(`[Job ${jobId}] Instagram post error:`, error);
               results.push({
                 platform: 'instagram',
                 success: false,
@@ -262,7 +325,7 @@ exports.handler = async (event, context) => {
               
               await supabase.from('scheduled_posts').insert({
                 user_id: userId,
-                video_id: videoId,
+                video_id: video.id,
                 platform: 'instagram',
                 scheduled_for: new Date().toISOString(),
                 title: videoTitle,
@@ -276,17 +339,42 @@ exports.handler = async (event, context) => {
       }
     }
 
-    return successResponse({
-      success: results.some(r => r.success),
-      results,
-      message: `Posted to ${results.filter(r => r.success).length}/${results.length} platforms`
-    }, headers);
+    // Update job with results
+    const resultsObject = {};
+    results.forEach(r => {
+      resultsObject[r.platform] = {
+        success: r.success,
+        url: r.url || null,
+        postId: r.postId || r.videoId || null,
+        error: r.error || null
+      };
+    });
+
+    await supabase
+      .from('social_post_jobs')
+      .update({
+        status: 'completed',
+        results: resultsObject,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', jobId);
+
+    console.log(`[Job ${jobId}] Completed successfully. Posted to ${results.filter(r => r.success).length}/${results.length} platforms`);
 
   } catch (error) {
-    console.error('Social post error:', error);
-    return errorResponse(500, error.message || 'Failed to post to social media', headers);
+    console.error(`[Job ${jobId}] Background processing failed:`, error);
+    
+    // Update job with error
+    await supabase
+      .from('social_post_jobs')
+      .update({
+        status: 'failed',
+        error: error.message,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', jobId);
   }
-};
+}
 
 /**
  * Post to YouTube (extracted from youtube-post.js logic)
