@@ -115,7 +115,8 @@ exports.handler = async (event, context) => {
     }
     
     return successResponse({
-      authorizationUrl: authUrl.toString(),
+      authUrl: authUrl.toString(),
+      authorizationUrl: authUrl.toString(), // Keep for backwards compat
       platform,
       state
     }, headers);
