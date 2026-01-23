@@ -24,11 +24,17 @@ const YouTubeWorker = require('./utils/social-worker-youtube');
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Platform workers
-const WORKERS = {
-  instagram: new InstagramWorker(),
-  youtube: new YouTubeWorker()
-};
+// Platform workers (lazy init to avoid env var issues)
+let WORKERS = null;
+function getWorkers() {
+  if (!WORKERS) {
+    WORKERS = {
+      instagram: new InstagramWorker(),
+      youtube: new YouTubeWorker()
+    };
+  }
+  return WORKERS;
+}
 
 /**
  * Process a single post to all target platforms
@@ -85,7 +91,8 @@ async function processPost(post) {
     try {
       console.log(`[Processor] Posting to ${platform}...`);
       
-      const worker = WORKERS[platform];
+      const workers = getWorkers();
+      const worker = workers[platform];
       if (!worker) {
         throw new Error(`No worker available for platform: ${platform}`);
       }
