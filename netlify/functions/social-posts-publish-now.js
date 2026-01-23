@@ -174,15 +174,15 @@ exports.handler = async (event, context) => {
       
       try {
         console.log(`[PublishNow] Posting to ${platform}...`);
-        const postResult = await worker.post({
-          video: {
+        const postResult = await worker.postToPlatform(
+          account,
+          { caption: post.caption, id: post.id },
+          {
             id: video.id,
             url: video.social_ready_url,
             duration: video.duration_seconds
-          },
-          caption: post.caption,
-          account: account
-        });
+          }
+        );
         
         console.log(`[PublishNow] ${platform} result:`, postResult);
         
