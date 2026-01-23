@@ -193,24 +193,45 @@ exports.handler = async (event, context) => {
         
         console.log(`[PublishNow] ${platform} result:`, postResult);
         
-        results.platforms[platform] = {
-          success: true,
-          platformPostId: postResult.postId,
-          platformUrl: postResult.url
-        };
-        
-        // Store success result
-        await supabase
-          .from('post_results')
-          .insert({
-            post_id: post.id,
-            social_account_id: account.id,
-            platform: platform,
+        // Check if worker reported success
+        if (postResult.success) {
+          results.platforms[platform] = {
             success: true,
-            platform_post_id: postResult.postId,
-            platform_url: postResult.url,
-            posted_at: new Date().toISOString()
-          });
+            platformPostId: postResult.platformPostId,
+            platformUrl: postResult.platformPostUrl
+          };
+          
+          // Store success result
+          await supabase
+            .from('post_results')
+            .insert({
+              post_id: post.id,
+              social_account_id: account.id,
+              platform: platform,
+              success: true,
+              platform_post_id: postResult.platformPostId,
+              platform_post_url: postResult.platformPostUrl,
+              posted_at: new Date().toISOString()
+            });
+        } else {
+          // Worker returned failure
+          results.platforms[platform] = {
+            success: false,
+            error: postResult.error || 'Unknown error'
+          };
+          results.overallSuccess = false;
+          
+          await supabase
+            .from('post_results')
+            .insert({
+              post_id: post.id,
+              social_account_id: account.id,
+              platform: platform,
+              success: false,
+              error_message: postResult.error || 'Unknown error',
+              posted_at: new Date().toISOString()
+            });
+        }
           
       } catch (error) {
         console.error(`[PublishNow] ${platform} error:`, error);
