@@ -32,13 +32,14 @@ exports.handler = async (event, context) => {
     // Update status to processing
     await supabase
       .from('social_post_jobs')
-      .update({ status: 'processing', updated_at: new Date().toISOString() })
+      .update({ status: 'processing', stage: 'starting', progress: 5, updated_at: new Date().toISOString() })
       .eq('id', jobId);
 
     const results = [];
 
     // Post to YouTube if requested
     if (platforms.includes('youtube')) {
+      await updateJobProgress(jobId, 'uploading_youtube', 20);
       console.log(`[BG Job ${jobId}] Posting to YouTube`);
       const ytResult = await postToYouTube(userId, video, title, description);
       results.push(ytResult);
@@ -61,6 +62,7 @@ exports.handler = async (event, context) => {
         let accessToken = metaConnection.access_token;
         
         if (metaPlatforms.includes('facebook')) {
+          await updateJobProgress(jobId, 'uploading_facebook', 20);
           console.log(`[BG Job ${jobId}] Posting to Facebook`);
           const fbResult = await postToFacebook(userId, video, metaConnection, accessToken, title, description);
           results.push(fbResult);
@@ -72,7 +74,8 @@ exports.handler = async (event, context) => {
             results.push({ platform: 'instagram', success: false, error: 'Instagram not linked' });
           } else {
             console.log(`[BG Job ${jobId}] Posting to Instagram`);
-            const igResult = await postToInstagram(userId, video, metaConnection, accessToken, title, description);
+            // Pass jobId for progress updates
+            const igResult = await postToInstagram(jobId, userId, video, metaConnection, accessToken, title, description);
             results.push(igResult);
             await updateJobResults(jobId, results);
           }
@@ -117,6 +120,13 @@ async function updateJobResults(jobId, results) {
   await supabase
     .from('social_post_jobs')
     .update({ results: resultsObj, updated_at: new Date().toISOString() })
+    .eq('id', jobId);
+}
+
+async function updateJobProgress(jobId, stage, progress) {
+  await supabase
+    .from('social_post_jobs')
+    .update({ stage, progress, updated_at: new Date().toISOString() })
     .eq('id', jobId);
 }
 
@@ -306,15 +316,20 @@ async function postToFacebook(userId, video, connection, accessToken, title, des
 }
 
 // ============= Instagram =============
-async function postToInstagram(userId, video, connection, accessToken, title, description) {
+async function postToInstagram(jobId, userId, video, connection, accessToken, title, description) {
   try {
     if (!TRANSCODER_URL) {
       throw new Error('TRANSCODER_URL not configured');
     }
 
+    // Stage 1: Downloading from OneDrive
+    await updateJobProgress(jobId, 'downloading', 15);
+    
     const { accessToken: onedriveToken } = await getValidAccessToken(userId);
     const downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${video.onedrive_file_id}/content`;
 
+    // Stage 2: Transcoding
+    await updateJobProgress(jobId, 'transcoding', 30);
     console.log('Calling transcoder for Instagram...');
     
     // Call transcoder (can take several minutes for large files)
@@ -335,6 +350,9 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
     const { transcodedUrl, fileName } = await transcodeResponse.json();
     console.log('Transcoded URL:', transcodedUrl);
 
+    // Stage 3: Uploading to Instagram
+    await updateJobProgress(jobId, 'uploading', 55);
+
     // Create Instagram container
     const createUrl = new URL(`https://graph.facebook.com/v18.0/${connection.instagram_account_id}/media`);
     createUrl.searchParams.set('access_token', accessToken);
@@ -352,10 +370,17 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
     const containerId = createData.id;
     console.log('Instagram container:', containerId);
 
+    // Stage 4: Instagram processing
+    await updateJobProgress(jobId, 'instagram_processing', 70);
+
     // Wait for processing (up to 5 minutes)
     let isReady = false;
     for (let i = 0; i < 60; i++) {
       await new Promise(r => setTimeout(r, 5000));
+      
+      // Update progress during wait (70-90%)
+      const waitProgress = 70 + Math.min(i, 20);
+      await updateJobProgress(jobId, 'instagram_processing', waitProgress);
       
       const statusUrl = new URL(`https://graph.facebook.com/v18.0/${containerId}`);
       statusUrl.searchParams.set('access_token', accessToken);
@@ -378,7 +403,8 @@ async function postToInstagram(userId, video, connection, accessToken, title, de
       throw new Error('Instagram processing timeout');
     }
 
-    // Publish
+    // Stage 5: Publishing
+    await updateJobProgress(jobId, 'publishing', 95);
     const publishUrl = new URL(`https://graph.facebook.com/v18.0/${connection.instagram_account_id}/media_publish`);
     publishUrl.searchParams.set('access_token', accessToken);
     publishUrl.searchParams.set('creation_id', containerId);

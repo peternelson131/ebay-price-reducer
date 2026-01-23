@@ -20,6 +20,8 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
   // Async job polling state
   const [jobId, setJobId] = useState(null);
   const [jobStatus, setJobStatus] = useState(null); // pending, processing, completed, failed
+  const [jobStage, setJobStage] = useState(null); // downloading, transcoding, uploading, etc.
+  const [jobProgress, setJobProgress] = useState(0); // 0-100
   const [polling, setPolling] = useState(false);
   const [error, setError] = useState(null);
 
@@ -44,8 +46,11 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
 
         const job = await res.json();
         setJobStatus(job.status);
+        setJobStage(job.stage || null);
+        setJobProgress(job.progress || 0);
 
         if (job.status === 'completed') {
+          setJobProgress(100);
           handleJobCompletion(job);
         } else if (job.status === 'failed') {
           setError(job.error || 'Job failed');
@@ -217,14 +222,17 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
     }
   };
 
-  const getProgressMessage = (status) => {
-    switch (status) {
+  const getProgressMessage = (stage) => {
+    switch (stage) {
+      case 'queued': return 'Queued...';
       case 'starting': return 'Starting...';
-      case 'pending': return 'Queued - waiting to process...';
-      case 'processing': return 'Processing video...';
-      case 'downloading': return 'Downloading video from OneDrive...';
-      case 'transcoding': return 'Transcoding video for Instagram...';
-      case 'uploading': return 'Uploading to platforms...';
+      case 'downloading': return 'Downloading from OneDrive...';
+      case 'transcoding': return 'Transcoding video...';
+      case 'uploading': return 'Uploading to Instagram...';
+      case 'uploading_youtube': return 'Uploading to YouTube...';
+      case 'uploading_facebook': return 'Uploading to Facebook...';
+      case 'instagram_processing': return 'Instagram processing...';
+      case 'publishing': return 'Publishing...';
       case 'completed': return 'Complete!';
       case 'failed': return 'Failed';
       default: return 'Processing...';
@@ -301,18 +309,23 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
             {/* Progress Indicator */}
             {posting && jobStatus && jobStatus !== 'completed' && !results && (
               <div className="mb-6 p-4 rounded-lg border border-accent bg-accent/10">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-3">
                   <Loader className="w-5 h-5 animate-spin text-accent" />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-theme-primary">
-                      {getProgressMessage(jobStatus)}
+                      {getProgressMessage(jobStage || jobStatus)}
                     </p>
-                    {jobId && (
-                      <p className="text-xs text-theme-tertiary mt-1">
-                        Job ID: {jobId}
-                      </p>
-                    )}
                   </div>
+                  <span className="text-sm font-medium text-accent">
+                    {jobProgress}%
+                  </span>
+                </div>
+                {/* Progress Bar */}
+                <div className="w-full bg-theme-surface rounded-full h-2.5 overflow-hidden">
+                  <div 
+                    className="bg-accent h-2.5 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${jobProgress}%` }}
+                  />
                 </div>
               </div>
             )}
