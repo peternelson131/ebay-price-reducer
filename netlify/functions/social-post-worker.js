@@ -8,7 +8,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = require('./utils/cors');
 const { verifyWebhookSecret } = require('./utils/auth');
-const { decryptToken } = require('./utils/social-token-encryption');
 const InstagramWorker = require('./utils/social-worker-instagram');
 const YouTubeWorker = require('./utils/social-worker-youtube');
 
@@ -67,25 +66,12 @@ exports.handler = async (event, context) => {
       return errorResponse(404, 'Video not found or not ready', headers);
     }
     
-    // Get social accounts
-    const { data: accounts, error: accountError } = await supabase
-      .from('social_accounts')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .in('platform', platforms);
-    
-    if (accountError) {
-      return errorResponse(500, 'Failed to fetch social accounts', headers);
-    }
-    
     const workers = getWorkers();
     const results = { platforms: {}, overallSuccess: true };
     
     // Process each platform
     for (const platform of platforms) {
       const worker = workers[platform];
-      const account = accounts.find(a => a.platform === platform);
       
       if (!worker) {
         results.platforms[platform] = { success: false, error: 'Platform not supported' };
@@ -93,22 +79,14 @@ exports.handler = async (event, context) => {
         continue;
       }
       
-      if (!account) {
-        results.platforms[platform] = { success: false, error: 'Account not found' };
-        results.overallSuccess = false;
-        continue;
-      }
-      
       try {
-        // Decrypt access token
-        const decryptedAccount = {
-          ...account,
-          access_token: decryptToken(account.access_token)
-        };
+        // Use worker.getAccount() which handles token refresh automatically
+        console.log(`[Worker] Getting account for ${platform} (with token refresh if needed)...`);
+        const account = await worker.getAccount(userId);
         
         console.log(`[Worker] Posting to ${platform}...`);
         const postResult = await worker.postToPlatform(
-          decryptedAccount,
+          account,
           { caption: caption, id: postId },
           {
             id: video.id,
@@ -148,14 +126,19 @@ exports.handler = async (event, context) => {
         };
         results.overallSuccess = false;
         
-        await supabase.from('post_results').insert({
-          post_id: postId,
-          social_account_id: account?.id,
-          platform: platform,
-          success: false,
-          error_message: platformError.message,
-          posted_at: new Date().toISOString()
-        });
+        // Try to store error result (account may not be available if getAccount failed)
+        try {
+          await supabase.from('post_results').insert({
+            post_id: postId,
+            social_account_id: null,
+            platform: platform,
+            success: false,
+            error_message: platformError.message,
+            posted_at: new Date().toISOString()
+          });
+        } catch (dbError) {
+          console.error(`[Worker] Failed to store error result:`, dbError.message);
+        }
       }
     }
     
