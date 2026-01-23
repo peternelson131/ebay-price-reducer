@@ -67,7 +67,7 @@ exports.handler = async (event, context) => {
         created_at,
         updated_at,
         processed_at,
-        product_videos!inner(id, title, url, thumbnail_url)
+        product_videos(id, filename, social_ready_url, thumbnail_url)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
@@ -124,8 +124,8 @@ exports.handler = async (event, context) => {
       videoId: post.video_id,
       video: post.product_videos ? {
         id: post.product_videos.id,
-        title: post.product_videos.title,
-        url: post.product_videos.url,
+        title: post.product_videos.filename,
+        url: post.product_videos.social_ready_url,
         thumbnailUrl: post.product_videos.thumbnail_url
       } : null,
       caption: post.caption,
