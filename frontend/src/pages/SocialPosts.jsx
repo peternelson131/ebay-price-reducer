@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { userAPI } from '../lib/supabase';
 import PostToSocialModal from '../components/PostToSocialModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { 
   Youtube, 
   Instagram, 
@@ -29,6 +30,13 @@ export default function SocialPosts() {
   const [editingPost, setEditingPost] = useState(null);
   const [deletingPostId, setDeletingPostId] = useState(null);
   const [publishingPostId, setPublishingPostId] = useState(null);
+  
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    type: null, // 'delete' or 'publish'
+    postId: null
+  });
 
   const tabs = [
     { id: 'all', label: 'All Posts', icon: Filter },
@@ -69,11 +77,16 @@ export default function SocialPosts() {
     }
   };
 
-  const handleDelete = async (postId) => {
-    if (!confirm('Are you sure you want to delete this post? This cannot be undone.')) {
-      return;
-    }
+  const handleDeleteClick = (postId) => {
+    setConfirmDialog({
+      isOpen: true,
+      type: 'delete',
+      postId
+    });
+  };
 
+  const handleDelete = async () => {
+    const postId = confirmDialog.postId;
     setDeletingPostId(postId);
 
     try {
@@ -101,11 +114,16 @@ export default function SocialPosts() {
     }
   };
 
-  const handlePublishNow = async (postId) => {
-    if (!confirm('Publish this post immediately?')) {
-      return;
-    }
+  const handlePublishClick = (postId) => {
+    setConfirmDialog({
+      isOpen: true,
+      type: 'publish',
+      postId
+    });
+  };
 
+  const handlePublishNow = async () => {
+    const postId = confirmDialog.postId;
     setPublishingPostId(postId);
 
     try {
@@ -337,7 +355,7 @@ export default function SocialPosts() {
                       <div className="flex items-center justify-end gap-2">
                         {canPublish && (
                           <button
-                            onClick={() => handlePublishNow(post.id)}
+                            onClick={() => handlePublishClick(post.id)}
                             disabled={isPublishing}
                             className="flex items-center gap-1 px-2 py-1 text-xs bg-accent text-white rounded hover:bg-accent-hover transition-colors disabled:opacity-50"
                           >
@@ -350,7 +368,7 @@ export default function SocialPosts() {
                           </button>
                         )}
                         <button
-                          onClick={() => handleDelete(post.id)}
+                          onClick={() => handleDeleteClick(post.id)}
                           disabled={isDeleting}
                           className="flex items-center gap-1 px-2 py-1 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50"
                         >
@@ -387,6 +405,22 @@ export default function SocialPosts() {
           }}
         />
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, type: null, postId: null })}
+        onConfirm={confirmDialog.type === 'delete' ? handleDelete : handlePublishNow}
+        title={confirmDialog.type === 'delete' ? 'Delete Post' : 'Publish Post'}
+        message={
+          confirmDialog.type === 'delete'
+            ? 'Are you sure you want to delete this post? This action cannot be undone.'
+            : 'Are you sure you want to publish this post immediately?'
+        }
+        confirmText={confirmDialog.type === 'delete' ? 'Delete' : 'Publish'}
+        cancelText="Cancel"
+        variant={confirmDialog.type === 'delete' ? 'danger' : 'primary'}
+      />
     </div>
   );
 }
