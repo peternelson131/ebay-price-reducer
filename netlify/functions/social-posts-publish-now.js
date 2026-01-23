@@ -3,16 +3,20 @@
  * POST /.netlify/functions/social-posts-publish-now?id=xxx
  * 
  * Triggers immediate publishing of a draft or scheduled post.
- * Sets scheduled_at to NOW() and status to 'scheduled' for immediate processing.
- * 
- * The scheduled processor will pick it up within 1 minute.
- * For truly instant publishing, this could also trigger the processor directly,
- * but async via scheduler is more reliable for large videos.
+ * Directly processes the post using platform workers for instant publishing.
  */
 
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = require('./utils/cors');
 const { verifyAuth } = require('./utils/auth');
+const InstagramWorker = require('./utils/social-worker-instagram');
+const YouTubeWorker = require('./utils/social-worker-youtube');
+
+// Platform workers
+const WORKERS = {
+  instagram: new InstagramWorker(),
+  youtube: new YouTubeWorker()
+};
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -119,39 +123,133 @@ exports.handler = async (event, context) => {
       return errorResponse(400, 'Video is not yet ready for social posting. Please wait for processing to complete.', headers);
     }
     
-    // Update post to schedule for immediate processing
+    // Mark as processing
     const now = new Date().toISOString();
-    const { data: updatedPost, error: updateError } = await supabase
+    await supabase
       .from('social_posts')
       .update({
         scheduled_at: now,
-        status: 'scheduled',
+        status: 'processing',
+        processed_at: now,
         updated_at: now
       })
-      .eq('id', id)
-      .eq('user_id', userId)
-      .select()
-      .single();
+      .eq('id', id);
     
-    if (updateError) {
-      console.error('Error updating post:', updateError);
-      return errorResponse(500, 'Failed to schedule post for publishing', headers);
+    // Get social accounts with tokens for posting
+    const { data: socialAccounts, error: saError } = await supabase
+      .from('social_accounts')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .in('platform', post.platforms);
+    
+    if (saError) {
+      console.error('Error fetching social accounts:', saError);
+      return errorResponse(500, 'Failed to fetch social accounts', headers);
     }
+    
+    // Process each platform
+    const results = {
+      platforms: {},
+      overallSuccess: true
+    };
+    
+    for (const platform of post.platforms) {
+      const worker = WORKERS[platform];
+      const account = socialAccounts.find(a => a.platform === platform);
+      
+      if (!worker) {
+        console.error(`No worker for platform: ${platform}`);
+        results.platforms[platform] = { success: false, error: 'Platform not supported' };
+        results.overallSuccess = false;
+        continue;
+      }
+      
+      if (!account) {
+        console.error(`No account for platform: ${platform}`);
+        results.platforms[platform] = { success: false, error: 'Account not found' };
+        results.overallSuccess = false;
+        continue;
+      }
+      
+      try {
+        console.log(`[PublishNow] Posting to ${platform}...`);
+        const postResult = await worker.post({
+          video: {
+            id: video.id,
+            url: video.social_ready_url,
+            duration: video.duration_seconds
+          },
+          caption: post.caption,
+          account: account
+        });
+        
+        console.log(`[PublishNow] ${platform} result:`, postResult);
+        
+        results.platforms[platform] = {
+          success: true,
+          platformPostId: postResult.postId,
+          platformUrl: postResult.url
+        };
+        
+        // Store success result
+        await supabase
+          .from('post_results')
+          .insert({
+            post_id: post.id,
+            social_account_id: account.id,
+            platform: platform,
+            success: true,
+            platform_post_id: postResult.postId,
+            platform_url: postResult.url,
+            posted_at: new Date().toISOString()
+          });
+          
+      } catch (error) {
+        console.error(`[PublishNow] ${platform} error:`, error);
+        
+        results.platforms[platform] = {
+          success: false,
+          error: error.message
+        };
+        results.overallSuccess = false;
+        
+        // Store error result
+        await supabase
+          .from('post_results')
+          .insert({
+            post_id: post.id,
+            social_account_id: account.id,
+            platform: platform,
+            success: false,
+            error_message: error.message,
+            posted_at: new Date().toISOString()
+          });
+      }
+    }
+    
+    // Update post status
+    const finalStatus = results.overallSuccess ? 'posted' : 'failed';
+    await supabase
+      .from('social_posts')
+      .update({
+        status: finalStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
     
     // Success response
     return successResponse({
       post: {
-        id: updatedPost.id,
-        videoId: updatedPost.video_id,
-        caption: updatedPost.caption,
-        scheduledAt: updatedPost.scheduled_at,
-        platforms: updatedPost.platforms,
-        status: updatedPost.status,
-        updatedAt: updatedPost.updated_at
+        id: post.id,
+        videoId: post.video_id,
+        caption: post.caption,
+        platforms: post.platforms,
+        status: finalStatus
       },
-      message: 'Post scheduled for immediate publishing',
-      estimatedProcessingTime: 'Within 1 minute',
-      note: 'The scheduled processor will pick up this post shortly. You can check the status by refreshing the post details.'
+      results: results.platforms,
+      overallSuccess: results.overallSuccess,
+      message: results.overallSuccess ? 'Successfully posted to all platforms!' : 'Some platforms failed - check results'
     }, headers);
     
   } catch (error) {
