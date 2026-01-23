@@ -28,7 +28,7 @@ const CATEGORIES = [
     name: 'Social Media Integrations',
     icon: Share2,
     description: 'Connect social platforms for content distribution',
-    integrations: ['youtube', 'meta']
+    integrations: ['youtube', 'facebook', 'instagram']
   }
 ]
 
@@ -569,8 +569,8 @@ function OneDriveIntegrationCard({ onStatusChange }) {
   )
 }
 
-// Facebook Integration Card
-function MetaIntegration({ onStatusChange }) {
+// Facebook Integration Card 
+function FacebookIntegration({ onStatusChange }) {
   const [searchParams] = useSearchParams()
   const [isConnecting, setIsConnecting] = useState(false)
   
@@ -591,7 +591,7 @@ function MetaIntegration({ onStatusChange }) {
 
   // Notify parent when connection status changes
   useEffect(() => {
-    const isConnected = metaStatus?.connected === true
+    const isConnected = metaStatus?.connected === true && metaStatus?.connection?.pageName
     onStatusChange?.(isConnected)
   }, [metaStatus, onStatusChange])
 
@@ -600,9 +600,9 @@ function MetaIntegration({ onStatusChange }) {
     const metaParam = searchParams.get('meta')
     if (metaParam === 'connected') {
       refetchMeta()
-      toast.success('Meta connected successfully!')
+      toast.success('Facebook connected successfully!')
     } else if (metaParam === 'error') {
-      toast.error('Meta connection failed')
+      toast.error('Facebook connection failed')
     }
   }, [searchParams])
 
@@ -618,15 +618,15 @@ function MetaIntegration({ onStatusChange }) {
         window.location.href = data.authUrl
       }
     } catch (error) {
-      console.error('Failed to start Meta auth:', error)
-      toast.error('Failed to start Meta connection')
+      console.error('Failed to start Facebook auth:', error)
+      toast.error('Failed to start Facebook connection')
     } finally {
       setIsConnecting(false)
     }
   }
 
   const handleDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect your Meta accounts?')) return
+    if (!confirm('Are you sure you want to disconnect your Facebook account?')) return
     try {
       const token = await userAPI.getAuthToken()
       await fetch('/.netlify/functions/meta-disconnect', {
@@ -634,146 +634,89 @@ function MetaIntegration({ onStatusChange }) {
         headers: { Authorization: `Bearer ${token}` }
       })
       refetchMeta()
-      toast.success('Meta accounts disconnected')
+      toast.success('Facebook account disconnected')
     } catch (error) {
-      console.error('Failed to disconnect Meta:', error)
-      toast.error('Failed to disconnect Meta')
+      console.error('Failed to disconnect Facebook:', error)
+      toast.error('Failed to disconnect Facebook')
     }
   }
 
   const connection = metaStatus?.connection
+  const isConnected = metaStatus?.connected === true && connection?.pageName
 
   return (
-    <div className="bg-theme-primary rounded-lg border border-theme p-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-          <Facebook className="w-6 h-6 text-white" />
-        </div>
-        <div className="flex-1">
-          <h4 className="font-medium text-theme-primary">Meta (Facebook & Instagram)</h4>
-          <p className="text-sm text-theme-tertiary">Post content to Facebook Page and Instagram</p>
-        </div>
-        {isLoading ? (
-          <Loader className="w-5 h-5 animate-spin text-theme-secondary" />
-        ) : metaStatus?.connected ? (
-          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm rounded-full flex items-center gap-1">
-            <CheckCircle className="w-4 h-4" /> Connected
-          </span>
-        ) : (
-          <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm rounded-full">
-            Not connected
-          </span>
-        )}
-      </div>
-
-      {metaStatus?.connected ? (
-        <div className="space-y-4">
-          {/* Connected Accounts Info */}
-          <div className="space-y-2">
-            {connection?.pageName && (
-              <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Facebook className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-theme-primary">{connection.pageName}</p>
-                  <p className="text-sm text-theme-secondary">Facebook Page</p>
-                </div>
-                <CheckCircle className="w-5 h-5 text-green-500" />
-              </div>
-            )}
-            {connection?.instagramUsername ? (
-              <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 rounded-lg flex items-center justify-center">
-                  <Instagram className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-theme-primary">@{connection.instagramUsername}</p>
-                  <p className="text-sm text-theme-secondary">Instagram Business</p>
-                </div>
-                <CheckCircle className="w-5 h-5 text-green-500" />
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg opacity-60">
-                <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
-                  <Instagram className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-theme-primary">Instagram not linked</p>
-                  <p className="text-sm text-theme-secondary">Link in Meta Business Suite</p>
-                </div>
-              </div>
-            )}
-            {connection?.connectedAt && (
-              <p className="text-sm text-theme-secondary px-3">
-                Connected {new Date(connection.connectedAt).toLocaleDateString()}
+    <div className={`border rounded-lg p-6 ${
+      isConnected
+        ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800'
+        : 'bg-theme-primary border-theme'
+    }`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+            isConnected ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-theme-surface'
+          }`}>
+            <Facebook className="w-6 h-6 text-blue-600" />
+          </div>
+          <div>
+            <h4 className="font-medium text-theme-primary">Facebook</h4>
+            {isLoading ? (
+              <p className="text-sm text-theme-tertiary flex items-center gap-2">
+                <Loader className="w-4 h-4 animate-spin" />
+                Loading...
               </p>
-            )}
-          </div>
-
-          {/* Manual Posting Note */}
-          <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
-            <p className="text-sm text-theme-secondary">
-              Manual posting from CRM records. Use the "Post" button on videos in your product records.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleDisconnect}
-              className="text-red-500 hover:text-red-600 text-sm"
-            >
-              Disconnect
-            </button>
-            <a
-              href="/docs/meta-connection-guide"
-              target="_blank"
-              className="text-accent hover:underline text-sm flex items-center gap-1"
-            >
-              <ExternalLink className="w-4 h-4" /> Setup Guide
-            </a>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <button
-            onClick={handleConnect}
-            disabled={isConnecting}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isConnecting ? (
-              <Loader className="w-5 h-5 animate-spin" />
+            ) : isConnected ? (
+              <>
+                <p className="text-sm text-theme-secondary">Connected as: {connection.pageName}</p>
+                {connection?.connectedAt && (
+                  <p className="text-sm text-theme-tertiary">
+                    Connected on {new Date(connection.connectedAt).toLocaleDateString()}
+                  </p>
+                )}
+              </>
             ) : (
-              <Share2 className="w-5 h-5" />
+              <p className="text-sm text-theme-tertiary">Not connected</p>
             )}
-            Connect Meta Accounts
-          </button>
-          <a
-            href="/docs/meta-connection-guide"
-            target="_blank"
-            className="block text-center text-accent hover:underline text-sm"
-          >
-            View Setup Guide
-          </a>
+          </div>
         </div>
-      )}
+        <button
+          onClick={isConnected ? handleDisconnect : handleConnect}
+          disabled={isConnecting || isLoading}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+            isConnected
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'bg-blue-600 hover:bg-blue-700 text-white'
+          }`}
+        >
+          {isConnecting ? (
+            <span className="flex items-center gap-2">
+              <Loader className="w-4 h-4 animate-spin" />
+              Connecting...
+            </span>
+          ) : isConnected ? (
+            'Disconnect'
+          ) : (
+            'Connect'
+          )}
+        </button>
+      </div>
     </div>
   )
 }
 
-// Instagram Integration Card
+
+// Instagram Integration Card 
 function InstagramIntegration({ onStatusChange }) {
   const [searchParams] = useSearchParams()
   const [isConnecting, setIsConnecting] = useState(false)
   
-  const { data: instagramStatus, isLoading, refetch: refetchInstagram } = useQuery(
-    ['instagramStatus'],
+  const { data: metaStatus, isLoading, refetch: refetchMeta } = useQuery(
+    ['metaStatus'],
     async () => {
       const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/instagram-status', {
+      const response = await fetch('/.netlify/functions/meta-status', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (!response.ok) throw new Error('Failed to fetch Instagram status')
+      if (!response.ok) throw new Error('Failed to fetch Meta status')
       return response.json()
     },
     {
@@ -783,17 +726,17 @@ function InstagramIntegration({ onStatusChange }) {
 
   // Notify parent when connection status changes
   useEffect(() => {
-    const isConnected = instagramStatus?.connected === true
+    const isConnected = metaStatus?.connected === true && metaStatus?.connection?.instagramUsername
     onStatusChange?.(isConnected)
-  }, [instagramStatus, onStatusChange])
+  }, [metaStatus, onStatusChange])
 
-  // Handle Instagram OAuth callback from URL params
+  // Handle Meta OAuth callback from URL params (Instagram uses same Meta OAuth)
   useEffect(() => {
-    const instagramParam = searchParams.get('instagram')
-    if (instagramParam === 'connected') {
-      refetchInstagram()
+    const metaParam = searchParams.get('meta')
+    if (metaParam === 'connected') {
+      refetchMeta()
       toast.success('Instagram connected successfully!')
-    } else if (instagramParam === 'error') {
+    } else if (metaParam === 'error') {
       toast.error('Instagram connection failed')
     }
   }, [searchParams])
@@ -802,7 +745,7 @@ function InstagramIntegration({ onStatusChange }) {
     setIsConnecting(true)
     try {
       const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/instagram-auth', {
+      const response = await fetch('/.netlify/functions/meta-auth', {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await response.json()
@@ -821,11 +764,11 @@ function InstagramIntegration({ onStatusChange }) {
     if (!confirm('Are you sure you want to disconnect Instagram?')) return
     try {
       const token = await userAPI.getAuthToken()
-      await fetch('/.netlify/functions/instagram-disconnect', {
+      await fetch('/.netlify/functions/meta-disconnect', {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })
-      refetchInstagram()
+      refetchMeta()
       toast.success('Instagram disconnected')
     } catch (error) {
       console.error('Failed to disconnect Instagram:', error)
@@ -833,76 +776,74 @@ function InstagramIntegration({ onStatusChange }) {
     }
   }
 
-  return (
-    <div className="bg-theme-primary rounded-lg border border-theme p-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1">
-          <h4 className="font-medium text-theme-primary">Instagram</h4>
-          <p className="text-sm text-theme-tertiary">Post content to Instagram</p>
-        </div>
-        {isLoading ? (
-          <Loader className="w-5 h-5 animate-spin text-theme-secondary" />
-        ) : instagramStatus?.connected ? (
-          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm rounded-full flex items-center gap-1">
-            <CheckCircle className="w-4 h-4" /> Connected
-          </span>
-        ) : (
-          <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm rounded-full">
-            Not connected
-          </span>
-        )}
-      </div>
+  const connection = metaStatus?.connection
+  const isConnected = metaStatus?.connected === true && connection?.instagramUsername
 
-      {instagramStatus?.connected ? (
-        <div className="space-y-4">
-          {/* Connected Account Info */}
-          <div className="space-y-2">
-            {instagramStatus.connection?.username && (
-              <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg">
-                <div className="flex-1">
-                  <p className="font-medium text-theme-primary">@{instagramStatus.connection.username}</p>
-                  <p className="text-sm text-theme-secondary">Instagram Account</p>
-                </div>
-              </div>
-            )}
-            {instagramStatus.connection?.connectedAt && (
-              <p className="text-sm text-theme-secondary px-3">
-                Connected {new Date(instagramStatus.connection.connectedAt).toLocaleDateString()}
+  return (
+    <div className={`border rounded-lg p-6 ${
+      isConnected
+        ? 'bg-pink-50 dark:bg-pink-900/10 border-pink-200 dark:border-pink-800'
+        : 'bg-theme-primary border-theme'
+    }`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+            isConnected ? 'bg-pink-100 dark:bg-pink-900/30' : 'bg-theme-surface'
+          }`}>
+            <Instagram className="w-6 h-6 text-pink-600" />
+          </div>
+          <div>
+            <h4 className="font-medium text-theme-primary">Instagram</h4>
+            {isLoading ? (
+              <p className="text-sm text-theme-tertiary flex items-center gap-2">
+                <Loader className="w-4 h-4 animate-spin" />
+                Loading...
               </p>
+            ) : isConnected ? (
+              <>
+                <p className="text-sm text-theme-secondary">Connected as: @{connection.instagramUsername}</p>
+                {connection?.connectedAt && (
+                  <p className="text-sm text-theme-tertiary">
+                    Connected on {new Date(connection.connectedAt).toLocaleDateString()}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-theme-tertiary">Not connected</p>
             )}
           </div>
-
-          <button
-            onClick={handleDisconnect}
-            className="text-red-500 hover:text-red-600 text-sm"
-          >
-            Disconnect
-          </button>
         </div>
-      ) : (
         <button
-          onClick={handleConnect}
-          disabled={isConnecting}
-          className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 flex items-center justify-center gap-2"
+          onClick={isConnected ? handleDisconnect : handleConnect}
+          disabled={isConnecting || isLoading}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+            isConnected
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'bg-pink-600 hover:bg-pink-700 text-white'
+          }`}
         >
           {isConnecting ? (
-            <Loader className="w-5 h-5 animate-spin" />
+            <span className="flex items-center gap-2">
+              <Loader className="w-4 h-4 animate-spin" />
+              Connecting...
+            </span>
+          ) : isConnected ? (
+            'Disconnect'
           ) : (
-            <Share2 className="w-5 h-5" />
+            'Connect'
           )}
-          Connect Instagram
         </button>
-      )}
+      </div>
     </div>
   )
 }
 
-// YouTube Integration Card
+// YouTube Integration Card 
 function YouTubeIntegration({ onStatusChange }) {
   const [searchParams] = useSearchParams()
-  const [isConnectingYoutube, setIsConnectingYoutube] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(false)
   
-  const { data: youtubeStatus, isLoading: isLoadingYoutube, refetch: refetchYoutube } = useQuery(
+  const { data: youtubeStatus, isLoading, refetch: refetchYoutube } = useQuery(
     ['youtubeStatus'],
     async () => {
       const token = await userAPI.getAuthToken()
@@ -933,8 +874,8 @@ function YouTubeIntegration({ onStatusChange }) {
     }
   }, [searchParams])
 
-  const handleConnectYoutube = async () => {
-    setIsConnectingYoutube(true)
+  const handleConnect = async () => {
+    setIsConnecting(true)
     try {
       const token = await userAPI.getAuthToken()
       const response = await fetch('/.netlify/functions/youtube-auth', {
@@ -948,11 +889,11 @@ function YouTubeIntegration({ onStatusChange }) {
       console.error('Failed to start YouTube auth:', error)
       toast.error('Failed to start YouTube connection')
     } finally {
-      setIsConnectingYoutube(false)
+      setIsConnecting(false)
     }
   }
 
-  const handleDisconnectYoutube = async () => {
+  const handleDisconnect = async () => {
     if (!confirm('Are you sure you want to disconnect YouTube?')) return
     try {
       const token = await userAPI.getAuthToken()
@@ -968,78 +909,68 @@ function YouTubeIntegration({ onStatusChange }) {
     }
   }
 
+  const connection = youtubeStatus?.connection
+  const isConnected = youtubeStatus?.connected === true
+
   return (
-    <div className="bg-theme-primary rounded-lg border border-theme p-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-          <Youtube className="w-6 h-6 text-white" />
-        </div>
-        <div className="flex-1">
-          <h4 className="font-medium text-theme-primary">YouTube</h4>
-          <p className="text-sm text-theme-tertiary">Post videos as YouTube Shorts</p>
-        </div>
-        {isLoadingYoutube ? (
-          <Loader className="w-5 h-5 animate-spin text-theme-secondary" />
-        ) : youtubeStatus?.connected ? (
-          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm rounded-full flex items-center gap-1">
-            <CheckCircle className="w-4 h-4" /> Connected
-          </span>
-        ) : (
-          <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm rounded-full">
-            Not connected
-          </span>
-        )}
-      </div>
-
-      {youtubeStatus?.connected ? (
-        <div className="space-y-4">
-          {/* Connected Channel Info */}
-          <div className="flex items-center gap-3 p-3 bg-theme-surface rounded-lg">
-            {youtubeStatus.connection.channelAvatar && (
-              <img 
-                src={youtubeStatus.connection.channelAvatar} 
-                alt="" 
-                className="w-10 h-10 rounded-full"
-              />
-            )}
-            <div className="flex-1">
-              <p className="font-medium text-theme-primary">{youtubeStatus.connection.channelName}</p>
-              <p className="text-sm text-theme-secondary">
-                Connected {new Date(youtubeStatus.connection.connectedAt).toLocaleDateString()}
+    <div className={`border rounded-lg p-6 ${
+      isConnected
+        ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
+        : 'bg-theme-primary border-theme'
+    }`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+            isConnected ? 'bg-red-100 dark:bg-red-900/30' : 'bg-theme-surface'
+          }`}>
+            <Youtube className="w-6 h-6 text-red-600" />
+          </div>
+          <div>
+            <h4 className="font-medium text-theme-primary">YouTube</h4>
+            {isLoading ? (
+              <p className="text-sm text-theme-tertiary flex items-center gap-2">
+                <Loader className="w-4 h-4 animate-spin" />
+                Loading...
               </p>
-            </div>
-            <button
-              onClick={handleDisconnectYoutube}
-              className="text-red-500 hover:text-red-600 text-sm"
-            >
-              Disconnect
-            </button>
-          </div>
-
-          {/* Manual Posting Note */}
-          <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
-            <p className="text-sm text-theme-secondary">
-              Manual posting from CRM records. Use the "Post" button on videos in your product records.
-            </p>
+            ) : isConnected ? (
+              <>
+                <p className="text-sm text-theme-secondary">Connected as: {connection?.channelName || 'YouTube Channel'}</p>
+                {connection?.connectedAt && (
+                  <p className="text-sm text-theme-tertiary">
+                    Connected on {new Date(connection.connectedAt).toLocaleDateString()}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-theme-tertiary">Not connected</p>
+            )}
           </div>
         </div>
-      ) : (
         <button
-          onClick={handleConnectYoutube}
-          disabled={isConnectingYoutube}
-          className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+          onClick={isConnected ? handleDisconnect : handleConnect}
+          disabled={isConnecting || isLoading}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+            isConnected
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'bg-red-600 hover:bg-red-700 text-white'
+          }`}
         >
-          {isConnectingYoutube ? (
-            <Loader className="w-5 h-5 animate-spin" />
+          {isConnecting ? (
+            <span className="flex items-center gap-2">
+              <Loader className="w-4 h-4 animate-spin" />
+              Connecting...
+            </span>
+          ) : isConnected ? (
+            'Disconnect'
           ) : (
-            <Youtube className="w-5 h-5" />
+            'Connect'
           )}
-          Connect YouTube Channel
         </button>
-      )}
+      </div>
     </div>
   )
 }
+
 
 // Main Integrations Page
 export default function Integrations() {
@@ -1133,26 +1064,18 @@ export default function Integrations() {
           console.error('Failed to fetch YouTube status:', error)
         }
 
-        // Fetch Facebook status
+        // Fetch Meta status (used by both Facebook and Instagram)
         try {
-          const facebookResponse = await fetch('/.netlify/functions/meta-status', {
+          const metaResponse = await fetch('/.netlify/functions/meta-status', {
             headers: { 'Authorization': `Bearer ${session.access_token}` }
           })
-          const facebookData = await facebookResponse.json()
-          updateConnectionStatus('facebook', facebookData.connected === true)
+          const metaData = await metaResponse.json()
+          // Facebook is connected if Meta is connected and has a page
+          updateConnectionStatus('facebook', metaData.connected === true && metaData.connection?.pageName)
+          // Instagram is connected if Meta is connected and has Instagram username
+          updateConnectionStatus('instagram', metaData.connected === true && metaData.connection?.instagramUsername)
         } catch (error) {
-          console.error('Failed to fetch Facebook status:', error)
-        }
-
-        // Fetch Instagram status
-        try {
-          const instagramResponse = await fetch('/.netlify/functions/instagram-status', {
-            headers: { 'Authorization': `Bearer ${session.access_token}` }
-          })
-          const instagramData = await instagramResponse.json()
-          updateConnectionStatus('instagram', instagramData.connected === true)
-        } catch (error) {
-          console.error('Failed to fetch Instagram status:', error)
+          console.error('Failed to fetch Meta status:', error)
         }
       } catch (error) {
         console.error('Failed to fetch connection statuses:', error)
@@ -1232,8 +1155,11 @@ export default function Integrations() {
                 <YouTubeIntegration 
                   onStatusChange={(connected) => updateConnectionStatus('youtube', connected)} 
                 />
-                <MetaIntegration 
-                  onStatusChange={(connected) => updateConnectionStatus('meta', connected)} 
+                <FacebookIntegration 
+                  onStatusChange={(connected) => updateConnectionStatus('facebook', connected)} 
+                />
+                <InstagramIntegration 
+                  onStatusChange={(connected) => updateConnectionStatus('instagram', connected)} 
                 />
               </>
             )}
