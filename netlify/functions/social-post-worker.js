@@ -55,6 +55,27 @@ exports.handler = async (event, context) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
+    // Check if post is still in a valid state to process (prevent duplicates)
+    const { data: post, error: postError } = await supabase
+      .from('social_posts')
+      .select('id, status')
+      .eq('id', postId)
+      .single();
+    
+    if (postError || !post) {
+      return errorResponse(404, 'Post not found', headers);
+    }
+    
+    // Only process if status is 'processing' or 'scheduled' (not already 'posted')
+    if (post.status === 'posted') {
+      console.log(`[Worker] Post ${postId} already posted, skipping`);
+      return successResponse({ 
+        postId, 
+        status: 'skipped', 
+        reason: 'Already posted' 
+      }, headers);
+    }
+    
     // Get video details
     const { data: video, error: videoError } = await supabase
       .from('product_videos')

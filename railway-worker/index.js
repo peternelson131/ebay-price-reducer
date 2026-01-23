@@ -65,17 +65,24 @@ async function scheduleJobs() {
     
     // Add each post to the queue
     for (const post of duePosts) {
-      // Mark as queued to prevent duplicate processing
-      await supabase
+      // Atomically mark as processing - only if still scheduled
+      const { data: updated, error: updateError } = await supabase
         .from('social_posts')
         .update({ 
           status: 'processing',
           processed_at: new Date().toISOString()
         })
         .eq('id', post.id)
-        .eq('status', 'scheduled'); // Only update if still scheduled
+        .eq('status', 'scheduled') // Only update if still scheduled
+        .select('id');
       
-      // Add to queue
+      // If no rows updated, another process already claimed this post
+      if (updateError || !updated || updated.length === 0) {
+        console.log(`⏭️ Post ${post.id} already claimed by another process, skipping`);
+        continue;
+      }
+      
+      // Add to queue with unique job ID to prevent duplicates
       await postQueue.add('publish', {
         postId: post.id,
         userId: post.user_id,
@@ -83,6 +90,7 @@ async function scheduleJobs() {
         caption: post.caption,
         platforms: post.platforms
       }, {
+        jobId: `post-${post.id}`, // Unique ID prevents duplicate jobs
         attempts: 3,
         backoff: {
           type: 'exponential',
