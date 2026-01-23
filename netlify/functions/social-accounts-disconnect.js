@@ -34,8 +34,18 @@ exports.handler = async (event, context) => {
   const userId = authResult.userId;
   
   try {
-    // Get account ID from query params
-    const { id } = event.queryStringParameters || {};
+    // Get account ID from query params OR body
+    let id = event.queryStringParameters?.id;
+    
+    // Also check body if not in query params
+    if (!id && event.body) {
+      try {
+        const body = JSON.parse(event.body);
+        id = body.accountId || body.id;
+      } catch (e) {
+        // Body parse failed, continue
+      }
+    }
     
     if (!id) {
       return errorResponse(400, 'Account ID required', headers);
