@@ -38,27 +38,77 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
     try {
       setLoading(true);
       const token = await userAPI.getAuthToken();
+      const accounts = [];
 
-      const response = await fetch('/.netlify/functions/social-accounts-list', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch connected accounts');
+      // Check Meta (Instagram/Facebook) connections via meta-status
+      try {
+        const metaResponse = await fetch('/.netlify/functions/meta-status', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (metaResponse.ok) {
+          const metaData = await metaResponse.json();
+          if (metaData.connected && metaData.connection) {
+            // Add Instagram if connected
+            if (metaData.connection.instagramUsername) {
+              accounts.push({
+                platform: 'instagram',
+                username: `@${metaData.connection.instagramUsername}`,
+                isActive: true,
+                source: 'meta'
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.log('Meta status check failed:', e);
       }
 
-      const data = await response.json();
-      const accounts = data.accounts || [];
+      // Check YouTube connection via youtube-status
+      try {
+        const youtubeResponse = await fetch('/.netlify/functions/youtube-status', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (youtubeResponse.ok) {
+          const youtubeData = await youtubeResponse.json();
+          if (youtubeData.connected && youtubeData.connection) {
+            accounts.push({
+              platform: 'youtube',
+              username: youtubeData.connection.channelName || youtubeData.connection.channelTitle,
+              isActive: true,
+              source: 'youtube'
+            });
+          }
+        }
+      } catch (e) {
+        console.log('YouTube status check failed:', e);
+      }
+
+      // Also check new social-accounts-list for any new connections
+      try {
+        const response = await fetch('/.netlify/functions/social-accounts-list', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const newAccounts = data.accounts || [];
+          // Add any accounts not already in the list
+          newAccounts.forEach(acc => {
+            if ((acc.platform === 'instagram' || acc.platform === 'youtube') && acc.isActive) {
+              const exists = accounts.some(a => a.platform === acc.platform);
+              if (!exists) {
+                accounts.push(acc);
+              }
+            }
+          });
+        }
+      } catch (e) {
+        console.log('Social accounts list check failed:', e);
+      }
       
-      // Filter for Instagram and YouTube only
-      const filteredAccounts = accounts.filter(acc => 
-        (acc.platform === 'instagram' || acc.platform === 'youtube') && acc.isActive
-      );
-      
-      setConnectedAccounts(filteredAccounts);
+      setConnectedAccounts(accounts);
       
       // Auto-select all connected platforms
-      setSelectedPlatforms(filteredAccounts.map(acc => acc.platform));
+      setSelectedPlatforms(accounts.map(acc => acc.platform));
       
     } catch (error) {
       console.error('Error fetching connected accounts:', error);
