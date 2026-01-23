@@ -16,10 +16,54 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
     instagram: { connected: false, checked: false }
   });
   const [results, setResults] = useState(null);
+  
+  // Async job polling state
+  const [jobId, setJobId] = useState(null);
+  const [jobStatus, setJobStatus] = useState(null); // pending, processing, completed, failed
+  const [polling, setPolling] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchConnectionStatuses();
   }, []);
+
+  // Polling effect for async job status
+  useEffect(() => {
+    if (!polling || !jobId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const token = await userAPI.getAuthToken();
+        const res = await fetch(`/.netlify/functions/social-post-status?jobId=${jobId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) {
+          throw new Error('Failed to fetch job status');
+        }
+
+        const job = await res.json();
+        setJobStatus(job.status);
+
+        if (job.status === 'completed') {
+          handleJobCompletion(job);
+        } else if (job.status === 'failed') {
+          setError(job.error || 'Job failed');
+          setPosting(false);
+          setPolling(false);
+          toast.error(job.error || 'Failed to post to social media');
+        }
+      } catch (err) {
+        console.error('Error polling job status:', err);
+        setError(err.message);
+        setPosting(false);
+        setPolling(false);
+        toast.error(`Failed to check job status: ${err.message}`);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [polling, jobId]);
 
   const fetchConnectionStatuses = async () => {
     try {
@@ -84,6 +128,8 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
 
     setPosting(true);
     setResults(null);
+    setError(null);
+    setJobStatus('starting');
 
     try {
       const token = await userAPI.getAuthToken();
@@ -101,29 +147,46 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to post to social media');
+        throw new Error('Failed to start social media post');
       }
 
       const data = await response.json();
-      setResults(data.results);
-
-      // Check if any posts succeeded
-      const hasSuccess = data.results.some(r => r.success);
-      const hasFailure = data.results.some(r => !r.success);
-
-      if (hasSuccess && !hasFailure) {
-        toast.success('Posted to all selected platforms successfully!');
-        if (onSuccess) onSuccess();
-      } else if (hasSuccess && hasFailure) {
-        toast.warning('Posted to some platforms, but some failed');
-      } else {
-        toast.error('Failed to post to all platforms');
+      
+      // If backend returns a jobId, start polling
+      if (data.jobId) {
+        setJobId(data.jobId);
+        setJobStatus('pending');
+        setPolling(true);
+        toast.info('Job queued - processing in background...');
+      } else if (data.results) {
+        // Legacy synchronous response - handle immediately
+        handleJobCompletion(data);
       }
     } catch (error) {
       console.error('Error posting to social media:', error);
       toast.error(`Failed to post: ${error.message}`);
-    } finally {
       setPosting(false);
+      setJobStatus(null);
+    }
+  };
+
+  const handleJobCompletion = (data) => {
+    setResults(data.results);
+    setPosting(false);
+    setPolling(false);
+    setJobStatus('completed');
+
+    // Check if any posts succeeded
+    const hasSuccess = data.results.some(r => r.success);
+    const hasFailure = data.results.some(r => !r.success);
+
+    if (hasSuccess && !hasFailure) {
+      toast.success('Posted to all selected platforms successfully!');
+      if (onSuccess) onSuccess();
+    } else if (hasSuccess && hasFailure) {
+      toast.warning('Posted to some platforms, but some failed');
+    } else {
+      toast.error('Failed to post to all platforms');
     }
   };
 
@@ -142,6 +205,20 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
       case 'facebook': return 'text-blue-600 dark:text-blue-400';
       case 'instagram': return 'text-pink-600 dark:text-pink-400';
       default: return 'text-gray-600 dark:text-gray-400';
+    }
+  };
+
+  const getProgressMessage = (status) => {
+    switch (status) {
+      case 'starting': return 'Starting...';
+      case 'pending': return 'Queued - waiting to process...';
+      case 'processing': return 'Processing video...';
+      case 'downloading': return 'Downloading video from OneDrive...';
+      case 'transcoding': return 'Transcoding video for Instagram...';
+      case 'uploading': return 'Uploading to platforms...';
+      case 'completed': return 'Complete!';
+      case 'failed': return 'Failed';
+      default: return 'Processing...';
     }
   };
 
@@ -211,6 +288,42 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
                 );
               })}
             </div>
+
+            {/* Progress Indicator */}
+            {posting && jobStatus && jobStatus !== 'completed' && !results && (
+              <div className="mb-6 p-4 rounded-lg border border-accent bg-accent/10">
+                <div className="flex items-center gap-3">
+                  <Loader className="w-5 h-5 animate-spin text-accent" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-theme-primary">
+                      {getProgressMessage(jobStatus)}
+                    </p>
+                    {jobId && (
+                      <p className="text-xs text-theme-tertiary mt-1">
+                        Job ID: {jobId}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {error && !results && (
+              <div className="mb-6 p-4 rounded-lg border border-red-500/30 bg-red-500/10">
+                <div className="flex items-center gap-3">
+                  <XCircle className="w-5 h-5 text-red-500" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-theme-primary">
+                      Error
+                    </p>
+                    <p className="text-xs text-red-500 mt-1">
+                      {error}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Results Display */}
             {results && (
