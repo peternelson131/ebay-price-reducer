@@ -543,23 +543,23 @@ async function postToFacebook(userId, video, connection, accessToken, title, des
 
     const uploadSessionId = initData.upload_session_id;
 
-    // Transfer video bytes in chunks (4MB max per chunk for Facebook API)
-    const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks
-    let offset = 0;
+    // Get initial offsets from Facebook's init response
+    let startOffset = parseInt(initData.start_offset, 10);
+    let endOffset = parseInt(initData.end_offset, 10);
 
-    console.log(`Uploading ${videoBuffer.byteLength} bytes in chunks of ${CHUNK_SIZE}`);
+    console.log(`Uploading ${videoBuffer.byteLength} bytes starting at offset ${startOffset}`);
 
-    while (offset < videoBuffer.byteLength) {
-      const chunkEnd = Math.min(offset + CHUNK_SIZE, videoBuffer.byteLength);
-      const chunk = videoBuffer.slice(offset, chunkEnd);
+    while (startOffset < videoBuffer.byteLength) {
+      // Create chunk using Facebook's provided offsets and convert to Buffer
+      const chunk = Buffer.from(videoBuffer.slice(startOffset, endOffset));
       
-      console.log(`Uploading chunk: offset=${offset}, size=${chunk.byteLength}`);
+      console.log(`Uploading chunk: start_offset=${startOffset}, end_offset=${endOffset}, size=${chunk.byteLength}`);
 
       const transferUrl = new URL(`https://graph.facebook.com/v18.0/${connection.account_id}/videos`);
       transferUrl.searchParams.set('access_token', accessToken);
       transferUrl.searchParams.set('upload_phase', 'transfer');
       transferUrl.searchParams.set('upload_session_id', uploadSessionId);
-      transferUrl.searchParams.set('start_offset', offset.toString());
+      transferUrl.searchParams.set('start_offset', startOffset.toString());
 
       const transferResponse = await fetch(transferUrl.toString(), {
         method: 'POST',
@@ -570,10 +570,12 @@ async function postToFacebook(userId, video, connection, accessToken, title, des
       const transferData = await transferResponse.json();
 
       if (transferData.error) {
-        throw new Error(`Facebook transfer error at offset ${offset}: ${transferData.error.message}`);
+        throw new Error(`Facebook transfer error at offset ${startOffset}: ${transferData.error.message}`);
       }
 
-      offset = chunkEnd;
+      // Use Facebook's returned offsets for next iteration
+      startOffset = parseInt(transferData.start_offset, 10);
+      endOffset = parseInt(transferData.end_offset, 10);
     }
 
     console.log('All chunks uploaded successfully');
