@@ -171,14 +171,23 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
   };
 
   const handleJobCompletion = (data) => {
-    setResults(data.results);
+    // Convert results object to array if needed
+    let resultsArray = data.results;
+    if (data.results && !Array.isArray(data.results)) {
+      resultsArray = Object.entries(data.results).map(([platform, result]) => ({
+        platform,
+        ...result
+      }));
+    }
+    
+    setResults(resultsArray);
     setPosting(false);
     setPolling(false);
     setJobStatus('completed');
 
     // Check if any posts succeeded
-    const hasSuccess = data.results.some(r => r.success);
-    const hasFailure = data.results.some(r => !r.success);
+    const hasSuccess = resultsArray && resultsArray.some(r => r.success);
+    const hasFailure = resultsArray && resultsArray.some(r => !r.success);
 
     if (hasSuccess && !hasFailure) {
       toast.success('Posted to all selected platforms successfully!');
