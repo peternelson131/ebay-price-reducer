@@ -105,3 +105,7 @@ timeout = 60
 # YouTube upload - extended timeout for video uploads
 [functions."youtube-post"]
 timeout = 60
+
+# Social media posting - extended timeout for video transcoding and uploads
+[functions."social-post"]
+timeout = 60
