@@ -75,6 +75,23 @@ async function getAccountInfo(platform, accessToken) {
  * Generate HTML response for popup
  */
 function generatePopupResponse(success, data = {}) {
+  // Redirect to integrations page with status
+  const baseUrl = process.env.URL || 'https://dainty-horse-49c336.netlify.app';
+  const status = success ? 'connected' : 'error';
+  const errorMsg = data.error ? `&error=${encodeURIComponent(data.error)}` : '';
+  const redirectUrl = `${baseUrl}/integrations?social=${status}${errorMsg}`;
+  
+  return {
+    statusCode: 302,
+    headers: {
+      'Location': redirectUrl,
+      'Cache-Control': 'no-cache'
+    },
+    body: ''
+  };
+
+  // OLD POPUP CODE - kept for reference
+  /*
   const message = success ? 'success' : 'error';
   const payload = JSON.stringify(data);
   
@@ -139,6 +156,7 @@ function generatePopupResponse(success, data = {}) {
 </html>
     `
   };
+  */
 }
 
 exports.handler = async (event, context) => {
