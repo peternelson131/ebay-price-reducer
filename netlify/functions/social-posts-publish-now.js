@@ -124,9 +124,9 @@ exports.handler = async (event, context) => {
       return errorResponse(400, 'Video is not yet ready for social posting. Please wait for processing to complete.', headers);
     }
     
-    // Mark as processing
+    // Atomically mark as processing - prevents duplicate posts
     const now = new Date().toISOString();
-    await supabase
+    const { data: lockResult, error: lockError } = await supabase
       .from('social_posts')
       .update({
         scheduled_at: now,
@@ -134,7 +134,15 @@ exports.handler = async (event, context) => {
         processed_at: now,
         updated_at: now
       })
-      .eq('id', id);
+      .eq('id', id)
+      .in('status', PUBLISHABLE_STATUSES) // Only if still in publishable state
+      .select('id');
+    
+    // If no rows updated, another process already claimed this post
+    if (lockError || !lockResult || lockResult.length === 0) {
+      console.log(`Post ${id} already being processed by another request`);
+      return errorResponse(409, 'Post is already being processed', headers);
+    }
     
     // Get social accounts with tokens for posting
     const { data: socialAccounts, error: saError } = await supabase
