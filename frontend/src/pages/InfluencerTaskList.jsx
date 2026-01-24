@@ -498,7 +498,7 @@ export default function InfluencerTaskList() {
                             href={task.amazon_upload_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors flex items-center gap-1"
+                            className="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg transition-colors flex items-center gap-1"
                             title="View product on Amazon"
                           >
                             Product <ExternalLink className="w-3 h-3" />

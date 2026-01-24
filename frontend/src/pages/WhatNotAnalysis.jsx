@@ -485,7 +485,7 @@ export default function WhatNotAnalysis() {
             ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
             : enrichProgress.complete
             ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-            : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+            : 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-blue-400'
         }`}>
           {!enrichProgress.complete && !enrichProgress.error && (
             <Loader className="w-5 h-5 animate-spin" />

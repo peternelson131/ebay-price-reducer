@@ -103,7 +103,7 @@ const AddOwnerModal = ({ isOpen, onClose, onSave, isSaving }) => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter owner name..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 autoFocus
               />
             </div>
@@ -118,7 +118,7 @@ const AddOwnerModal = ({ isOpen, onClose, onSave, isSaving }) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="owner@example.com"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
 
@@ -132,7 +132,7 @@ const AddOwnerModal = ({ isOpen, onClose, onSave, isSaving }) => {
                 value={titlePrefix}
                 onChange={(e) => setTitlePrefix(e.target.value)}
                 placeholder="e.g., Honest Review"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 maxLength={30}
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -190,7 +190,7 @@ const AddOwnerModal = ({ isOpen, onClose, onSave, isSaving }) => {
             <button
               type="submit"
               disabled={isSaving || !name.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
             >
               {isSaving ? <Loader className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               Save
@@ -378,7 +378,7 @@ export default function OwnerSelector({
         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</h4>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+          className="text-sm text-orange-600 hover:text-orange-700 flex items-center gap-1"
         >
           <Plus className="w-3.5 h-3.5" /> Add
         </button>
@@ -408,7 +408,7 @@ export default function OwnerSelector({
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             disabled={isLoading}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-left text-sm flex items-center justify-between focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-left text-sm flex items-center justify-between focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50"
           >
             <span className="text-gray-400">
               {isLoading ? 'Loading...' : 'Click to add or change owners...'}
@@ -459,7 +459,7 @@ export default function OwnerSelector({
                     setIsDropdownOpen(false);
                     setIsModalOpen(true);
                   }}
-                  className="w-full px-3 py-2 text-left text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   Add New Owner
@@ -474,7 +474,7 @@ export default function OwnerSelector({
       {!isLoading && availableOwners.length === 0 && (
         <button
           onClick={() => setIsModalOpen(true)}
-          className="w-full px-3 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 text-sm hover:border-blue-500 hover:text-blue-500 flex items-center justify-center gap-2 transition-colors"
+          className="w-full px-3 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 text-sm hover:border-orange-500 hover:text-orange-500 flex items-center justify-center gap-2 transition-colors"
         >
           <User className="w-4 h-4" />
           Create your first owner

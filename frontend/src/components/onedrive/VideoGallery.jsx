@@ -178,7 +178,7 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
     // This will be populated from scheduled_posts table
     const badges = [];
     if (video.posted_to_youtube) badges.push({ platform: 'youtube', icon: Youtube, color: 'text-red-500' });
-    if (video.posted_to_facebook) badges.push({ platform: 'facebook', icon: Facebook, color: 'text-blue-500' });
+    if (video.posted_to_facebook) badges.push({ platform: 'facebook', icon: Facebook, color: 'text-orange-500' });
     if (video.posted_to_instagram) badges.push({ platform: 'instagram', icon: Instagram, color: 'text-pink-500' });
     return badges;
   };

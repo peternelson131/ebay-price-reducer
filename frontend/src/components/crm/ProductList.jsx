@@ -31,8 +31,8 @@ import ProductStatusBadge from './ProductStatusBadge';
 const SHIPPING_STATUS_CONFIG = {
   'pending': { icon: Clock, label: 'Pending', color: 'text-gray-500' },
   'Pending': { icon: Clock, label: 'Pending', color: 'text-gray-500' },
-  'label_created': { icon: Package, label: 'Label Created', color: 'text-blue-500' },
-  'picked_up': { icon: Truck, label: 'Picked Up', color: 'text-blue-500' },
+  'label_created': { icon: Package, label: 'Label Created', color: 'text-orange-500' },
+  'picked_up': { icon: Truck, label: 'Picked Up', color: 'text-orange-500' },
   'in_transit': { icon: Truck, label: 'In Transit', color: 'text-yellow-500' },
   'out_for_delivery': { icon: Truck, label: 'Out for Delivery', color: 'text-orange-500' },
   'delivered': { icon: CheckCircle, label: 'Delivered', color: 'text-green-500' },
@@ -40,11 +40,11 @@ const SHIPPING_STATUS_CONFIG = {
   'exception': { icon: AlertCircle, label: 'Exception', color: 'text-red-500' },
   'Exception': { icon: AlertCircle, label: 'Exception', color: 'text-red-500' },
   'returned': { icon: Package, label: 'Returned', color: 'text-red-500' },
-  'InfoReceived': { icon: Clock, label: 'Info Received', color: 'text-blue-500' },
+  'InfoReceived': { icon: Clock, label: 'Info Received', color: 'text-orange-500' },
   'InTransit': { icon: Truck, label: 'In Transit', color: 'text-yellow-500' },
   'OutForDelivery': { icon: Truck, label: 'Out for Delivery', color: 'text-orange-500' },
   'AttemptFail': { icon: AlertCircle, label: 'Delivery Failed', color: 'text-red-500' },
-  'AvailableForPickup': { icon: Package, label: 'Available for Pickup', color: 'text-blue-500' },
+  'AvailableForPickup': { icon: Package, label: 'Available for Pickup', color: 'text-orange-500' },
   'Expired': { icon: AlertCircle, label: 'Expired', color: 'text-red-500' }
 };
 
@@ -81,7 +81,7 @@ const OwnerAvatars = ({ owners, max = 3 }) => {
       {displayed.map((owner, i) => (
         <div
           key={owner.id || i}
-          className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium border-2 border-white dark:border-gray-800"
+          className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium border-2 border-white dark:border-gray-800"
           title={owner.name || owner.email}
         >
           {(owner.name || owner.email || '?')[0].toUpperCase()}
@@ -153,7 +153,7 @@ const ProductRow = ({
   return (
     <tr 
       className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors ${
-        isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+        isSelected ? 'bg-orange-50 dark:bg-orange-900/20' : ''
       }`}
       onClick={() => onSelect(product)}
     >
@@ -184,7 +184,7 @@ const ProductRow = ({
             target="_blank"
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
-            className="text-gray-400 hover:text-blue-500 transition-colors"
+            className="text-gray-400 hover:text-orange-500 transition-colors"
             title="View on Amazon"
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -211,7 +211,7 @@ const ProductRow = ({
       <td className="py-3 px-4">
         <span className={`text-sm font-medium ${
           product.decision === 'sell' ? 'text-green-600 dark:text-green-400' : 
-          product.decision === 'keep' ? 'text-blue-600 dark:text-blue-400' : 
+          product.decision === 'keep' ? 'text-orange-600 dark:text-orange-400' : 
           'text-gray-400'
         }`}>
           {product.decision ? product.decision.charAt(0).toUpperCase() + product.decision.slice(1) : '-'}
@@ -309,7 +309,7 @@ const Pagination = ({
               onClick={() => onPageChange(pageNum)}
               className={`w-8 h-8 text-sm rounded ${
                 currentPage === pageNum
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-orange-600 text-white'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
@@ -355,7 +355,7 @@ const FilterBar = ({
           value={searchQuery}
           onChange={e => onSearchChange(e.target.value)}
           placeholder="Search by ASIN..."
-          className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         />
         {searchQuery && (
           <button
@@ -435,7 +435,7 @@ const ErrorState = ({ error, onRetry }) => (
     <p className="text-red-500 mt-2">{error}</p>
     <button 
       onClick={onRetry} 
-      className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+      className="mt-4 text-orange-600 hover:text-orange-700 font-medium"
     >
       Try again
     </button>
@@ -459,7 +459,7 @@ const EmptyState = ({ onAdd, hasFilters }) => (
     {!hasFilters && onAdd && (
       <button
         onClick={onAdd}
-        className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+        className="mt-4 text-orange-600 hover:text-orange-700 font-medium"
       >
         + Add your first product
       </button>

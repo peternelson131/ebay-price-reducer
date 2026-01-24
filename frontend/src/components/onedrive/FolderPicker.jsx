@@ -149,7 +149,7 @@ export default function FolderPicker({ onClose, onSelect, skipSave = false }) {
         <div
           className={`flex items-center py-2 px-3 rounded cursor-pointer transition-colors ${
             isSelected
-              ? 'bg-ebay-blue text-white'
+              ? 'bg-orange-500 text-white'
               : 'hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
           style={{ paddingLeft: `${depth * 1.5 + 0.75}rem` }}
@@ -176,7 +176,7 @@ export default function FolderPicker({ onClose, onSelect, skipSave = false }) {
             onClick={() => setSelectedFolder(folder)}
             className="flex items-center flex-1 min-w-0"
           >
-            <Folder className={`w-4 h-4 mr-2 flex-shrink-0 ${isSelected ? 'text-white' : 'text-blue-500'}`} />
+            <Folder className={`w-4 h-4 mr-2 flex-shrink-0 ${isSelected ? 'text-white' : 'text-orange-500'}`} />
             <span className="text-sm truncate">{folder.name}</span>
           </div>
 
@@ -219,7 +219,7 @@ export default function FolderPicker({ onClose, onSelect, skipSave = false }) {
         <div className="flex-1 overflow-y-auto p-4">
           {loading && folders.length === 0 ? (
             <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-6 h-6 animate-spin text-ebay-blue" />
+              <RefreshCw className="w-6 h-6 animate-spin text-orange-500" />
             </div>
           ) : folders.length === 0 ? (
             <div className="text-center py-12">
@@ -235,7 +235,7 @@ export default function FolderPicker({ onClose, onSelect, skipSave = false }) {
 
         {/* Selected Folder Info */}
         {selectedFolder && (
-          <div className="px-6 py-3 bg-blue-50 dark:bg-blue-900/20 border-t border-theme">
+          <div className="px-6 py-3 bg-orange-50 dark:bg-orange-900/20 border-t border-theme">
             <p className="text-xs text-theme-tertiary">Selected:</p>
             <p className="text-sm font-medium text-theme-primary truncate">
               {selectedFolder.path || selectedFolder.name}
@@ -254,7 +254,7 @@ export default function FolderPicker({ onClose, onSelect, skipSave = false }) {
           <button
             onClick={handleSelect}
             disabled={!selectedFolder || saving}
-            className="px-6 py-2 text-sm bg-ebay-blue text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-2 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {saving ? (
               <>

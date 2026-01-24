@@ -131,7 +131,7 @@ const AddOptionModal = ({
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="Enter name..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 autoFocus
               />
             </div>
@@ -189,7 +189,7 @@ const AddOptionModal = ({
             <button
               type="submit"
               disabled={isSaving || !name.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
             >
               {isSaving ? (
                 <Loader className="w-4 h-4 animate-spin" />
@@ -354,7 +354,7 @@ export default function CustomizableDropdown({
           type="button"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           disabled={isLoading}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-left flex items-center justify-between focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-left flex items-center justify-between focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50"
         >
           <div className="flex items-center gap-2 truncate">
             {/* Color indicator for statuses */}
@@ -387,7 +387,7 @@ export default function CustomizableDropdown({
                   type="button"
                   onClick={() => { onChange(''); setIsDropdownOpen(false); }}
                   className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                    !value ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    !value ? 'bg-orange-50 dark:bg-orange-900/20' : ''
                   }`}
                 >
                   <span className="text-gray-400">{emptyLabel}</span>
@@ -401,7 +401,7 @@ export default function CustomizableDropdown({
                   type="button"
                   onClick={() => { onChange(option.id); setIsDropdownOpen(false); }}
                   className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 ${
-                    value === option.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    value === option.id ? 'bg-orange-50 dark:bg-orange-900/20' : ''
                   }`}
                 >
                   {/* Color indicator */}
@@ -426,7 +426,7 @@ export default function CustomizableDropdown({
               <button
                 type="button"
                 onClick={() => { setIsDropdownOpen(false); setIsModalOpen(true); }}
-                className="w-full px-3 py-2 text-left text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2"
+                className="w-full px-3 py-2 text-left text-sm text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Add New Option

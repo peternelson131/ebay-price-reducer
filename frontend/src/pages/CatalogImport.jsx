@@ -53,8 +53,8 @@ const STATUS_CONFIG = {
     icon: Loader, 
     label: 'Processing', 
     emoji: '🔄',
-    bgClass: 'bg-blue-50 dark:bg-blue-900/30', 
-    textClass: 'text-blue-600 dark:text-blue-400',
+    bgClass: 'bg-orange-50 dark:bg-orange-900/30', 
+    textClass: 'text-orange-600 dark:text-orange-400',
     animated: true,
     canSync: false
   },

@@ -632,7 +632,7 @@ export default function AutoList() {
                   setInputMethod('file')
                   setStep(2)
                 }}
-                className="border-2 border-theme rounded-lg p-6 hover:border-blue-500 hover:bg-accent/10 cursor-pointer transition-colors"
+                className="border-2 border-theme rounded-lg p-6 hover:border-orange-500 hover:bg-accent/10 cursor-pointer transition-colors"
               >
                 <div className="text-center">
                   <svg className="mx-auto h-12 w-12 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -730,7 +730,7 @@ export default function AutoList() {
                 <div
                   {...getRootProps()}
                   className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-                    isDragActive ? 'border-blue-500 bg-accent/10' : 'border-theme hover:border-gray-400'
+                    isDragActive ? 'border-orange-500 bg-accent/10' : 'border-theme hover:border-gray-400'
                   }`}
                 >
                   <input {...getInputProps()} />
@@ -777,7 +777,7 @@ export default function AutoList() {
                     rows={8}
                     value={manualAsins}
                     onChange={(e) => setManualAsins(e.target.value)}
-                    className="w-full border border-theme rounded-lg p-3 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-theme rounded-lg p-3 focus:ring-orange-500 focus:border-orange-500"
                     placeholder="B0123456789
 B0987654321
 B0555666777
@@ -1032,7 +1032,7 @@ Enter multiple ASINs, one per line"
                               maxLength="80"
                               defaultValue={item.listingTitle}
                               onChange={(e) => handleTitleChange(item.id, e.target.value)}
-                              className="w-full px-2 py-1 text-sm border border-theme rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              className="w-full px-2 py-1 text-sm border border-theme rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                               placeholder="Enter listing title"
                             />
                             <div className="flex justify-between items-center mt-0.5">
@@ -1054,7 +1054,7 @@ Enter multiple ASINs, one per line"
                                 max="10000"
                                 defaultValue={item.quantity}
                                 onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-theme rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1 text-sm border border-theme rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                               />
                             </div>
 
@@ -1064,7 +1064,7 @@ Enter multiple ASINs, one per line"
                               <select
                                 defaultValue="NEW_OTHER"
                                 onChange={(e) => handleConditionChange(item.id, e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-theme rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1 text-sm border border-theme rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                               >
                                 {ebayConditions.map((condition) => (
                                   <option key={condition.value} value={condition.value}>
@@ -1085,7 +1085,7 @@ Enter multiple ASINs, one per line"
                                   min="0"
                                   defaultValue={item.suggestedPrice}
                                   onChange={(e) => handlePriceChange(item.id, e.target.value)}
-                                  className="w-full pl-6 pr-2 py-1 text-sm border border-theme rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                  className="w-full pl-6 pr-2 py-1 text-sm border border-theme rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                                 />
                               </div>
                             </div>
@@ -1103,7 +1103,7 @@ Enter multiple ASINs, one per line"
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 mb-4">
                   <h3 className="font-medium text-blue-900 mb-2">Creation Summary</h3>
-                  <p className="text-sm text-blue-700">
+                  <p className="text-sm text-orange-700">
                     ✅ Successful: {creationResults.filter(r => r.success).length} listings<br/>
                     ❌ Failed: {creationResults.filter(r => !r.success).length} listings
                   </p>

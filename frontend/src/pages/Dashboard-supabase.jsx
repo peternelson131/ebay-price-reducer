@@ -55,8 +55,8 @@ export default function Dashboard() {
       name: 'Total Listings',
       value: totalListings,
       icon: ListBulletIcon,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-100'
     },
     {
       name: 'Active Monitoring',

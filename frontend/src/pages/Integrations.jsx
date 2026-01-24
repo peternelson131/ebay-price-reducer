@@ -599,15 +599,15 @@ function FacebookIntegration({ onStatusChange }) {
   return (
     <div className={`border rounded-lg p-6 ${
       isConnected
-        ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800'
+        ? 'bg-orange-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800'
         : 'bg-theme-primary border-theme'
     }`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-            isConnected ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-theme-surface'
+            isConnected ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-theme-surface'
           }`}>
-            <Facebook className="w-6 h-6 text-blue-600" />
+            <Facebook className="w-6 h-6 text-orange-600" />
           </div>
           <div>
             <h4 className="font-medium text-theme-primary">Facebook Pages</h4>

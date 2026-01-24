@@ -64,8 +64,8 @@ export default function Dashboard() {
     {
       name: 'Total Listings',
       value: listings?.total || 0,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-100'
     },
     {
       name: 'Active Monitoring',
@@ -239,7 +239,7 @@ export default function Dashboard() {
                       <div className="flex flex-col sm:flex-row gap-2">
                         <button
                           onClick={() => setEditingListing(listing.id)}
-                          className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 w-full sm:w-auto"
+                          className="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700 w-full sm:w-auto"
                         >
                           Configure Rules
                         </button>
@@ -265,7 +265,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             to="/listings"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-center"
+            className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 text-center"
           >
             View All Listings
           </Link>

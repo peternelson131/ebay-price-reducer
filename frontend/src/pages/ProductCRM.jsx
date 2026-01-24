@@ -70,15 +70,15 @@ const STATUS_CONFIG = {
 // Shipping status configuration
 const SHIPPING_STATUS_CONFIG = {
   'pending': { icon: Clock, label: 'Pending', color: 'text-gray-500' },
-  'label_created': { icon: Package, label: 'Label Created', color: 'text-blue-500' },
-  'picked_up': { icon: Truck, label: 'Picked Up', color: 'text-blue-500' },
+  'label_created': { icon: Package, label: 'Label Created', color: 'text-orange-500' },
+  'picked_up': { icon: Truck, label: 'Picked Up', color: 'text-orange-500' },
   'in_transit': { icon: Truck, label: 'In Transit', color: 'text-yellow-500' },
   'out_for_delivery': { icon: Truck, label: 'Out for Delivery', color: 'text-orange-500' },
   'delivered': { icon: CheckCircle, label: 'Delivered', color: 'text-green-500' },
   'Delivered': { icon: CheckCircle, label: 'Delivered', color: 'text-green-500' },
   'exception': { icon: AlertCircle, label: 'Exception', color: 'text-red-500' },
   'returned': { icon: Package, label: 'Returned', color: 'text-red-500' },
-  'InfoReceived': { icon: Clock, label: 'Info Received', color: 'text-blue-500' },
+  'InfoReceived': { icon: Clock, label: 'Info Received', color: 'text-orange-500' },
   'InTransit': { icon: Truck, label: 'In Transit', color: 'text-yellow-500' }
 };
 
@@ -153,7 +153,7 @@ const TrackingInput = ({ productId, currentTracking, onUpdate }) => {
         </div>
         <button
           onClick={() => setIsEditing(true)}
-          className="text-xs text-blue-600 hover:text-blue-700"
+          className="text-xs text-orange-600 hover:text-orange-700"
         >
           Edit
         </button>
@@ -176,7 +176,7 @@ const TrackingInput = ({ productId, currentTracking, onUpdate }) => {
           <button
             onClick={handleSave}
             disabled={isSaving || !trackingNumber.trim()}
-            className="flex-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm flex items-center justify-center gap-1"
+            className="flex-1 px-3 py-1.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 text-sm flex items-center justify-center gap-1"
           >
             {isSaving ? <Loader className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             Save
@@ -210,7 +210,7 @@ const OwnerAvatars = ({ owners, max = 3 }) => {
       {displayed.map((owner, i) => (
         <div
           key={owner.id || i}
-          className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium border-2 border-white dark:border-gray-800"
+          className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium border-2 border-white dark:border-gray-800"
           title={owner.name || owner.email}
         >
           {(owner.name || owner.email || '?')[0].toUpperCase()}
@@ -951,7 +951,7 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
 
         {/* Progress */}
         {isLoading && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5">
+          <div className="bg-orange-50 dark:bg-orange-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5">
             <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-4">Creating listing...</h4>
             <div className="space-y-3">
               {QUICK_LIST_STEPS.map((step, index) => (
@@ -959,7 +959,7 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
                   {index < (currentStep || 0) ? (
                     <CheckCircle className="w-5 h-5 text-green-500" />
                   ) : index === currentStep ? (
-                    <Loader className="w-5 h-5 text-blue-500 animate-spin" />
+                    <Loader className="w-5 h-5 text-orange-500 animate-spin" />
                   ) : (
                     <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                   )}
@@ -1065,8 +1065,8 @@ const ProductRow = ({ product, isSelected, isChecked, onCheck, onSelect, onEdit 
   return (
     <tr 
       className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors ${
-        isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-      } ${isChecked ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+        isSelected ? 'bg-orange-50 dark:bg-orange-900/20' : ''
+      } ${isChecked ? 'bg-orange-50/50 dark:bg-blue-900/10' : ''}`}
       onClick={() => onSelect(product)}
     >
       {/* Checkbox */}
@@ -1075,7 +1075,7 @@ const ProductRow = ({ product, isSelected, isChecked, onCheck, onSelect, onEdit 
           type="checkbox"
           checked={isChecked}
           onChange={(e) => onCheck(e.target.checked)}
-          className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+          className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-orange-500"
         />
       </td>
       {/* Image */}
@@ -1098,7 +1098,7 @@ const ProductRow = ({ product, isSelected, isChecked, onCheck, onSelect, onEdit 
             target="_blank"
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
-            className="text-gray-400 hover:text-blue-500"
+            className="text-gray-400 hover:text-orange-500"
           >
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
@@ -1122,7 +1122,7 @@ const ProductRow = ({ product, isSelected, isChecked, onCheck, onSelect, onEdit 
       
       {/* Decision */}
       <td className="py-3 px-4">
-        <span className={`text-sm ${product.decision === 'sell' ? 'text-green-600' : product.decision === 'keep' ? 'text-blue-600' : 'text-gray-400'}`}>
+        <span className={`text-sm ${product.decision === 'sell' ? 'text-green-600' : product.decision === 'keep' ? 'text-orange-600' : 'text-gray-400'}`}>
           {product.decision ? product.decision.charAt(0).toUpperCase() + product.decision.slice(1) : '-'}
         </span>
       </td>
@@ -1451,16 +1451,16 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
           {step === 1 && (
             <div className="space-y-4">
               {/* Accepted columns info */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="bg-orange-50 dark:bg-orange-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
                       Accepted Columns:
                     </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-300">
+                    <p className="text-xs text-orange-600 dark:text-blue-300">
                       <strong>ASIN</strong> (required), Status*, Requirements, Decision*, Notes, Important Date, Date Comment
                     </p>
-                    <p className="text-xs text-blue-500 dark:text-blue-400 mt-1 italic">
+                    <p className="text-xs text-orange-500 dark:text-blue-400 mt-1 italic">
                       * Status must match your configured statuses. Decision must be "sell" or "keep".
                     </p>
                     <p className="text-xs text-green-600 dark:text-green-400 mt-1">
@@ -1469,7 +1469,7 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
                   </div>
                   <button
                     onClick={downloadTemplate}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors whitespace-nowrap"
                   >
                     <Download className="w-4 h-4" />
                     Template
@@ -1482,14 +1482,14 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
                 {...getRootProps()}
                 className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                   isDragActive 
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                    : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500'
+                    ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' 
+                    : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-orange-500'
                 }`}
               >
                 <input {...getInputProps()} />
-                <Upload className={`w-10 h-10 mx-auto mb-3 ${isDragActive ? 'text-blue-500' : 'text-gray-400'}`} />
+                <Upload className={`w-10 h-10 mx-auto mb-3 ${isDragActive ? 'text-orange-500' : 'text-gray-400'}`} />
                 {isDragActive ? (
-                  <p className="text-blue-600 dark:text-blue-400 font-medium">Drop the file here...</p>
+                  <p className="text-orange-600 dark:text-blue-400 font-medium">Drop the file here...</p>
                 ) : (
                   <>
                     <p className="text-gray-600 dark:text-gray-300 font-medium">
@@ -1646,7 +1646,7 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
               else handleImport();
             }}
             disabled={isImporting || (step === 1 && !csvData.trim())}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isImporting ? (
               <>
@@ -1869,8 +1869,8 @@ const ManageCustomFieldsModal = ({ isOpen, onClose, statuses, collaborationTypes
             </div>
           )}
 
-          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <p className="text-sm text-blue-700 dark:text-blue-300">
+          <div className="mt-6 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+            <p className="text-sm text-orange-700 dark:text-blue-300">
               <strong>Note:</strong> You can only delete custom {currentConfig?.label.toLowerCase()}s that are not currently in use. 
               {currentConfig?.systemItems?.length > 0 && `System ${currentConfig.label.toLowerCase()}s cannot be deleted.`}
             </p>
@@ -1942,7 +1942,7 @@ const AddProductModal = ({ isOpen, onClose, onAdd, statuses }) => {
                 value={asin}
                 onChange={e => setAsin(e.target.value)}
                 placeholder="B0XXXXXXXXX"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 required
               />
             </div>
@@ -1954,7 +1954,7 @@ const AddProductModal = ({ isOpen, onClose, onAdd, statuses }) => {
               <select
                 value={statusId}
                 onChange={e => setStatusId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               >
                 {statuses?.map(status => (
                   <option key={status.id} value={status.id}>{status.name}</option>
@@ -1978,7 +1978,7 @@ const AddProductModal = ({ isOpen, onClose, onAdd, statuses }) => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center gap-2"
             >
               {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               Add Product
@@ -2164,7 +2164,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedCount, statuses, availableOwne
           <button
             onClick={handleApply}
             disabled={!changes.status_id && !changes.decision && !changes.ownerAction}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Apply to {selectedCount} Products
           </button>
@@ -2254,7 +2254,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
       >
         {/* Drag handle for resizing */}
         <div
-          className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-transparent hover:bg-blue-500/30 transition-colors z-50"
+          className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-transparent hover:bg-orange-500/30 transition-colors z-50"
           onMouseDown={(e) => {
             e.preventDefault();
             setIsResizing(true);
@@ -2312,7 +2312,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
                 href={amazonUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-700"
+                className="text-orange-600 hover:text-orange-700"
                 title="View on Amazon"
               >
                 <ExternalLink className="w-4 h-4" />
@@ -2431,7 +2431,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
                 navigator.clipboard.writeText(product.video_title);
                 // Show brief toast/feedback
               }}
-              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              className="text-xs text-orange-600 hover:text-orange-700 flex items-center gap-1"
             >
               <Copy className="w-3 h-3" /> Copy to clipboard
             </button>
@@ -3233,7 +3233,7 @@ export default function ProductCRM() {
               </button>
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Add Product
@@ -3373,14 +3373,14 @@ export default function ProductCRM() {
                 <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex gap-2">
                   <button
                     onClick={() => setStatusFilter(new Set(statuses.map(s => s.id)))}
-                    className="text-xs text-blue-600 hover:text-blue-700"
+                    className="text-xs text-orange-600 hover:text-orange-700"
                   >
                     Select All
                   </button>
                   <span className="text-gray-300">|</span>
                   <button
                     onClick={() => setStatusFilter(new Set())}
-                    className="text-xs text-blue-600 hover:text-blue-700"
+                    className="text-xs text-orange-600 hover:text-orange-700"
                   >
                     Clear All
                   </button>
@@ -3394,7 +3394,7 @@ export default function ProductCRM() {
                       );
                       setStatusFilter(openStatuses);
                     }}
-                    className="text-xs text-blue-600 hover:text-blue-700"
+                    className="text-xs text-orange-600 hover:text-orange-700"
                   >
                     Open Only
                   </button>
@@ -3430,7 +3430,7 @@ export default function ProductCRM() {
                 <div className="p-2 border-t border-gray-200 dark:border-gray-700">
                   <button
                     onClick={() => setStatusFilterOpen(false)}
-                    className="w-full px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                    className="w-full px-3 py-1.5 bg-orange-600 text-white text-sm rounded hover:bg-orange-700"
                   >
                     Done
                   </button>
@@ -3473,7 +3473,7 @@ export default function ProductCRM() {
             <div className="p-12 text-center">
               <AlertCircle className="w-8 h-8 text-red-400 mx-auto" />
               <p className="text-red-500 mt-2">{error}</p>
-              <button onClick={fetchProducts} className="mt-4 text-blue-600 hover:text-blue-700">
+              <button onClick={fetchProducts} className="mt-4 text-orange-600 hover:text-orange-700">
                 Try again
               </button>
             </div>
@@ -3483,7 +3483,7 @@ export default function ProductCRM() {
               <p className="text-gray-500 mt-2">No products found</p>
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="mt-4 text-blue-600 hover:text-blue-700 flex items-center gap-1 mx-auto"
+                className="mt-4 text-orange-600 hover:text-orange-700 flex items-center gap-1 mx-auto"
               >
                 <Plus className="w-4 h-4" /> Add your first product
               </button>
@@ -3510,7 +3510,7 @@ export default function ProductCRM() {
                           setSelectedProducts(newSelected);
                         }
                       }}
-                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-orange-500"
                     />
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">Image</th>
@@ -3652,7 +3652,7 @@ export default function ProductCRM() {
           <div className="w-px h-6 bg-gray-600"></div>
           <button
             onClick={() => setShowBulkEditModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
           >
             <Edit className="w-4 h-4" />
             Edit Selected

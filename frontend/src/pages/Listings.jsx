@@ -1543,7 +1543,7 @@ export default function Listings() {
                 className={`px-3 py-1 rounded text-sm ${
                   currentPage === 1
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-orange-600 text-white hover:bg-orange-700'
                 }`}
               >
                 Previous
@@ -1560,7 +1560,7 @@ export default function Listings() {
                     onClick={() => handlePageChange(page)}
                     className={`px-3 py-1 rounded text-sm ${
                       currentPage === page
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-orange-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -1575,7 +1575,7 @@ export default function Listings() {
                 className={`px-3 py-1 rounded text-sm ${
                   currentPage === totalPages
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-orange-600 text-white hover:bg-orange-700'
                 }`}
               >
                 Next
@@ -1595,7 +1595,7 @@ export default function Listings() {
               className={`px-3 py-1 rounded text-sm ${
                 currentPage === 1
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-orange-600 text-white hover:bg-orange-700'
               }`}
             >
               Previous
@@ -1612,7 +1612,7 @@ export default function Listings() {
                   onClick={() => handlePageChange(page)}
                   className={`px-3 py-1 rounded text-sm ${
                     currentPage === page
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-orange-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -1627,7 +1627,7 @@ export default function Listings() {
               className={`px-3 py-1 rounded text-sm ${
                 currentPage === totalPages
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-orange-600 text-white hover:bg-orange-700'
               }`}
             >
               Next

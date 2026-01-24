@@ -359,7 +359,7 @@ export default function ListingsOptimized() {
           <button
             onClick={() => triggerSync.mutate({ jobType: 'full_sync', priority: 1 })}
             disabled={syncStatus.isRunning || triggerSync.isLoading}
-            className="mt-2 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+            className="mt-2 text-xs bg-orange-600 text-white px-3 py-1 rounded hover:bg-orange-700 disabled:opacity-50"
           >
             {triggerSync.isLoading ? 'Triggering...' : 'Sync Now'}
           </button>
@@ -377,7 +377,7 @@ export default function ListingsOptimized() {
             type="text"
             placeholder="Search listings..."
             onChange={handleSearch}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
           />
         </div>
 
@@ -388,7 +388,7 @@ export default function ListingsOptimized() {
             ...prev,
             status: e.target.value ? [e.target.value] : []
           }))}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
         >
           <option value="">All Status</option>
           <option value="Active">Active</option>
@@ -406,7 +406,7 @@ export default function ListingsOptimized() {
               ...prev,
               priceMin: e.target.value ? parseFloat(e.target.value) : null
             }))}
-            className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
           />
           <span>-</span>
           <input
@@ -417,7 +417,7 @@ export default function ListingsOptimized() {
               ...prev,
               priceMax: e.target.value ? parseFloat(e.target.value) : null
             }))}
-            className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
           />
         </div>
 
@@ -428,7 +428,7 @@ export default function ListingsOptimized() {
             const [field, direction] = e.target.value.split('_');
             setSort({ field, direction });
           }}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
         >
           <option value="LAST_SYNCED_DESC">Recently Synced</option>
           <option value="PRICE_DESC">Price: High to Low</option>
@@ -463,7 +463,7 @@ export default function ListingsOptimized() {
         <div className="mt-4 flex gap-2">
           <button
             onClick={handleBatchUpdate}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"
           >
             Sync Selected ({selectedListings.size})
           </button>
@@ -484,7 +484,7 @@ export default function ListingsOptimized() {
         <div
           key={listing.id}
           className={`bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-4 cursor-pointer ${
-            selectedListings.has(listing.id) ? 'ring-2 ring-blue-500' : ''
+            selectedListings.has(listing.id) ? 'ring-2 ring-orange-500' : ''
           }`}
           onClick={() => {
             setSelectedListings(prev => {
@@ -536,7 +536,7 @@ export default function ListingsOptimized() {
             </span>
 
             {listing.priceReductionEnabled && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-blue-800">
                 -{listing.reductionPercentage}%
               </span>
             )}
@@ -699,7 +699,7 @@ export default function ListingsOptimized() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {listing.priceReductionEnabled ? (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-blue-800">
                                   -{listing.reductionPercentage}%
                                 </span>
                               ) : (
@@ -717,7 +717,7 @@ export default function ListingsOptimized() {
                                     priceReductionEnabled: !listing.priceReductionEnabled
                                   });
                                 }}
-                                className="text-blue-600 hover:text-blue-900"
+                                className="text-orange-600 hover:text-blue-900"
                               >
                                 {listing.priceReductionEnabled ? 'Disable' : 'Enable'}
                               </button>
@@ -792,7 +792,7 @@ export default function ListingsOptimized() {
           <div className="text-center mt-8">
             <button
               onClick={() => fetchNextPage()}
-              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+              className="bg-orange-600 text-white px-6 py-2 rounded hover:bg-orange-700"
             >
               Load More
             </button>

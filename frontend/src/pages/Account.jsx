@@ -426,7 +426,7 @@ export default function Account() {
           <select
             value={activeTab}
             onChange={(e) => setActiveTab(e.target.value)}
-            className="w-full px-4 py-3 text-base border-b border-theme focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 text-base border-b border-theme focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             {tabs.map((tab) => (
               <option key={tab.id} value={tab.id}>
@@ -447,7 +447,7 @@ export default function Account() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-accent bg-accent/10'
+                      ? 'border-orange-500 text-accent bg-accent/10'
                       : 'border-transparent text-theme-tertiary hover:text-theme-secondary hover:border-theme'
                   } whitespace-nowrap py-4 px-4 sm:px-6 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors`}
                 >
@@ -735,12 +735,12 @@ export default function Account() {
           {/* Admin Panel - Only visible to admin users */}
           {activeTab === 'admin' && (
             <div className="space-y-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="bg-orange-50 dark:bg-orange-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
                   <Shield className="w-5 h-5" />
                   Admin Feedback Review
                 </h3>
-                <p className="text-sm text-blue-700 dark:text-blue-300">
+                <p className="text-sm text-orange-700 dark:text-blue-300">
                   View and manage all feedback submitted by users.
                 </p>
               </div>
@@ -843,7 +843,7 @@ export default function Account() {
                               <div className="flex gap-1">
                                 <button
                                   onClick={() => handleMarkProcessed(item.id)}
-                                  className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400"
+                                  className="p-1.5 bg-orange-100 text-orange-700 rounded hover:bg-blue-200 dark:bg-orange-900/30 dark:text-blue-400"
                                   title="Mark as Processed"
                                 >
                                   <CheckCircle className="w-4 h-4" />
@@ -966,7 +966,7 @@ export default function Account() {
                         href={selectedFeedback.screenshot_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-2 inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                        className="mt-2 inline-flex items-center gap-2 text-sm text-orange-600 hover:text-orange-700 dark:text-blue-400"
                       >
                         <Image className="w-4 h-4" />
                         Open full size

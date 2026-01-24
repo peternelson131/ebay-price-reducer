@@ -227,19 +227,19 @@ export default function VideoUploader({ productId, asin, onUploadComplete }) {
           {...getRootProps()}
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
             isDragActive
-              ? 'border-ebay-blue bg-blue-50 dark:bg-blue-900/20'
-              : 'border-theme-border hover:border-ebay-blue dark:hover:border-blue-600'
+              ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+              : 'border-theme-border hover:border-orange-500 dark:hover:border-orange-600'
           } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <input {...getInputProps()} />
           
           <div className="flex flex-col items-center space-y-3">
             <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full">
-              <Film className={`w-8 h-8 ${isDragActive ? 'text-ebay-blue' : 'text-gray-400'}`} />
+              <Film className={`w-8 h-8 ${isDragActive ? 'text-orange-500' : 'text-gray-400'}`} />
             </div>
             
             {isDragActive ? (
-              <p className="text-sm text-ebay-blue font-medium">Drop video here...</p>
+              <p className="text-sm text-orange-500 font-medium">Drop video here...</p>
             ) : (
               <>
                 <p className="text-sm font-medium text-theme-primary">
@@ -260,8 +260,8 @@ export default function VideoUploader({ productId, asin, onUploadComplete }) {
           {/* File Info */}
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3 flex-1 min-w-0">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
-                <FileVideo className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded">
+                <FileVideo className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               </div>
               
               <div className="flex-1 min-w-0">
@@ -293,7 +293,7 @@ export default function VideoUploader({ productId, asin, onUploadComplete }) {
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
-                  className="bg-ebay-blue h-2 rounded-full transition-all duration-300"
+                  className="bg-orange-500 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>

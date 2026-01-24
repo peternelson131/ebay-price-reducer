@@ -206,7 +206,7 @@ export default function OneDriveConnection({ onStatusChange }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <RefreshCw className="w-6 h-6 animate-spin text-ebay-blue" />
+        <RefreshCw className="w-6 h-6 animate-spin text-orange-500" />
       </div>
     );
   }
@@ -303,7 +303,7 @@ export default function OneDriveConnection({ onStatusChange }) {
           <>
             <button
               onClick={() => setShowFolderPicker(true)}
-              className="bg-ebay-blue text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              className="bg-orange-500 text-white px-6 py-2.5 rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
             >
               <FolderOpen className="w-4 h-4" />
               {status.folderPath ? 'Change Folder' : 'Select Folder'}
