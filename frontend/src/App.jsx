@@ -101,22 +101,6 @@ export default function App() {
           {/* Main Navigation Bar */}
           <div className="flex justify-between items-center h-14">
 
-            {/* Logo Section */}
-            <div className="flex items-center min-w-0">
-              {/* Mobile: Icon Only */}
-              <img 
-                src="/assets/logos/logo-icon.svg" 
-                alt="OpSyncPro" 
-                className="h-8 w-auto sm:hidden"
-              />
-              {/* Desktop: Full Logo */}
-              <img 
-                src="/assets/logos/logo-navbar.svg" 
-                alt="OpSyncPro" 
-                className="h-9 w-auto hidden sm:block"
-              />
-            </div>
-
             {/* Desktop Navigation - Hidden on mobile */}
             <div className="hidden lg:flex items-center space-x-1">
               <Link
@@ -180,20 +164,39 @@ export default function App() {
               </button>
             </div>
 
-            {/* Mobile Menu Button */}
-            <div className="lg:hidden">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-hover focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
-                aria-expanded={mobileMenuOpen}
-                aria-label="Toggle navigation menu"
-              >
-                {mobileMenuOpen ? (
-                  <X className="h-5 w-5" strokeWidth={1.5} />
-                ) : (
-                  <Menu className="h-5 w-5" strokeWidth={1.5} />
-                )}
-              </button>
+            {/* Mobile Menu Button & Logo */}
+            <div className="flex items-center gap-3">
+              {/* Mobile Menu Button */}
+              <div className="lg:hidden">
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="p-2 rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-hover focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
+                  aria-expanded={mobileMenuOpen}
+                  aria-label="Toggle navigation menu"
+                >
+                  {mobileMenuOpen ? (
+                    <X className="h-5 w-5" strokeWidth={1.5} />
+                  ) : (
+                    <Menu className="h-5 w-5" strokeWidth={1.5} />
+                  )}
+                </button>
+              </div>
+
+              {/* Logo Section - Now on Right */}
+              <div className="flex items-center">
+                {/* Mobile: Icon Only */}
+                <img 
+                  src="/assets/logos/logo-icon.svg" 
+                  alt="OpSyncPro" 
+                  className="h-11 w-auto sm:hidden"
+                />
+                {/* Desktop: Full Logo */}
+                <img 
+                  src="/assets/logos/logo-navbar.svg" 
+                  alt="OpSyncPro" 
+                  className="h-12 w-auto hidden sm:block"
+                />
+              </div>
             </div>
           </div>
         </div>
