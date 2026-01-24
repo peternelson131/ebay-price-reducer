@@ -101,7 +101,38 @@ export default function App() {
           {/* Main Navigation Bar */}
           <div className="flex justify-between items-center h-14">
 
-            {/* Desktop Navigation - Hidden on mobile */}
+            {/* Logo Section - LEFT side (Desktop & Mobile) */}
+            <div className="flex items-center">
+              {/* Mobile: Menu Button + Icon Logo */}
+              <div className="flex items-center lg:hidden">
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="p-2 rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-hover focus:outline-none focus:ring-2 focus:ring-accent transition-colors mr-2"
+                  aria-expanded={mobileMenuOpen}
+                  aria-label="Toggle navigation menu"
+                >
+                  {mobileMenuOpen ? (
+                    <X className="h-5 w-5" strokeWidth={1.5} />
+                  ) : (
+                    <Menu className="h-5 w-5" strokeWidth={1.5} />
+                  )}
+                </button>
+                <img 
+                  src="/assets/logos/logo-icon.svg" 
+                  alt="OpSyncPro" 
+                  className="h-10 w-auto"
+                />
+              </div>
+              
+              {/* Desktop: Full Logo (bigger) */}
+              <img 
+                src="/assets/logos/logo-navbar.svg" 
+                alt="OpSyncPro" 
+                className="h-12 w-auto hidden lg:block"
+              />
+            </div>
+
+            {/* Desktop Navigation - FAR RIGHT */}
             <div className="hidden lg:flex items-center space-x-1">
               <Link
                 to="/ebay-central"
@@ -162,38 +193,6 @@ export default function App() {
               >
                 Logout
               </button>
-            </div>
-
-            {/* Mobile Menu Button - Left side on mobile */}
-            <div className="lg:hidden">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-hover focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
-                aria-expanded={mobileMenuOpen}
-                aria-label="Toggle navigation menu"
-              >
-                {mobileMenuOpen ? (
-                  <X className="h-5 w-5" strokeWidth={1.5} />
-                ) : (
-                  <Menu className="h-5 w-5" strokeWidth={1.5} />
-                )}
-              </button>
-            </div>
-
-            {/* Logo Section - Right side */}
-            <div className="flex items-center">
-              {/* Mobile: Icon Only */}
-              <img 
-                src="/assets/logos/logo-icon.svg" 
-                alt="OpSyncPro" 
-                className="h-10 w-auto sm:hidden"
-              />
-              {/* Desktop: Full Logo */}
-              <img 
-                src="/assets/logos/logo-navbar.svg" 
-                alt="OpSyncPro" 
-                className="h-10 w-auto hidden sm:block"
-              />
             </div>
           </div>
         </div>
