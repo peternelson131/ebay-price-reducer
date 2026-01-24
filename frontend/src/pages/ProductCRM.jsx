@@ -63,7 +63,7 @@ const STATUS_CONFIG = {
   'To Receive': { color: '#F97316', bgClass: 'bg-orange-100 dark:bg-orange-900/30', textClass: 'text-orange-700 dark:text-orange-300' },
   'Completed': { color: '#22C55E', bgClass: 'bg-green-100 dark:bg-green-900/30', textClass: 'text-green-700 dark:text-green-300' },
   'Returned': { color: '#EF4444', bgClass: 'bg-red-100 dark:bg-red-900/30', textClass: 'text-red-700 dark:text-red-300' },
-  'Cancelled': { color: '#9CA3AF', bgClass: 'bg-gray-100 dark:bg-gray-700/30', textClass: 'text-gray-700 dark:text-gray-300' },
+  'Cancelled': { color: '#9CA3AF', bgClass: 'bg-theme-hover/30', textClass: 'text-theme-secondary' },
   'Problem': { color: '#DC2626', bgClass: 'bg-red-100 dark:bg-red-900/30', textClass: 'text-red-700 dark:text-red-300' }
 };
 
@@ -146,7 +146,7 @@ const TrackingInput = ({ productId, currentTracking, onUpdate }) => {
 
   if (currentTracking && !isEditing) {
     return (
-      <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+      <div className="flex items-center justify-between p-3 bg-theme-hover rounded-lg">
         <div className="flex items-center gap-2">
           <Truck className="w-4 h-4 text-gray-500" />
           <span className="font-mono text-sm">{currentTracking}</span>
@@ -169,7 +169,7 @@ const TrackingInput = ({ productId, currentTracking, onUpdate }) => {
           value={trackingNumber}
           onChange={(e) => setTrackingNumber(e.target.value)}
           placeholder="Enter tracking number..."
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+          className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary text-sm"
           autoFocus
         />
         <div className="flex gap-2">
@@ -187,7 +187,7 @@ const TrackingInput = ({ productId, currentTracking, onUpdate }) => {
                 setTrackingNumber(currentTracking || '');
                 setIsEditing(false);
               }}
-              className="px-3 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 text-sm"
+              className="px-3 py-1.5 bg-theme-hover text-theme-secondary rounded-lg hover:bg-theme-hover text-sm"
             >
               Cancel
             </button>
@@ -217,7 +217,7 @@ const OwnerAvatars = ({ owners, max = 3 }) => {
         </div>
       ))}
       {remaining > 0 && (
-        <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium border-2 border-white dark:border-gray-800">
+        <div className="w-7 h-7 rounded-full bg-theme-hover flex items-center justify-center text-gray-600 dark:text-theme-secondary text-xs font-medium border-2 border-white dark:border-gray-800">
           +{remaining}
         </div>
       )}
@@ -498,7 +498,7 @@ const ASINCorrelationPanel = ({ product, isOpen, onClose }) => {
   if (!isOpen || !product) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-[480px] bg-gray-900 shadow-2xl border-l border-gray-700 z-50 flex flex-col">
+    <div className="fixed inset-y-0 right-0 w-[480px] bg-theme-primary shadow-2xl border-l border-theme z-50 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 bg-purple-600 text-white">
         <div className="flex items-center gap-3">
@@ -519,9 +519,9 @@ const ASINCorrelationPanel = ({ product, isOpen, onClose }) => {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* Product Card */}
-        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-sm">
+        <div className="bg-theme-surface rounded-xl border border-theme overflow-hidden shadow-sm">
           <div className="flex gap-4 p-4">
-            <div className="w-20 h-20 rounded-lg bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden">
+            <div className="w-20 h-20 rounded-lg bg-theme-hover flex-shrink-0 flex items-center justify-center overflow-hidden">
               {product.image_url ? (
                 <img src={product.image_url} alt={product.asin} className="w-full h-full object-contain" />
               ) : (
@@ -530,7 +530,7 @@ const ASINCorrelationPanel = ({ product, isOpen, onClose }) => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
-                <span className="font-mono text-sm bg-gray-700 text-gray-200 px-2 py-1 rounded">{product.asin}</span>
+                <span className="font-mono text-sm bg-theme-hover text-theme-primary px-2 py-1 rounded">{product.asin}</span>
                 <a
                   href={`https://amazon.com/dp/${product.asin}`}
                   target="_blank"
@@ -541,7 +541,7 @@ const ASINCorrelationPanel = ({ product, isOpen, onClose }) => {
                 </a>
               </div>
               {product.title && (
-                <p className="text-sm text-gray-300 line-clamp-2">{product.title}</p>
+                <p className="text-sm text-theme-secondary line-clamp-2">{product.title}</p>
               )}
             </div>
           </div>
@@ -569,14 +569,14 @@ const ASINCorrelationPanel = ({ product, isOpen, onClose }) => {
         {/* Results */}
         {(hasSearched && !isLoading) && (
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-gray-200">
+            <h4 className="text-sm font-semibold text-theme-primary">
               {displayCorrelations.length === 0 
                 ? 'No Correlations Found' 
                 : `Found ${displayCorrelations.length} Correlations`}
             </h4>
             
             {displayCorrelations.length === 0 ? (
-              <div className="bg-gray-800 rounded-xl border border-gray-700 p-6 text-center">
+              <div className="bg-theme-surface rounded-xl border border-theme p-6 text-center">
                 <Search className="w-10 h-10 mx-auto text-gray-500 mb-3" />
                 <p className="text-sm text-gray-400">No correlations found for this ASIN.</p>
                 <p className="text-xs text-gray-500 mt-1">Try syncing from the full ACF page for fresh data.</p>
@@ -586,7 +586,7 @@ const ASINCorrelationPanel = ({ product, isOpen, onClose }) => {
                 {displayCorrelations.map((item, idx) => (
                   <div 
                     key={item.asin || idx} 
-                    className="bg-gray-800 rounded-xl border border-gray-700 p-4 flex items-center gap-3"
+                    className="bg-theme-surface rounded-xl border border-theme p-4 flex items-center gap-3"
                   >
                     {/* Thumbnail */}
                     <div className="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-700">
@@ -601,7 +601,7 @@ const ASINCorrelationPanel = ({ product, isOpen, onClose }) => {
                     
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-mono text-gray-300">{item.asin}</p>
+                      <p className="text-sm font-mono text-theme-secondary">{item.asin}</p>
                       <p className="text-xs text-gray-500 line-clamp-1">{item.title || 'No title'}</p>
                       {item.suggestedType && (
                         <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
@@ -672,12 +672,12 @@ const ASINCorrelationPanel = ({ product, isOpen, onClose }) => {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-700 px-6 py-4 bg-gray-800">
+      <div className="border-t border-theme px-6 py-4 bg-theme-surface">
         <a
           href={`/asin-lookup?asin=${product.asin}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-gray-400 hover:text-gray-200 flex items-center justify-center gap-2"
+          className="text-sm text-gray-400 hover:text-theme-primary flex items-center justify-center gap-2"
         >
           Open full ACF page <ExternalLink className="w-3.5 h-3.5" />
         </a>
@@ -821,7 +821,7 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
 
   return (
     <div 
-      className="fixed inset-y-0 right-0 w-[480px] bg-gray-900 shadow-2xl border-l border-gray-700 z-50 flex flex-col"
+      className="fixed inset-y-0 right-0 w-[480px] bg-theme-primary shadow-2xl border-l border-theme z-50 flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 bg-green-600 text-white">
@@ -856,9 +856,9 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
         )}
 
         {/* Product Card */}
-        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-sm">
+        <div className="bg-theme-surface rounded-xl border border-theme overflow-hidden shadow-sm">
           <div className="flex gap-4 p-4">
-            <div className="w-24 h-24 rounded-lg bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden">
+            <div className="w-24 h-24 rounded-lg bg-theme-hover flex-shrink-0 flex items-center justify-center overflow-hidden">
               {product.image_url ? (
                 <img src={product.image_url} alt={product.asin} className="w-full h-full object-contain" />
               ) : (
@@ -867,7 +867,7 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
-                <span className="font-mono text-sm bg-gray-700 text-gray-200 px-2 py-1 rounded">{product.asin}</span>
+                <span className="font-mono text-sm bg-theme-hover text-theme-primary px-2 py-1 rounded">{product.asin}</span>
                 <a
                   href={`https://amazon.com/dp/${product.asin}`}
                   target="_blank"
@@ -878,7 +878,7 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
                 </a>
               </div>
               {product.title && (
-                <p className="text-sm text-gray-300 line-clamp-3">{product.title}</p>
+                <p className="text-sm text-theme-secondary line-clamp-3">{product.title}</p>
               )}
             </div>
           </div>
@@ -900,11 +900,11 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
             <p className="text-sm text-green-800 dark:text-green-200 mb-4">{result.title}</p>
             
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3">
+              <div className="bg-white/50 dark:bg-theme-surface/50 rounded-lg p-3">
                 <p className="text-xs text-green-600 dark:text-green-400 mb-1">SKU</p>
                 <p className="font-mono text-sm">{result.sku}</p>
               </div>
-              <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3">
+              <div className="bg-white/50 dark:bg-theme-surface/50 rounded-lg p-3">
                 <p className="text-xs text-green-600 dark:text-green-400 mb-1">Price</p>
                 <p className="font-bold text-lg">${result.price}</p>
               </div>
@@ -961,9 +961,9 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
                   ) : index === currentStep ? (
                     <Loader className="w-5 h-5 text-orange-500 animate-spin" />
                   ) : (
-                    <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
+                    <div className="w-5 h-5 rounded-full border-2 border-theme" />
                   )}
-                  <span className={`text-sm ${index <= (currentStep || 0) ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400'}`}>
+                  <span className={`text-sm ${index <= (currentStep || 0) ? 'text-gray-800 dark:text-theme-primary' : 'text-gray-400'}`}>
                     {step.label}
                   </span>
                 </div>
@@ -977,7 +977,7 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Price */}
             <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-theme-primary mb-2">
                 Listing Price *
               </label>
               <div className="relative">
@@ -989,7 +989,7 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-4 text-xl font-medium bg-gray-800 text-white border-2 border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
+                  className="w-full pl-10 pr-4 py-4 text-xl font-medium bg-theme-surface text-white border-2 border-theme rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
                   required
                   disabled={!isConfigured}
                   autoFocus
@@ -1000,7 +1000,7 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
             {/* Quantity & Condition */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-200 mb-2">
+                <label className="block text-sm font-semibold text-theme-primary mb-2">
                   Quantity
                 </label>
                 <input
@@ -1009,18 +1009,18 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
                   max="10000"
                   value={quantity}
                   onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  className="w-full px-4 py-3 bg-gray-800 text-white border-2 border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-4 py-3 bg-theme-surface text-white border-2 border-theme rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   disabled={!isConfigured}
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-200 mb-2">
+                <label className="block text-sm font-semibold text-theme-primary mb-2">
                   Condition
                 </label>
                 <select
                   value={condition}
                   onChange={(e) => setCondition(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-800 text-white border-2 border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-4 py-3 bg-theme-surface text-white border-2 border-theme rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   disabled={!isConfigured}
                 >
                   {DEFAULT_CONDITIONS.map(c => (
@@ -1044,12 +1044,12 @@ const QuickListPanel = ({ product, isOpen, onClose }) => {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-700 px-6 py-4 bg-gray-800">
+      <div className="border-t border-theme px-6 py-4 bg-theme-surface">
         <a
           href={`/auto-list?asin=${product.asin}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-gray-400 hover:text-gray-200 flex items-center justify-center gap-2"
+          className="text-sm text-gray-400 hover:text-theme-primary flex items-center justify-center gap-2"
         >
           Open full Quick List page <ExternalLink className="w-3.5 h-3.5" />
         </a>
@@ -1064,7 +1064,7 @@ const ProductRow = ({ product, isSelected, isChecked, onCheck, onSelect, onEdit 
   
   return (
     <tr 
-      className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors ${
+      className={`border-b border-theme hover:bg-theme-hover cursor-pointer transition-colors ${
         isSelected ? 'bg-orange-50 dark:bg-orange-900/20' : ''
       } ${isChecked ? 'bg-orange-50/50 dark:bg-blue-900/10' : ''}`}
       onClick={() => onSelect(product)}
@@ -1075,12 +1075,12 @@ const ProductRow = ({ product, isSelected, isChecked, onCheck, onSelect, onEdit 
           type="checkbox"
           checked={isChecked}
           onChange={(e) => onCheck(e.target.checked)}
-          className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-orange-500"
+          className="w-4 h-4 rounded border-theme text-orange-600 focus:ring-orange-500"
         />
       </td>
       {/* Image */}
       <td className="py-3 px-4">
-        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-lg overflow-hidden bg-theme-hover flex items-center justify-center">
           {product.image_url ? (
             <img src={product.image_url} alt={product.asin} className="w-full h-full object-cover" />
           ) : (
@@ -1131,7 +1131,7 @@ const ProductRow = ({ product, isSelected, isChecked, onCheck, onSelect, onEdit 
       <td className="py-3 px-4">
         {product.important_date ? (
           <div className="text-sm">
-            <span className={`${new Date(product.important_date) < new Date() ? 'text-red-500' : 'text-gray-600 dark:text-gray-300'}`}>
+            <span className={`${new Date(product.important_date) < new Date() ? 'text-red-500' : 'text-gray-600 dark:text-theme-secondary'}`}>
               {new Date(product.important_date).toLocaleDateString()}
             </span>
             {product.important_date_comment && (
@@ -1158,7 +1158,7 @@ const ProductRow = ({ product, isSelected, isChecked, onCheck, onSelect, onEdit 
       <td className="py-3 px-4">
         <button
           onClick={e => { e.stopPropagation(); onEdit(product); }}
-          className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          className="p-1 text-gray-400 hover:text-theme-secondary"
         >
           <MoreVertical className="w-4 h-4" />
         </button>
@@ -1428,13 +1428,13 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white dark:bg-theme-surface rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <div className="px-6 py-4 border-b border-theme flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-theme-primary">
             Import Products {step > 1 && `- Step ${step} of 3`}
           </h2>
-          <button onClick={handleClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={handleClose} className="text-gray-500 hover:text-theme-primary">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1483,7 +1483,7 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
                 className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                   isDragActive 
                     ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' 
-                    : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-orange-500'
+                    : 'border-theme hover:border-blue-400 dark:hover:border-orange-500'
                 }`}
               >
                 <input {...getInputProps()} />
@@ -1492,7 +1492,7 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
                   <p className="text-orange-600 dark:text-blue-400 font-medium">Drop the file here...</p>
                 ) : (
                   <>
-                    <p className="text-gray-600 dark:text-gray-300 font-medium">
+                    <p className="text-gray-600 dark:text-theme-secondary font-medium">
                       Drag & drop a CSV or Excel file here
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -1504,14 +1504,14 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
 
               {/* Divider */}
               <div className="flex items-center gap-4">
-                <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                <div className="flex-1 border-t border-theme"></div>
                 <span className="text-sm text-gray-500 dark:text-gray-400">OR</span>
-                <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                <div className="flex-1 border-t border-theme"></div>
               </div>
 
               {/* Paste CSV */}
               <div>
-                <p className="text-gray-600 dark:text-gray-300 mb-2">
+                <p className="text-gray-600 dark:text-theme-secondary mb-2">
                   Paste your CSV or tab-separated data below:
                 </p>
                 <textarea
@@ -1519,7 +1519,7 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
                   onChange={e => setCsvData(e.target.value)}
                   placeholder="asin,status,requirements&#10;B00ABC123,Initial Contact,Must source this&#10;B01XYZ789,Committed,High priority item&#10;..."
                   rows={8}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm"
+                  className="w-full px-4 py-3 border border-theme rounded-lg bg-theme-primary text-theme-primary font-mono text-sm"
                 />
               </div>
             </div>
@@ -1528,7 +1528,7 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
           {/* Step 2: Map Columns */}
           {step === 2 && (
             <div className="space-y-4">
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-gray-600 dark:text-theme-secondary">
                 Map your CSV columns to product fields. ASIN is required.
               </p>
               <div className="grid grid-cols-2 gap-4">
@@ -1541,7 +1541,7 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
                     <select
                       value={columnMapping[index] || ''}
                       onChange={e => setColumnMapping(prev => ({ ...prev, [index]: e.target.value }))}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                      className="flex-1 px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary text-sm"
                     >
                       <option value="">-- Skip --</option>
                       {availableFields.map(field => (
@@ -1559,7 +1559,7 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
           {/* Step 3: Preview */}
           {step === 3 && (
             <div className="space-y-4">
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-gray-600 dark:text-theme-secondary">
                 Preview: {parsedRows.length} products will be imported
               </p>
 
@@ -1590,7 +1590,7 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-100 dark:bg-gray-700">
+                    <tr className="bg-theme-hover">
                       {Object.entries(columnMapping)
                         .filter(([_, field]) => field)
                         .map(([colIndex, field]) => (
@@ -1604,7 +1604,7 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
                     {parsedRows.slice(0, 5).map((row, rowIndex) => {
                       const rowWarnings = validationWarnings.filter(w => w.rowIndex === rowIndex);
                       return (
-                        <tr key={rowIndex} className={`border-b dark:border-gray-600 ${rowWarnings.length > 0 ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}`}>
+                        <tr key={rowIndex} className={`border-b dark:border-theme ${rowWarnings.length > 0 ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}`}>
                           {Object.entries(columnMapping)
                             .filter(([_, field]) => field)
                             .map(([colIndex, fieldKey]) => {
@@ -1632,10 +1632,10 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-between">
+        <div className="px-6 py-4 border-t border-theme flex justify-between">
           <button
             onClick={step === 1 ? handleClose : () => setStep(step - 1)}
-            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            className="px-4 py-2 text-gray-600 dark:text-theme-secondary hover:bg-theme-hover rounded-lg"
           >
             {step === 1 ? 'Cancel' : 'Back'}
           </button>
@@ -1776,13 +1776,13 @@ const ManageCustomFieldsModal = ({ isOpen, onClose, statuses, collaborationTypes
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-theme-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        <div className="p-6 border-b border-theme">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Manage Custom Fields</h3>
+            <h3 className="text-lg font-semibold text-theme-primary">Manage Custom Fields</h3>
             <button
               onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              className="p-2 text-gray-500 hover:text-theme-primary dark:text-gray-400 dark:hover:text-theme-primary transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1790,13 +1790,13 @@ const ManageCustomFieldsModal = ({ isOpen, onClose, statuses, collaborationTypes
           
           {/* Field Type Selector */}
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-theme-secondary mb-2">
               Field Type
             </label>
             <select
               value={fieldType}
               onChange={(e) => setFieldType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary"
             >
               <option value="status">Status</option>
               <option value="collaboration">Collaboration Type</option>
@@ -1820,7 +1820,7 @@ const ManageCustomFieldsModal = ({ isOpen, onClose, statuses, collaborationTypes
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-theme-hover rounded-lg"
                   >
                     <div className="flex items-center gap-3">
                       {currentConfig.hasColor && (
@@ -1830,7 +1830,7 @@ const ManageCustomFieldsModal = ({ isOpen, onClose, statuses, collaborationTypes
                         />
                       )}
                       <div>
-                        <div className="font-medium text-gray-900 dark:text-white">
+                        <div className="font-medium text-theme-primary">
                           {item.name}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -1923,9 +1923,9 @@ const AddProductModal = ({ isOpen, onClose, onAdd, statuses }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-theme-surface rounded-xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Add Product</h3>
+          <h3 className="text-lg font-semibold text-theme-primary">Add Product</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
@@ -1934,7 +1934,7 @@ const AddProductModal = ({ isOpen, onClose, onAdd, statuses }) => {
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-theme-secondary mb-1">
                 ASIN
               </label>
               <input
@@ -1942,19 +1942,19 @@ const AddProductModal = ({ isOpen, onClose, onAdd, statuses }) => {
                 value={asin}
                 onChange={e => setAsin(e.target.value)}
                 placeholder="B0XXXXXXXXX"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-theme-secondary mb-1">
                 Initial Status
               </label>
               <select
                 value={statusId}
                 onChange={e => setStatusId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               >
                 {statuses?.map(status => (
                   <option key={status.id} value={status.id}>{status.name}</option>
@@ -1971,7 +1971,7 @@ const AddProductModal = ({ isOpen, onClose, onAdd, statuses }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              className="px-4 py-2 text-theme-secondary hover:bg-theme-hover rounded-lg"
             >
               Cancel
             </button>
@@ -1998,9 +1998,9 @@ const DeclineTaskDialog = ({ isOpen, onClose, onConfirm, isSubmitting }) => {
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-5 mx-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-theme-surface rounded-xl shadow-xl w-full max-w-sm p-5 mx-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Decline Task</h3>
+          <h3 className="text-lg font-semibold text-theme-primary">Decline Task</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
@@ -2014,13 +2014,13 @@ const DeclineTaskDialog = ({ isOpen, onClose, onConfirm, isSubmitting }) => {
             onChange={e => setReason(e.target.value)}
             placeholder="Reason (optional)..."
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+            className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary resize-none"
           />
         </div>
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            className="px-4 py-2 text-theme-secondary hover:bg-theme-hover rounded-lg"
           >
             Cancel
           </button>
@@ -2062,9 +2062,9 @@ const BulkEditModal = ({ isOpen, onClose, selectedCount, statuses, availableOwne
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 mx-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-theme-surface rounded-xl shadow-xl w-full max-w-md p-6 mx-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-lg font-semibold text-theme-primary">
             Edit {selectedCount} Products
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -2075,13 +2075,13 @@ const BulkEditModal = ({ isOpen, onClose, selectedCount, statuses, availableOwne
         <div className="space-y-5">
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-theme-secondary mb-2">
               Status
             </label>
             <select
               value={changes.status_id}
               onChange={(e) => setChanges(prev => ({ ...prev, status_id: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary"
             >
               <option value="">— Don't change —</option>
               {statuses.map(s => (
@@ -2092,13 +2092,13 @@ const BulkEditModal = ({ isOpen, onClose, selectedCount, statuses, availableOwne
 
           {/* Decision */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-theme-secondary mb-2">
               Decision
             </label>
             <select
               value={changes.decision}
               onChange={(e) => setChanges(prev => ({ ...prev, decision: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary"
             >
               <option value="">— Don't change —</option>
               <option value="sell">Sell</option>
@@ -2109,13 +2109,13 @@ const BulkEditModal = ({ isOpen, onClose, selectedCount, statuses, availableOwne
 
           {/* Owners */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-theme-secondary mb-2">
               Owners
             </label>
             <select
               value={changes.ownerAction}
               onChange={(e) => setChanges(prev => ({ ...prev, ownerAction: e.target.value, ownerIds: [] }))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary"
             >
               <option value="">— Don't change —</option>
               <option value="add">Add owners</option>
@@ -2130,9 +2130,9 @@ const BulkEditModal = ({ isOpen, onClose, selectedCount, statuses, availableOwne
                   {changes.ownerAction === 'remove' && 'Select owners to remove:'}
                   {changes.ownerAction === 'set' && 'Select owners to assign:'}
                 </p>
-                <div className="max-h-32 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg">
+                <div className="max-h-32 overflow-y-auto border border-theme rounded-lg">
                   {availableOwners?.map(owner => (
-                    <label key={owner.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                    <label key={owner.id} className="flex items-center gap-3 px-3 py-2 hover:bg-theme-hover cursor-pointer">
                       <input
                         type="checkbox"
                         checked={changes.ownerIds.includes(owner.id)}
@@ -2145,7 +2145,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedCount, statuses, availableOwne
                         }}
                         className="w-4 h-4 rounded border-gray-300"
                       />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{owner.name || owner.email}</span>
+                      <span className="text-sm text-theme-secondary">{owner.name || owner.email}</span>
                     </label>
                   ))}
                 </div>
@@ -2154,10 +2154,10 @@ const BulkEditModal = ({ isOpen, onClose, selectedCount, statuses, availableOwne
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-theme">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            className="px-4 py-2 text-theme-secondary hover:bg-theme-hover rounded-lg"
           >
             Cancel
           </button>
@@ -2250,7 +2250,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
           right: (showQuickList || showACFPanel) ? '480px' : '0px',
           transition: 'right 0.3s ease-in-out'
         }}
-        className="fixed top-16 bottom-0 bg-white dark:bg-gray-800 shadow-xl border-l border-gray-200 dark:border-gray-700 overflow-y-auto z-40"
+        className="fixed top-16 bottom-0 bg-white dark:bg-theme-surface shadow-xl border-l border-theme overflow-y-auto z-40"
       >
         {/* Drag handle for resizing */}
         <div
@@ -2266,8 +2266,8 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         </div>
         
         {/* Header with prominent close button */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Product Details</h3>
+        <div className="sticky top-0 bg-white dark:bg-theme-surface border-b border-theme px-6 py-4 flex items-center justify-between z-10">
+          <h3 className="text-lg font-semibold text-theme-primary">Product Details</h3>
           <div className="flex items-center gap-2">
             <button 
               onClick={() => {
@@ -2282,7 +2282,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
             </button>
             <button 
               onClick={onClose} 
-              className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-theme-primary dark:text-gray-400 dark:hover:text-theme-primary hover:bg-theme-hover rounded-lg transition-colors"
               title="Close panel (ESC)"
             >
               <X className="w-5 h-5" />
@@ -2294,7 +2294,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         {/* Compact Product Info Row - Image + ASIN side by side */}
         <div className="flex gap-4 items-start">
           {/* Small Image */}
-          <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+          <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-theme-hover">
             {product.image_url ? (
               <img src={product.image_url} alt={product.asin} className="w-full h-full object-contain" />
             ) : (
@@ -2336,11 +2336,11 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         
         {/* Decision */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Decision</h4>
+          <h4 className="text-sm font-medium text-theme-secondary">Decision</h4>
           <select
             value={product.decision || ''}
             onChange={e => onUpdate({ decision: e.target.value || null })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary"
           >
             <option value="">Undecided</option>
             <option value="keep">Keep</option>
@@ -2382,7 +2382,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         {/* Task Review Section - Shows for Delivered products */}
         {product.status?.name === 'Delivered' && !product.decision && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <h4 className="text-sm font-medium text-theme-secondary">
               📬 Product Delivered - Take Action
             </h4>
             <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 space-y-3">
@@ -2417,13 +2417,13 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         
         {/* Video Title */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Video Title</h4>
+          <h4 className="text-sm font-medium text-theme-secondary">Video Title</h4>
           <input
             type="text"
             value={product.video_title || ''}
             onChange={e => onUpdate({ video_title: e.target.value })}
             placeholder="Auto-generated when owner assigned..."
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary"
           />
           {product.video_title && (
             <button
@@ -2458,25 +2458,25 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         
         {/* Requirements */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Requirements</h4>
+          <h4 className="text-sm font-medium text-theme-secondary">Requirements</h4>
           <textarea
             value={product.requirements || ''}
             onChange={e => onUpdate({ requirements: e.target.value })}
             placeholder="Enter brand requirements, notes..."
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+            className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary resize-none"
           />
         </div>
         
         {/* Important Date Date & Comment */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Important Date</h4>
+          <h4 className="text-sm font-medium text-theme-secondary">Important Date</h4>
           <div className="flex gap-3">
             <input
               type="date"
               value={product.important_date || ''}
               onChange={e => onUpdate({ important_date: e.target.value || null })}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary"
             />
           </div>
           <textarea
@@ -2484,15 +2484,15 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
             onChange={e => onUpdate({ important_date_comment: e.target.value })}
             placeholder="Add important date notes..."
             rows={2}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+            className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary resize-none"
           />
         </div>
         
         {/* Shipping */}
         {product.tracking_number && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Shipping</h4>
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-2">
+            <h4 className="text-sm font-medium text-theme-secondary">Shipping</h4>
+            <div className="bg-theme-hover rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Tracking</span>
                 <span className="font-mono text-sm">{product.tracking_number}</span>
@@ -2517,7 +2517,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         
         {/* Add/Edit Tracking */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Shipping</h4>
+          <h4 className="text-sm font-medium text-theme-secondary">Shipping</h4>
           <TrackingInput 
             productId={product.id}
             currentTracking={product.tracking_number}
@@ -2526,8 +2526,8 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         </div>
         
         {/* ASIN Correlation Finder - Opens Side Panel */}
-        <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">ASIN Correlation Finder</h4>
+        <div className="space-y-2 pt-4 border-t border-theme">
+          <h4 className="text-sm font-medium text-theme-secondary">ASIN Correlation Finder</h4>
           <button
             onClick={() => {
               setShowQuickList(false); // Close Quick List if open (mutual exclusion)
@@ -2541,9 +2541,9 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         </div>
         
         {/* Product Videos Section */}
-        <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="space-y-4 pt-4 border-t border-theme">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <h4 className="text-sm font-medium text-theme-secondary flex items-center gap-2">
               <Film className="w-4 h-4" />
               Product Videos
             </h4>
@@ -2569,10 +2569,10 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         </div>
         
         {/* Done button at bottom */}
-        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="pt-4 border-t border-theme">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
+            className="w-full px-4 py-2 bg-theme-hover text-theme-secondary rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
           >
             Done
           </button>
@@ -3205,13 +3205,13 @@ export default function ProductCRM() {
   }, [statusFilterOpen]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-theme-primary">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-theme-surface border-b border-theme">
         <div className="px-4 sm:px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-bold text-theme-primary">
                 {viewMode === 'delivered' ? 'Delivered Items' : viewMode === 'all' ? 'All Products' : 'Product CRM'}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -3283,7 +3283,7 @@ export default function ProductCRM() {
       <div className="px-4 sm:px-6 py-4">
         <div className="flex items-center gap-4 flex-wrap">
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+          <div className="flex items-center bg-theme-hover rounded-lg p-1">
             <button
               onClick={() => {
                 setViewMode('open');
@@ -3295,8 +3295,8 @@ export default function ProductCRM() {
               }}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 viewMode === 'open' 
-                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                  ? 'bg-white dark:bg-gray-600 text-theme-primary shadow-sm' 
+                  : 'text-gray-600 dark:text-theme-secondary hover:text-gray-900'
               }`}
             >
               Open Items
@@ -3312,8 +3312,8 @@ export default function ProductCRM() {
               }}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
                 viewMode === 'delivered' 
-                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                  ? 'bg-white dark:bg-gray-600 text-theme-primary shadow-sm' 
+                  : 'text-gray-600 dark:text-theme-secondary hover:text-gray-900'
               }`}
             >
               <Inbox className="w-4 h-4" />
@@ -3332,8 +3332,8 @@ export default function ProductCRM() {
               }}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 viewMode === 'all' 
-                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                  ? 'bg-white dark:bg-gray-600 text-theme-primary shadow-sm' 
+                  : 'text-gray-600 dark:text-theme-secondary hover:text-gray-900'
               }`}
             >
               All Products
@@ -3348,7 +3348,7 @@ export default function ProductCRM() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search by ASIN..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="w-full pl-10 pr-4 py-2 border border-theme rounded-lg bg-white dark:bg-theme-surface text-theme-primary"
             />
           </div>
           
@@ -3356,7 +3356,7 @@ export default function ProductCRM() {
           <div className="relative status-filter-dropdown">
             <button
               onClick={() => setStatusFilterOpen(!statusFilterOpen)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex items-center gap-2 min-w-[160px]"
+              className="px-4 py-2 border border-theme rounded-lg bg-white dark:bg-theme-surface text-theme-primary flex items-center gap-2 min-w-[160px]"
             >
               <span className="truncate">
                 {statusFilter.size === 0 
@@ -3369,22 +3369,22 @@ export default function ProductCRM() {
             </button>
             
             {statusFilterOpen && (
-              <div className="absolute z-50 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg">
-                <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex gap-2">
+              <div className="absolute z-50 mt-1 w-64 bg-white dark:bg-theme-surface border border-theme rounded-lg shadow-lg">
+                <div className="p-2 border-b border-theme flex gap-2">
                   <button
                     onClick={() => setStatusFilter(new Set(statuses.map(s => s.id)))}
                     className="text-xs text-orange-600 hover:text-orange-700"
                   >
                     Select All
                   </button>
-                  <span className="text-gray-300">|</span>
+                  <span className="text-theme-secondary">|</span>
                   <button
                     onClick={() => setStatusFilter(new Set())}
                     className="text-xs text-orange-600 hover:text-orange-700"
                   >
                     Clear All
                   </button>
-                  <span className="text-gray-300">|</span>
+                  <span className="text-theme-secondary">|</span>
                   <button
                     onClick={() => {
                       const openStatuses = new Set(
@@ -3403,7 +3403,7 @@ export default function ProductCRM() {
                   {statuses.map(status => (
                     <label 
                       key={status.id} 
-                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-theme-hover rounded cursor-pointer"
                     >
                       <input
                         type="checkbox"
@@ -3423,11 +3423,11 @@ export default function ProductCRM() {
                         className="w-3 h-3 rounded-full flex-shrink-0" 
                         style={{ backgroundColor: status.color || '#6b7280' }}
                       />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{status.name}</span>
+                      <span className="text-sm text-theme-secondary">{status.name}</span>
                     </label>
                   ))}
                 </div>
-                <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="p-2 border-t border-theme">
                   <button
                     onClick={() => setStatusFilterOpen(false)}
                     className="w-full px-3 py-1.5 bg-orange-600 text-white text-sm rounded hover:bg-orange-700"
@@ -3443,7 +3443,7 @@ export default function ProductCRM() {
           <select
             value={ownerFilter}
             onChange={e => setOwnerFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            className="px-4 py-2 border border-theme rounded-lg bg-white dark:bg-theme-surface text-theme-primary"
           >
             <option value="">All Owners</option>
             {availableOwners.map(owner => (
@@ -3454,7 +3454,7 @@ export default function ProductCRM() {
           {/* Refresh */}
           <button
             onClick={fetchProducts}
-            className="p-2 text-gray-400 hover:text-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg"
+            className="p-2 text-gray-400 hover:text-gray-600 border border-theme rounded-lg"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -3463,7 +3463,7 @@ export default function ProductCRM() {
       
       {/* Content */}
       <div className="px-4 sm:px-6 pb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-theme-surface rounded-xl shadow-sm border border-theme overflow-hidden">
           {isLoading ? (
             <div className="p-12 text-center">
               <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto" />
@@ -3479,7 +3479,7 @@ export default function ProductCRM() {
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="p-12 text-center">
-              <Package className="w-12 h-12 text-gray-300 mx-auto" />
+              <Package className="w-12 h-12 text-theme-secondary mx-auto" />
               <p className="text-gray-500 mt-2">No products found</p>
               <button
                 onClick={() => setIsAddModalOpen(true)}
@@ -3491,7 +3491,7 @@ export default function ProductCRM() {
           ) : (
             <>
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700/50">
+              <thead className="bg-theme-hover">
                 <tr>
                   <th className="py-3 px-3 w-10">
                     <input
@@ -3510,7 +3510,7 @@ export default function ProductCRM() {
                           setSelectedProducts(newSelected);
                         }
                       }}
-                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-orange-500"
+                      className="w-4 h-4 rounded border-theme text-orange-600 focus:ring-orange-500"
                     />
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">Image</th>
@@ -3548,7 +3548,7 @@ export default function ProductCRM() {
 
             {/* Pagination Controls */}
             {filteredProducts.length > 0 && (
-              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="px-4 py-3 border-t border-theme flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-gray-600 dark:text-gray-400">
                     Showing {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length}
@@ -3559,7 +3559,7 @@ export default function ProductCRM() {
                       setItemsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="px-2 py-1 text-sm border border-theme rounded bg-theme-primary text-theme-primary"
                   >
                     <option value={25}>25 per page</option>
                     <option value={50}>50 per page</option>
@@ -3570,14 +3570,14 @@ export default function ProductCRM() {
                   <button
                     onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1}
-                    className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-2 py-1 text-sm border border-theme rounded hover:bg-theme-hover disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     First
                   </button>
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1 text-sm border border-theme rounded hover:bg-theme-hover disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     ←
                   </button>
@@ -3587,14 +3587,14 @@ export default function ProductCRM() {
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1 text-sm border border-theme rounded hover:bg-theme-hover disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     →
                   </button>
                   <button
                     onClick={() => setCurrentPage(totalPages)}
                     disabled={currentPage === totalPages}
-                    className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-2 py-1 text-sm border border-theme rounded hover:bg-theme-hover disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Last
                   </button>
@@ -3647,7 +3647,7 @@ export default function ProductCRM() {
 
       {/* Bulk Action Toolbar */}
       {selectedProducts.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 dark:bg-gray-700 rounded-xl shadow-2xl px-6 py-4 flex items-center gap-4 z-50 border border-gray-700 dark:border-gray-600">
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-theme-primary dark:bg-gray-700 rounded-xl shadow-2xl px-6 py-4 flex items-center gap-4 z-50 border border-theme dark:border-theme">
           <span className="text-white font-medium">{selectedProducts.size} selected</span>
           <div className="w-px h-6 bg-gray-600"></div>
           <button
@@ -3676,17 +3676,17 @@ export default function ProductCRM() {
       {/* Bulk Delete Confirmation */}
       {showBulkDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <div className="bg-white dark:bg-theme-surface rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-theme-primary mb-2">
               Delete {selectedProducts.size} Products?
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
+            <p className="text-gray-600 dark:text-theme-secondary mb-6">
               This action cannot be undone. All selected products and their owner assignments will be permanently deleted.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowBulkDeleteConfirm(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                className="px-4 py-2 text-gray-600 dark:text-theme-secondary hover:bg-theme-hover rounded-lg"
               >
                 Cancel
               </button>
