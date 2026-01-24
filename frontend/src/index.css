@@ -21,18 +21,18 @@
     --scrollbar-thumb-hover: #6C757D;
   }
 
-  /* Dark mode colors */
+  /* Dark mode colors - OpSyncPro branding */
   .dark {
-    --bg-primary: #0A0A0A;
-    --bg-surface: #141414;
-    --bg-hover: #1F1F1F;
-    --border-color: #262626;
-    --text-primary: #FAFAFA;
-    --text-secondary: #A1A1A1;
-    --text-tertiary: #6B6B6B;
-    --scrollbar-track: #141414;
-    --scrollbar-thumb: #262626;
-    --scrollbar-thumb-hover: #3f3f3f;
+    --bg-primary: #18181b;
+    --bg-surface: #1f1f23;
+    --bg-hover: #27272a;
+    --border-color: #2a2a2e;
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #71717a;
+    --scrollbar-track: #1f1f23;
+    --scrollbar-thumb: #2a2a2e;
+    --scrollbar-thumb-hover: #3f3f46;
   }
   
   html {

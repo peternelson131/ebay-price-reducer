@@ -52,7 +52,7 @@ import {
 
 // Status configuration with colors matching the database seed
 const STATUS_CONFIG = {
-  'Sourcing': { color: '#3B82F6', bgClass: 'bg-blue-100 dark:bg-blue-900/30', textClass: 'text-blue-700 dark:text-blue-300' },
+  'Sourcing': { color: '#f97316', bgClass: 'bg-orange-100 dark:bg-orange-900/30', textClass: 'text-orange-700 dark:text-orange-300' },
   'Review': { color: '#8B5CF6', bgClass: 'bg-purple-100 dark:bg-purple-900/30', textClass: 'text-purple-700 dark:text-purple-300' },
   'Negotiating': { color: '#F97316', bgClass: 'bg-orange-100 dark:bg-orange-900/30', textClass: 'text-orange-700 dark:text-orange-300' },
   'Committed': { color: '#06B6D4', bgClass: 'bg-cyan-100 dark:bg-cyan-900/30', textClass: 'text-cyan-700 dark:text-cyan-300' },
@@ -2681,7 +2681,7 @@ export default function ProductCRM() {
             is_primary: po.is_primary,
             name: owner?.name || 'Unknown',
             email: owner?.email,
-            avatar_color: owner?.avatar_color || '#3B82F6'
+            avatar_color: owner?.avatar_color || '#f97316'
           };
         }) || []
       }));
@@ -3083,7 +3083,7 @@ export default function ProductCRM() {
             is_primary: o.is_primary,
             name: owner?.name || 'Unknown',
             email: owner?.email,
-            avatar_color: owner?.avatar_color || '#3B82F6',
+            avatar_color: owner?.avatar_color || '#f97316',
             title_prefix: owner?.title_prefix || null
           };
         });

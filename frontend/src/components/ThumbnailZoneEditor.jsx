@@ -85,18 +85,18 @@ export default function ThumbnailZoneEditor({
     };
 
     // Semi-transparent overlay
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.3)'; // Blue overlay
+    ctx.fillStyle = 'rgba(249, 115, 22, 0.3)'; // Orange overlay
     ctx.fillRect(zonePixels.x, zonePixels.y, zonePixels.width, zonePixels.height);
 
     // Border
-    ctx.strokeStyle = '#3B82F6';
+    ctx.strokeStyle = '#f97316';
     ctx.lineWidth = 2;
     ctx.strokeRect(zonePixels.x, zonePixels.y, zonePixels.width, zonePixels.height);
 
     // Corner handles (for resizing)
     const handleSize = 10;
     ctx.fillStyle = '#FFFFFF';
-    ctx.strokeStyle = '#3B82F6';
+    ctx.strokeStyle = '#f97316';
     ctx.lineWidth = 2;
 
     // Top-left

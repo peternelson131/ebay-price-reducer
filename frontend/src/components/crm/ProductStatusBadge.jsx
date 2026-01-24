@@ -8,9 +8,9 @@
 // Status configuration with colors matching the database seed
 export const STATUS_CONFIG = {
   'Sourcing': { 
-    color: '#3B82F6', 
-    bgClass: 'bg-blue-100 dark:bg-blue-900/30', 
-    textClass: 'text-blue-700 dark:text-blue-300',
+    color: '#f97316', 
+    bgClass: 'bg-orange-100 dark:bg-orange-900/30', 
+    textClass: 'text-orange-700 dark:text-orange-300',
     description: 'Initial research phase'
   },
   'Review': { 

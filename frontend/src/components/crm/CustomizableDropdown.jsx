@@ -13,13 +13,13 @@ import { Plus, X, Check, Loader, ChevronDown } from 'lucide-react';
 
 // Predefined color options for status-type endpoints
 const COLOR_OPTIONS = [
-  { name: 'Blue', value: '#3B82F6' },
+  { name: 'Orange', value: '#f97316' },
   { name: 'Purple', value: '#8B5CF6' },
   { name: 'Green', value: '#22C55E' },
-  { name: 'Orange', value: '#F97316' },
+  { name: 'Red', value: '#EF4444' },
+  { name: 'Amber', value: '#fbbf24' },
   { name: 'Cyan', value: '#06B6D4' },
   { name: 'Yellow', value: '#EAB308' },
-  { name: 'Red', value: '#EF4444' },
   { name: 'Pink', value: '#EC4899' },
   { name: 'Indigo', value: '#6366F1' },
   { name: 'Teal', value: '#14B8A6' },
@@ -62,7 +62,7 @@ const AddOptionModal = ({
   isSaving 
 }) => {
   const [name, setName] = useState('');
-  const [color, setColor] = useState('#3B82F6');
+  const [color, setColor] = useState('#f97316');
   const [error, setError] = useState('');
   
   const config = ENDPOINT_CONFIG[endpoint] || {};
@@ -82,7 +82,7 @@ const AddOptionModal = ({
         color: config.hasColor ? color : undefined 
       });
       setName('');
-      setColor('#3B82F6');
+      setColor('#f97316');
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to save option');
@@ -91,7 +91,7 @@ const AddOptionModal = ({
   
   const handleClose = () => {
     setName('');
-    setColor('#3B82F6');
+    setColor('#f97316');
     setError('');
     onClose();
   };

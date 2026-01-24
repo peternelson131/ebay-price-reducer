@@ -8,26 +8,32 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dark mode palette
+        // Dark mode palette - OpSyncPro branding
         dark: {
-          bg: '#0A0A0A',
-          surface: '#141414',
-          border: '#262626',
-          hover: '#1F1F1F',
+          bg: '#18181b',        // Updated to match logo dark background
+          surface: '#1f1f23',   // Slightly lighter than bg
+          border: '#2a2a2e',    // Subtle borders
+          hover: '#27272a',     // Hover state
         },
-        // Text colors
+        // Text colors - OpSyncPro branding
         text: {
-          primary: '#FAFAFA',
-          secondary: '#A1A1A1',
-          tertiary: '#6B6B6B',
+          primary: '#f4f4f5',   // Light text from logo
+          secondary: '#a1a1aa', // Refined gray
+          tertiary: '#71717a',  // Muted gray from logo
         },
-        // Accent - keeping a blue but making it more subtle
+        // Accent - OpSyncPro orange/coral theme
         accent: {
-          DEFAULT: '#3B82F6',
-          hover: '#2563EB',
-          muted: '#1E3A5F',
+          DEFAULT: '#f97316',   // Primary orange (was blue #3B82F6)
+          hover: '#ea580c',     // Darker orange for hover
+          muted: '#7c2d12',     // Muted orange for backgrounds
         },
-        // Status colors
+        // Brand colors from OpSyncPro logo
+        brand: {
+          orange: '#f97316',    // Primary "Sync" color
+          red: '#ef4444',       // Hexagon accent
+          amber: '#fbbf24',     // Hexagon accent
+        },
+        // Status colors (semantic - unchanged)
         success: '#22C55E',
         warning: '#EAB308',
         error: '#EF4444',

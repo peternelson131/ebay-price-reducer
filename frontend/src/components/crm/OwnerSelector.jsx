@@ -14,10 +14,11 @@ import { Plus, X, Check, Loader, ChevronDown, Star, User } from 'lucide-react';
 
 // Color options for owner avatars
 const AVATAR_COLORS = [
-  { name: 'Blue', value: '#3B82F6' },
+  { name: 'Orange', value: '#f97316' },
   { name: 'Purple', value: '#8B5CF6' },
   { name: 'Green', value: '#22C55E' },
-  { name: 'Orange', value: '#F97316' },
+  { name: 'Red', value: '#ef4444' },
+  { name: 'Amber', value: '#fbbf24' },
   { name: 'Cyan', value: '#06B6D4' },
   { name: 'Pink', value: '#EC4899' },
   { name: 'Indigo', value: '#6366F1' },
@@ -31,7 +32,7 @@ const AddOwnerModal = ({ isOpen, onClose, onSave, isSaving }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [titlePrefix, setTitlePrefix] = useState('');
-  const [color, setColor] = useState('#3B82F6');
+  const [color, setColor] = useState('#f97316');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -53,7 +54,7 @@ const AddOwnerModal = ({ isOpen, onClose, onSave, isSaving }) => {
       setName('');
       setEmail('');
       setTitlePrefix('');
-      setColor('#3B82F6');
+      setColor('#f97316');
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to save owner');
@@ -64,7 +65,7 @@ const AddOwnerModal = ({ isOpen, onClose, onSave, isSaving }) => {
     setName('');
     setEmail('');
     setTitlePrefix('');
-    setColor('#3B82F6');
+    setColor('#f97316');
     setError('');
     onClose();
   };
@@ -208,7 +209,7 @@ const OwnerBadge = ({ owner, isPrimary, onRemove, onSetPrimary }) => (
   <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-sm group">
     <span
       className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs"
-      style={{ backgroundColor: owner.avatar_color || '#3B82F6' }}
+      style={{ backgroundColor: owner.avatar_color || '#f97316' }}
     >
       {(owner.name || '?')[0].toUpperCase()}
     </span>
@@ -430,12 +431,12 @@ export default function OwnerSelector({
                       type="button"
                       onClick={() => handleToggleOwner(owner.id)}
                       className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 ${
-                        isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                        isSelected ? 'bg-orange-50 dark:bg-orange-900/20' : ''
                       }`}
                     >
                       <span
                         className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
-                        style={{ backgroundColor: owner.avatar_color || '#3B82F6' }}
+                        style={{ backgroundColor: owner.avatar_color || '#f97316' }}
                       >
                         {(owner.name || '?')[0].toUpperCase()}
                       </span>
@@ -443,7 +444,7 @@ export default function OwnerSelector({
                       {owner.email && (
                         <span className="text-gray-400 text-xs truncate max-w-[120px]">{owner.email}</span>
                       )}
-                      {isSelected && <Check className="w-4 h-4 text-blue-600" />}
+                      {isSelected && <Check className="w-4 h-4 text-orange-600" />}
                     </button>
                   );
                 })}
