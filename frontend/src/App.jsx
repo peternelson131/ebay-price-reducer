@@ -125,9 +125,9 @@ export default function App() {
                 />
               </div>
               
-              {/* Desktop: Full Logo (bigger) */}
+              {/* Desktop: Full Logo (bigger) - swap based on theme */}
               <img 
-                src="/assets/logos/logo-navbar.svg" 
+                src={isDark ? "/assets/logos/logo-navbar.svg" : "/assets/logos/logo-navbar-light.svg"} 
                 alt="OpSyncPro" 
                 className="h-12 w-auto hidden lg:block"
               />
