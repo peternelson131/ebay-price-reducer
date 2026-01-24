@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Search, ChevronLeft, ChevronRight, Menu, ClipboardList, BookOpen, Upload, Package, ShoppingBag } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Menu, ClipboardList, BookOpen, Upload, Package, ShoppingBag, Share2 } from 'lucide-react';
 import { userAPI } from '../lib/supabase';
 
 // Lazy load the content components
@@ -10,6 +10,7 @@ const AsinCatalog = lazy(() => import('./AsinCatalog'));
 const CatalogImport = lazy(() => import('./CatalogImport'));
 const WhatNotAnalysis = lazy(() => import('./WhatNotAnalysis'));
 const ProductCRM = lazy(() => import('./ProductCRM'));
+const SocialPosts = lazy(() => import('./SocialPosts'));
 
 // Menu item configuration - Product CRM at top
 const menuItems = [
@@ -18,6 +19,13 @@ const menuItems = [
     label: 'Product CRM',
     icon: ShoppingBag,
     component: ProductCRM,
+    badge: null
+  },
+  {
+    id: 'posts',
+    label: 'Posts',
+    icon: Share2,
+    component: SocialPosts,
     badge: null
   },
   {
