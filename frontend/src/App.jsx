@@ -97,12 +97,13 @@ export default function App() {
   return (
     <div className="min-h-screen bg-theme-primary">
       {!hideNav && <nav className="bg-theme-surface border-b border-theme relative z-50">
-        <div className={location.pathname === '/listings' ? 'w-full px-4' : 'max-w-7xl mx-auto px-4'}>
-          {/* Main Navigation Bar */}
+        {/* Full-bleed container - no padding */}
+        <div className="w-full">
+          {/* Main Navigation Bar - edge to edge */}
           <div className="flex justify-between items-center h-14">
 
-            {/* Logo Section - LEFT side (Desktop & Mobile) */}
-            <div className="flex items-center">
+            {/* Logo Section - FAR LEFT edge */}
+            <div className="flex items-center pl-4">
               {/* Mobile: Menu Button + Icon Logo */}
               <div className="flex items-center lg:hidden">
                 <button
@@ -132,8 +133,8 @@ export default function App() {
               />
             </div>
 
-            {/* Desktop Navigation - FAR RIGHT */}
-            <div className="hidden lg:flex items-center space-x-1">
+            {/* Desktop Navigation - FAR RIGHT edge */}
+            <div className="hidden lg:flex items-center space-x-1 pr-4">
               <Link
                 to="/ebay-central"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
