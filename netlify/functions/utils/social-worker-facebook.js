@@ -29,6 +29,53 @@ class FacebookWorker extends SocialWorkerBase {
   }
   
   /**
+   * Override getAccount to use Instagram account (same Meta OAuth)
+   * Facebook and Instagram share the same Meta access token
+   * @param {string} userId - User ID
+   * @returns {Object} Account with decrypted tokens
+   */
+  async getAccount(userId) {
+    // Facebook uses the Instagram account's Meta OAuth token
+    const { data: account, error } = await this.supabase
+      .from('social_accounts')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('platform', 'instagram') // Use Instagram account (same Meta token)
+      .eq('is_active', true)
+      .single();
+    
+    if (error || !account) {
+      throw new Error('No active Instagram/Meta account found. Connect Instagram to enable Facebook posting.');
+    }
+    
+    // Check if token is expired
+    if (account.token_expires_at) {
+      const expiresAt = new Date(account.token_expires_at);
+      const now = new Date();
+      
+      // Refresh if expired or expiring within 5 minutes
+      if (expiresAt < new Date(now.getTime() + 5 * 60 * 1000)) {
+        console.log(`Token expired/expiring for Meta, refreshing...`);
+        const refreshedAccount = await this.refreshToken(account);
+        return refreshedAccount;
+      }
+    }
+    
+    // Decrypt tokens using the same method as base class
+    const { decryptToken } = require('./social-token-encryption');
+    try {
+      account.access_token = decryptToken(account.access_token);
+      if (account.refresh_token) {
+        account.refresh_token = decryptToken(account.refresh_token);
+      }
+    } catch (decryptError) {
+      throw new Error(`Failed to decrypt tokens: ${decryptError.message}`);
+    }
+    
+    return account;
+  }
+  
+  /**
    * Platform-specific token refresh
    * @param {string} refreshToken - Decrypted refresh token
    * @returns {Object} New tokens
