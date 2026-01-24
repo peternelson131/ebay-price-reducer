@@ -214,7 +214,7 @@ export default function SocialPosts() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -326,9 +326,38 @@ export default function SocialPosts() {
                         {post.platforms?.map((platform) => {
                           const Icon = getPlatformIcon(platform);
                           const colorClass = platform === 'youtube' ? 'text-red-600' : 'text-pink-600';
-                          return Icon ? (
-                            <Icon key={platform} className={`w-4 h-4 ${colorClass}`} title={platform} />
-                          ) : null;
+                          
+                          // Find the result for this platform to get the URL
+                          const platformResult = post.results?.find(r => r.platform === platform);
+                          const postUrl = platformResult?.platform_post_url;
+                          const hasUrl = platformResult?.success && postUrl;
+
+                          if (!Icon) return null;
+
+                          // If we have a URL, make it clickable
+                          if (hasUrl) {
+                            return (
+                              <a
+                                key={platform}
+                                href={postUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`${colorClass} hover:opacity-70 transition-opacity cursor-pointer`}
+                                title={`View on ${platform}`}
+                              >
+                                <Icon className="w-4 h-4" />
+                              </a>
+                            );
+                          }
+
+                          // Otherwise, just show the icon (not clickable)
+                          return (
+                            <Icon 
+                              key={platform} 
+                              className={`w-4 h-4 ${colorClass} opacity-50`} 
+                              title={platform} 
+                            />
+                          );
                         })}
                       </div>
                     </td>
