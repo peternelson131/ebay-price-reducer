@@ -103,7 +103,7 @@ export default function App() {
           <div className="flex justify-between items-center h-14">
 
             {/* Logo Section - FAR LEFT edge */}
-            <div className="flex items-center pl-4">
+            <div className="flex items-center pl-2">
               {/* Mobile: Menu Button + Icon Logo */}
               <div className="flex items-center lg:hidden">
                 <button
@@ -134,7 +134,7 @@ export default function App() {
             </div>
 
             {/* Desktop Navigation - FAR RIGHT edge */}
-            <div className="hidden lg:flex items-center space-x-1 pr-4">
+            <div className="hidden lg:flex items-center space-x-1 pr-2">
               <Link
                 to="/ebay-central"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
