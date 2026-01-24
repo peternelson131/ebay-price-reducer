@@ -51,9 +51,20 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
       }
 
       const data = await response.json();
-      const accounts = (data.accounts || []).filter(acc => 
-        (acc.platform === 'instagram' || acc.platform === 'youtube' || acc.platform === 'facebook') && acc.isActive
+      let accounts = (data.accounts || []).filter(acc => 
+        (acc.platform === 'instagram' || acc.platform === 'youtube') && acc.isActive
       );
+      
+      // If Instagram is connected, also add Facebook as available (same Meta OAuth)
+      const instagramAccount = accounts.find(acc => acc.platform === 'instagram');
+      if (instagramAccount) {
+        accounts.push({
+          ...instagramAccount,
+          id: `${instagramAccount.id}-facebook`,
+          platform: 'facebook',
+          username: `${instagramAccount.username} (Page)`
+        });
+      }
       
       setConnectedAccounts(accounts);
       
