@@ -16,7 +16,7 @@ export default function Navbar({ onMenuClick }) {
 
             <div className="flex-shrink-0 flex items-center ml-4 md:ml-0">
               <h1 className="text-xl font-semibold text-theme-primary">
-                eBay Price Reducer
+                OpSyncPro
               </h1>
             </div>
           </div>

@@ -336,7 +336,7 @@ export default function Account() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'ebay-price-reducer-data.json'
+    a.download = 'opsyncpro-data.json'
     a.click()
     URL.revokeObjectURL(url)
   }

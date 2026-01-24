@@ -104,8 +104,8 @@ export default function App() {
             {/* Logo Section */}
             <div className="flex items-center min-w-0">
               <h1 className="text-lg font-semibold text-theme-primary truncate">
-                <span className="sm:hidden">eBay PR</span>
-                <span className="hidden sm:inline">eBay Price Reducer</span>
+                <span className="sm:hidden">OpSync</span>
+                <span className="hidden sm:inline">OpSyncPro</span>
               </h1>
             </div>
 

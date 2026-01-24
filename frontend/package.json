@@ -1,7 +1,7 @@
 {
-  "name": "ebay-price-reducer-frontend",
+  "name": "opsyncpro-frontend",
   "version": "1.0.0",
-  "description": "Frontend React app for eBay price reduction management",
+  "description": "Frontend React app for OpSyncPro.io",
   "private": true,
   "scripts": {
     "dev": "vite",

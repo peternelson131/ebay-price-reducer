@@ -571,7 +571,7 @@ export default function Login({ onLogin }) {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <h2 className="text-3xl font-semibold text-theme-primary">
-            eBay Price Reducer
+            OpSyncPro
           </h2>
           <p className="mt-2 text-sm text-theme-tertiary">
             {currentView === 'login' && 'Sign in to your account'}

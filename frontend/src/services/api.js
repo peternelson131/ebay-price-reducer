@@ -1,4 +1,4 @@
-// API Service for eBay Price Reducer
+// API Service for OpSyncPro
 // Connects frontend to Netlify Functions backend
 
 import { logger } from '../utils/logger';
