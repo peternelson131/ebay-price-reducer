@@ -32,6 +32,12 @@ const OAUTH_CONFIG = {
     responseType: 'code',
     accessType: 'offline',
     prompt: 'consent' // Force consent to get refresh token
+  },
+  tiktok: {
+    authUrl: 'https://www.tiktok.com/v2/auth/authorize/',
+    clientId: process.env.TIKTOK_CLIENT_KEY,
+    scopes: ['user.info.basic', 'video.upload', 'video.publish'],
+    responseType: 'code'
   }
 };
 

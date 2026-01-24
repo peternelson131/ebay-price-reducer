@@ -27,13 +27,19 @@ const TOKEN_CONFIG = {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     grantType: 'authorization_code'
+  },
+  tiktok: {
+    tokenUrl: 'https://open.tiktokapis.com/v2/oauth/token/',
+    clientId: process.env.TIKTOK_CLIENT_KEY,
+    clientSecret: process.env.TIKTOK_CLIENT_SECRET,
+    grantType: 'authorization_code'
   }
 };
 
 /**
  * Fetch account info from platform API
  */
-async function getAccountInfo(platform, accessToken) {
+async function getAccountInfo(platform, accessToken, tokenData = {}) {
   if (platform === 'instagram') {
     // Instagram Graph API: Get Instagram account via Facebook Pages
     // Step 1: Get user's Facebook Pages
@@ -85,6 +91,28 @@ async function getAccountInfo(platform, accessToken) {
       metadata: {
         customUrl: channel?.snippet?.customUrl,
         thumbnail: channel?.snippet?.thumbnails?.default?.url
+      }
+    };
+  } else if (platform === 'tiktok') {
+    // Get TikTok user info
+    const response = await fetch('https://open.tiktokapis.com/v2/user/info/', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    const userInfo = data.data?.user || {};
+    
+    return {
+      accountId: tokenData.open_id || 'unknown', // TikTok uses open_id
+      username: userInfo.display_name || userInfo.username || 'TikTok User',
+      metadata: {
+        display_name: userInfo.display_name,
+        profile_image: userInfo.avatar_url,
+        follower_count: userInfo.follower_count,
+        video_count: userInfo.video_count
       }
     };
   }
@@ -254,7 +282,7 @@ exports.handler = async (event, context) => {
     }
     
     // Get account info
-    const accountInfo = await getAccountInfo(platform, tokenData.access_token);
+    const accountInfo = await getAccountInfo(platform, tokenData.access_token, tokenData);
     
     // Encrypt tokens
     const encryptedAccessToken = encryptToken(tokenData.access_token);

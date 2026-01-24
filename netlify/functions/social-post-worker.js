@@ -11,6 +11,7 @@ const { verifyWebhookSecret } = require('./utils/auth');
 const InstagramWorker = require('./utils/social-worker-instagram');
 const YouTubeWorker = require('./utils/social-worker-youtube');
 const FacebookWorker = require('./utils/social-worker-facebook');
+const TikTokWorker = require('./utils/social-worker-tiktok');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -22,7 +23,8 @@ function getWorkers() {
     WORKERS = {
       instagram: new InstagramWorker(),
       youtube: new YouTubeWorker(),
-      facebook: new FacebookWorker()
+      facebook: new FacebookWorker(),
+      tiktok: new TikTokWorker()
     };
   }
   return WORKERS;

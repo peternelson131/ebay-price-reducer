@@ -7,6 +7,7 @@ import {
   Youtube, 
   Instagram, 
   Facebook,
+  Music2,
   Loader, 
   Trash2, 
   Edit, 
@@ -158,6 +159,7 @@ export default function SocialPosts() {
       case 'youtube': return Youtube;
       case 'instagram': return Instagram;
       case 'facebook': return Facebook;
+      case 'tiktok': return Music2;
       default: return null;
     }
   };
@@ -338,6 +340,8 @@ export default function SocialPosts() {
                             ? 'text-pink-600' 
                             : platform === 'facebook'
                             ? 'text-[#1877F2]'
+                            : platform === 'tiktok'
+                            ? 'text-[#FE2C55]'
                             : 'text-gray-600';
                           
                           // Find the result for this platform to get the URL

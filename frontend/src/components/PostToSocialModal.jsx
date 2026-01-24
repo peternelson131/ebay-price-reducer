@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Youtube, Instagram, Facebook, XCircle, Loader, Clock, Zap, Calendar } from 'lucide-react';
+import { X, Youtube, Instagram, Facebook, Music2, XCircle, Loader, Clock, Zap, Calendar } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { userAPI } from '../lib/supabase';
 
@@ -24,7 +24,8 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
   const CHARACTER_LIMITS = {
     instagram: 2200,
     youtube: 5000,
-    facebook: 63206
+    facebook: 63206,
+    tiktok: 2200
   };
 
   useEffect(() => {
@@ -52,7 +53,7 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
 
       const data = await response.json();
       let accounts = (data.accounts || []).filter(acc => 
-        (acc.platform === 'instagram' || acc.platform === 'youtube') && acc.isActive
+        (acc.platform === 'instagram' || acc.platform === 'youtube' || acc.platform === 'tiktok') && acc.isActive
       );
       
       // If Instagram is connected, also add Facebook as available (same Meta OAuth)
@@ -224,6 +225,7 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
       case 'youtube': return Youtube;
       case 'instagram': return Instagram;
       case 'facebook': return Facebook;
+      case 'tiktok': return Music2;
       default: return null;
     }
   };
@@ -233,6 +235,7 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
       case 'youtube': return 'text-red-600 dark:text-red-400';
       case 'instagram': return 'text-pink-600 dark:text-pink-400';
       case 'facebook': return 'text-[#1877F2] dark:text-[#1877F2]';
+      case 'tiktok': return 'text-[#FE2C55] dark:text-[#FE2C55]';
       default: return 'text-gray-600 dark:text-gray-400';
     }
   };

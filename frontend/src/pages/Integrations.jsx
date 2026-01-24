@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronDown, ChevronRight, ShoppingCart, Video, Share2, CheckCircle, XCircle, Eye, EyeOff, ExternalLink, Loader, Link2, Unlink, Youtube, Facebook, Instagram } from 'lucide-react'
+import { ChevronDown, ChevronRight, ShoppingCart, Video, Share2, CheckCircle, XCircle, Eye, EyeOff, ExternalLink, Loader, Link2, Unlink, Youtube, Facebook, Instagram, Music2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { userAPI, supabase } from '../lib/supabase'
 import { OneDriveConnection } from '../components/onedrive'
@@ -28,7 +28,7 @@ const CATEGORIES = [
     name: 'Social Media Integrations',
     icon: Share2,
     description: 'Connect social platforms for content distribution',
-    integrations: ['youtube', 'instagram', 'facebook']
+    integrations: ['youtube', 'instagram', 'facebook', 'tiktok']
   }
 ]
 
@@ -791,6 +791,154 @@ function InstagramIntegration({ onStatusChange }) {
   )
 }
 
+// TikTok Integration Card 
+function TikTokIntegration({ onStatusChange }) {
+  const [searchParams] = useSearchParams()
+  const [isConnecting, setIsConnecting] = useState(false)
+  
+  const { data: socialAccounts, isLoading, refetch: refetchAccounts } = useQuery(
+    ['socialAccounts'],
+    async () => {
+      const token = await userAPI.getAuthToken()
+      const response = await fetch('/.netlify/functions/social-accounts-list', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!response.ok) throw new Error('Failed to fetch social accounts')
+      return response.json()
+    },
+    {
+      refetchOnWindowFocus: false
+    }
+  )
+
+  const account = socialAccounts?.accounts?.find(a => a.platform === 'tiktok' && a.isActive)
+  const isConnected = !!account
+
+  // Notify parent when connection status changes
+  useEffect(() => {
+    onStatusChange?.(isConnected)
+  }, [isConnected, onStatusChange])
+
+  // Handle OAuth callback from URL params
+  useEffect(() => {
+    const socialParam = searchParams.get('social')
+    if (socialParam === 'connected') {
+      refetchAccounts()
+      toast.success('TikTok connected successfully!')
+    } else if (socialParam === 'error') {
+      toast.error('TikTok connection failed')
+    }
+  }, [searchParams])
+
+  const handleConnect = async () => {
+    setIsConnecting(true)
+    try {
+      const token = await userAPI.getAuthToken()
+      const response = await fetch('/.netlify/functions/social-accounts-connect', {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ platform: 'tiktok' })
+      })
+      const data = await response.json()
+      console.log('TikTok connect response:', data)
+      if (!response.ok) {
+        throw new Error(data.error || 'Connection failed')
+      }
+      if (data.authUrl) {
+        window.location.href = data.authUrl
+      } else {
+        throw new Error('No authorization URL returned')
+      }
+    } catch (error) {
+      console.error('Failed to start TikTok auth:', error)
+      toast.error(error.message || 'Failed to start TikTok connection')
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
+  const handleDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect TikTok?')) return
+    try {
+      const token = await userAPI.getAuthToken()
+      await fetch('/.netlify/functions/social-accounts-disconnect', {
+        method: 'DELETE',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ accountId: account.id })
+      })
+      refetchAccounts()
+      toast.success('TikTok disconnected')
+    } catch (error) {
+      console.error('Failed to disconnect TikTok:', error)
+      toast.error('Failed to disconnect TikTok')
+    }
+  }
+
+  return (
+    <div className={`border rounded-lg p-6 ${
+      isConnected
+        ? 'bg-[#FE2C55]/5 dark:bg-[#FE2C55]/10 border-[#FE2C55]/20 dark:border-[#FE2C55]/30'
+        : 'bg-theme-primary border-theme'
+    }`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+            isConnected ? 'bg-[#FE2C55]/10 dark:bg-[#FE2C55]/20' : 'bg-theme-surface'
+          }`}>
+            <Music2 className="w-6 h-6 text-[#FE2C55]" />
+          </div>
+          <div>
+            <h4 className="font-medium text-theme-primary">TikTok</h4>
+            {isLoading ? (
+              <p className="text-sm text-theme-tertiary flex items-center gap-2">
+                <Loader className="w-4 h-4 animate-spin" />
+                Loading...
+              </p>
+            ) : isConnected ? (
+              <>
+                <p className="text-sm text-theme-secondary">Connected as: {account.username}</p>
+                {account?.connectedAt && (
+                  <p className="text-sm text-theme-tertiary">
+                    Connected on {new Date(account.connectedAt).toLocaleDateString()}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-theme-tertiary">Not connected</p>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={isConnected ? handleDisconnect : handleConnect}
+          disabled={isConnecting || isLoading}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+            isConnected
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'bg-[#FE2C55] hover:bg-[#FE2C55]/90 text-white'
+          }`}
+        >
+          {isConnecting ? (
+            <span className="flex items-center gap-2">
+              <Loader className="w-4 h-4 animate-spin" />
+              Connecting...
+            </span>
+          ) : isConnected ? (
+            'Disconnect'
+          ) : (
+            'Connect'
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // YouTube Integration Card 
 function YouTubeIntegration({ onStatusChange }) {
   const [searchParams] = useSearchParams()
@@ -951,7 +1099,8 @@ export default function Integrations() {
     elevenlabs: false,
     youtube: false,
     instagram: false,
-    facebook: false
+    facebook: false,
+    tiktok: false
   })
   const [isLoadingStatuses, setIsLoadingStatuses] = useState(true)
 
@@ -1021,7 +1170,7 @@ export default function Integrations() {
           console.error('Failed to fetch OneDrive status:', error)
         }
 
-        // Fetch social accounts status (YouTube, Facebook, Instagram)
+        // Fetch social accounts status (YouTube, Facebook, Instagram, TikTok)
         try {
           const socialResponse = await fetch('/.netlify/functions/social-accounts-list', {
             headers: { 'Authorization': `Bearer ${session.access_token}` }
@@ -1033,6 +1182,7 @@ export default function Integrations() {
           updateConnectionStatus('youtube', accounts.some(a => a.platform === 'youtube' && a.isActive))
           updateConnectionStatus('facebook', accounts.some(a => a.platform === 'facebook' && a.isActive))
           updateConnectionStatus('instagram', accounts.some(a => a.platform === 'instagram' && a.isActive))
+          updateConnectionStatus('tiktok', accounts.some(a => a.platform === 'tiktok' && a.isActive))
         } catch (error) {
           console.error('Failed to fetch social accounts status:', error)
         }
@@ -1119,6 +1269,9 @@ export default function Integrations() {
                 />
                 <FacebookIntegration 
                   onStatusChange={(connected) => updateConnectionStatus('facebook', connected)} 
+                />
+                <TikTokIntegration 
+                  onStatusChange={(connected) => updateConnectionStatus('tiktok', connected)} 
                 />
               </>
             )}
