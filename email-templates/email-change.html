@@ -5,86 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Confirm Email Change - OpSyncPro</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #1a1a2e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #1a1a2e;">
+<body style="margin: 0; padding: 0; background-color: #121212; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #121212;">
     <tr>
       <td align="center" style="padding: 40px 20px;">
         
         <!-- Logo -->
-        <table role="presentation" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" style="margin-bottom: 32px;">
           <tr>
             <td align="center">
-              <img src="https://opsyncpro.io/logo-email.png" alt="OpSyncPro.io" width="160" style="display: block; max-width: 160px; height: auto;">
+              <img src="https://opsyncpro.io/logo-email.png" alt="OpSyncPro.io" width="280" style="display: block; max-width: 280px; height: auto;">
             </td>
           </tr>
         </table>
         
         <!-- Main Card -->
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 480px; background-color: #252538; border-radius: 12px; border: 1px solid #3d3d52;">
-          
-          <!-- Content -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 400px; background-color: #1e1e1e; border-radius: 16px;">
           <tr>
-            <td style="padding: 40px;">
-              <h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #ffffff; text-align: center;">
+            <td style="padding: 32px;">
+              <h1 style="margin: 0 0 12px; font-size: 20px; font-weight: 600; color: #ffffff; text-align: center;">
                 Confirm Your New Email
               </h1>
-              <p style="margin: 0 0 28px; font-size: 16px; line-height: 1.6; color: #9ca3af; text-align: center;">
+              <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5; color: #9ca3af; text-align: center;">
                 You requested to change your email address. Click below to confirm.
               </p>
               
               <!-- CTA Button -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td align="center" style="padding: 0 0 28px;">
-                    <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 14px 36px; background-color: #f97316; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 8px;">
+                  <td align="center">
+                    <a href="{{ .ConfirmationURL }}" style="display: block; width: 100%; padding: 14px 0; background-color: #f97316; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 8px; text-align: center;">
                       Confirm New Email
                     </a>
                   </td>
                 </tr>
               </table>
               
-              <!-- Security Notice -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td style="padding: 14px 16px; background-color: #3d3d52; border-radius: 8px; border-left: 3px solid #f59e0b;">
-                    <p style="margin: 0; font-size: 13px; color: #d1d5db;">
-                      🔒 <strong style="color: #fbbf24;">Didn't request this?</strong> Ignore this email and consider changing your password.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-              
-              <!-- Link fallback -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td style="padding-top: 28px; border-top: 1px solid #3d3d52; margin-top: 28px;">
-                    <p style="margin: 0 0 8px; font-size: 12px; color: #6b7280; text-align: center;">
-                      Or copy this link:
-                    </p>
-                    <p style="margin: 0; font-size: 11px; color: #f97316; text-align: center; word-break: break-all;">
-                      {{ .ConfirmationURL }}
-                    </p>
-                  </td>
-                </tr>
-              </table>
+              <p style="margin: 16px 0 0; font-size: 14px; color: #f97316; text-align: center;">
+                <a href="https://opsyncpro.io" style="color: #f97316; text-decoration: none;">Back to Login</a>
+              </p>
             </td>
           </tr>
-          
         </table>
         
+        <!-- Footer note -->
+        <p style="margin: 24px 0 0; font-size: 12px; color: #6b7280; text-align: center; max-width: 400px;">
+          🔒 Didn't request this? Ignore this email and consider changing your password.
+        </p>
+        
+        <!-- Link fallback -->
+        <p style="margin: 16px 0 0; font-size: 11px; color: #4b5563; text-align: center; max-width: 400px; word-break: break-all;">
+          {{ .ConfirmationURL }}
+        </p>
+        
         <!-- Footer -->
-        <table role="presentation" cellspacing="0" cellpadding="0" style="margin-top: 24px;">
-          <tr>
-            <td align="center">
-              <p style="margin: 0 0 6px; font-size: 12px; color: #6b7280;">
-                Link expires in 24 hours.
-              </p>
-              <p style="margin: 0; font-size: 11px; color: #4b5563;">
-                © 2026 OpSyncPro.io · <a href="https://opsyncpro.io/privacy-policy.html" style="color: #f97316; text-decoration: none;">Privacy</a> · <a href="https://opsyncpro.io/terms-of-service.html" style="color: #f97316; text-decoration: none;">Terms</a>
-              </p>
-            </td>
-          </tr>
-        </table>
+        <p style="margin: 32px 0 0; font-size: 11px; color: #4b5563; text-align: center;">
+          © 2026 OpSyncPro.io · <a href="https://opsyncpro.io/privacy-policy.html" style="color: #6b7280; text-decoration: none;">Privacy</a> · <a href="https://opsyncpro.io/terms-of-service.html" style="color: #6b7280; text-decoration: none;">Terms</a>
+        </p>
         
       </td>
     </tr>
