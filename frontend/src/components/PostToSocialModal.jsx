@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Youtube, Instagram, XCircle, Loader, Clock, Zap, Calendar } from 'lucide-react';
+import { X, Youtube, Instagram, Facebook, XCircle, Loader, Clock, Zap, Calendar } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { userAPI } from '../lib/supabase';
 
@@ -23,7 +23,8 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
   // Character limits per platform
   const CHARACTER_LIMITS = {
     instagram: 2200,
-    youtube: 5000
+    youtube: 5000,
+    facebook: 63206
   };
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
 
       const data = await response.json();
       const accounts = (data.accounts || []).filter(acc => 
-        (acc.platform === 'instagram' || acc.platform === 'youtube') && acc.isActive
+        (acc.platform === 'instagram' || acc.platform === 'youtube' || acc.platform === 'facebook') && acc.isActive
       );
       
       setConnectedAccounts(accounts);
@@ -211,6 +212,7 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
     switch (platform) {
       case 'youtube': return Youtube;
       case 'instagram': return Instagram;
+      case 'facebook': return Facebook;
       default: return null;
     }
   };
@@ -219,6 +221,7 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
     switch (platform) {
       case 'youtube': return 'text-red-600 dark:text-red-400';
       case 'instagram': return 'text-pink-600 dark:text-pink-400';
+      case 'facebook': return 'text-[#1877F2] dark:text-[#1877F2]';
       default: return 'text-gray-600 dark:text-gray-400';
     }
   };

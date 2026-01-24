@@ -6,6 +6,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { 
   Youtube, 
   Instagram, 
+  Facebook,
   Loader, 
   Trash2, 
   Edit, 
@@ -156,6 +157,7 @@ export default function SocialPosts() {
     switch (platform) {
       case 'youtube': return Youtube;
       case 'instagram': return Instagram;
+      case 'facebook': return Facebook;
       default: return null;
     }
   };
@@ -330,7 +332,13 @@ export default function SocialPosts() {
                       <div className="flex items-center gap-2">
                         {post.platforms?.map((platform) => {
                           const Icon = getPlatformIcon(platform);
-                          const colorClass = platform === 'youtube' ? 'text-red-600' : 'text-pink-600';
+                          const colorClass = platform === 'youtube' 
+                            ? 'text-red-600' 
+                            : platform === 'instagram' 
+                            ? 'text-pink-600' 
+                            : platform === 'facebook'
+                            ? 'text-[#1877F2]'
+                            : 'text-gray-600';
                           
                           // Find the result for this platform to get the URL
                           const platformResult = post.results?.find(r => r.platform === platform);

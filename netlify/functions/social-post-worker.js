@@ -10,6 +10,7 @@ const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = requ
 const { verifyWebhookSecret } = require('./utils/auth');
 const InstagramWorker = require('./utils/social-worker-instagram');
 const YouTubeWorker = require('./utils/social-worker-youtube');
+const FacebookWorker = require('./utils/social-worker-facebook');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -20,7 +21,8 @@ function getWorkers() {
   if (!WORKERS) {
     WORKERS = {
       instagram: new InstagramWorker(),
-      youtube: new YouTubeWorker()
+      youtube: new YouTubeWorker(),
+      facebook: new FacebookWorker()
     };
   }
   return WORKERS;

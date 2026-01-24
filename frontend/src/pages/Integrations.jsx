@@ -28,7 +28,7 @@ const CATEGORIES = [
     name: 'Social Media Integrations',
     icon: Share2,
     description: 'Connect social platforms for content distribution',
-    integrations: ['youtube', 'instagram']
+    integrations: ['youtube', 'instagram', 'facebook']
   }
 ]
 
@@ -1191,6 +1191,9 @@ export default function Integrations() {
                 />
                 <InstagramIntegration 
                   onStatusChange={(connected) => updateConnectionStatus('instagram', connected)} 
+                />
+                <FacebookIntegration 
+                  onStatusChange={(connected) => updateConnectionStatus('facebook', connected)} 
                 />
               </>
             )}
