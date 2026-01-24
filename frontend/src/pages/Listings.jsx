@@ -865,7 +865,7 @@ export default function Listings() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="px-4 sm:px-6 py-4 space-y-4">
       {/* Notification Banner */}
       {notification && (
         <div className={`rounded-lg p-3 border ${
