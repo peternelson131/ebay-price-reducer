@@ -571,10 +571,8 @@ function OneDriveIntegrationCard({ onStatusChange }) {
 
 // Facebook Integration Card 
 function FacebookIntegration({ onStatusChange }) {
-  const [searchParams] = useSearchParams()
-  const [isConnecting, setIsConnecting] = useState(false)
-  
-  const { data: socialAccounts, isLoading, refetch: refetchAccounts } = useQuery(
+  // Facebook uses the same Meta OAuth as Instagram - check for Instagram connection
+  const { data: socialAccounts, isLoading } = useQuery(
     ['socialAccounts'],
     async () => {
       const token = await userAPI.getAuthToken()
@@ -589,74 +587,14 @@ function FacebookIntegration({ onStatusChange }) {
     }
   )
 
-  const account = socialAccounts?.accounts?.find(a => a.platform === 'facebook' && a.isActive)
-  const isConnected = !!account
+  // Facebook is connected if Instagram is connected (same Meta OAuth token)
+  const instagramAccount = socialAccounts?.accounts?.find(a => a.platform === 'instagram' && a.isActive)
+  const isConnected = !!instagramAccount
 
   // Notify parent when connection status changes
   useEffect(() => {
     onStatusChange?.(isConnected)
   }, [isConnected, onStatusChange])
-
-  // Handle OAuth callback from URL params
-  useEffect(() => {
-    const socialParam = searchParams.get('social')
-    if (socialParam === 'connected') {
-      refetchAccounts()
-      toast.success('Facebook connected successfully!')
-    } else if (socialParam === 'error') {
-      toast.error('Facebook connection failed')
-    }
-  }, [searchParams])
-
-  const handleConnect = async () => {
-    setIsConnecting(true)
-    try {
-      const token = await userAPI.getAuthToken()
-      const response = await fetch('/.netlify/functions/social-accounts-connect', {
-        method: 'POST',
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ platform: 'facebook' })
-      })
-      const data = await response.json()
-      console.log('Facebook connect response:', data)
-      if (!response.ok) {
-        throw new Error(data.error || 'Connection failed')
-      }
-      if (data.authUrl) {
-        window.location.href = data.authUrl
-      } else {
-        throw new Error('No authorization URL returned')
-      }
-    } catch (error) {
-      console.error('Failed to start Facebook auth:', error)
-      toast.error(error.message || 'Failed to start Facebook connection')
-    } finally {
-      setIsConnecting(false)
-    }
-  }
-
-  const handleDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect your Facebook account?')) return
-    try {
-      const token = await userAPI.getAuthToken()
-      await fetch('/.netlify/functions/social-accounts-disconnect', {
-        method: 'DELETE',
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ accountId: account.id })
-      })
-      refetchAccounts()
-      toast.success('Facebook account disconnected')
-    } catch (error) {
-      console.error('Failed to disconnect Facebook:', error)
-      toast.error('Failed to disconnect Facebook')
-    }
-  }
 
   return (
     <div className={`border rounded-lg p-6 ${
@@ -672,7 +610,7 @@ function FacebookIntegration({ onStatusChange }) {
             <Facebook className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <h4 className="font-medium text-theme-primary">Facebook</h4>
+            <h4 className="font-medium text-theme-primary">Facebook Pages</h4>
             {isLoading ? (
               <p className="text-sm text-theme-tertiary flex items-center gap-2">
                 <Loader className="w-4 h-4 animate-spin" />
@@ -680,38 +618,25 @@ function FacebookIntegration({ onStatusChange }) {
               </p>
             ) : isConnected ? (
               <>
-                <p className="text-sm text-theme-secondary">Connected as: {account.username}</p>
-                {account?.connectedAt && (
-                  <p className="text-sm text-theme-tertiary">
-                    Connected on {new Date(account.connectedAt).toLocaleDateString()}
-                  </p>
-                )}
+                <p className="text-sm text-green-600 dark:text-green-400">✓ Connected via Instagram</p>
+                <p className="text-sm text-theme-tertiary">
+                  Uses same Meta connection as Instagram
+                </p>
               </>
             ) : (
-              <p className="text-sm text-theme-tertiary">Not connected</p>
+              <p className="text-sm text-theme-tertiary">Connect Instagram to enable Facebook posting</p>
             )}
           </div>
         </div>
-        <button
-          onClick={isConnected ? handleDisconnect : handleConnect}
-          disabled={isConnecting || isLoading}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
-            isConnected
-              ? 'bg-red-600 hover:bg-red-700 text-white'
-              : 'bg-blue-600 hover:bg-blue-700 text-white'
-          }`}
-        >
-          {isConnecting ? (
-            <span className="flex items-center gap-2">
-              <Loader className="w-4 h-4 animate-spin" />
-              Connecting...
-            </span>
-          ) : isConnected ? (
-            'Disconnect'
-          ) : (
-            'Connect'
-          )}
-        </button>
+        {isConnected ? (
+          <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-sm rounded-full">
+            Active
+          </span>
+        ) : (
+          <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 text-sm rounded-full">
+            Requires Instagram
+          </span>
+        )}
       </div>
     </div>
   )
