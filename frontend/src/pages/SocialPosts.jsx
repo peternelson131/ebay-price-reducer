@@ -214,27 +214,31 @@ export default function SocialPosts() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-theme-primary">Social Media Posts</h1>
-          <p className="mt-1 text-sm text-theme-tertiary">
-            View and manage your scheduled and posted content
-          </p>
+      <div className="border-b border-theme">
+        <div className="px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-theme-primary">Social Media Posts</h1>
+              <p className="mt-1 text-sm text-theme-tertiary">
+                View and manage your scheduled and posted content
+              </p>
+            </div>
+            <button
+              onClick={fetchPosts}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 border border-theme rounded-lg text-theme-secondary hover:text-theme-primary hover:border-accent transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
-        <button
-          onClick={fetchPosts}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 border border-theme rounded-lg text-theme-secondary hover:text-theme-primary hover:border-accent transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-theme">
+      <div className="px-4 sm:px-6 border-b border-theme">
         <nav className="-mb-px flex space-x-6">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -266,14 +270,15 @@ export default function SocialPosts() {
       </div>
 
       {/* Posts List */}
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader className="w-8 h-8 animate-spin text-accent" />
-        </div>
-      ) : posts.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="bg-theme-primary border border-theme rounded-lg overflow-hidden">
+      <div className="px-4 sm:px-6 py-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader className="w-8 h-8 animate-spin text-accent" />
+          </div>
+        ) : posts.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="bg-theme-primary border border-theme rounded-lg overflow-hidden">
           <table className="w-full">
             <thead className="bg-theme-surface border-b border-theme">
               <tr>
@@ -414,8 +419,9 @@ export default function SocialPosts() {
               })}
             </tbody>
           </table>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* Edit Modal */}
       {editingPost && (
