@@ -23,7 +23,7 @@ const menuItems = [
   },
   {
     id: 'posts',
-    label: 'Posts',
+    label: 'Schedule',
     icon: Share2,
     component: SocialPosts,
     badge: null
