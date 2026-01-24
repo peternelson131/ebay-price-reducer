@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase, authAPI } from '../lib/supabase'
+import AnimatedOpSyncProLogo from '../components/AnimatedLogo'
 
 export default function Login({ onLogin }) {
   const [currentView, setCurrentView] = useState('login') // 'login', 'signup', 'forgot', 'reset'
@@ -571,11 +572,7 @@ export default function Login({ onLogin }) {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <div className="flex justify-center mb-4">
-            <img 
-              src="/assets/logos/logo-stacked.svg" 
-              alt="OpSyncPro" 
-              className="h-28 w-auto"
-            />
+            <AnimatedOpSyncProLogo />
           </div>
           <p className="mt-2 text-sm text-theme-tertiary">
             {currentView === 'login' && 'Sign in to your account'}
