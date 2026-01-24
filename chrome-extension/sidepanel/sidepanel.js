@@ -191,10 +191,12 @@ function renderTasks() {
     taskList.innerHTML = '';
     emptyState.classList.remove('hidden');
     const mpText = detectedMarketplace ? ` for ${detectedMarketplace}` : '';
-    emptyState.querySelector('p').textContent = 
-      currentFilter === 'pending' 
-        ? `🎉 No pending tasks${mpText}!` 
-        : `No completed tasks${mpText} yet.`;
+    emptyState.innerHTML = `
+      <svg class="icon-lg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <p>${currentFilter === 'pending' ? `No pending tasks${mpText}!` : `No completed tasks${mpText} yet.`}</p>
+    `;
     return;
   }
   
@@ -269,12 +271,17 @@ function createVideoGroup(group) {
       ${hasVideo ? `
         <div class="video-header">
           <div class="video-info">
-            <span class="video-icon">📹</span>
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
             <span class="video-filename">${escapeHtml(group.filename)}</span>
             ${multipleAsins ? `<span class="asin-count">${taskCount} ASINs</span>` : ''}
           </div>
           <button class="btn btn-download btn-small" data-video-id="${group.videoId}" data-filename="${escapeHtml(group.filename)}" data-asins="${group.tasks.map(t => t.asin).join(',')}">
-            ⬇️ Download All
+            <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download All
           </button>
         </div>
       ` : ''}
@@ -288,13 +295,15 @@ function createVideoGroup(group) {
 function updateMarketplaceIndicator() {
   const indicator = document.getElementById('marketplace-indicator');
   if (indicator) {
-    if (detectedMarketplace) {
-      indicator.textContent = `📍 ${detectedMarketplace}`;
-      indicator.classList.remove('hidden');
-    } else {
-      indicator.textContent = '📍 All';
-      indicator.classList.remove('hidden');
-    }
+    const text = detectedMarketplace || 'All';
+    indicator.innerHTML = `
+      <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+      <span>${text}</span>
+    `;
+    indicator.classList.remove('hidden');
   }
 }
 
@@ -311,19 +320,31 @@ function createTaskCard(task, groupHasVideo = false, isMultiAsin = false) {
       <div class="task-title">${escapeHtml(task.product_title || 'Untitled Product')}</div>
       ${!groupHasVideo ? `
         <div class="task-video no-video">
-          ⚠️ No video attached
+          <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          No video attached
         </div>
       ` : ''}
       ${!isCompleted ? `
         <div class="task-actions">
           <button class="btn btn-fill-title" data-task-id="${task.id}" data-video-title="${escapeHtml(task.video_title || '')}" title="${task.video_title ? escapeHtml(task.video_title) : 'No title set - set owner in CRM'}">
-            📝 Title
+            <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Title
           </button>
           <button class="btn btn-fill-asin" data-task-id="${task.id}" data-asin="${task.asin}" title="Fill ASIN in search box">
-            🏷️ ASIN
+            <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            ASIN
           </button>
           <button class="btn btn-complete" data-task-id="${task.id}">
-            ✓ Done
+            <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Done
           </button>
         </div>
       ` : `

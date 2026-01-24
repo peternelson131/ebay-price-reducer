@@ -1,20 +1,23 @@
 /* Import Inter font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* CSS Variables - matching main app */
+/* CSS Variables - matching OpSyncPro branding */
 :root {
-  --bg-primary: #0A0A0A;
-  --bg-surface: #141414;
-  --bg-hover: #1F1F1F;
-  --border-color: #262626;
-  --text-primary: #FAFAFA;
-  --text-secondary: #A1A1A1;
-  --text-tertiary: #6B6B6B;
-  --accent: #3B82F6;
-  --accent-hover: #2563EB;
+  --bg-primary: #18181b;
+  --bg-surface: #1f1f23;
+  --bg-hover: #27272a;
+  --border-color: #2a2a2e;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --accent: #f97316;
+  --accent-hover: #ea580c;
   --success: #22C55E;
   --warning: #EAB308;
   --error: #EF4444;
+  --brand-orange: #f97316;
+  --brand-red: #ef4444;
+  --brand-amber: #fbbf24;
 }
 
 * {
@@ -49,16 +52,27 @@ body {
   margin-bottom: 16px;
 }
 
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-icon {
+  flex-shrink: 0;
+}
+
 .header h1 {
   font-size: 18px;
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   color: var(--text-primary);
 }
 
 .header .subtitle {
   color: var(--text-secondary);
   font-size: 12px;
+  margin-top: 4px;
 }
 
 .header-row {
@@ -173,7 +187,7 @@ body {
 .form-group input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
 }
 
 .error-text {
@@ -184,7 +198,7 @@ body {
 
 /* Marketplace Indicator */
 .marketplace-indicator {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(249, 115, 22, 0.1);
   color: var(--accent);
   padding: 6px 12px;
   border-radius: 6px;
@@ -192,11 +206,15 @@ body {
   font-weight: 500;
   margin-bottom: 12px;
   text-align: center;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .marketplace-indicator.hidden {
-  display: none;
+  display: none !important;
 }
 
 /* Filters */
@@ -291,8 +309,9 @@ body {
   min-width: 0;
 }
 
-.video-icon {
-  font-size: 16px;
+.video-info .icon {
+  flex-shrink: 0;
+  color: var(--accent);
 }
 
 .video-filename {
@@ -306,7 +325,7 @@ body {
 
 .asin-count {
   font-size: 10px;
-  background: rgba(59, 130, 246, 0.15);
+  background: rgba(249, 115, 22, 0.15);
   color: var(--accent);
   padding: 2px 8px;
   border-radius: 10px;
@@ -316,13 +335,16 @@ body {
 .btn-download {
   background: transparent;
   color: var(--accent);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(249, 115, 22, 0.3);
   font-size: 11px;
   padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .btn-download:hover {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(249, 115, 22, 0.1);
 }
 
 .btn-small {
@@ -441,10 +463,17 @@ body {
   font-size: 11px;
   color: var(--text-secondary);
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .task-video.no-video {
   color: var(--warning);
+}
+
+.task-video .icon-sm {
+  flex-shrink: 0;
 }
 
 .task-actions {
@@ -456,16 +485,20 @@ body {
   flex: 1;
   padding: 6px 8px;
   font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .btn-fill-title {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(249, 115, 22, 0.1);
   color: var(--accent);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
 .btn-fill-title:hover {
-  background: rgba(59, 130, 246, 0.2);
+  background: rgba(249, 115, 22, 0.2);
 }
 
 .btn-fill-asin {
@@ -534,9 +567,9 @@ body {
 }
 
 .notification.info {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(249, 115, 22, 0.1);
   color: var(--accent);
-  border-color: rgba(59, 130, 246, 0.3);
+  border-color: rgba(249, 115, 22, 0.3);
 }
 
 @keyframes slideUp {
@@ -558,4 +591,36 @@ body {
 
 #login-view h1 {
   font-size: 20px;
+}
+
+#login-view .header-title {
+  justify-content: center;
+}
+
+/* Icon styles */
+.icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+.icon-sm {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.icon-lg {
+  width: 48px;
+  height: 48px;
+  stroke-width: 1.5;
+  margin: 0 auto 12px;
+  color: var(--success);
+  display: block;
+}
+
+.btn-icon .icon {
+  display: block;
 }
