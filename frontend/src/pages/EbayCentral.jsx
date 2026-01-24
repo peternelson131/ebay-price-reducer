@@ -152,61 +152,70 @@ export default function EbayCentral() {
             )}
           </button>
         </div>
+
+        {/* Collapsed state icon strip (Tablet and Desktop) */}
+        {!sidebarOpen && (
+          <div className="hidden md:flex flex-col items-center py-4 space-y-2">
+            {menuItems.map((item) => {
+              const isActive = activeItem === item.id;
+              const Icon = item.icon;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleMenuClick(item.id)}
+                  className={`
+                    p-2 rounded-lg transition-colors
+                    ${isActive
+                      ? 'bg-accent text-white'
+                      : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
+                    }
+                  `}
+                  title={item.label}
+                >
+                  {item.customIcon ? (
+                    <span className="text-lg">{item.customIcon}</span>
+                  ) : Icon ? (
+                    <Icon className="w-5 h-5" strokeWidth={1.5} />
+                  ) : null}
+                </button>
+              );
+            })}
+            
+            {/* Expand button at bottom */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="mt-auto p-2 rounded-lg text-theme-tertiary hover:text-theme-secondary hover:bg-theme-hover transition-colors"
+              title="Expand sidebar"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </aside>
 
-      {/* Collapsed Sidebar Icons (Tablet and Desktop) */}
-      {!sidebarOpen && (
-        <aside className="hidden md:flex w-12 flex-col items-center py-4 bg-theme-surface border-r border-theme gap-2">
-          {menuItems.map((item) => {
-            const isActive = activeItem === item.id;
-            const Icon = item.icon;
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleMenuClick(item.id)}
-                className={`
-                  p-2 rounded-lg transition-colors
-                  ${isActive
-                    ? 'bg-accent text-white'
-                    : 'text-theme-tertiary hover:text-theme-primary hover:bg-theme-hover'
-                  }
-                `}
-                title={item.label}
-              >
-                {item.customIcon ? (
-                  <span className="text-lg">{item.customIcon}</span>
-                ) : Icon ? (
-                  <Icon className="w-5 h-5" strokeWidth={1.5} />
-                ) : null}
-              </button>
-            );
-          })}
-          
-          {/* Expand button */}
+      {/* Main Content Area */}
+      <main className="flex-1 min-w-0 overflow-auto">
+        {/* Mobile Header with Menu Toggle */}
+        <div className="lg:hidden flex items-center p-4 border-b border-theme bg-theme-surface">
           <button
-            onClick={() => setSidebarOpen(true)}
-            className="mt-auto p-2 rounded-lg text-theme-tertiary hover:text-theme-secondary hover:bg-theme-hover transition-colors"
-            title="Expand sidebar"
+            onClick={() => setMobileSidebarOpen(true)}
+            className="p-2 rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-hover mr-3"
           >
-            <ChevronRight className="w-5 h-5" />
+            <Menu className="w-5 h-5" />
           </button>
-        </aside>
-      )}
+          <h1 className="font-semibold text-theme-primary">
+            {activeMenuItem?.label || 'Marketplace Central'}
+          </h1>
+        </div>
 
-      {/* Mobile Menu Toggle */}
-      <button
-        onClick={() => setMobileSidebarOpen(true)}
-        className="lg:hidden fixed bottom-4 left-4 z-20 p-3 bg-accent text-white rounded-full shadow-lg"
-      >
-        <Menu className="w-6 h-6" />
-      </button>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-theme-primary">
+        {/* Content */}
         <Suspense fallback={
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+              <p className="mt-2 text-theme-secondary">Loading...</p>
+            </div>
           </div>
         }>
           {ActiveComponent && <ActiveComponent />}
