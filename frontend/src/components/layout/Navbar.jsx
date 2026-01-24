@@ -15,9 +15,11 @@ export default function Navbar({ onMenuClick }) {
             </button>
 
             <div className="flex-shrink-0 flex items-center ml-4 md:ml-0">
-              <h1 className="text-xl font-semibold text-theme-primary">
-                OpSyncPro
-              </h1>
+              <img 
+                src="/assets/logos/logo-navbar.svg" 
+                alt="OpSyncPro" 
+                className="h-10 w-auto"
+              />
             </div>
           </div>
 

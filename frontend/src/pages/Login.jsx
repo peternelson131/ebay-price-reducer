@@ -570,9 +570,13 @@ export default function Login({ onLogin }) {
     <div className="min-h-screen bg-theme-primary flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <h2 className="text-3xl font-semibold text-theme-primary">
-            OpSyncPro
-          </h2>
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/assets/logos/logo-stacked.svg" 
+              alt="OpSyncPro" 
+              className="h-28 w-auto"
+            />
+          </div>
           <p className="mt-2 text-sm text-theme-tertiary">
             {currentView === 'login' && 'Sign in to your account'}
             {currentView === 'signup' && 'Create your account'}

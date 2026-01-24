@@ -103,10 +103,18 @@ export default function App() {
 
             {/* Logo Section */}
             <div className="flex items-center min-w-0">
-              <h1 className="text-lg font-semibold text-theme-primary truncate">
-                <span className="sm:hidden">OpSync</span>
-                <span className="hidden sm:inline">OpSyncPro</span>
-              </h1>
+              {/* Mobile: Icon Only */}
+              <img 
+                src="/assets/logos/logo-icon.svg" 
+                alt="OpSyncPro" 
+                className="h-8 w-auto sm:hidden"
+              />
+              {/* Desktop: Full Logo */}
+              <img 
+                src="/assets/logos/logo-navbar.svg" 
+                alt="OpSyncPro" 
+                className="h-9 w-auto hidden sm:block"
+              />
             </div>
 
             {/* Desktop Navigation - Hidden on mobile */}
