@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { List, TrendingDown, Zap, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import { List, TrendingDown, Zap, ChevronLeft, ChevronRight, ChevronDown, Menu } from 'lucide-react';
 
 // Lazy load the content components
 const Listings = lazy(() => import('./Listings'));
@@ -42,6 +42,7 @@ export default function EbayCentral() {
   const [activeItem, setActiveItem] = useState(getTabFromHash);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [ebayToolsExpanded, setEbayToolsExpanded] = useState(true);
 
   // Sync with URL hash changes (back/forward navigation)
   useEffect(() => {
@@ -89,7 +90,7 @@ export default function EbayCentral() {
           ${!sidebarOpen && 'lg:hidden'}
         `}>
           <h2 className="font-semibold text-theme-primary text-sm uppercase tracking-wide">
-            eBay Tools
+            Marketplace Tools
           </h2>
           <button
             onClick={() => setMobileSidebarOpen(false)}
@@ -101,41 +102,59 @@ export default function EbayCentral() {
 
         {/* Menu Items */}
         <nav className={`flex-1 py-2 ${!sidebarOpen && 'md:hidden'}`}>
-          {menuItems.map((item) => {
-            const isActive = activeItem === item.id;
-            const Icon = item.icon;
+          {/* eBay Tools Collapsible Section */}
+          <div className="mb-1">
+            <button
+              onClick={() => setEbayToolsExpanded(!ebayToolsExpanded)}
+              className="w-full flex items-center px-4 py-2 text-left text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors duration-150"
+            >
+              <ChevronDown 
+                className={`w-4 h-4 mr-2 transition-transform duration-200 ${ebayToolsExpanded ? 'rotate-0' : '-rotate-90'}`}
+              />
+              <span className="text-sm font-medium">eBay Tools</span>
+            </button>
             
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleMenuClick(item.id)}
-                className={`
-                  w-full flex items-center px-4 py-3 text-left
-                  transition-colors duration-150
-                  ${isActive
-                    ? 'bg-accent text-white'
-                    : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
-                  }
-                `}
-              >
-                {/* Icon */}
-                <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center mr-3">
-                  {item.customIcon ? (
-                    <span className="text-lg">{item.customIcon}</span>
-                  ) : Icon ? (
-                    <Icon className="w-5 h-5" strokeWidth={1.5} />
-                  ) : null}
-                </span>
-                
-                {/* Label */}
-                <span className="flex-1 min-w-0">
-                  <span className="block text-sm font-medium truncate">
-                    {item.label}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
+            {/* eBay Menu Items */}
+            {ebayToolsExpanded && (
+              <div className="ml-2">
+                {menuItems.map((item) => {
+                  const isActive = activeItem === item.id;
+                  const Icon = item.icon;
+                  
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleMenuClick(item.id)}
+                      className={`
+                        w-full flex items-center px-4 py-3 text-left
+                        transition-colors duration-150
+                        ${isActive
+                          ? 'bg-accent text-white'
+                          : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
+                        }
+                      `}
+                    >
+                      {/* Icon */}
+                      <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center mr-3">
+                        {item.customIcon ? (
+                          <span className="text-lg">{item.customIcon}</span>
+                        ) : Icon ? (
+                          <Icon className="w-5 h-5" strokeWidth={1.5} />
+                        ) : null}
+                      </span>
+                      
+                      {/* Label */}
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-medium truncate">
+                          {item.label}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Collapse Toggle (Tablet and Desktop) */}
