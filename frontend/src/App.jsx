@@ -139,16 +139,6 @@ export default function App() {
             {/* Desktop Navigation - FAR RIGHT edge */}
             <div className="hidden lg:flex items-center space-x-1 pr-2">
               <Link
-                to="/ebay-central"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === '/ebay-central' || location.pathname === '/listings' || location.pathname === '/'
-                    ? 'bg-accent text-white'
-                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                }`}
-              >
-                Marketplace Central
-              </Link>
-              <Link
                 to="/asin-lookup"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   location.pathname === '/asin-lookup' || location.pathname === '/product-crm' || location.pathname === '/posts'
@@ -157,6 +147,16 @@ export default function App() {
                 }`}
               >
                 Influencer Central
+              </Link>
+              <Link
+                to="/ebay-central"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === '/ebay-central' || location.pathname === '/listings' || location.pathname === '/'
+                    ? 'bg-accent text-white'
+                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                }`}
+              >
+                Marketplace Central
               </Link>
               <Link
                 to="/integrations"
@@ -224,19 +224,6 @@ export default function App() {
 
                 {/* Navigation Links */}
                 <Link
-                  to="/ebay-central"
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    location.pathname === '/ebay-central' || location.pathname === '/listings' || location.pathname === '/'
-                      ? 'bg-accent text-white'
-                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <LayoutList className="mr-3 h-5 w-5" strokeWidth={1.5} />
-                  Marketplace Central
-                </Link>
-
-                <Link
                   to="/asin-lookup"
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                     location.pathname === '/asin-lookup' || location.pathname === '/product-crm' || location.pathname === '/posts'
@@ -247,6 +234,19 @@ export default function App() {
                 >
                   <Search className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   Influencer Central
+                </Link>
+
+                <Link
+                  to="/ebay-central"
+                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                    location.pathname === '/ebay-central' || location.pathname === '/listings' || location.pathname === '/'
+                      ? 'bg-accent text-white'
+                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <LayoutList className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  Marketplace Central
                 </Link>
 
                 <Link
