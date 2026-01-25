@@ -16,7 +16,8 @@ import {
   Moon,
   TrendingUp,
   Plug,
-  Share2
+  Share2,
+  MessageCircle
 } from 'lucide-react'
 
 // Lazy load all page components for code splitting
@@ -35,6 +36,8 @@ const Integrations = lazy(() => import('./pages/Integrations'))
 const WhatNotAnalysis = lazy(() => import('./pages/WhatNotAnalysis'))
 const ProductCRM = lazy(() => import('./pages/ProductCRM'))
 const SocialPosts = lazy(() => import('./pages/SocialPosts'))
+const Inbox = lazy(() => import('./pages/Inbox'))
+const InboxSettings = lazy(() => import('./pages/InboxSettings'))
 
 export default function App() {
   const { user, isAuthenticated, signOut } = useAuth()
@@ -156,6 +159,16 @@ export default function App() {
                 Influencer Central
               </Link>
               <Link
+                to="/inbox"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === '/inbox' || location.pathname === '/inbox-settings'
+                    ? 'bg-accent text-white'
+                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                }`}
+              >
+                Inbox
+              </Link>
+              <Link
                 to="/integrations"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   location.pathname === '/integrations'
@@ -247,6 +260,19 @@ export default function App() {
                 </Link>
 
                 <Link
+                  to="/inbox"
+                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                    location.pathname === '/inbox' || location.pathname === '/inbox-settings'
+                      ? 'bg-accent text-white'
+                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <MessageCircle className="mr-3 h-5 w-5" strokeWidth={1.5} />
+                  Inbox
+                </Link>
+
+                <Link
                   to="/integrations"
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                     location.pathname === '/integrations'
@@ -307,8 +333,8 @@ export default function App() {
         )}
       </nav>}
 
-      <main className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot', '/product-crm'].includes(location.pathname) || location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
-        <div className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot', '/product-crm'].includes(location.pathname) || location.pathname === '/' ? '' : 'sm:px-0'}>
+      <main className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot', '/product-crm', '/inbox'].includes(location.pathname) || location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
+        <div className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot', '/product-crm', '/inbox'].includes(location.pathname) || location.pathname === '/' ? '' : 'sm:px-0'}>
           <Suspense fallback={
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -334,6 +360,8 @@ export default function App() {
               <Route path="/settings" element={<Navigate to="/integrations" replace />} />
               <Route path="/product-crm" element={<ProductCRM />} />
               <Route path="/posts" element={<Navigate to="/asin-lookup#posts" replace />} />
+              <Route path="/inbox" element={<Inbox />} />
+              <Route path="/inbox-settings" element={<InboxSettings />} />
             </Routes>
           </Suspense>
         </div>
