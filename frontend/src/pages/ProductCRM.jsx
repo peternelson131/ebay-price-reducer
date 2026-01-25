@@ -2670,7 +2670,8 @@ export default function ProductCRM({ isPWA = false }) {
         .order('created_at', { ascending: false });
       
       if (searchQuery) {
-        query = query.ilike('asin', `%${searchQuery}%`);
+        // Search by ASIN or title
+        query = query.or(`asin.ilike.%${searchQuery}%,title.ilike.%${searchQuery}%`);
       }
       
       // Note: Status filter is applied client-side for multi-select support
@@ -3367,7 +3368,7 @@ export default function ProductCRM({ isPWA = false }) {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by ASIN..."
+              placeholder="Search by ASIN or title..."
               className="w-full pl-10 pr-4 py-2 border border-theme rounded-lg bg-white dark:bg-theme-surface text-theme-primary"
             />
           </div>
