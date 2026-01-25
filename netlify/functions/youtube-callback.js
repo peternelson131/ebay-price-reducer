@@ -8,8 +8,8 @@ const { createClient } = require('@supabase/supabase-js');
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 
-  `${process.env.URL || 'https://dainty-horse-49c336.netlify.app'}/.netlify/functions/youtube-callback`;
-const FRONTEND_URL = process.env.URL || 'https://dainty-horse-49c336.netlify.app';
+  `${process.env.URL}/.netlify/functions/youtube-callback`;
+const FRONTEND_URL = process.env.URL;
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
