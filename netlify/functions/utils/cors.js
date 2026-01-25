@@ -6,6 +6,8 @@
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : [
+      'https://opsyncpro.io',
+      'https://www.opsyncpro.io',
       'https://dainty-horse-49c336.netlify.app',
       'https://ebay-price-reducer-public-platform.netlify.app',
       'http://localhost:5173',

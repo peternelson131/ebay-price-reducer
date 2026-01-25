@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace Central - Sidebar Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .rotate-0 {
+            transform: rotate(0deg);
+        }
+        .rotate--90 {
+            transform: rotate(-90deg);
+        }
+        .transition-transform {
+            transition: transform 0.2s;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
+            <!-- Sidebar Header -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-700">
+                <h2 class="font-semibold text-blue-400 text-sm uppercase tracking-wide">
+                    Marketplace Tools
+                </h2>
+            </div>
+
+            <!-- Menu Items -->
+            <nav class="flex-1 py-2">
+                <!-- eBay Tools Collapsible Section -->
+                <div class="mb-1">
+                    <button
+                        onclick="toggleEbayTools()"
+                        id="ebay-toggle"
+                        class="w-full flex items-center px-4 py-2 text-left text-gray-400 hover:bg-gray-700 hover:text-gray-200 transition-colors duration-150"
+                    >
+                        <svg id="chevron" class="w-4 h-4 mr-2 transition-transform duration-200 rotate-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                        <span class="text-sm font-medium">eBay Tools</span>
+                    </button>
+                    
+                    <!-- eBay Menu Items -->
+                    <div id="ebay-items" class="ml-2">
+                        <button class="w-full flex items-center px-4 py-3 text-left transition-colors duration-150 bg-blue-600 text-white">
+                            <span class="flex-shrink-0 w-6 h-6 flex items-center justify-center mr-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                            </span>
+                            <span class="flex-1 min-w-0">
+                                <span class="block text-sm font-medium truncate">Listings</span>
+                            </span>
+                        </button>
+
+                        <button class="w-full flex items-center px-4 py-3 text-left transition-colors duration-150 text-gray-400 hover:bg-gray-700 hover:text-gray-200">
+                            <span class="flex-shrink-0 w-6 h-6 flex items-center justify-center mr-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                </svg>
+                            </span>
+                            <span class="flex-1 min-w-0">
+                                <span class="block text-sm font-medium truncate">Price Strategies</span>
+                            </span>
+                        </button>
+
+                        <button class="w-full flex items-center px-4 py-3 text-left transition-colors duration-150 text-gray-400 hover:bg-gray-700 hover:text-gray-200">
+                            <span class="flex-shrink-0 w-6 h-6 flex items-center justify-center mr-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </span>
+                            <span class="flex-1 min-w-0">
+                                <span class="block text-sm font-medium truncate">Quick List</span>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Collapse Toggle (Desktop) -->
+            <div class="border-t border-gray-700 p-2">
+                <button
+                    class="w-full flex items-center justify-center p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-700 transition-colors"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 bg-gray-900">
+            <!-- Content -->
+            <div class="p-8">
+                <h1 class="text-2xl font-bold mb-4 text-white">Marketplace Central - New Sidebar Structure</h1>
+                <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                    <h2 class="text-lg font-semibold mb-3 text-blue-400">Changes Implemented:</h2>
+                    <ul class="space-y-2 text-gray-300">
+                        <li>✅ Section header renamed from "EBAY TOOLS" to "MARKETPLACE TOOLS"</li>
+                        <li>✅ Added collapsible "eBay Tools" section</li>
+                        <li>✅ Moved menu items (Listings, Price Strategies, Quick List) inside collapsible</li>
+                        <li>✅ Chevron icon rotates when expanded/collapsed</li>
+                        <li>✅ Default state: expanded (items visible by default)</li>
+                    </ul>
+                    
+                    <div class="mt-6 p-4 bg-gray-700 rounded-lg">
+                        <p class="text-sm text-gray-400">
+                            <strong class="text-white">Try it:</strong> Click the "eBay Tools" button in the sidebar to collapse/expand the menu items.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let ebayExpanded = true;
+
+        function toggleEbayTools() {
+            ebayExpanded = !ebayExpanded;
+            const chevron = document.getElementById('chevron');
+            const items = document.getElementById('ebay-items');
+            
+            if (ebayExpanded) {
+                chevron.classList.remove('rotate--90');
+                chevron.classList.add('rotate-0');
+                items.style.display = 'block';
+            } else {
+                chevron.classList.remove('rotate-0');
+                chevron.classList.add('rotate--90');
+                items.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

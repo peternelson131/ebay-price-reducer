@@ -3,7 +3,7 @@
  */
 
 // Configuration
-const API_BASE = 'https://dainty-horse-49c336.netlify.app/.netlify/functions';
+const API_BASE = 'https://opsyncpro.io/.netlify/functions';
 
 // Marketplace detection from Amazon URL
 const MARKETPLACE_MAP = {
