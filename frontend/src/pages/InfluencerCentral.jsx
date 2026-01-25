@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { Search, ChevronLeft, ChevronRight, ChevronDown, Menu, ClipboardList, BookOpen, Upload, Package, ShoppingBag, Share2, MessageCircle } from 'lucide-react';
 import { userAPI } from '../lib/supabase';
+import ComingSoonBadge from '../components/ComingSoonBadge';
 
 // Lazy load the content components
 const InfluencerAsinCorrelation = lazy(() => import('./InfluencerAsinCorrelation'));
@@ -27,7 +28,7 @@ const productItems = [
     label: 'Inbox',
     icon: MessageCircle,
     component: Inbox,
-    badge: null
+    badge: 'coming-soon'
   },
   {
     id: 'posts',
@@ -246,6 +247,13 @@ export default function InfluencerCentral() {
                           }
                         `}>
                           {pendingTaskCount}
+                        </span>
+                      )}
+                      
+                      {/* Coming Soon badge */}
+                      {item.badge === 'coming-soon' && (
+                        <span className="ml-2">
+                          <ComingSoonBadge size="sm" />
                         </span>
                       )}
                     </button>

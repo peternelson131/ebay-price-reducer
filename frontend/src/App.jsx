@@ -16,10 +16,8 @@ import {
   Moon,
   TrendingUp,
   Plug,
-  Share2,
-  MessageCircle
+  Share2
 } from 'lucide-react'
-import ComingSoonBadge from './components/ComingSoonBadge'
 
 // Lazy load all page components for code splitting
 const Account = lazy(() => import('./pages/Account'))
@@ -160,17 +158,6 @@ export default function App() {
                 Influencer Central
               </Link>
               <Link
-                to="/inbox"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                  location.pathname === '/inbox' || location.pathname === '/inbox-settings'
-                    ? 'bg-accent text-white'
-                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                }`}
-              >
-                Inbox
-                <ComingSoonBadge size="sm" />
-              </Link>
-              <Link
                 to="/integrations"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   location.pathname === '/integrations'
@@ -259,22 +246,6 @@ export default function App() {
                 >
                   <Search className="mr-3 h-5 w-5" strokeWidth={1.5} />
                   Influencer Central
-                </Link>
-
-                <Link
-                  to="/inbox"
-                  className={`flex items-center justify-between px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    location.pathname === '/inbox' || location.pathname === '/inbox-settings'
-                      ? 'bg-accent text-white'
-                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <span className="flex items-center">
-                    <MessageCircle className="mr-3 h-5 w-5" strokeWidth={1.5} />
-                    Inbox
-                  </span>
-                  <ComingSoonBadge size="sm" />
                 </Link>
 
                 <Link
