@@ -46,6 +46,18 @@
     background-color: var(--bg-primary);
     color: var(--text-primary);
     @apply antialiased;
+    /* Prevent mobile overscroll bounce */
+    overscroll-behavior: none;
+    /* Ensure mobile viewport fills properly */
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Fix mobile viewport height issues */
+  @supports (-webkit-touch-callout: none) {
+    /* iOS-specific: prevent address bar from affecting layout */
+    body {
+      min-height: -webkit-fill-available;
+    }
   }
 
   /* Scrollbar styling */
@@ -277,5 +289,23 @@
 
   .animate-slideUp {
     animation: slideUp 0.3s ease-out;
+  }
+
+  /* Mobile-friendly padding utilities */
+  @media (max-width: 1023px) {
+    /* Reduce excessive padding on mobile */
+    .mobile-compact {
+      padding: 0.75rem !important; /* 12px instead of 24px */
+    }
+    
+    .mobile-compact-x {
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+    }
+    
+    .mobile-compact-y {
+      padding-top: 0.75rem !important;
+      padding-bottom: 0.75rem !important;
+    }
   }
 }
