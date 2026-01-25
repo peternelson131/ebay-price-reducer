@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase, authAPI } from '../lib/supabase'
 import AnimatedOpSyncProLogo from '../components/AnimatedLogo'
@@ -24,11 +24,32 @@ export default function Login({ onLogin }) {
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [notification, setNotification] = useState(null)
+  const [signupsDisabled, setSignupsDisabled] = useState(false)
+  const [checkingSignupStatus, setCheckingSignupStatus] = useState(true)
 
   const showNotification = (type, message) => {
     setNotification({ type, message })
     setTimeout(() => setNotification(null), 5000)
   }
+
+  // Check signup status on component mount
+  useEffect(() => {
+    const checkSignupStatus = async () => {
+      try {
+        const response = await fetch('/.netlify/functions/check-signup-status')
+        const data = await response.json()
+        setSignupsDisabled(data.signupsDisabled || false)
+      } catch (error) {
+        console.error('Failed to check signup status:', error)
+        // Default to allowing signups if check fails
+        setSignupsDisabled(false)
+      } finally {
+        setCheckingSignupStatus(false)
+      }
+    }
+
+    checkSignupStatus()
+  }, [])
 
   const handleInputChange = (e) => {
     setFormData(prev => ({
@@ -310,8 +331,53 @@ export default function Login({ onLogin }) {
     </form>
   )
 
-  const renderSignupForm = () => (
-    <form onSubmit={handleSignup} className="space-y-5">
+  const renderSignupForm = () => {
+    // Show "Coming Soon" message if signups are disabled
+    if (signupsDisabled) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center py-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/10 mb-4">
+              <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-theme-primary mb-2">New Signups Coming Soon</h3>
+            <p className="text-theme-secondary mb-6">
+              We're currently not accepting new account registrations.
+            </p>
+            <p className="text-sm text-theme-tertiary">
+              Please check back later or contact support if you have questions.
+            </p>
+          </div>
+
+          <div className="text-center pt-6 border-t border-theme">
+            <span className="text-sm text-theme-tertiary">Already have an account? </span>
+            <button
+              type="button"
+              onClick={() => setCurrentView('login')}
+              className="text-accent hover:text-accent-hover text-sm font-medium transition-colors"
+            >
+              Sign in
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    // Show loading state while checking signup status
+    if (checkingSignupStatus) {
+      return (
+        <div className="text-center py-8">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-accent border-r-transparent"></div>
+          <p className="text-theme-tertiary text-sm mt-4">Checking availability...</p>
+        </div>
+      )
+    }
+
+    // Normal signup form
+    return (
+      <form onSubmit={handleSignup} className="space-y-5">
       <div>
         <label htmlFor="name" className={labelClasses}>
           Full Name
@@ -417,7 +483,8 @@ export default function Login({ onLogin }) {
         </button>
       </div>
     </form>
-  )
+    )
+  }
 
   const renderForgotForm = () => (
     <form onSubmit={handleForgotSubmit} className="space-y-5">

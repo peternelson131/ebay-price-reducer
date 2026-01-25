@@ -14,6 +14,11 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
+const supabaseService = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 exports.handler = async (event, context) => {
   const headers = getCorsHeaders(event);
 
@@ -32,7 +37,7 @@ exports.handler = async (event, context) => {
       return errorResponse(400, 'Email and password required', headers);
     }
 
-    // Authenticate with Supabase
+    // Authenticate with Supabase first to get user
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -45,6 +50,41 @@ exports.handler = async (event, context) => {
 
     if (!data.session) {
       return errorResponse(401, 'No session returned', headers);
+    }
+
+    // Check if logins are disabled (only block non-admin users)
+    const { data: loginSetting } = await supabaseService
+      .from('system_state')
+      .select('value')
+      .eq('key', 'logins_disabled')
+      .single();
+
+    const loginsDisabled = loginSetting?.value === 'true';
+
+    if (loginsDisabled) {
+      // Check if user is admin
+      const { data: profile } = await supabaseService
+        .from('users')
+        .select('is_admin')
+        .eq('id', data.user.id)
+        .single();
+
+      if (!profile?.is_admin) {
+        // Block non-admin users when logins are disabled
+        console.log(`🚫 Login blocked for ${email} - logins currently disabled`);
+        
+        // Sign out the user since we authenticated them
+        await supabase.auth.signOut();
+        
+        return errorResponse(
+          403, 
+          'User logins are temporarily disabled. Please try again later.', 
+          headers
+        );
+      }
+
+      // Admin can proceed
+      console.log(`✅ Admin login allowed for ${email} despite logins being disabled`);
     }
 
     return successResponse({

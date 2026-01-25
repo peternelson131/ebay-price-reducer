@@ -33,6 +33,14 @@ export default function Account() {
   const [thumbnailFolderId, setThumbnailFolderId] = useState('')
   const [showThumbnailFolderPicker, setShowThumbnailFolderPicker] = useState(false)
   
+  // Login control state
+  const [loginsDisabled, setLoginsDisabled] = useState(false)
+  const [isTogglingLogins, setIsTogglingLogins] = useState(false)
+  
+  // Signup control state
+  const [signupsDisabled, setSignupsDisabled] = useState(false)
+  const [isTogglingSignups, setIsTogglingSignups] = useState(false)
+  
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading } = useQuery(
@@ -190,6 +198,39 @@ export default function Account() {
     loadThumbnailFolder()
   }, [])
 
+  // Load login and signup status if admin
+  useEffect(() => {
+    const loadSystemStatus = async () => {
+      if (!profile?.is_admin) return
+      
+      try {
+        const token = (await supabase.auth.getSession()).data.session?.access_token
+        if (!token) return
+        
+        // Load login status
+        const loginResponse = await fetch('/.netlify/functions/toggle-logins', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (loginResponse.ok) {
+          const data = await loginResponse.json()
+          setLoginsDisabled(data.loginsDisabled)
+        }
+        
+        // Load signup status
+        const signupResponse = await fetch('/.netlify/functions/toggle-signups', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (signupResponse.ok) {
+          const data = await signupResponse.json()
+          setSignupsDisabled(data.signupsDisabled)
+        }
+      } catch (err) {
+        console.error('Failed to load system status:', err)
+      }
+    }
+    loadSystemStatus()
+  }, [profile?.is_admin])
+
   // Handle URL parameter for tab selection
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -339,6 +380,68 @@ export default function Account() {
     a.download = 'opsyncpro-data.json'
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const handleToggleLogins = async () => {
+    setIsTogglingLogins(true)
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      if (!token) throw new Error('Not authenticated')
+      
+      const response = await fetch('/.netlify/functions/toggle-logins', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ disabled: !loginsDisabled })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to toggle login status')
+      }
+      
+      const data = await response.json()
+      setLoginsDisabled(data.loginsDisabled)
+      
+      alert(`User logins ${data.loginsDisabled ? 'disabled' : 'enabled'} successfully!`)
+    } catch (error) {
+      console.error('Failed to toggle logins:', error)
+      alert('Failed to update login status. Please try again.')
+    } finally {
+      setIsTogglingLogins(false)
+    }
+  }
+
+  const handleToggleSignups = async () => {
+    setIsTogglingSignups(true)
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      if (!token) throw new Error('Not authenticated')
+      
+      const response = await fetch('/.netlify/functions/toggle-signups', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ disabled: !signupsDisabled })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to toggle signup status')
+      }
+      
+      const data = await response.json()
+      setSignupsDisabled(data.signupsDisabled)
+      
+      alert(`New signups ${data.signupsDisabled ? 'disabled' : 'enabled'} successfully!`)
+    } catch (error) {
+      console.error('Failed to toggle signups:', error)
+      alert('Failed to update signup status. Please try again.')
+    } finally {
+      setIsTogglingSignups(false)
+    }
   }
 
   const handleFeedbackSubmit = async (e) => {
@@ -735,6 +838,128 @@ export default function Account() {
           {/* Admin Panel - Only visible to admin users */}
           {activeTab === 'admin' && (
             <div className="space-y-6">
+              {/* Login Control Section */}
+              <div className="bg-theme-surface border border-theme rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-theme-primary flex items-center gap-2">
+                      <Lock className="w-5 h-5" />
+                      User Login Control
+                    </h3>
+                    <p className="text-sm text-theme-secondary mt-1">
+                      Temporarily disable user logins system-wide. Admins can still log in.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between bg-theme-hover rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${loginsDisabled ? 'bg-error' : 'bg-success'}`}></div>
+                    <div>
+                      <p className="font-medium text-theme-primary">
+                        User Logins: {loginsDisabled ? 'DISABLED' : 'ENABLED'}
+                      </p>
+                      <p className="text-sm text-theme-tertiary">
+                        {loginsDisabled 
+                          ? 'Regular users cannot log in. Only admins have access.' 
+                          : 'All users can log in normally.'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={handleToggleLogins}
+                    disabled={isTogglingLogins}
+                    className={`px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+                      loginsDisabled
+                        ? 'bg-success hover:bg-green-600 text-white'
+                        : 'bg-error hover:bg-red-600 text-white'
+                    }`}
+                  >
+                    {isTogglingLogins ? (
+                      <span className="flex items-center gap-2">
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Updating...
+                      </span>
+                    ) : loginsDisabled ? (
+                      'Enable Logins'
+                    ) : (
+                      'Disable Logins'
+                    )}
+                  </button>
+                </div>
+                
+                {loginsDisabled && (
+                  <div className="mt-4 bg-error/10 border border-error/30 rounded-lg p-3 flex items-start gap-2">
+                    <Shield className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-error">
+                      <strong>⚠️ User logins are currently disabled.</strong> Regular users will see an error message when attempting to log in. Remember to re-enable logins when maintenance is complete.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Signup Control Section */}
+              <div className="bg-theme-surface border border-theme rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-theme-primary flex items-center gap-2">
+                      <User className="w-5 h-5" />
+                      New Signup Control
+                    </h3>
+                    <p className="text-sm text-theme-secondary mt-1">
+                      Disable new account registrations. Existing users can still log in.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between bg-theme-hover rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${signupsDisabled ? 'bg-error' : 'bg-success'}`}></div>
+                    <div>
+                      <p className="font-medium text-theme-primary">
+                        New Signups: {signupsDisabled ? 'DISABLED' : 'ENABLED'}
+                      </p>
+                      <p className="text-sm text-theme-tertiary">
+                        {signupsDisabled 
+                          ? 'New users cannot create accounts. Signup page shows "Coming Soon" message.' 
+                          : 'New users can register accounts normally.'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={handleToggleSignups}
+                    disabled={isTogglingSignups}
+                    className={`px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+                      signupsDisabled
+                        ? 'bg-success hover:bg-green-600 text-white'
+                        : 'bg-error hover:bg-red-600 text-white'
+                    }`}
+                  >
+                    {isTogglingSignups ? (
+                      <span className="flex items-center gap-2">
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Updating...
+                      </span>
+                    ) : signupsDisabled ? (
+                      'Enable Signups'
+                    ) : (
+                      'Disable Signups'
+                    )}
+                  </button>
+                </div>
+                
+                {signupsDisabled && (
+                  <div className="mt-4 bg-error/10 border border-error/30 rounded-lg p-3 flex items-start gap-2">
+                    <Shield className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-error">
+                      <strong>⚠️ New signups are currently disabled.</strong> The signup page will display a "Coming Soon" message to new visitors. Remember to re-enable signups when ready.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="bg-orange-50 dark:bg-orange-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
                   <Shield className="w-5 h-5" />
