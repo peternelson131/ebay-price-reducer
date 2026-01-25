@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import ConversationList from '../components/inbox/ConversationList'
 import MessageThread from '../components/inbox/MessageThread'
 import ReplyInput from '../components/inbox/ReplyInput'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Instagram, Clock } from 'lucide-react'
+import ComingSoonBadge from '../components/ComingSoonBadge'
 
 export default function Inbox() {
   const [conversations, setConversations] = useState([])
@@ -156,7 +157,25 @@ export default function Inbox() {
   }
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex">
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col">
+      {/* Instagram Messaging Coming Soon Banner */}
+      <div className="bg-orange-50 dark:bg-orange-900/20 border-b border-orange-200 dark:border-orange-800/30 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Instagram className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            <ComingSoonBadge size="md" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-orange-900 dark:text-orange-200">
+              Instagram Messaging Coming Soon
+            </p>
+            <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
+              We're working on integrating Instagram messaging. This feature will be available soon. The inbox shown below uses demo data for preview purposes.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Error Banner */}
       {error && (
         <div className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full mx-4">
@@ -177,28 +196,31 @@ export default function Inbox() {
         </div>
       )}
 
-      {/* Conversation List - Left Panel */}
-      <div className="w-full md:w-80 lg:w-96 flex-shrink-0">
-        <ConversationList
-          conversations={conversations}
-          selectedConversation={selectedConversation}
-          onSelectConversation={handleSelectConversation}
-          loading={loadingConversations}
-        />
-      </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Conversation List - Left Panel */}
+        <div className="w-full md:w-80 lg:w-96 flex-shrink-0">
+          <ConversationList
+            conversations={conversations}
+            selectedConversation={selectedConversation}
+            onSelectConversation={handleSelectConversation}
+            loading={loadingConversations}
+          />
+        </div>
 
-      {/* Message Thread + Reply Input - Right Panel */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <MessageThread
-          conversation={selectedConversation}
-          messages={messages}
-          loading={loadingMessages}
-        />
-        <ReplyInput
-          conversation={selectedConversation}
-          onSendMessage={handleSendMessage}
-          sending={sending}
-        />
+        {/* Message Thread + Reply Input - Right Panel */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <MessageThread
+            conversation={selectedConversation}
+            messages={messages}
+            loading={loadingMessages}
+          />
+          <ReplyInput
+            conversation={selectedConversation}
+            onSendMessage={handleSendMessage}
+            sending={sending}
+          />
+        </div>
       </div>
     </div>
   )
