@@ -22,8 +22,7 @@ const OAUTH_CONFIG = {
     // Instagram Graph API uses Facebook Login OAuth
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
     clientId: process.env.META_APP_ID,
-    // instagram_manage_messages requires Meta App Review - pending approval
-    // Once approved, add: 'instagram_manage_messages', 'pages_manage_metadata'
+    // Messaging scopes removed for app review - can be re-added after approval
     scopes: ['instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement', 'business_management'],
     responseType: 'code'
   },

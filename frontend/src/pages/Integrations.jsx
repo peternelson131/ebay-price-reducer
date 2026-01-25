@@ -6,7 +6,6 @@ import { userAPI, supabase } from '../lib/supabase'
 import { OneDriveConnection } from '../components/onedrive'
 import { toast } from 'react-toastify'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import ComingSoonBadge from '../components/ComingSoonBadge'
 
 // Category configuration
 const CATEGORIES = [
@@ -747,34 +746,23 @@ function InstagramIntegration({ onStatusChange }) {
             <Instagram className="w-6 h-6 text-pink-600" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h4 className="font-medium text-theme-primary">Instagram</h4>
-              <ComingSoonBadge size="sm" />
-            </div>
+            <h4 className="font-medium text-theme-primary">Instagram</h4>
             {isLoading ? (
-              <p className="text-sm text-theme-tertiary flex items-center gap-2 mt-1">
+              <p className="text-sm text-theme-tertiary flex items-center gap-2">
                 <Loader className="w-4 h-4 animate-spin" />
                 Loading...
               </p>
             ) : isConnected ? (
               <>
-                <p className="text-sm text-theme-secondary mt-1">Connected as: {account.username}</p>
-                <p className="text-sm text-theme-tertiary">
-                  Posting enabled • Messaging coming soon
-                </p>
+                <p className="text-sm text-theme-secondary">Connected as: {account.username}</p>
                 {account?.connectedAt && (
-                  <p className="text-xs text-theme-tertiary">
+                  <p className="text-sm text-theme-tertiary">
                     Connected on {new Date(account.connectedAt).toLocaleDateString()}
                   </p>
                 )}
               </>
             ) : (
-              <>
-                <p className="text-sm text-theme-tertiary mt-1">Not connected</p>
-                <p className="text-xs text-theme-tertiary">
-                  Connect for posting • Messaging coming soon
-                </p>
-              </>
+              <p className="text-sm text-theme-tertiary">Not connected</p>
             )}
           </div>
         </div>

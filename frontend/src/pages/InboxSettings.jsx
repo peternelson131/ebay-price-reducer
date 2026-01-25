@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, UserX, Search, Trash2, AlertCircle, Save, Loader2, Instagram } from 'lucide-react'
-import ComingSoonBadge from '../components/ComingSoonBadge'
+import { ArrowLeft, UserX, Search, Trash2, AlertCircle, Save, Loader2 } from 'lucide-react'
 
 export default function InboxSettings() {
   const navigate = useNavigate()
@@ -134,26 +133,6 @@ export default function InboxSettings() {
             <div>
               <h1 className="text-xl font-semibold text-theme-primary">Inbox Settings</h1>
               <p className="text-sm text-theme-secondary mt-0.5">Manage hidden contacts and preferences</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Instagram Messaging Coming Soon Notice */}
-      <div className="bg-orange-50 dark:bg-orange-900/20 border-b border-orange-200 dark:border-orange-800/30">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Instagram className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-              <ComingSoonBadge size="md" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-orange-900 dark:text-orange-200">
-                Instagram Messaging Coming Soon
-              </p>
-              <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
-                These settings will be available when Instagram messaging integration is complete.
-              </p>
             </div>
           </div>
         </div>
