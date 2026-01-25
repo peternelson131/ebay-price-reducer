@@ -111,11 +111,21 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
   };
 
   const handleOpenVideo = async (video) => {
+    // If we have a transcoded URL, use it directly (no API call)
+    if (video.social_ready_url && video.social_ready_status === 'ready') {
+      setSelectedVideo({
+        ...video,
+        streamUrl: video.social_ready_url
+      });
+      return;
+    }
+    
+    // Otherwise fetch from OneDrive via video-download endpoint
+    setSelectedVideo(video);
     try {
       const token = await userAPI.getAuthToken();
       
-      // Get streaming URL from backend
-      const response = await fetch(`/.netlify/functions/videos?videoId=${video.id}&action=stream`, {
+      const response = await fetch(`/.netlify/functions/video-download?videoId=${video.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -129,7 +139,7 @@ export default function VideoGallery({ productId, onVideoDeleted }) {
       
       setSelectedVideo({
         ...video,
-        streamUrl: data.streamUrl
+        streamUrl: data.downloadUrl  // Note: video-download returns downloadUrl, not streamUrl
       });
     } catch (error) {
       console.error('Error opening video:', error);
