@@ -73,7 +73,8 @@ export default function App() {
 
   const handleLogin = async () => {
     // Login is handled by AuthContext
-    navigate('/')
+    // Navigate to Product CRM as default landing page
+    navigate('/product-crm')
   }
 
   const handleLogout = async () => {
@@ -320,7 +321,7 @@ export default function App() {
             </div>
           }>
             <Routes>
-              <Route path="/" element={<EbayCentral />} />
+              <Route path="/" element={<Navigate to="/product-crm" replace />} />
               <Route path="/ebay-central" element={<EbayCentral />} />
               <Route path="/listings" element={<Listings />} />
               <Route path="/auto-list" element={<QuickList />} />

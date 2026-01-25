@@ -2231,6 +2231,16 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
     }
   }, [product?.asin]);
   
+  // Lock body scroll on mobile when panel is open
+  useEffect(() => {
+    if (product && window.innerWidth < 768) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [product]);
+  
   if (!product) return null;
 
   const amazonUrl = `https://amazon.com/dp/${product.asin}`;
@@ -2246,15 +2256,16 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
       <div 
         ref={panelRef}
         style={{ 
-          width: `${panelWidth}px`,
-          right: (showQuickList || showACFPanel) ? '480px' : '0px',
+          // Mobile: full width, Desktop: resizable width
+          width: window.innerWidth < 768 ? '100%' : `${panelWidth}px`,
+          right: window.innerWidth < 768 ? '0px' : ((showQuickList || showACFPanel) ? '480px' : '0px'),
           transition: 'right 0.3s ease-in-out'
         }}
-        className="fixed top-16 bottom-0 bg-white dark:bg-theme-surface shadow-xl border-l border-theme overflow-y-auto z-40"
+        className="fixed inset-0 md:inset-auto md:top-14 md:bottom-0 md:right-0 bg-white dark:bg-theme-surface shadow-xl md:border-l border-theme overflow-y-auto z-40"
       >
-        {/* Drag handle for resizing */}
+        {/* Drag handle for resizing - hidden on mobile */}
         <div
-          className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-transparent hover:bg-orange-500/30 transition-colors z-50"
+          className="hidden md:block absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-transparent hover:bg-orange-500/30 transition-colors z-50"
           onMouseDown={(e) => {
             e.preventDefault();
             setIsResizing(true);
@@ -2265,8 +2276,8 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
           </div>
         </div>
         
-        {/* Header with prominent close button */}
-        <div className="sticky top-0 bg-white dark:bg-theme-surface border-b border-theme px-6 py-4 flex items-center justify-between z-10">
+        {/* Header with prominent close button - mobile safe area */}
+        <div className="sticky top-0 bg-white dark:bg-theme-surface border-b border-theme px-4 md:px-6 pt-safe pb-4 md:py-4 flex items-center justify-between z-10">
           <h3 className="text-lg font-semibold text-theme-primary">Product Details</h3>
           <div className="flex items-center gap-2">
             <button 
@@ -2290,11 +2301,11 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
           </div>
         </div>
       
-      <div className="p-6 space-y-5">
+      <div className="p-3 md:p-6 space-y-3 md:space-y-5">
         {/* Compact Product Info Row - Image + ASIN side by side */}
-        <div className="flex gap-4 items-start">
+        <div className="flex gap-3 md:gap-4 items-start">
           {/* Small Image */}
-          <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-theme-hover">
+          <div className="w-16 h-16 md:w-24 md:h-24 flex-shrink-0 rounded-lg overflow-hidden bg-theme-hover">
             {product.image_url ? (
               <img src={product.image_url} alt={product.asin} className="w-full h-full object-contain" />
             ) : (
@@ -2457,34 +2468,32 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         />
         
         {/* Requirements */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-theme-secondary">Requirements</h4>
+        <div className="space-y-1.5 md:space-y-2">
+          <h4 className="text-xs md:text-sm font-medium text-theme-secondary">Requirements</h4>
           <textarea
             value={product.requirements || ''}
             onChange={e => onUpdate({ requirements: e.target.value })}
-            placeholder="Enter brand requirements, notes..."
-            rows={4}
-            className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary resize-none"
+            placeholder="Brand requirements..."
+            rows={2}
+            className="w-full px-2 py-1.5 md:px-3 md:py-2 text-sm border border-theme rounded-lg bg-theme-primary text-theme-primary resize-none"
           />
         </div>
         
-        {/* Important Date Date & Comment */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-theme-secondary">Important Date</h4>
-          <div className="flex gap-3">
-            <input
-              type="date"
-              value={product.important_date || ''}
-              onChange={e => onUpdate({ important_date: e.target.value || null })}
-              className="px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary"
-            />
-          </div>
+        {/* Important Date & Comment */}
+        <div className="space-y-1.5 md:space-y-2">
+          <h4 className="text-xs md:text-sm font-medium text-theme-secondary">Important Date</h4>
+          <input
+            type="date"
+            value={product.important_date || ''}
+            onChange={e => onUpdate({ important_date: e.target.value || null })}
+            className="w-full px-2 py-1.5 md:px-3 md:py-2 text-sm border border-theme rounded-lg bg-theme-primary text-theme-primary"
+          />
           <textarea
             value={product.important_date_comment || ''}
             onChange={e => onUpdate({ important_date_comment: e.target.value })}
-            placeholder="Add important date notes..."
-            rows={2}
-            className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary resize-none"
+            placeholder="Date notes..."
+            rows={1}
+            className="w-full px-2 py-1.5 md:px-3 md:py-2 text-sm border border-theme rounded-lg bg-theme-primary text-theme-primary resize-none"
           />
         </div>
         
@@ -2599,7 +2608,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
 };
 
 // Main ProductCRM Component
-export default function ProductCRM() {
+export default function ProductCRM({ isPWA = false }) {
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -2614,6 +2623,15 @@ export default function ProductCRM() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isManageCustomFieldsModalOpen, setIsManageCustomFieldsModalOpen] = useState(false);
   const [isSyncingTracking, setIsSyncingTracking] = useState(false);
+  
+  // Listen for PWA add product event
+  useEffect(() => {
+    if (isPWA) {
+      const handler = () => setIsAddModalOpen(true);
+      window.addEventListener('pwa-add-product', handler);
+      return () => window.removeEventListener('pwa-add-product', handler);
+    }
+  }, [isPWA]);
   
   // Bulk selection state
   const [selectedProducts, setSelectedProducts] = useState(new Set());
@@ -3206,78 +3224,80 @@ export default function ProductCRM() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-theme-primary">
-      {/* Header */}
-      <div className="bg-white dark:bg-theme-surface border-b border-theme">
-        <div className="px-4 sm:px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-theme-primary">
-                {viewMode === 'delivered' ? 'Delivered Items' : viewMode === 'all' ? 'All Products' : 'Product CRM'}
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {viewMode === 'delivered' 
-                  ? 'Products ready for listing - review and create eBay listings'
-                  : viewMode === 'all'
-                  ? 'All products including delivered'
-                  : 'Track your sourced products from discovery to listing'
-                }
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsImportModalOpen(true)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2"
-              >
-                <Construction className="w-4 h-4 text-yellow-400" />
-                Import
-              </button>
-              <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add Product
-              </button>
-              <button
-                onClick={() => setIsManageCustomFieldsModalOpen(true)}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
-                title="Manage custom fields"
-              >
-                <ListTodo className="w-4 h-4" />
-                Custom Fields
-              </button>
-              <button
-                onClick={async () => {
-                  setIsSyncingTracking(true);
-                  try {
-                    const response = await fetch('/api/aftership-sync-scheduled');
-                    const result = await response.json();
-                    console.log('Sync result:', result);
-                    // Refresh products after sync
-                    fetchProducts();
-                    alert(`Tracking sync complete! ${result.updated || 0} products updated.`);
-                  } catch (error) {
-                    console.error('Sync error:', error);
-                    alert('Failed to sync tracking. Please try again.');
-                  } finally {
-                    setIsSyncingTracking(false);
+      {/* Header - hidden in PWA mode */}
+      {!isPWA && (
+        <div className="bg-white dark:bg-theme-surface border-b border-theme">
+          <div className="px-3 sm:px-6 py-3 sm:py-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold text-theme-primary truncate">
+                  {viewMode === 'delivered' ? 'Delivered Items' : viewMode === 'all' ? 'All Products' : 'Product CRM'}
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {viewMode === 'delivered' 
+                    ? 'Products ready for listing - review and create eBay listings'
+                    : viewMode === 'all'
+                    ? 'All products including delivered'
+                    : 'Track your sourced products from discovery to listing'
                   }
-                }}
-                disabled={isSyncingTracking}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
-                title="Sync tracking status from AfterShip - Force Deploy"
-              >
-                {isSyncingTracking ? (
-                  <Loader className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-                Sync Tracking
-              </button>
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 md:gap-2">
+                <button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="px-2 py-1.5 md:px-4 md:py-2 text-xs md:text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-1 md:gap-2"
+                >
+                  <Construction className="w-3 h-3 md:w-4 md:h-4 text-yellow-400" />
+                  <span className="hidden sm:inline">Import</span>
+                </button>
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="px-2 py-1.5 md:px-4 md:py-2 text-xs md:text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-1 md:gap-2"
+                >
+                  <Plus className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden xs:inline">Add</span><span className="hidden sm:inline"> Product</span>
+                </button>
+                <button
+                  onClick={() => setIsManageCustomFieldsModalOpen(true)}
+                  className="px-2 py-1.5 md:px-4 md:py-2 text-xs md:text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-1 md:gap-2"
+                  title="Manage custom fields"
+                >
+                  <ListTodo className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">Custom Fields</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsSyncingTracking(true);
+                    try {
+                      const response = await fetch('/api/aftership-sync-scheduled');
+                      const result = await response.json();
+                      console.log('Sync result:', result);
+                      // Refresh products after sync
+                      fetchProducts();
+                      alert(`Tracking sync complete! ${result.updated || 0} products updated.`);
+                    } catch (error) {
+                      console.error('Sync error:', error);
+                      alert('Failed to sync tracking. Please try again.');
+                    } finally {
+                      setIsSyncingTracking(false);
+                    }
+                  }}
+                  disabled={isSyncingTracking}
+                  className="px-2 py-1.5 md:px-4 md:py-2 text-xs md:text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-1 md:gap-2"
+                  title="Sync tracking status from AfterShip - Force Deploy"
+                >
+                  {isSyncingTracking ? (
+                    <Loader className="w-3 h-3 md:w-4 md:h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3 h-3 md:w-4 md:h-4" />
+                  )}
+                  <span className="hidden sm:inline">Sync Tracking</span><span className="sm:hidden">Sync</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
       
       {/* Filters */}
       <div className="px-4 sm:px-6 py-4">

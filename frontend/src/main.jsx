@@ -5,7 +5,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import App from './App.jsx'
+import PWAApp from './PWAApp.jsx'
 import './index.css'
+
+// Detect if running as installed PWA
+const isPWA = window.matchMedia('(display-mode: standalone)').matches
+  || window.navigator.standalone // iOS Safari
+  || document.referrer.includes('android-app://') // Android TWA
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,7 +48,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <App />
+          {isPWA ? <PWAApp /> : <App />}
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

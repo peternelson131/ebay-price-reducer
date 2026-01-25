@@ -279,3 +279,17 @@
     animation: slideUp 0.3s ease-out;
   }
 }
+
+/* Mobile safe area utilities */
+@layer utilities {
+  .pt-safe {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .px-safe {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}

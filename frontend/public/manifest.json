@@ -3,8 +3,9 @@
   "short_name": "OpSyncPro",
   "description": "Product CRM and video management for resellers",
   "start_url": "/product-crm",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#1a1a1a",
+  "background_color": "#18181b",
   "theme_color": "#f97316",
   "orientation": "portrait-primary",
   "icons": [
@@ -21,6 +22,5 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "productivity"],
-  "screenshots": []
+  "categories": ["business", "productivity"]
 }
