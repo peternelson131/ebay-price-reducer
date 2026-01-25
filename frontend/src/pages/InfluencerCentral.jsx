@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Search, ChevronLeft, ChevronRight, ChevronDown, Menu, ClipboardList, BookOpen, Upload, Package, ShoppingBag, Share2 } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ChevronDown, Menu, ClipboardList, BookOpen, Upload, Package, ShoppingBag, Share2, MessageCircle } from 'lucide-react';
 import { userAPI } from '../lib/supabase';
 
 // Lazy load the content components
@@ -11,6 +11,7 @@ const CatalogImport = lazy(() => import('./CatalogImport'));
 const WhatNotAnalysis = lazy(() => import('./WhatNotAnalysis'));
 const ProductCRM = lazy(() => import('./ProductCRM'));
 const SocialPosts = lazy(() => import('./SocialPosts'));
+const Inbox = lazy(() => import('./Inbox'));
 
 // Menu item configuration - organized by category
 const productItems = [
@@ -19,6 +20,13 @@ const productItems = [
     label: 'CRM',
     icon: ShoppingBag,
     component: ProductCRM,
+    badge: null
+  },
+  {
+    id: 'inbox',
+    label: 'Inbox',
+    icon: MessageCircle,
+    component: Inbox,
     badge: null
   },
   {
