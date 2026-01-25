@@ -63,7 +63,7 @@ export default function EbayCentral() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex" style={{ height: 'calc(100vh - 56px)' }}>
       {/* Mobile Sidebar Overlay */}
       {mobileSidebarOpen && (
         <div
@@ -214,16 +214,16 @@ export default function EbayCentral() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 overflow-auto flex flex-col">
+      <main className="flex-1 min-w-0 overflow-auto">
         {/* Mobile Header with Menu Toggle */}
-        <div className="lg:hidden flex items-center p-3 border-b border-theme bg-theme-surface flex-shrink-0">
+        <div className="lg:hidden flex items-center p-4 border-b border-theme bg-theme-surface">
           <button
             onClick={() => setMobileSidebarOpen(true)}
-            className="p-2 rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-hover mr-2"
+            className="p-2 rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-hover mr-3"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <h1 className="font-semibold text-theme-primary text-base">
+          <h1 className="font-semibold text-theme-primary">
             {activeMenuItem?.label || 'Marketplace Central'}
           </h1>
         </div>

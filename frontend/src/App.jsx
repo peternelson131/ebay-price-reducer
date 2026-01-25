@@ -97,8 +97,8 @@ export default function App() {
   const hideNav = location.pathname === '/whatnot'
 
   return (
-    <div className="h-screen lg:min-h-screen bg-theme-primary flex flex-col">
-      {!hideNav && <nav className="bg-theme-surface border-b border-theme relative z-50 flex-shrink-0">
+    <div className="min-h-screen bg-theme-primary">
+      {!hideNav && <nav className="bg-theme-surface border-b border-theme relative z-50">
         {/* Full-bleed container - no padding */}
         <div className="w-full">
           {/* Main Navigation Bar - edge to edge */}
@@ -309,8 +309,8 @@ export default function App() {
         )}
       </nav>}
 
-      <main className={`flex-1 overflow-hidden ${['/listings', '/asin-lookup', '/ebay-central', '/whatnot', '/product-crm', '/inbox'].includes(location.pathname) || location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto py-2 px-2 sm:py-6 sm:px-6 lg:px-8'}`}>
-        <div className={`h-full ${['/listings', '/asin-lookup', '/ebay-central', '/whatnot', '/product-crm', '/inbox'].includes(location.pathname) || location.pathname === '/' ? '' : 'sm:px-0'}`}>
+      <main className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot', '/product-crm', '/inbox'].includes(location.pathname) || location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-6 lg:px-8'}>
+        <div className={['/listings', '/asin-lookup', '/ebay-central', '/whatnot', '/product-crm', '/inbox'].includes(location.pathname) || location.pathname === '/' ? '' : 'sm:px-0'}>
           <Suspense fallback={
             <div className="flex items-center justify-center py-12">
               <div className="text-center">

@@ -3205,10 +3205,10 @@ export default function ProductCRM() {
   }, [statusFilterOpen]);
 
   return (
-    <div className="h-full bg-gray-50 dark:bg-theme-primary flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-theme-primary">
       {/* Header */}
-      <div className="bg-white dark:bg-theme-surface border-b border-theme flex-shrink-0">
-        <div className="px-3 sm:px-6 py-3 sm:py-6">
+      <div className="bg-white dark:bg-theme-surface border-b border-theme">
+        <div className="px-4 sm:px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-theme-primary">
@@ -3280,8 +3280,8 @@ export default function ProductCRM() {
       </div>
       
       {/* Filters */}
-      <div className="px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0">
-        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+      <div className="px-4 sm:px-6 py-4">
+        <div className="flex items-center gap-4 flex-wrap">
           {/* View Mode Toggle */}
           <div className="flex items-center bg-theme-hover rounded-lg p-1">
             <button
@@ -3462,8 +3462,8 @@ export default function ProductCRM() {
       </div>
       
       {/* Content */}
-      <div className="px-3 sm:px-6 pb-3 sm:pb-8 flex-1 overflow-auto">
-        <div className="bg-white dark:bg-theme-surface rounded-xl shadow-sm border border-theme overflow-hidden h-full flex flex-col">
+      <div className="px-4 sm:px-6 pb-8">
+        <div className="bg-white dark:bg-theme-surface rounded-xl shadow-sm border border-theme overflow-hidden">
           {isLoading ? (
             <div className="p-12 text-center">
               <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto" />

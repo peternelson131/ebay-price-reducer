@@ -865,7 +865,7 @@ export default function Listings() {
   }
 
   return (
-    <div className="px-3 sm:px-6 py-2 sm:py-4 space-y-3 sm:space-y-4 h-full overflow-auto">
+    <div className="px-4 sm:px-6 py-4 space-y-4">
       {/* Notification Banner */}
       {notification && (
         <div className={`rounded-lg p-3 border ${
@@ -888,7 +888,7 @@ export default function Listings() {
       </div>
 
       {/* Search Box */}
-      <div className="bg-theme-surface rounded-lg border border-theme p-3 sm:p-4">
+      <div className="bg-theme-surface rounded-lg border border-theme p-4">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-theme-tertiary" strokeWidth={1.5} />
