@@ -220,38 +220,38 @@ Answer with ONLY: YES or NO`;
 async function getCorrelationsFromDB(asin, userId, options = {}) {
   const { includeCompleted = false } = options;
   
-  // Step 1: Get ASINs with completed tasks (unless includeCompleted is true)
-  let completedAsins = new Set();
+  // Step 1: Get ASINs to exclude (unless includeCompleted is true)
+  let connectedAsins = new Set();
   let decidedAsins = new Set();
   
   if (!includeCompleted) {
-    // Get completed tasks
-    const { data: completedTasks, error: tasksError } = await getSupabase()
-      .from('influencer_tasks')
+    // Get all influencer-connected ASINs from the unified view
+    // This includes: CRM products, catalog imports, accepted correlations, and influencer tasks
+    const { data: connectedData, error: connectedError } = await getSupabase()
+      .from('influencer_connected_asins')
       .select('asin')
-      .eq('user_id', userId)
-      .eq('status', 'completed');
+      .eq('user_id', userId);
     
-    if (tasksError) {
-      console.error('⚠️ Warning: Could not fetch completed tasks:', tasksError);
-    } else if (completedTasks?.length > 0) {
-      completedAsins = new Set(completedTasks.map(t => t.asin));
-      console.log(`🔍 Found ${completedAsins.size} ASINs with completed tasks to filter out`);
+    if (connectedError) {
+      console.error('⚠️ Warning: Could not fetch connected ASINs:', connectedError);
+    } else if (connectedData?.length > 0) {
+      connectedAsins = new Set(connectedData.map(c => c.asin));
+      console.log(`🔍 Found ${connectedAsins.size} influencer-connected ASINs to filter out`);
     }
     
-    // Get accepted/declined correlations from feedback table
+    // Also get declined correlations (not in the view, but should still be excluded)
     const { data: feedbackData, error: feedbackError } = await getSupabase()
       .from('asin_correlations')
       .select('similar_asin, decision')
       .eq('search_asin', asin.toUpperCase())
       .eq('user_id', userId)
-      .in('decision', ['accepted', 'declined']);
+      .eq('decision', 'declined');
     
     if (feedbackError) {
-      console.error('⚠️ Warning: Could not fetch feedback:', feedbackError);
+      console.error('⚠️ Warning: Could not fetch declined feedback:', feedbackError);
     } else if (feedbackData?.length > 0) {
       decidedAsins = new Set(feedbackData.map(f => f.similar_asin));
-      console.log(`🔍 Found ${decidedAsins.size} ASINs with decisions to filter out`);
+      console.log(`🔍 Found ${decidedAsins.size} declined ASINs to filter out`);
     }
   }
   
@@ -268,17 +268,20 @@ async function getCorrelationsFromDB(asin, userId, options = {}) {
     return { error: dbError, correlations: [], filteredCount: 0 };
   }
 
-  // Step 3: Filter out correlations with completed tasks OR accepted/declined decisions
+  // Step 3: Filter out correlations that are:
+  // - Already in influencer_connected_asins (CRM, catalog, accepted, tasks)
+  // - Declined by user
+  // - Have any decision set on the correlation itself
   const allCorrelations = correlations || [];
   const filteredCorrelations = allCorrelations.filter(
-    row => !completedAsins.has(row.similar_asin) && 
+    row => !connectedAsins.has(row.similar_asin) && 
            !decidedAsins.has(row.similar_asin) &&
            !row.decision // Also filter if decision is set on the correlation itself
   );
   
   const filteredCount = allCorrelations.length - filteredCorrelations.length;
   if (filteredCount > 0) {
-    console.log(`✅ Filtered out ${filteredCount} correlations (completed tasks or decided)`);
+    console.log(`✅ Filtered out ${filteredCount} correlations (influencer-connected or declined)`);
   }
 
   const formattedCorrelations = filteredCorrelations.map(row => ({
