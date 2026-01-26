@@ -490,6 +490,14 @@ async function handleGet(event, userId, headers) {
   if (items && items.length > 0) {
     const asins = items.map(i => i.asin);
     
+    // First, get ASINs to exclude (already in CRM, catalog, accepted correlations, or tasks)
+    const { data: connectedAsins } = await getSupabase()
+      .from('influencer_connected_asins')
+      .select('asin')
+      .eq('user_id', userId);
+    
+    const connectedAsinSet = new Set((connectedAsins || []).map(c => c.asin));
+    
     // Query asin_correlations with full data
     const { data: correlations } = await getSupabase()
       .from('asin_correlations')
@@ -497,9 +505,14 @@ async function handleGet(event, userId, headers) {
       .eq('user_id', userId)
       .in('search_asin', asins);
     
-    // Count and group correlations per ASIN
+    // Count and group correlations per ASIN, excluding connected ASINs
     if (correlations) {
       for (const corr of correlations) {
+        // Skip if this similar_asin is already in influencer_connected_asins
+        if (connectedAsinSet.has(corr.similar_asin)) {
+          continue;
+        }
+        
         correlationCounts[corr.search_asin] = (correlationCounts[corr.search_asin] || 0) + 1;
         
         // Group full correlation data by search_asin
