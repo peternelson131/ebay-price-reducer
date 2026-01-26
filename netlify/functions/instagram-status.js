@@ -7,6 +7,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = require('./utils/cors');
 const { verifyAuth } = require('./utils/auth');
+const { decryptToken } = require('./utils/social-token-encryption');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -43,10 +44,13 @@ exports.handler = async (event, context) => {
       let tokenValid = false;
       if (connection && connection.access_token) {
         try {
+          // Decrypt token before verification (SECURITY FIX)
+          const decryptedToken = decryptToken(connection.access_token);
+          
           // Make a simple API call to verify token
           const verifyUrl = new URL(`https://graph.instagram.com/${connection.account_id}`);
           verifyUrl.searchParams.set('fields', 'id,username');
-          verifyUrl.searchParams.set('access_token', connection.access_token);
+          verifyUrl.searchParams.set('access_token', decryptedToken);
           
           const verifyResponse = await fetch(verifyUrl.toString());
           const verifyData = await verifyResponse.json();

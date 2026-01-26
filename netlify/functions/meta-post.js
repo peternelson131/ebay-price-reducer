@@ -7,6 +7,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = require('./utils/cors');
 const { verifyAuth } = require('./utils/auth');
 const { getValidAccessToken } = require('./utils/onedrive-api');
+const { decryptToken, encryptToken } = require('./utils/social-token-encryption');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -58,14 +59,15 @@ exports.handler = async (event, context) => {
     }
 
     // Check if token needs refresh (Meta uses long-lived tokens, but they do expire)
-    let accessToken = connection.access_token;
+    // Decrypt token from database (SECURITY FIX)
+    let accessToken = decryptToken(connection.access_token);
     const tokenExpiresAt = new Date(connection.token_expires_at);
     const now = new Date();
     
     if (tokenExpiresAt < new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)) {
       // Token expires in less than 7 days, refresh it
       console.log('Meta token expiring soon, attempting refresh');
-      const newToken = await refreshMetaToken(userId, connection.access_token);
+      const newToken = await refreshMetaToken(userId, accessToken);
       if (newToken) {
         accessToken = newToken;
       } else {
@@ -226,11 +228,11 @@ async function refreshMetaToken(userId, currentToken) {
     const expiresIn = data.expires_in || 5184000; // Default to 60 days
     const newExpiresAt = new Date(Date.now() + (expiresIn * 1000)).toISOString();
 
-    // Update database
+    // Update database - encrypt token before storage (SECURITY FIX)
     await supabase
       .from('social_connections')
       .update({
-        access_token: newAccessToken,
+        access_token: encryptToken(newAccessToken),
         token_expires_at: newExpiresAt,
         updated_at: new Date().toISOString()
       })

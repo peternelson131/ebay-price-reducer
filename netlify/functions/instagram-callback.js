@@ -4,6 +4,7 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const { encryptToken } = require('./utils/social-token-encryption');
 
 const META_APP_ID = process.env.META_APP_ID;
 const META_APP_SECRET = process.env.META_APP_SECRET;
@@ -63,8 +64,9 @@ exports.handler = async (event, context) => {
     const tokenData = await tokenResponse.json();
     
     if (tokenData.error_type || tokenData.error_message) {
-      console.error('Token exchange error:', tokenData);
+      // SECURITY FIX: Don't log token data (may contain secrets)
       const errorMsg = tokenData.error_message || tokenData.error_type || 'Token exchange failed';
+      console.error('Token exchange error:', errorMsg);
       return redirect(`${FRONTEND_URL}/integrations?instagram=error&message=${encodeURIComponent(errorMsg)}`);
     }
 
@@ -81,7 +83,8 @@ exports.handler = async (event, context) => {
     const longLivedData = await longLivedResponse.json();
 
     if (longLivedData.error) {
-      console.error('Long-lived token error:', longLivedData);
+      // SECURITY FIX: Don't log token data (may contain secrets)
+      console.error('Long-lived token error:', longLivedData.error.message || 'Unknown error');
       return redirect(`${FRONTEND_URL}/integrations?instagram=error&message=${encodeURIComponent(longLivedData.error.message)}`);
     }
 
@@ -111,12 +114,15 @@ exports.handler = async (event, context) => {
     }
 
     // Step 4: Store connection in database
+    // Encrypt token before storage (SECURITY FIX)
+    const encryptedAccessToken = encryptToken(accessToken);
+    
     const { error: dbError } = await supabase
       .from('social_connections')
       .upsert({
         user_id: userId,
         platform: 'instagram',
-        access_token: accessToken,
+        access_token: encryptedAccessToken, // Encrypted token
         refresh_token: null, // Instagram doesn't use refresh tokens
         token_expires_at: tokenExpiresAt.toISOString(),
         account_id: instagramUserId,

@@ -5,6 +5,7 @@
 
 const { getCorsHeaders, handlePreflight, errorResponse } = require('./utils/cors');
 const { verifyAuth } = require('./utils/auth');
+const { applyRateLimit } = require('./utils/rate-limit');
 
 const META_APP_ID = process.env.META_APP_ID;
 const INSTAGRAM_REDIRECT_URI = process.env.INSTAGRAM_REDIRECT_URI || 
@@ -31,6 +32,15 @@ exports.handler = async (event, context) => {
     }
 
     const userId = authResult.userId;
+    
+    // Apply rate limiting (SECURITY FIX)
+    const rateLimitResult = applyRateLimit(event, userId, 'auth');
+    if (rateLimitResult && !rateLimitResult.allowed) {
+      return rateLimitResult;
+    }
+    if (rateLimitResult && rateLimitResult.headers) {
+      Object.assign(headers, rateLimitResult.headers);
+    }
 
     // Generate state parameter with user ID (for callback verification)
     const state = Buffer.from(JSON.stringify({

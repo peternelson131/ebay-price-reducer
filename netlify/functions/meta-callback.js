@@ -4,6 +4,7 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const { encryptToken } = require('./utils/social-token-encryption');
 
 const META_APP_ID = process.env.META_APP_ID;
 const META_APP_SECRET = process.env.META_APP_SECRET;
@@ -54,7 +55,8 @@ exports.handler = async (event, context) => {
     const tokenData = await tokenResponse.json();
     
     if (tokenData.error) {
-      console.error('Token exchange error:', tokenData);
+      // SECURITY FIX: Don't log token data (may contain secrets)
+      console.error('Token exchange error:', tokenData.error.message || 'Unknown error');
       return redirect(`${FRONTEND_URL}/integrations?meta=error&message=${encodeURIComponent(tokenData.error.message)}`);
     }
 
@@ -71,7 +73,8 @@ exports.handler = async (event, context) => {
     const longLivedData = await longLivedResponse.json();
 
     if (longLivedData.error) {
-      console.error('Long-lived token error:', longLivedData);
+      // SECURITY FIX: Don't log token data (may contain secrets)
+      console.error('Long-lived token error:', longLivedData.error.message || 'Unknown error');
       return redirect(`${FRONTEND_URL}/integrations?meta=error&message=${encodeURIComponent(longLivedData.error.message)}`);
     }
 
@@ -131,13 +134,16 @@ exports.handler = async (event, context) => {
     }
 
     // Step 5: Store connection in database
+    // Encrypt tokens before storage (SECURITY FIX)
+    const encryptedAccessToken = encryptToken(pageAccessToken);
+    
     // Use page access token as it's better for long-term API access
     const { error: dbError } = await supabase
       .from('social_connections')
       .upsert({
         user_id: userId,
         platform: 'meta',
-        access_token: pageAccessToken, // Use page token for API calls
+        access_token: encryptedAccessToken, // Encrypted token
         refresh_token: null, // Meta doesn't use refresh tokens, just long-lived tokens
         token_expires_at: tokenExpiresAt.toISOString(),
         account_id: pageId,

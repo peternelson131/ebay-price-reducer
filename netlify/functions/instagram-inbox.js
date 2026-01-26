@@ -7,6 +7,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders, handlePreflight, errorResponse, successResponse } = require('./utils/cors');
 const { verifyAuth } = require('./utils/auth');
+const { decryptToken } = require('./utils/social-token-encryption');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -189,7 +190,8 @@ exports.handler = async (event, context) => {
       return errorResponse(404, 'Instagram account not connected', headers);
     }
 
-    const accessToken = connection.access_token;
+    // Decrypt token from database (SECURITY FIX)
+    const accessToken = decryptToken(connection.access_token);
     const igUserId = connection.instagram_account_id;
 
     // Case 1: Get messages for a specific conversation
