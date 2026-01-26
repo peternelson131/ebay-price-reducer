@@ -120,6 +120,8 @@ function sanitizeObject(obj, maxDepth = 5) {
       lowerKey.includes('secret') ||
       lowerKey.includes('password') ||
       lowerKey.includes('authorization') ||
+      lowerKey.includes('api_key') ||
+      lowerKey.includes('apikey') ||
       lowerKey === 'cookie' ||
       lowerKey === 'auth'
     ) {
