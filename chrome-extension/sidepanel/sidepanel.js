@@ -46,11 +46,44 @@ const emptyState = document.getElementById('empty-state');
 const pendingCount = document.getElementById('pending-count');
 const filterBtns = document.querySelectorAll('.filter-btn');
 
+// Token refresh interval (refresh 5 minutes before expiry)
+const TOKEN_REFRESH_BUFFER = 5 * 60 * 1000; // 5 minutes in ms
+let refreshTimeout = null;
+
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
   // Check for existing session
-  const stored = await chrome.storage.local.get(['accessToken', 'userEmail']);
-  if (stored.accessToken) {
+  const stored = await chrome.storage.local.get(['accessToken', 'refreshToken', 'tokenExpiresAt', 'userEmail']);
+  
+  if (stored.accessToken && stored.tokenExpiresAt) {
+    const expiresAt = new Date(stored.tokenExpiresAt).getTime();
+    const now = Date.now();
+    
+    // Check if token is expired
+    if (expiresAt <= now) {
+      // Token expired - try to refresh
+      if (stored.refreshToken) {
+        const refreshed = await refreshAccessToken(stored.refreshToken);
+        if (refreshed) {
+          currentUser = { email: stored.userEmail, token: refreshed.accessToken };
+          showTasksView();
+          loadTasks();
+          scheduleTokenRefresh(refreshed.expiresAt);
+          return;
+        }
+      }
+      // Refresh failed - need to login again
+      await chrome.storage.local.remove(['accessToken', 'refreshToken', 'tokenExpiresAt', 'userEmail']);
+      showLoginView();
+    } else {
+      // Token still valid
+      currentUser = { email: stored.userEmail, token: stored.accessToken };
+      showTasksView();
+      loadTasks();
+      scheduleTokenRefresh(stored.tokenExpiresAt);
+    }
+  } else if (stored.accessToken) {
+    // Legacy: token without expiration - use it but don't schedule refresh
     currentUser = { email: stored.userEmail, token: stored.accessToken };
     showTasksView();
     loadTasks();
@@ -58,6 +91,77 @@ document.addEventListener('DOMContentLoaded', async () => {
     showLoginView();
   }
 });
+
+// Refresh access token using refresh token
+async function refreshAccessToken(refreshToken) {
+  try {
+    const response = await fetch(`${API_BASE}/auth-refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken })
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok || !data.success) {
+      console.log('Token refresh failed:', data.error);
+      return null;
+    }
+    
+    // Calculate expiration (default to 1 hour if not provided)
+    const expiresAt = data.session.expires_at 
+      ? new Date(data.session.expires_at * 1000).toISOString()
+      : new Date(Date.now() + 3600000).toISOString();
+    
+    // Store new tokens
+    await chrome.storage.local.set({
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token || refreshToken,
+      tokenExpiresAt: expiresAt
+    });
+    
+    // Update current user
+    currentUser.token = data.session.access_token;
+    
+    console.log('Token refreshed, expires at:', expiresAt);
+    
+    return {
+      accessToken: data.session.access_token,
+      expiresAt
+    };
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    return null;
+  }
+}
+
+// Schedule token refresh before expiry
+function scheduleTokenRefresh(expiresAt) {
+  if (refreshTimeout) {
+    clearTimeout(refreshTimeout);
+  }
+  
+  const expiresAtMs = new Date(expiresAt).getTime();
+  const refreshAt = expiresAtMs - TOKEN_REFRESH_BUFFER;
+  const delay = refreshAt - Date.now();
+  
+  if (delay > 0) {
+    console.log(`Scheduling token refresh in ${Math.round(delay / 60000)} minutes`);
+    refreshTimeout = setTimeout(async () => {
+      const stored = await chrome.storage.local.get(['refreshToken']);
+      if (stored.refreshToken) {
+        const refreshed = await refreshAccessToken(stored.refreshToken);
+        if (refreshed) {
+          scheduleTokenRefresh(refreshed.expiresAt);
+        } else {
+          // Refresh failed - logout
+          showNotification('Session expired. Please login again.', 'error');
+          await handleLogout();
+        }
+      }
+    }, delay);
+  }
+}
 
 // Event Listeners
 loginForm.addEventListener('submit', handleLogin);
@@ -98,16 +202,23 @@ async function handleLogin(e) {
       throw new Error(data.error || 'Login failed');
     }
     
-    // Store session
+    // Calculate expiration (Supabase returns expires_at as unix timestamp)
+    const expiresAt = data.session.expires_at 
+      ? new Date(data.session.expires_at * 1000).toISOString()
+      : new Date(Date.now() + 3600000).toISOString(); // Default 1 hour
+    
+    // Store session with expiration
     await chrome.storage.local.set({
       accessToken: data.session.access_token,
       refreshToken: data.session.refresh_token,
+      tokenExpiresAt: expiresAt,
       userEmail: email
     });
     
     currentUser = { email, token: data.session.access_token };
     showTasksView();
     loadTasks();
+    scheduleTokenRefresh(expiresAt);
     
   } catch (error) {
     loginError.textContent = error.message;
@@ -170,8 +281,12 @@ async function loadTasks() {
       throw new Error(data.error || 'Failed to load tasks');
     }
     
-    tasks = data.tasks || [];
-    pendingCount.textContent = data.pendingCount || 0;
+    // Filter out tasks with no video attached (Bug 3)
+    tasks = (data.tasks || []).filter(t => t.video?.id);
+    
+    // Update pending count to only show actionable items (with videos)
+    const actionablePending = tasks.filter(t => t.status === 'pending').length;
+    pendingCount.textContent = actionablePending;
     renderTasks();
     
   } catch (error) {
@@ -444,7 +559,7 @@ async function handleDownloadAll(videoId, filename, asinsStr) {
   
   const asins = asinsStr ? asinsStr.split(',') : [];
   let downloadedVideo = false;
-  let downloadedThumbnails = 0;
+  let downloadedThumbnail = false;
   
   try {
     // 1. Download the video
@@ -468,12 +583,14 @@ async function handleDownloadAll(videoId, filename, asinsStr) {
       });
     }
     
-    // 2. Download thumbnails for each ASIN (if available)
-    for (const asin of asins) {
-      if (!asin) continue;
-      
+    // 2. Download ONE thumbnail for this video group (Bug 4: only 1 per parent)
+    // Use the first ASIN - thumbnail is the same across marketplace variants
+    const firstAsin = asins[0];
+    let downloadedThumbnail = false;
+    
+    if (firstAsin) {
       try {
-        const thumbResponse = await fetch(`${API_BASE}/get-thumbnail?asin=${asin}`, {
+        const thumbResponse = await fetch(`${API_BASE}/get-thumbnail?asin=${firstAsin}`, {
           headers: {
             'Authorization': `Bearer ${currentUser.token}`
           }
@@ -482,18 +599,23 @@ async function handleDownloadAll(videoId, filename, asinsStr) {
         const thumbData = await thumbResponse.json();
         
         if (thumbData.success && thumbData.downloadUrl) {
+          // Use video filename base for thumbnail (more intuitive)
+          const thumbFilename = filename 
+            ? filename.replace(/\.[^/.]+$/, '_thumbnail.jpg')
+            : `${firstAsin}_thumbnail.jpg`;
+          
           chrome.downloads.download({
             url: thumbData.downloadUrl,
-            filename: `${asin}_thumbnail.jpg`,
+            filename: thumbFilename,
             saveAs: false
           }, (downloadId) => {
             if (!chrome.runtime.lastError) {
-              downloadedThumbnails++;
+              downloadedThumbnail = true;
             }
           });
         }
       } catch (thumbErr) {
-        console.log(`No thumbnail for ${asin}:`, thumbErr.message);
+        console.log(`No thumbnail available:`, thumbErr.message);
       }
     }
     
@@ -501,7 +623,7 @@ async function handleDownloadAll(videoId, filename, asinsStr) {
     setTimeout(() => {
       const parts = [];
       if (downloadedVideo) parts.push('video');
-      if (downloadedThumbnails > 0) parts.push(`${downloadedThumbnails} thumbnail(s)`);
+      if (downloadedThumbnail) parts.push('thumbnail');
       
       if (parts.length > 0) {
         showNotification(`Downloading ${parts.join(' + ')}...`, 'success');
