@@ -26,15 +26,17 @@ import {
   Plus,
   CheckSquare,
   Square,
-  Download
+  Download,
+  FolderInput,
+  Package,
+  Image as ImageIcon
 } from 'lucide-react';
 
 // Status configuration - simplified to 2 states
 const STATUS_CONFIG = {
   imported: { 
-    icon: FileSpreadsheet, 
+    icon: Download, 
     label: 'Imported', 
-    emoji: '📥',
     bgClass: 'bg-gray-100 dark:bg-gray-800', 
     textClass: 'text-gray-600 dark:text-gray-400',
     animated: false,
@@ -44,7 +46,6 @@ const STATUS_CONFIG = {
   processed: { 
     icon: CheckCircle, 
     label: 'Processed', 
-    emoji: '✅',
     bgClass: 'bg-green-50 dark:bg-green-900/30', 
     textClass: 'text-green-600 dark:text-green-400',
     animated: false,
@@ -1223,7 +1224,8 @@ export default function CatalogImport() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-theme-primary flex items-center gap-3">
-            📥 Catalog Import
+            <FolderInput className="w-7 h-7 text-accent" />
+            Catalog Import
           </h1>
           <p className="text-theme-secondary mt-1">
             Import your Amazon Influencer ASINs and find correlations
@@ -1478,7 +1480,7 @@ export default function CatalogImport() {
                   />
                 ) : (
                   <div className="w-12 h-12 bg-theme-surface rounded flex items-center justify-center">
-                    <span className="text-xl">📦</span>
+                    <Package className="w-6 h-6 text-theme-tertiary" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -1715,35 +1717,7 @@ export default function CatalogImport() {
           {exporting ? 'Exporting...' : 'Export CSV'}
         </button>
         
-        {/* Sync All button */}
-        <button
-          onClick={handleSyncAll}
-          disabled={syncingAll || totalCount === 0 || batchSyncProgress !== null}
-          className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
-        >
-          {syncingAll ? (
-            <Loader className="w-4 h-4 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4" />
-          )}
-          {syncingAll ? `Queuing... ${batchSyncProgress?.elapsed || 0}s` : 'Sync All'}
-        </button>
-        
-        {/* Sync Selected button */}
-        {selectedIds.size > 0 && (
-          <button
-            onClick={handleSyncSelected}
-            disabled={batchSyncProgress !== null}
-            className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
-          >
-            {batchSyncProgress && !batchSyncProgress.isSyncAll ? (
-              <Loader className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-            Sync Selected ({selectedIds.size})
-          </button>
-        )}
+        {/* Individual sync via per-row button only */}
         
         {parseError && !showUploadModal && (
           <div className="w-full mt-3 p-3 bg-error/10 border border-error/30 rounded-lg flex items-center gap-2 text-error text-sm">
@@ -1806,7 +1780,10 @@ export default function CatalogImport() {
                     : 'bg-theme-surface border border-theme text-theme-secondary hover:text-theme-primary'
                 }`}
               >
-                <span>{STATUS_CONFIG[status]?.emoji}</span>
+                {(() => {
+                  const Icon = STATUS_CONFIG[status]?.icon;
+                  return Icon ? <Icon className="w-4 h-4" /> : null;
+                })()}
                 <span className="capitalize">{status}</span>
                 <span className="text-xs opacity-70">({statusCounts[status] || 0})</span>
               </button>
@@ -1851,23 +1828,7 @@ export default function CatalogImport() {
         <div className="bg-theme-surface rounded-lg border border-theme overflow-hidden">
           {/* Header Row */}
           <div className="hidden sm:grid sm:grid-cols-12 gap-4 px-4 py-3 bg-theme-primary border-b border-theme text-sm font-medium text-theme-secondary">
-            <div className="col-span-1 flex items-center gap-2">
-              {syncableItems.length > 0 && (
-                <button
-                  onClick={toggleSelectAll}
-                  className="p-1 text-theme-tertiary hover:text-accent transition-colors"
-                  title={allSyncableSelected ? 'Deselect all' : 'Select all syncable'}
-                >
-                  {allSyncableSelected ? (
-                    <CheckSquare className="w-5 h-5 text-accent" />
-                  ) : someSyncableSelected ? (
-                    <CheckSquare className="w-5 h-5 text-theme-tertiary" />
-                  ) : (
-                    <Square className="w-5 h-5" />
-                  )}
-                </button>
-              )}
-            </div>
+            <div className="col-span-1"></div>
             <div className="col-span-1">Image</div>
             <div className="col-span-3">Title</div>
             <div className="col-span-2">ASIN</div>
@@ -1891,24 +1852,8 @@ export default function CatalogImport() {
                       isExpanded ? 'bg-theme-hover' : ''
                     }`}
                   >
-                    {/* Checkbox + Expand Toggle */}
-                    <div className="col-span-1 hidden sm:flex items-center gap-1">
-                      {/* Checkbox for syncable items */}
-                      {statusConfig.canSync ? (
-                        <button
-                          onClick={() => toggleSelected(item.id)}
-                          className="p-1 text-theme-tertiary hover:text-accent transition-colors"
-                        >
-                          {selectedIds.has(item.id) ? (
-                            <CheckSquare className="w-5 h-5 text-accent" />
-                          ) : (
-                            <Square className="w-5 h-5" />
-                          )}
-                        </button>
-                      ) : (
-                        <div className="w-7"></div>
-                      )}
-                      {/* Expand toggle */}
+                    {/* Expand Toggle */}
+                    <div className="col-span-1 hidden sm:flex items-center justify-center">
                       {correlationCount > 0 && (
                         <button
                           onClick={() => toggleExpanded(item.id, item.asin)}
@@ -1933,7 +1878,7 @@ export default function CatalogImport() {
                         />
                       ) : (
                         <div className="w-12 h-12 bg-theme-primary rounded flex items-center justify-center">
-                          <span className="text-2xl">📦</span>
+                          <Package className="w-6 h-6 text-theme-tertiary" />
                         </div>
                       )}
                     </div>
@@ -2091,7 +2036,7 @@ export default function CatalogImport() {
                                     />
                                   ) : (
                                     <div className="w-16 h-16 bg-theme-primary rounded-lg flex items-center justify-center flex-shrink-0 border border-theme">
-                                      <span className="text-2xl">📦</span>
+                                      <Package className="w-8 h-8 text-theme-tertiary" />
                                     </div>
                                   )}
                                   
