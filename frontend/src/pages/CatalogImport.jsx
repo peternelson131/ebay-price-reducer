@@ -1512,7 +1512,7 @@ export default function CatalogImport() {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-theme">
               <h2 className="text-lg font-semibold text-theme-primary flex items-center gap-2">
-                🌍 Select Marketplace
+                Select Marketplace
               </h2>
               <button
                 onClick={() => setMarketplaceModal(null)}

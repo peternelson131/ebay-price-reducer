@@ -14,7 +14,8 @@ import {
   ExternalLink,
   CheckCircle,
   X,
-  Package
+  Package,
+  BookOpen
 } from 'lucide-react';
 
 // Marketplace flags and info
@@ -112,7 +113,8 @@ export default function AsinCatalog() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-theme-primary flex items-center gap-3">
-            📚 ASIN Catalog
+            <BookOpen className="w-6 h-6" />
+            ASIN Catalog
           </h1>
           <p className="text-theme-secondary mt-1">
             {groupedByAsin.length} products completed across {tasks.length} marketplace uploads

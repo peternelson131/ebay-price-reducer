@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { ClipboardList, Star, Tag, FileText, AlertTriangle, Package, Settings } from 'lucide-react'
+import { ClipboardList, Star, Tag, FileText, AlertTriangle, Package, Settings, MapPin } from 'lucide-react'
 
 /**
  * Story 7A & 7B: Simplified Single-ASIN Listing Component
@@ -395,7 +395,7 @@ export default function QuickList() {
         {/* Location Section */}
         <div className="space-y-4">
           <h3 className="font-medium text-theme-primary flex items-center gap-2">
-            <span className="text-lg">📍</span> Merchant Location
+            <MapPin className="w-5 h-5 text-theme-secondary" /> Merchant Location
             <span className="text-xs text-error">*Required</span>
           </h3>
           

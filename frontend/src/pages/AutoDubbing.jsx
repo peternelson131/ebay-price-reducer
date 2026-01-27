@@ -531,7 +531,7 @@ export default function AutoDubbing() {
           // Show prominent success notification
           setMessage({ 
             type: 'success', 
-            text: '🎉 Dubbing complete! Your dubbed video is downloading now.',
+            text: 'Dubbing complete! Your dubbed video is downloading now.',
             isModal: true 
           });
           

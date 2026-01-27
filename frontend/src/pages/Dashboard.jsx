@@ -230,7 +230,7 @@ export default function Dashboard() {
                             ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {listing.price_reduction_enabled ? '🟢 Active' : '⚪ Inactive'}
+                          {listing.price_reduction_enabled ? '● Active' : '○ Inactive'}
                         </span>
                         <span className="text-sm text-gray-600 text-center sm:text-left">
                           Strategy: {listing.reduction_strategy} • {listing.reduction_percentage}% • Every {listing.reduction_interval} days

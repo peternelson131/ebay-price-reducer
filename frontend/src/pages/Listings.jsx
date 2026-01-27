@@ -262,7 +262,7 @@ export default function Listings() {
       onSuccess: (newValue) => {
         queryClient.setQueryData(['vacationMode'], newValue)
         showNotification('success', newValue 
-          ? '🏖️ Vacation mode ON - price reductions paused'
+          ? 'Vacation mode ON - price reductions paused'
           : 'Vacation mode OFF - price reductions will resume'
         )
       },

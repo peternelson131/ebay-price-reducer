@@ -2394,7 +2394,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         {product.status?.name === 'Delivered' && !product.decision && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-theme-secondary">
-              📬 Product Delivered - Take Action
+              Product Delivered - Take Action
             </h4>
             <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 space-y-3">
               <p className="text-sm text-emerald-800 dark:text-emerald-200">
