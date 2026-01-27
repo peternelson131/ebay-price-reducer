@@ -128,6 +128,9 @@ export default function CatalogImport() {
   const [syncStartTimes, setSyncStartTimes] = useState({}); // { id: timestamp }
   const [syncElapsedTimes, setSyncElapsedTimes] = useState({}); // { id: seconds }
   
+  // Single-item sync progress (Refinement 1)
+  const [syncingAsin, setSyncingAsin] = useState(null); // ASIN currently syncing
+  
   // Batch sync progress state
   const [batchSyncProgress, setBatchSyncProgress] = useState(null); // { current, total, currentAsin, startTime, cancelled }
   const batchSyncCancelledRef = useRef(false);
@@ -519,20 +522,9 @@ export default function CatalogImport() {
   };
 
   // Queue items for sync (find correlations) - single item
-  const handleSync = async (importIds) => {
-    const startTime = Date.now();
-    
-    // Mark items as syncing with start times
-    setSyncingItems(prev => {
-      const next = new Set(prev);
-      importIds.forEach(id => next.add(id));
-      return next;
-    });
-    setSyncStartTimes(prev => {
-      const updated = { ...prev };
-      importIds.forEach(id => { updated[id] = startTime; });
-      return updated;
-    });
+  const handleSync = async (importItem) => {
+    // Refinement 1: Set syncingAsin to track which item is syncing
+    setSyncingAsin(importItem.asin);
     
     try {
       const token = await userAPI.getAuthToken();
@@ -544,15 +536,13 @@ export default function CatalogImport() {
         },
         body: JSON.stringify({
           action: 'sync',
-          ids: importIds
+          ids: [importItem.id]
         })
       });
       
       const data = await response.json();
       if (data.success) {
-        // Sync started - clear selection, status stays 'imported' until complete
-        setSelectedIds(new Set());
-        // Refresh data after a short delay to pick up changes
+        // Sync started - refresh data after a short delay to pick up changes
         setTimeout(() => loadImports(), 3000);
       } else {
         alert(data.error || 'Failed to sync');
@@ -561,25 +551,8 @@ export default function CatalogImport() {
       console.error('Sync error:', err);
       alert('Failed to queue for sync');
     } finally {
-      // Remove from syncing state
-      setSyncingItems(prev => {
-        const next = new Set(prev);
-        importIds.forEach(id => next.delete(id));
-        return next;
-      });
-      // Clean up elapsed times after a delay
-      setTimeout(() => {
-        setSyncElapsedTimes(prev => {
-          const updated = { ...prev };
-          importIds.forEach(id => { delete updated[id]; });
-          return updated;
-        });
-        setSyncStartTimes(prev => {
-          const updated = { ...prev };
-          importIds.forEach(id => { delete updated[id]; });
-          return updated;
-        });
-      }, 2000);
+      // Clear syncing state
+      setSyncingAsin(null);
     }
   };
 
@@ -858,11 +831,38 @@ export default function CatalogImport() {
           ...prev,
           [correlation.asin]: 'declined'
         }));
+        
+        // Refinement 2: Update correlation count after decline
+        setImports(prev => prev.map(item => {
+          if (item.id === importItem.id && item.correlation_count > 0) {
+            return { ...item, correlation_count: item.correlation_count - 1 };
+          }
+          return item;
+        }));
+        
+        // Also update the correlations cache
+        setCorrelationsCache(prev => {
+          if (prev[importItem.asin]) {
+            return {
+              ...prev,
+              [importItem.asin]: prev[importItem.asin].filter(c => c.asin !== correlation.asin)
+            };
+          }
+          return prev;
+        });
       } else {
         // Still mark as declined locally even if backend fails
         setCorrelationActions(prev => ({
           ...prev,
           [correlation.asin]: 'declined'
+        }));
+        
+        // Refinement 2: Update count even on backend failure (optimistic update)
+        setImports(prev => prev.map(item => {
+          if (item.id === importItem.id && item.correlation_count > 0) {
+            return { ...item, correlation_count: item.correlation_count - 1 };
+          }
+          return item;
         }));
       }
     } catch (err) {
@@ -871,6 +871,14 @@ export default function CatalogImport() {
       setCorrelationActions(prev => ({
         ...prev,
         [correlation.asin]: 'declined'
+      }));
+      
+      // Refinement 2: Update count even on error (optimistic update)
+      setImports(prev => prev.map(item => {
+        if (item.id === importItem.id && item.correlation_count > 0) {
+          return { ...item, correlation_count: item.correlation_count - 1 };
+        }
+        return item;
       }));
     } finally {
       setActionInProgress(null);
@@ -1992,18 +2000,29 @@ export default function CatalogImport() {
 
                     {/* Actions */}
                     <div className="col-span-1 flex justify-end gap-2">
-                      {/* Sync button - only for imported/error status */}
+                      {/* Mark as Reviewed button - only for processed status (Refinement 3) */}
+                      {item.status === 'processed' && (
+                        <button
+                          onClick={() => handleMarkAsReviewed(item)}
+                          className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title="Mark as Reviewed"
+                        >
+                          <CheckSquare className="w-4 h-4" />
+                        </button>
+                      )}
+                      
+                      {/* Sync button - only for imported/error status (Refinement 1) */}
                       {item.status === 'imported' && (
                         <button
-                          onClick={() => handleSync([item.id])}
-                          disabled={syncingItems.has(item.id)}
-                          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-400 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1 min-w-[80px] justify-center"
+                          onClick={() => handleSync(item)}
+                          disabled={syncingAsin && syncingAsin !== item.asin}
+                          className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1 min-w-[90px] justify-center"
                           title="Find Correlations"
                         >
-                          {syncingItems.has(item.id) ? (
+                          {syncingAsin === item.asin ? (
                             <>
                               <Loader className="w-3 h-3 animate-spin" />
-                              <span>{syncElapsedTimes[item.id] || 0}s</span>
+                              <span>Syncing...</span>
                             </>
                           ) : (
                             <>
@@ -2013,9 +2032,10 @@ export default function CatalogImport() {
                           )}
                         </button>
                       )}
+                      
                       <button
                         onClick={() => handleDelete(item.id)}
-                        disabled={syncingItems.has(item.id)}
+                        disabled={syncingAsin === item.asin}
                         className="p-2 text-theme-tertiary hover:text-error hover:bg-error/10 disabled:opacity-50 rounded-lg transition-colors"
                         title="Delete"
                       >
@@ -2161,19 +2181,6 @@ export default function CatalogImport() {
                             );
                           });
                         })()}
-                        
-                        {/* Mark as Reviewed button - only show for Processed status */}
-                        {item.status === 'processed' && (
-                          <div className="pt-4 border-t border-theme/50">
-                            <button
-                              onClick={() => handleMarkAsReviewed(item)}
-                              className="w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-                            >
-                              <CheckSquare className="w-4 h-4" />
-                              Mark as Reviewed
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
