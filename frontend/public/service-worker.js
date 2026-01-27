@@ -1,7 +1,7 @@
 // OpSyncPro Service Worker
-// Version 1.0.0
+// Version 1.0.1 - Fix for stale cache causing blank pages
 
-const CACHE_NAME = 'opsyncpro-v2';
+const CACHE_NAME = 'opsyncpro-v3';  // Bump to invalidate old caches
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache immediately on install
@@ -47,7 +47,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - network-first for API, cache-first for assets
+// Fetch event - network-first for critical files, stale-while-revalidate for images
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -57,8 +57,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first strategy for API calls
-  if (url.pathname.startsWith('/api/') || url.pathname.includes('supabase')) {
+  // Network-first strategy for:
+  // - API calls
+  // - HTML files (navigation)
+  // - JS files (to prevent stale cache issues)
+  // - CSS files
+  const isApi = url.pathname.startsWith('/api/') || 
+                url.pathname.startsWith('/.netlify/') ||
+                url.pathname.includes('supabase');
+  const isNavigate = request.mode === 'navigate';
+  const isJsOrCss = url.pathname.endsWith('.js') || url.pathname.endsWith('.css');
+  
+  if (isApi || isNavigate || isJsOrCss) {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -73,16 +83,30 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => {
           // Return cached version if network fails
-          return caches.match(request);
+          return caches.match(request).then((cached) => {
+            if (cached) return cached;
+            // Show offline page for navigation requests
+            if (isNavigate) {
+              return caches.match(OFFLINE_URL);
+            }
+          });
         })
     );
     return;
   }
 
-  // Cache-first strategy for static assets
+  // Cache-first strategy for static assets (images, fonts, etc.)
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
+        // Return cached but also update in background
+        fetch(request).then((response) => {
+          if (response && response.status === 200) {
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, response);
+            });
+          }
+        }).catch(() => {});
         return cachedResponse;
       }
 
@@ -102,10 +126,7 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Show offline page for navigation requests
-          if (request.mode === 'navigate') {
-            return caches.match(OFFLINE_URL);
-          }
+          // Nothing to show for static assets
         });
     })
   );
