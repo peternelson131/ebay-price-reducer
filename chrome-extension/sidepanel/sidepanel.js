@@ -381,28 +381,50 @@ function createVideoGroup(group) {
   const taskCount = group.tasks.length;
   const multipleAsins = taskCount > 1;
   
+  // Extract parent ASIN from video filename (e.g., "B0FQFB8FMG.mov" -> "B0FQFB8FMG")
+  const parentAsin = group.filename ? group.filename.replace(/\.[^/.]+$/, '') : null;
+  
+  // Get first task's title as the product title (they all share the same video/product)
+  const productTitle = group.tasks[0]?.title || group.tasks[0]?.video_title || 'Untitled Product';
+  
   return `
     <div class="video-group ${hasVideo ? '' : 'no-video-group'}">
       ${hasVideo ? `
-        <div class="video-header">
-          <div class="video-info">
-            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            <span class="video-filename">${escapeHtml(group.filename)}</span>
-            ${multipleAsins ? `<span class="asin-count">${taskCount} ASINs</span>` : ''}
+        <div class="video-header parent-header">
+          <div class="parent-info">
+            <div class="parent-asin-row">
+              <span class="parent-asin">${escapeHtml(parentAsin || 'Unknown')}</span>
+              <span class="parent-label">Parent ASIN</span>
+            </div>
+            <div class="parent-title">${escapeHtml(productTitle)}</div>
+            <div class="parent-video">
+              <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span class="video-filename">${escapeHtml(group.filename)}</span>
+              <span class="child-count">${taskCount} upload${taskCount !== 1 ? 's' : ''}</span>
+            </div>
           </div>
-          <button class="btn btn-download btn-small" data-video-id="${group.videoId}" data-filename="${escapeHtml(group.filename)}" data-asins="${group.tasks.map(t => t.asin).join(',')}">
+          <button class="btn btn-download" data-video-id="${group.videoId}" data-filename="${escapeHtml(group.filename)}" data-asins="${group.tasks.map(t => t.asin).join(',')}">
             <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            Download All
+            Download
           </button>
         </div>
-      ` : ''}
-      <div class="video-tasks ${multipleAsins ? 'multi-asin' : ''}">
-        ${group.tasks.map(task => createTaskCard(task, hasVideo, multipleAsins)).join('')}
-      </div>
+        <div class="children-container">
+          <div class="children-header">
+            <span class="children-label">Upload Tasks</span>
+          </div>
+          <div class="video-tasks children-list">
+            ${group.tasks.map((task, idx) => createTaskCard(task, hasVideo, multipleAsins, idx === group.tasks.length - 1)).join('')}
+          </div>
+        </div>
+      ` : `
+        <div class="video-tasks">
+          ${group.tasks.map(task => createTaskCard(task, hasVideo, multipleAsins, true)).join('')}
+        </div>
+      `}
     </div>
   `;
 }
@@ -422,16 +444,19 @@ function updateMarketplaceIndicator() {
   }
 }
 
-function createTaskCard(task, groupHasVideo = false, isMultiAsin = false) {
+function createTaskCard(task, groupHasVideo = false, isMultiAsin = false, isLast = false) {
   const isCompleted = task.status === 'completed';
   const hasVideo = task.hasVideo || groupHasVideo;
+  const connector = isLast ? '└─' : '├─';
   
   return `
-    <div class="task-card ${isCompleted ? 'completed' : ''} ${isMultiAsin ? 'compact' : ''}" data-task-id="${task.id}">
-      <div class="task-header">
-        <span class="task-asin" title="Click to copy">${task.asin}</span>
-        <span class="task-marketplace">${task.marketplace || 'US'}</span>
-      </div>
+    <div class="task-card child-task ${isCompleted ? 'completed' : ''} ${isMultiAsin ? 'compact' : ''}" data-task-id="${task.id}">
+      ${groupHasVideo ? `<span class="tree-connector">${connector}</span>` : ''}
+      <div class="task-content">
+        <div class="task-header">
+          <span class="task-asin" title="Click to copy">${task.asin}</span>
+          <span class="task-marketplace">${task.marketplace || 'US'}</span>
+        </div>
       <div class="task-title">${escapeHtml(task.product_title || 'Untitled Product')}</div>
       ${!groupHasVideo ? `
         <div class="task-video no-video">
@@ -467,6 +492,7 @@ function createTaskCard(task, groupHasVideo = false, isMultiAsin = false) {
           <span class="status-badge status-completed">Completed</span>
         </div>
       `}
+      </div>
     </div>
   `;
 }
