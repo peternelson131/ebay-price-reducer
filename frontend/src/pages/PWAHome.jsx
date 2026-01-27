@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Upload, Search, Check, X, Film, Package, Loader } from 'lucide-react'
+import { Plus, Upload, Search, Check, X, Film, Package, Loader, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
+
+// Status IDs that count as "delivered" - need to fetch dynamically
+const DELIVERED_STATUS_NAMES = ['delivered', 'ready to list', 'listed'];
+const COMPLETED_STATUS_NAMES = ['completed', 'sold', 'archived'];
 
 export default function PWAHome() {
   const [mode, setMode] = useState(null) // 'upload' | 'add' | null
@@ -15,25 +19,97 @@ export default function PWAHome() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [message, setMessage] = useState(null)
   const fileInputRef = useRef(null)
+  
+  // New state for filtered views
+  const [viewMode, setViewMode] = useState('delivered') // 'open' | 'delivered'
+  const [ownerFilter, setOwnerFilter] = useState('')
+  const [availableOwners, setAvailableOwners] = useState([])
+  const [statusMap, setStatusMap] = useState({ delivered: [], completed: [] })
+
+  // Fetch statuses and owners on mount
+  useEffect(() => {
+    const fetchStatusesAndOwners = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Fetch status mappings
+      const { data: statuses } = await supabase
+        .from('crm_statuses')
+        .select('id, name')
+        .eq('user_id', user.id)
+      
+      if (statuses) {
+        const deliveredIds = statuses
+          .filter(s => DELIVERED_STATUS_NAMES.includes(s.name?.toLowerCase()))
+          .map(s => s.id)
+        const completedIds = statuses
+          .filter(s => COMPLETED_STATUS_NAMES.includes(s.name?.toLowerCase()))
+          .map(s => s.id)
+        setStatusMap({ delivered: deliveredIds, completed: completedIds })
+      }
+
+      // Fetch available owners
+      const { data: owners } = await supabase
+        .from('crm_owners')
+        .select('id, name, email')
+        .eq('user_id', user.id)
+        .order('name')
+      
+      if (owners) setAvailableOwners(owners)
+    }
+    fetchStatusesAndOwners()
+  }, [])
 
   // Fetch products for video upload selection
   useEffect(() => {
     const fetchProducts = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
       const { data } = await supabase
         .from('sourced_products')
-        .select('id, asin, title, image_url')
+        .select(`
+          id, asin, title, image_url, status,
+          owners:product_owners(owner_id)
+        `)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(100)
+        .limit(200)
       if (data) setProducts(data)
     }
     fetchProducts()
   }, [])
 
-  // Filter products by search
-  const filteredProducts = products.filter(p => 
-    p.asin?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.title?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Filter products by view mode, owner, and search
+  const filteredProducts = products.filter(p => {
+    // Always hide completed products
+    if (statusMap.completed.includes(p.status)) return false
+    
+    // View mode filter
+    if (viewMode === 'delivered') {
+      if (!statusMap.delivered.includes(p.status)) return false
+    } else {
+      // Open items = not delivered and not completed
+      if (statusMap.delivered.includes(p.status)) return false
+    }
+    
+    // Owner filter
+    if (ownerFilter) {
+      const hasOwner = p.owners?.some(o => o.owner_id === ownerFilter)
+      if (!hasOwner) return false
+    }
+    
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      if (!p.asin?.toLowerCase().includes(query) && 
+          !p.title?.toLowerCase().includes(query)) {
+        return false
+      }
+    }
+    
+    return true
+  })
 
   // Chunked upload helper
   const uploadChunked = async (file, uploadUrl, onProgress) => {
@@ -268,8 +344,47 @@ export default function PWAHome() {
         <div className="flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-theme-primary">Select Product</h2>
-            <button onClick={() => { setMode(null); setSelectedProduct(null); setSearchQuery(''); }}>
+            <button onClick={() => { setMode(null); setSelectedProduct(null); setSearchQuery(''); setViewMode('delivered'); setOwnerFilter(''); }}>
               <X className="w-6 h-6 text-theme-secondary" />
+            </button>
+          </div>
+
+          {/* Owner Filter */}
+          <div className="relative mb-3">
+            <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <select
+              value={ownerFilter}
+              onChange={e => setOwnerFilter(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-theme-surface border border-theme rounded-xl text-theme-primary text-sm appearance-none cursor-pointer"
+            >
+              <option value="">All Owners</option>
+              {availableOwners.map(owner => (
+                <option key={owner.id} value={owner.id}>{owner.name || owner.email}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setViewMode('open')}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
+                viewMode === 'open'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-theme-surface border border-theme text-theme-secondary hover:bg-theme-hover'
+              }`}
+            >
+              Open Items
+            </button>
+            <button
+              onClick={() => setViewMode('delivered')}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
+                viewMode === 'delivered'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-theme-surface border border-theme text-theme-secondary hover:bg-theme-hover'
+              }`}
+            >
+              Delivered ✓
             </button>
           </div>
 
@@ -282,7 +397,6 @@ export default function PWAHome() {
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search by ASIN or title..."
               className="w-full pl-10 pr-4 py-3 bg-theme-surface border border-theme rounded-xl text-theme-primary"
-              autoFocus
             />
           </div>
 
