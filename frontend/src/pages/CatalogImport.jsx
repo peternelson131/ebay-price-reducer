@@ -32,7 +32,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 
-// Status configuration - simplified to 2 states
+// Status configuration - 3 states
 const STATUS_CONFIG = {
   imported: { 
     icon: Download, 
@@ -51,6 +51,15 @@ const STATUS_CONFIG = {
     animated: false,
     canSync: false,
     clickable: true  // Can click to expand and see correlations
+  },
+  reviewed: {
+    icon: CheckSquare,
+    label: 'Reviewed',
+    bgClass: 'bg-blue-50 dark:bg-blue-900/30',
+    textClass: 'text-blue-600 dark:text-blue-400',
+    animated: false,
+    canSync: false,
+    clickable: true  // Can still view correlations
   }
 };
 
@@ -868,6 +877,41 @@ export default function CatalogImport() {
     }
   };
 
+  // Mark item as reviewed
+  const handleMarkAsReviewed = async (importItem) => {
+    try {
+      const token = await userAPI.getAuthToken();
+      const response = await fetch('/.netlify/functions/catalog-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'mark_reviewed',
+          asin: importItem.asin
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        // Update the item status locally
+        setImports(prev => prev.map(item => 
+          item.id === importItem.id 
+            ? { ...item, status: 'reviewed' } 
+            : item
+        ));
+        // Show success message
+        alert('✅ Item marked as reviewed');
+      } else {
+        alert(data.error || 'Failed to mark as reviewed');
+      }
+    } catch (err) {
+      console.error('Mark as reviewed error:', err);
+      alert('Failed to mark as reviewed');
+    }
+  };
+
   // Marketplace flag component
   const MarketplaceFlags = ({ marketplaces }) => {
     const flags = {
@@ -1199,10 +1243,11 @@ export default function CatalogImport() {
     { value: 'asin:asc', label: 'ASIN' }
   ];
 
-  // Status counts for filter badges (simplified to 2 states)
+  // Status counts for filter badges (3 states)
   const statusCounts = {
     imported: imports.filter(i => i.status === 'imported').length,
-    processed: imports.filter(i => i.status === 'processed').length
+    processed: imports.filter(i => i.status === 'processed').length,
+    reviewed: imports.filter(i => i.status === 'reviewed').length
   };
 
   // Render status badge
@@ -1770,7 +1815,7 @@ export default function CatalogImport() {
 
           {/* Status Filter */}
           <div className="flex gap-2 flex-wrap">
-            {['imported', 'processed'].map((status) => (
+            {['imported', 'processed', 'reviewed'].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
@@ -2116,6 +2161,19 @@ export default function CatalogImport() {
                             );
                           });
                         })()}
+                        
+                        {/* Mark as Reviewed button - only show for Processed status */}
+                        {item.status === 'processed' && (
+                          <div className="pt-4 border-t border-theme/50">
+                            <button
+                              onClick={() => handleMarkAsReviewed(item)}
+                              className="w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                              <CheckSquare className="w-4 h-4" />
+                              Mark as Reviewed
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

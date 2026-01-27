@@ -1000,21 +1000,20 @@ async function handlePost(event, userId, headers) {
         return errorResponse(400, 'source_asin and target_asin required', headers);
       }
       
-      // Record the declined correlation in feedback table
-      const { error: feedbackError } = await getSupabase()
-        .from('asin_correlation_feedback')
-        .upsert({
-          user_id: userId,
-          search_asin: source_asin,
-          result_asin: target_asin,
-          feedback: 'declined'
-        }, {
-          onConflict: 'user_id,search_asin,result_asin'
-        });
+      // Update the correlation decision in asin_correlations table
+      const { error: updateError } = await getSupabase()
+        .from('asin_correlations')
+        .update({
+          decision: 'declined',
+          decision_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('search_asin', source_asin)
+        .eq('similar_asin', target_asin);
       
-      if (feedbackError) {
-        console.error('Failed to record decline:', feedbackError);
-        return errorResponse(500, `Failed to decline: ${feedbackError.message}`, headers);
+      if (updateError) {
+        console.error('Failed to record decline:', updateError);
+        return errorResponse(500, `Failed to decline: ${updateError.message}`, headers);
       }
       
       console.log(`✅ Correlation declined`);
@@ -1022,6 +1021,51 @@ async function handlePost(event, userId, headers) {
       return successResponse({
         success: true,
         message: 'Correlation declined'
+      }, headers);
+    }
+    
+    // Handle mark_reviewed action - mark catalog item as reviewed
+    if (body.action === 'mark_reviewed') {
+      const { id, asin } = body;
+      
+      console.log(`✅ Marking as reviewed: ${asin || id}`);
+      
+      if (!id && !asin) {
+        return errorResponse(400, 'id or asin required', headers);
+      }
+      
+      // Build update query
+      let query = getSupabase()
+        .from('catalog_imports')
+        .update({
+          status: 'reviewed'
+        })
+        .eq('user_id', userId);
+      
+      // Filter by id or asin
+      if (id) {
+        query = query.eq('id', id);
+      } else {
+        query = query.eq('asin', asin);
+      }
+      
+      const { error: updateError, data } = await query.select();
+      
+      if (updateError) {
+        console.error('Failed to mark as reviewed:', updateError);
+        return errorResponse(500, `Failed to mark as reviewed: ${updateError.message}`, headers);
+      }
+      
+      if (!data || data.length === 0) {
+        return errorResponse(404, 'Catalog item not found', headers);
+      }
+      
+      console.log(`✅ Marked as reviewed: ${data.length} item(s)`);
+      
+      return successResponse({
+        success: true,
+        message: 'Marked as reviewed',
+        updated: data.length
       }, headers);
     }
     
