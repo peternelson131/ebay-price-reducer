@@ -29,7 +29,7 @@ import {
   Download
 } from 'lucide-react';
 
-// Status configuration
+// Status configuration - simplified to 2 states
 const STATUS_CONFIG = {
   imported: { 
     icon: FileSpreadsheet, 
@@ -38,25 +38,8 @@ const STATUS_CONFIG = {
     bgClass: 'bg-gray-100 dark:bg-gray-800', 
     textClass: 'text-gray-600 dark:text-gray-400',
     animated: false,
-    canSync: true
-  },
-  pending: { 
-    icon: Clock, 
-    label: 'Queued', 
-    emoji: '⏳',
-    bgClass: 'bg-yellow-50 dark:bg-yellow-900/30', 
-    textClass: 'text-yellow-600 dark:text-yellow-400',
-    animated: false,
-    canSync: false
-  },
-  processing: { 
-    icon: Loader, 
-    label: 'Processing', 
-    emoji: '🔄',
-    bgClass: 'bg-orange-50 dark:bg-orange-900/30', 
-    textClass: 'text-orange-600 dark:text-orange-400',
-    animated: true,
-    canSync: false
+    canSync: true,
+    clickable: false
   },
   processed: { 
     icon: CheckCircle, 
@@ -65,16 +48,8 @@ const STATUS_CONFIG = {
     bgClass: 'bg-green-50 dark:bg-green-900/30', 
     textClass: 'text-green-600 dark:text-green-400',
     animated: false,
-    canSync: false
-  },
-  error: { 
-    icon: AlertCircle, 
-    label: 'Error', 
-    emoji: '❌',
-    bgClass: 'bg-red-50 dark:bg-red-900/30', 
-    textClass: 'text-red-600 dark:text-red-400',
-    animated: false,
-    canSync: true
+    canSync: false,
+    clickable: true  // Can click to expand and see correlations
   }
 };
 
@@ -106,7 +81,7 @@ export default function CatalogImport() {
   const [importing, setImporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('imported');
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [selectedIds, setSelectedIds] = useState(new Set());
   
@@ -263,15 +238,8 @@ export default function CatalogImport() {
     };
   }, [searchQuery]);
 
-  // Start polling when we have processing items
-  useEffect(() => {
-    const hasProcessing = imports.some(i => i.status === 'pending' || i.status === 'processing');
-    if (hasProcessing) {
-      startPolling();
-    } else {
-      stopPolling();
-    }
-  }, [imports]);
+  // Polling removed - simplified to 2 states (imported/processed)
+  // Status changes directly from imported → processed on sync completion
 
   // Update elapsed times for syncing items every second
   useEffect(() => {
@@ -572,14 +540,12 @@ export default function CatalogImport() {
       
       const data = await response.json();
       if (data.success) {
-        // Update local state to show pending status
-        setImports(prev => prev.map(i => 
-          importIds.includes(i.id) ? { ...i, status: 'pending' } : i
-        ));
-        // Clear selection
+        // Sync started - clear selection, status stays 'imported' until complete
         setSelectedIds(new Set());
+        // Refresh data after a short delay to pick up changes
+        setTimeout(() => loadImports(), 3000);
       } else {
-        alert(data.error || 'Failed to queue for sync');
+        alert(data.error || 'Failed to sync');
       }
     } catch (err) {
       console.error('Sync error:', err);
@@ -1048,10 +1014,7 @@ export default function CatalogImport() {
           
           const data = await response.json();
           if (data.success) {
-            // Update local state
-            setImports(prev => prev.map(imp => 
-              imp.id === id ? { ...imp, status: 'pending' } : imp
-            ));
+            // Sync started - status will update when complete
           }
         } catch (err) {
           console.error(`Sync error for item ${id}:`, err);
@@ -1075,18 +1038,16 @@ export default function CatalogImport() {
   const handleSyncAll = async () => {
     // Count items that would be synced
     const importedCount = imports.filter(i => i.status === 'imported').length;
-    const errorCount = imports.filter(i => i.status === 'error').length;
-    const totalSyncable = importedCount + errorCount;
     
     // If we only have current page data, use totalCount for better estimate
-    const estimatedTotal = totalCount > totalSyncable ? totalCount : totalSyncable;
+    const estimatedTotal = totalCount > importedCount ? totalCount : importedCount;
     
     if (estimatedTotal === 0) {
-      alert('No items available to sync.');
+      alert('No imported items to sync.');
       return;
     }
     
-    const confirmed = confirm(`Queue all ${estimatedTotal} imported items for sync?\n\nThis will find correlations for all items with "Imported" or "Error" status.`);
+    const confirmed = confirm(`Sync all ${estimatedTotal} imported items?\n\nThis will find correlations for all items.`);
     if (!confirmed) return;
     
     setSyncingAll(true);
@@ -1208,7 +1169,8 @@ export default function CatalogImport() {
 
   // Filter imports (search is now server-side, only filter by status client-side)
   const filteredImports = imports.filter(item => {
-    if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+    // Filter by status (imported or processed)
+    if (item.status !== statusFilter) return false;
     return true;
   });
 
@@ -1236,19 +1198,15 @@ export default function CatalogImport() {
     { value: 'asin:asc', label: 'ASIN' }
   ];
 
-  // Status counts for filter badges
+  // Status counts for filter badges (simplified to 2 states)
   const statusCounts = {
-    all: imports.length,
     imported: imports.filter(i => i.status === 'imported').length,
-    pending: imports.filter(i => i.status === 'pending').length,
-    processing: imports.filter(i => i.status === 'processing').length,
-    processed: imports.filter(i => i.status === 'processed').length,
-    error: imports.filter(i => i.status === 'error').length
+    processed: imports.filter(i => i.status === 'processed').length
   };
 
   // Render status badge
   const StatusBadge = ({ status }) => {
-    const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+    const config = STATUS_CONFIG[status] || STATUS_CONFIG.imported;
     const Icon = config.icon;
     
     return (
@@ -1771,22 +1729,6 @@ export default function CatalogImport() {
           {syncingAll ? `Queuing... ${batchSyncProgress?.elapsed || 0}s` : 'Sync All'}
         </button>
         
-        {/* Process Queue button - shows when there are pending items */}
-        {statusCounts.pending > 0 && (
-          <button
-            onClick={handleProcessQueue}
-            disabled={processingQueue}
-            className="px-4 py-2.5 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
-          >
-            {processingQueue ? (
-              <Loader className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-            {processingQueue ? `Processing... ${processQueueElapsed}s` : `Process Queue (${statusCounts.pending})`}
-          </button>
-        )}
-        
         {/* Sync Selected button */}
         {selectedIds.size > 0 && (
           <button
@@ -1854,7 +1796,7 @@ export default function CatalogImport() {
 
           {/* Status Filter */}
           <div className="flex gap-2 flex-wrap">
-            {['all', 'imported', 'pending', 'processing', 'processed', 'error'].map((status) => (
+            {['imported', 'processed'].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
@@ -1864,11 +1806,9 @@ export default function CatalogImport() {
                     : 'bg-theme-surface border border-theme text-theme-secondary hover:text-theme-primary'
                 }`}
               >
-                {status !== 'all' && (
-                  <span>{STATUS_CONFIG[status]?.emoji}</span>
-                )}
+                <span>{STATUS_CONFIG[status]?.emoji}</span>
                 <span className="capitalize">{status}</span>
-                <span className="text-xs opacity-70">({statusCounts[status]})</span>
+                <span className="text-xs opacity-70">({statusCounts[status] || 0})</span>
               </button>
             ))}
           </div>
@@ -1884,19 +1824,27 @@ export default function CatalogImport() {
       ) : filteredImports.length === 0 ? (
         <div className="text-center py-12 bg-theme-surface rounded-lg border border-theme">
           <div className="w-16 h-16 bg-theme-primary rounded-full flex items-center justify-center mx-auto mb-4">
-            {searchQuery || statusFilter !== 'all' ? (
+            {searchQuery ? (
               <Search className="w-8 h-8 text-theme-tertiary" />
-            ) : (
+            ) : statusFilter === 'imported' ? (
               <FileSpreadsheet className="w-8 h-8 text-theme-tertiary" />
+            ) : (
+              <CheckCircle className="w-8 h-8 text-theme-tertiary" />
             )}
           </div>
           <h3 className="text-lg font-medium text-theme-primary mb-1">
-            {searchQuery || statusFilter !== 'all' ? 'No matches found' : 'No imports yet'}
+            {searchQuery 
+              ? 'No matches found' 
+              : statusFilter === 'imported' 
+                ? 'No imports awaiting sync' 
+                : 'No processed items yet'}
           </h3>
           <p className="text-theme-secondary">
-            {searchQuery || statusFilter !== 'all' 
-              ? 'Try adjusting your search or filters'
-              : 'Upload an Excel file with your ASINs to get started'}
+            {searchQuery 
+              ? 'Try adjusting your search'
+              : statusFilter === 'imported'
+                ? 'Upload an Excel file with your ASINs to get started'
+                : 'Sync imported items to find correlations'}
           </p>
         </div>
       ) : (
@@ -1933,7 +1881,7 @@ export default function CatalogImport() {
             {filteredImports.map((item) => {
               const isExpanded = expandedRows.has(item.id);
               const correlationCount = item.correlations?.length || 0;
-              const statusConfig = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
+              const statusConfig = STATUS_CONFIG[item.status] || STATUS_CONFIG.imported;
               
               return (
                 <div key={item.id}>
@@ -2055,7 +2003,7 @@ export default function CatalogImport() {
                     {/* Actions */}
                     <div className="col-span-1 flex justify-end gap-2">
                       {/* Sync button - only for imported/error status */}
-                      {(item.status === 'imported' || item.status === 'error') && (
+                      {item.status === 'imported' && (
                         <button
                           onClick={() => handleSync([item.id])}
                           disabled={syncingItems.has(item.id)}
@@ -2275,13 +2223,7 @@ export default function CatalogImport() {
         </div>
       )}
 
-      {/* Auto-refresh indicator */}
-      {imports.some(i => i.status === 'pending' || i.status === 'processing') && (
-        <div className="mt-4 text-center text-sm text-theme-tertiary flex items-center justify-center gap-2">
-          <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
-          Auto-refreshing every 12 seconds
-        </div>
-      )}
+      {/* Auto-refresh indicator removed - simplified status workflow */}
     </div>
   );
 }

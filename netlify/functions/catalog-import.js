@@ -122,10 +122,10 @@ async function processImportItem(item, userId) {
   console.log(`🔄 Processing ASIN: ${item.asin} via Supabase edge function`);
   
   try {
-    // Mark as processing
+    // Clear any previous error message (status stays 'imported' until successful)
     await getSupabase()
       .from('catalog_imports')
-      .update({ status: 'processing' })
+      .update({ error_message: null })
       .eq('id', item.id);
     
     // Call the REAL asin-correlation Supabase edge function
@@ -172,12 +172,12 @@ async function processImportItem(item, userId) {
   } catch (error) {
     console.error(`❌ Error processing ${item.asin}:`, error.message);
     
+    // On error, keep status as 'imported' so user can retry
+    // Just store the error message for display
     await getSupabase()
       .from('catalog_imports')
       .update({
-        status: 'error',
-        error_message: error.message,
-        processed_at: new Date().toISOString()
+        error_message: error.message
       })
       .eq('id', item.id);
     
@@ -196,12 +196,12 @@ async function processUserPendingItems(userId, limit = 10) {
     return { processed: 0, errors: 0, remaining: 0 };
   }
   
-  // Fetch pending items for this user
+  // Fetch imported items for this user (items awaiting sync)
   const { data: pendingItems, error: fetchError } = await getSupabase()
     .from('catalog_imports')
     .select('*')
     .eq('user_id', userId)
-    .eq('status', 'pending')
+    .eq('status', 'imported')
     .order('created_at', { ascending: true })
     .limit(limit);
   
@@ -223,12 +223,12 @@ async function processUserPendingItems(userId, limit = 10) {
   const processed = results.filter(r => !r.error).length;
   const errors = results.filter(r => r.error).length;
   
-  // Check remaining
+  // Check remaining imported items
   const { count: remainingCount } = await getSupabase()
     .from('catalog_imports')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .eq('status', 'pending');
+    .eq('status', 'imported');
   
   console.log(`✅ Inline processing complete: ${processed} processed, ${errors} errors, ${remainingCount || 0} remaining`);
   
@@ -444,7 +444,7 @@ async function handleGet(event, userId, headers) {
     }, headers);
   }
   
-  const status = params.status; // pending, processing, processed, error, skipped
+  const status = params.status; // imported, processed (simplified from 5 states to 2)
   const page = parseInt(params.page) || 1;
   const limit = Math.min(parseInt(params.limit) || 50, 1000);
   const offset = (page - 1) * limit;
@@ -636,10 +636,10 @@ async function handlePost(event, userId, headers) {
       
       console.log(`✅ Created job ${job.id} for ${itemsToSync.length} items`);
       
-      // Mark items as pending
+      // Clear any error messages (status stays 'imported' until sync completes)
       await getSupabase()
         .from('catalog_imports')
-        .update({ status: 'pending', error_message: null })
+        .update({ error_message: null })
         .eq('user_id', userId)
         .in('id', body.ids);
       
@@ -751,10 +751,10 @@ async function handlePost(event, userId, headers) {
         }, headers);
       }
       
-      // Update all imported items to pending
+      // Clear error messages on imported items (status stays 'imported' until sync completes)
       const { error: updateError } = await getSupabase()
         .from('catalog_imports')
-        .update({ status: 'pending', error_message: null })
+        .update({ error_message: null })
         .eq('user_id', userId)
         .eq('status', 'imported');
       
