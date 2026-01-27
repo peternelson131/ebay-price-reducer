@@ -13,7 +13,8 @@ import {
   RefreshCw,
   ExternalLink,
   CheckCircle,
-  X
+  X,
+  Package
 } from 'lucide-react';
 
 // Marketplace flags and info
@@ -227,7 +228,7 @@ export default function AsinCatalog() {
                     />
                   ) : (
                     <div className="w-12 h-12 bg-theme-primary rounded flex items-center justify-center">
-                      <span className="text-2xl">📦</span>
+                      <Package className="w-6 h-6 text-theme-secondary" />
                     </div>
                   )}
                 </div>

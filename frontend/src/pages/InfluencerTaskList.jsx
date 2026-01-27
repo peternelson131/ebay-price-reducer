@@ -17,7 +17,9 @@ import {
   Upload,
   Film,
   Languages,
-  Play
+  Play,
+  ClipboardList,
+  Package
 } from 'lucide-react';
 
 // Marketplace flags and info
@@ -228,7 +230,7 @@ export default function InfluencerTaskList() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-theme-primary flex items-center gap-3">
-            📋 Upload Tasks
+            <ClipboardList className="w-6 h-6 text-theme-secondary" /> Upload Tasks
             {pendingCount > 0 && (
               <span className="px-3 py-1 bg-error text-white text-sm font-bold rounded-full animate-pulse">
                 {pendingCount} pending
@@ -322,7 +324,7 @@ export default function InfluencerTaskList() {
                     />
                   ) : (
                     <div className="w-20 h-20 bg-theme-surface rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-3xl">📦</span>
+                      <Package className="w-8 h-8 text-theme-secondary" />
                     </div>
                   )}
                   

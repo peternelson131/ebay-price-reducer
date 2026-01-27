@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone'
 import * as XLSX from 'xlsx'
 import { useMutation } from '@tanstack/react-query'
 import { listingsAPI, supabase } from '../lib/supabase'
+import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 
 export default function AutoList() {
   const [excelData, setExcelData] = useState([])
@@ -954,8 +955,8 @@ Enter multiple ASINs, one per line"
                                 ${calculateEbayPrice(item.originalPrice, item.condition)}
                               </span>
                             ) : (
-                              <span className="text-amber-600 text-xs">
-                                ⚠️ No price
+                              <span className="text-amber-600 text-xs flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" /> No price
                               </span>
                             )}
                           </div>
@@ -1104,8 +1105,8 @@ Enter multiple ASINs, one per line"
                 <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 mb-4">
                   <h3 className="font-medium text-blue-900 mb-2">Creation Summary</h3>
                   <p className="text-sm text-orange-700">
-                    ✅ Successful: {creationResults.filter(r => r.success).length} listings<br/>
-                    ❌ Failed: {creationResults.filter(r => !r.success).length} listings
+                    <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-success" /> Successful: {creationResults.filter(r => r.success).length} listings</span>
+                    <span className="flex items-center gap-1"><XCircle className="w-4 h-4 text-error" /> Failed: {creationResults.filter(r => !r.success).length} listings</span>
                   </p>
                 </div>
 

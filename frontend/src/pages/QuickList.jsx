@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { ClipboardList, Star, Tag, FileText, AlertTriangle, Package, Settings } from 'lucide-react'
 
 /**
  * Story 7A & 7B: Simplified Single-ASIN Listing Component
@@ -341,7 +342,7 @@ export default function QuickList() {
         {/* Business Policies Section */}
         <div className="space-y-4">
           <h3 className="font-medium text-theme-primary flex items-center gap-2">
-            <span className="text-lg">📋</span> Business Policies
+            <ClipboardList className="w-5 h-5 text-theme-secondary" /> Business Policies
             <span className="text-xs text-error">*Required</span>
           </h3>
           
@@ -440,12 +441,12 @@ export default function QuickList() {
                 <option value="">Select a location...</option>
                 {locations.map(l => (
                   <option key={l.key} value={l.key}>
-                    {l.name}{l.isPrimary ? ' ⭐' : ''} - {l.address || l.type}
+                    {l.name}{l.isPrimary ? ' ★' : ''} - {l.address || l.type}
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-theme-tertiary">
-                {locations.length} location{locations.length !== 1 ? 's' : ''} found • ⭐ = Primary
+              <p className="mt-1 text-xs text-theme-tertiary flex items-center gap-1">
+                {locations.length} location{locations.length !== 1 ? 's' : ''} found • <Star className="w-3 h-3 inline text-yellow-500 fill-yellow-500" /> = Primary
               </p>
             </div>
           )}
@@ -454,7 +455,7 @@ export default function QuickList() {
         {/* SKU Settings */}
         <div className="space-y-4">
           <h3 className="font-medium text-theme-primary flex items-center gap-2">
-            <span className="text-lg">🏷️</span> SKU Settings
+            <Tag className="w-5 h-5 text-theme-secondary" /> SKU Settings
           </h3>
           
           <div>
@@ -478,7 +479,7 @@ export default function QuickList() {
         {/* Description Note */}
         <div className="space-y-4">
           <h3 className="font-medium text-theme-primary flex items-center gap-2">
-            <span className="text-lg">📝</span> Custom Description Note
+            <FileText className="w-5 h-5 text-theme-secondary" /> Custom Description Note
           </h3>
           
           <div>
@@ -534,7 +535,7 @@ export default function QuickList() {
       {!isConfigured && (
         <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
           <div className="flex items-start gap-3">
-            <div className="text-warning text-2xl">⚠️</div>
+            <AlertTriangle className="w-6 h-6 text-warning flex-shrink-0" />
             <div>
               <h3 className="font-semibold text-warning">Setup Required</h3>
               <p className="text-sm text-theme-secondary mt-1">
@@ -818,13 +819,13 @@ export default function QuickList() {
       <div className="flex border-b border-theme">
         <button
           onClick={() => setActiveTab(TAB_LIST)}
-          className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+          className={`px-6 py-3 font-medium border-b-2 transition-colors flex items-center gap-2 ${
             activeTab === TAB_LIST
               ? 'text-accent border-accent'
               : 'text-theme-tertiary border-transparent hover:text-theme-secondary'
           }`}
         >
-          📦 Create Listing
+          <Package className="w-4 h-4" /> Create Listing
         </button>
         <button
           onClick={() => setActiveTab(TAB_SETTINGS)}
@@ -834,7 +835,7 @@ export default function QuickList() {
               : 'text-theme-tertiary border-transparent hover:text-theme-secondary'
           }`}
         >
-          ⚙️ Settings
+          <Settings className="w-4 h-4" /> Settings
           {!isConfigured && (
             <span className="w-2 h-2 bg-error rounded-full"></span>
           )}

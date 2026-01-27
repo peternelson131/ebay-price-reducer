@@ -1463,8 +1463,8 @@ const ImportModal = ({ isOpen, onClose, onImport, statuses }) => {
                     <p className="text-xs text-orange-500 dark:text-blue-400 mt-1 italic">
                       * Status must match your configured statuses. Decision must be "sell" or "keep".
                     </p>
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                      📦 Product details (title, brand, category, image) auto-filled by Keepa. Owners can be assigned after import.
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+                      <Package className="w-3 h-3" /> Product details (title, brand, category, image) auto-filled by Keepa. Owners can be assigned after import.
                     </p>
                   </div>
                   <button

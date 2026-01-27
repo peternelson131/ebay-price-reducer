@@ -29,7 +29,9 @@ import {
   Download,
   FolderInput,
   Package,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Globe,
+  ClipboardList
 } from 'lucide-react';
 
 // Status configuration - 3 states
@@ -940,11 +942,13 @@ export default function CatalogImport() {
     return (
       <div className="flex items-center gap-0.5">
         {marketplaces.map(mp => {
-          const flag = flags[mp] || { emoji: '🌐', label: mp };
-          return (
+          const flag = flags[mp];
+          return flag ? (
             <span key={mp} title={flag.label} className="text-sm">
               {flag.emoji}
             </span>
+          ) : (
+            <Globe key={mp} title={mp} className="w-4 h-4 text-theme-secondary" />
           );
         })}
       </div>
@@ -1392,8 +1396,9 @@ export default function CatalogImport() {
                   {/* Feature 10: Re-import Merge UI */}
                   {duplicateCheck && duplicateCheck.existingCount > 0 && (
                     <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-lg">
-                      <p className="text-sm text-theme-primary mb-2 font-medium">
-                        📋 {duplicateCheck.newCount} new ASINs, {duplicateCheck.existingCount} already exist
+                      <p className="text-sm text-theme-primary mb-2 font-medium flex items-center gap-2">
+                        <ClipboardList className="w-4 h-4 text-theme-secondary" />
+                        {duplicateCheck.newCount} new ASINs, {duplicateCheck.existingCount} already exist
                       </p>
                       <div className="space-y-2">
                         <label className="flex items-center gap-2 cursor-pointer">

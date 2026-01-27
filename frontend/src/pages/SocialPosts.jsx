@@ -18,7 +18,9 @@ import {
   Calendar,
   RefreshCw,
   Plus,
-  Filter
+  Filter,
+  Smartphone,
+  Video
 } from 'lucide-react';
 
 /**
@@ -195,7 +197,7 @@ export default function SocialPosts() {
 
   const EmptyState = () => (
     <div className="text-center py-16">
-      <div className="text-6xl mb-4">📱</div>
+      <Smartphone className="w-16 h-16 mx-auto mb-4 text-theme-secondary" />
       <h3 className="text-lg font-medium text-theme-primary mb-2">
         {activeTab === 'all' ? 'No posts yet' : `No ${activeTab} posts`}
       </h3>
@@ -312,8 +314,8 @@ export default function SocialPosts() {
                             className="w-16 h-10 object-cover rounded"
                           />
                         ) : (
-                          <div className="w-16 h-10 bg-theme-surface rounded flex items-center justify-center text-lg">
-                            🎬
+                          <div className="w-16 h-10 bg-theme-surface rounded flex items-center justify-center">
+                            <Video className="w-5 h-5 text-theme-secondary" />
                           </div>
                         )}
                         <span className="text-sm text-theme-primary font-medium truncate max-w-[150px]">

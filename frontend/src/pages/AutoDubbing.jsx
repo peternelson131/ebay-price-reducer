@@ -287,7 +287,7 @@ function JobHistory({ jobs, onDownload, onDelete, loading }) {
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">
-                    <span>{language?.flag || '🌐'}</span>
+                    {language?.flag ? <span>{language.flag}</span> : <Globe className="w-4 h-4 text-theme-secondary" />}
                     <span className="text-theme-secondary text-sm">{language?.name || job.target_language}</span>
                   </div>
                 </td>

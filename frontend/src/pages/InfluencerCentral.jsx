@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Search, ChevronLeft, ChevronRight, ChevronDown, Menu, ClipboardList, BookOpen, Upload, Package, ShoppingBag, Share2, MessageCircle } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ChevronDown, Menu, ClipboardList, BookOpen, Upload, Package, ShoppingBag, Share2, MessageCircle, Mic } from 'lucide-react';
 import { userAPI } from '../lib/supabase';
 import ComingSoonBadge from '../components/ComingSoonBadge';
 
@@ -54,8 +54,7 @@ const productItems = [
   {
     id: 'auto-dubbing',
     label: 'Auto-Dubbing Catalog',
-    icon: null,
-    customIcon: '🎙️',
+    icon: Mic,
     component: AutoDubbing,
     badge: null
   }
@@ -223,11 +222,7 @@ export default function InfluencerCentral() {
                     >
                       {/* Icon */}
                       <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center mr-3">
-                        {item.customIcon ? (
-                          <span className="text-lg">{item.customIcon}</span>
-                        ) : Icon ? (
-                          <Icon className="w-5 h-5" strokeWidth={1.5} />
-                        ) : null}
+                        {Icon && <Icon className="w-5 h-5" strokeWidth={1.5} />}
                       </span>
                       
                       {/* Label and Badge */}
@@ -297,11 +292,7 @@ export default function InfluencerCentral() {
                     >
                       {/* Icon */}
                       <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center mr-3">
-                        {item.customIcon ? (
-                          <span className="text-lg">{item.customIcon}</span>
-                        ) : Icon ? (
-                          <Icon className="w-5 h-5" strokeWidth={1.5} />
-                        ) : null}
+                        {Icon && <Icon className="w-5 h-5" strokeWidth={1.5} />}
                       </span>
                       
                       {/* Label */}
@@ -351,11 +342,7 @@ export default function InfluencerCentral() {
                     >
                       {/* Icon */}
                       <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center mr-3">
-                        {item.customIcon ? (
-                          <span className="text-lg">{item.customIcon}</span>
-                        ) : Icon ? (
-                          <Icon className="w-5 h-5" strokeWidth={1.5} />
-                        ) : null}
+                        {Icon && <Icon className="w-5 h-5" strokeWidth={1.5} />}
                       </span>
                       
                       {/* Label */}
@@ -407,11 +394,7 @@ export default function InfluencerCentral() {
                   `}
                   title={item.label}
                 >
-                  {item.customIcon ? (
-                    <span className="text-lg">{item.customIcon}</span>
-                  ) : Icon ? (
-                    <Icon className="w-5 h-5" strokeWidth={1.5} />
-                  ) : null}
+                  {Icon && <Icon className="w-5 h-5" strokeWidth={1.5} />}
                 </button>
               );
             })}

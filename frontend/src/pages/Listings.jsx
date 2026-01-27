@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { listingsAPI, userAPI, supabase } from '../lib/supabase'
 import apiService from '../services/api'
 import { getActiveStrategies, getStrategyById, getStrategyDisplayName, getStrategyDisplayInfo } from '../data/strategies'
-import { Search, X, AlertCircle, Plus, Filter, RefreshCw, Palmtree } from 'lucide-react'
+import { Search, X, AlertCircle, Plus, Filter, RefreshCw, Palmtree, CheckCircle } from 'lucide-react'
 
 // Helper functions for localStorage
 const VALID_COLUMNS = [
@@ -263,7 +263,7 @@ export default function Listings() {
         queryClient.setQueryData(['vacationMode'], newValue)
         showNotification('success', newValue 
           ? '🏖️ Vacation mode ON - price reductions paused'
-          : '✅ Vacation mode OFF - price reductions will resume'
+          : 'Vacation mode OFF - price reductions will resume'
         )
       },
       onError: (error) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Youtube, Instagram, Facebook, Music2, XCircle, Loader, Clock, Zap, Calendar } from 'lucide-react';
+import { X, Youtube, Instagram, Facebook, Music2, XCircle, Loader, Clock, Zap, Calendar, Link2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { userAPI } from '../lib/supabase';
 
@@ -276,7 +276,7 @@ export default function PostToSocialModal({ video, onClose, onSuccess }) {
             {/* No Connected Accounts */}
             {connectedAccounts.length === 0 ? (
               <div className="text-center py-12">
-                <div className="text-4xl mb-4">🔗</div>
+                <Link2 className="w-12 h-12 mx-auto mb-4 text-theme-secondary" />
                 <h4 className="text-lg font-medium text-theme-primary mb-2">
                   No Connected Accounts
                 </h4>

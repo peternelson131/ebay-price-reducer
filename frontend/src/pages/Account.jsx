@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { userAPI, authAPI, supabase } from '../lib/supabase'
-import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle, Undo2, ImagePlus, Edit, Plus, ExternalLink, Clock, Lock } from 'lucide-react'
+import { Shield, MessageSquare, Zap, Settings, User, Loader, Image, Trash2, X, Check, CheckCircle, Undo2, ImagePlus, Edit, Plus, ExternalLink, Clock, Lock, AlertTriangle } from 'lucide-react'
 import ThumbnailTemplateModal from '../components/ThumbnailTemplateModal'
 import FolderPicker from '../components/onedrive/FolderPicker'
 
@@ -891,9 +891,9 @@ export default function Account() {
                 
                 {loginsDisabled && (
                   <div className="mt-4 bg-error/10 border border-error/30 rounded-lg p-3 flex items-start gap-2">
-                    <Shield className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-error">
-                      <strong>⚠️ User logins are currently disabled.</strong> Regular users will see an error message when attempting to log in. Remember to re-enable logins when maintenance is complete.
+                      <strong>User logins are currently disabled.</strong> Regular users will see an error message when attempting to log in. Remember to re-enable logins when maintenance is complete.
                     </p>
                   </div>
                 )}
@@ -952,9 +952,9 @@ export default function Account() {
                 
                 {signupsDisabled && (
                   <div className="mt-4 bg-error/10 border border-error/30 rounded-lg p-3 flex items-start gap-2">
-                    <Shield className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-error">
-                      <strong>⚠️ New signups are currently disabled.</strong> The signup page will display a "Coming Soon" message to new visitors. Remember to re-enable signups when ready.
+                      <strong>New signups are currently disabled.</strong> The signup page will display a "Coming Soon" message to new visitors. Remember to re-enable signups when ready.
                     </p>
                   </div>
                 )}
