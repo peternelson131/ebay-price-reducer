@@ -3192,7 +3192,7 @@ export default function ProductCRM({ isPWA = false }) {
     
     // Owner filter (applies to all views)
     if (ownerFilter && product.owners) {
-      const hasOwner = product.owners.some(o => o.owner_id === ownerFilter);
+      const hasOwner = product.owners.some(o => o.id === ownerFilter);
       if (!hasOwner) return false;
     }
     if (ownerFilter && (!product.owners || product.owners.length === 0)) {
