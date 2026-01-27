@@ -4,9 +4,9 @@ import { supabase } from '../lib/supabase'
 
 const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
 
-// Status IDs that count as "delivered" - need to fetch dynamically
-const DELIVERED_STATUS_NAMES = ['delivered', 'ready to list', 'listed'];
-const COMPLETED_STATUS_NAMES = ['completed', 'sold', 'archived'];
+// Status names that count as "delivered" or "completed"
+const DELIVERED_STATUS_NAMES = ['delivered'];
+const COMPLETED_STATUS_NAMES = ['completed'];
 
 export default function PWAHome() {
   const [mode, setMode] = useState(null) // 'upload' | 'add' | null
@@ -24,29 +24,12 @@ export default function PWAHome() {
   const [viewMode, setViewMode] = useState('delivered') // 'open' | 'delivered'
   const [ownerFilter, setOwnerFilter] = useState('')
   const [availableOwners, setAvailableOwners] = useState([])
-  const [statusMap, setStatusMap] = useState({ delivered: [], completed: [] })
 
-  // Fetch statuses and owners on mount
+  // Fetch owners on mount
   useEffect(() => {
-    const fetchStatusesAndOwners = async () => {
+    const fetchOwners = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
-      // Fetch status mappings
-      const { data: statuses } = await supabase
-        .from('crm_statuses')
-        .select('id, name')
-        .eq('user_id', user.id)
-      
-      if (statuses) {
-        const deliveredIds = statuses
-          .filter(s => DELIVERED_STATUS_NAMES.includes(s.name?.toLowerCase()))
-          .map(s => s.id)
-        const completedIds = statuses
-          .filter(s => COMPLETED_STATUS_NAMES.includes(s.name?.toLowerCase()))
-          .map(s => s.id)
-        setStatusMap({ delivered: deliveredIds, completed: completedIds })
-      }
 
       // Fetch available owners
       const { data: owners } = await supabase
@@ -57,7 +40,7 @@ export default function PWAHome() {
       
       if (owners) setAvailableOwners(owners)
     }
-    fetchStatusesAndOwners()
+    fetchOwners()
   }, [])
 
   // Fetch products for video upload selection
@@ -69,7 +52,8 @@ export default function PWAHome() {
       const { data } = await supabase
         .from('sourced_products')
         .select(`
-          id, asin, title, image_url, status,
+          id, asin, title, image_url,
+          status:crm_statuses(id, name),
           owners:product_owners(owner_id)
         `)
         .eq('user_id', user.id)
@@ -82,15 +66,18 @@ export default function PWAHome() {
 
   // Filter products by view mode, owner, and search
   const filteredProducts = products.filter(p => {
+    const statusName = p.status?.name?.toLowerCase() || ''
+    
     // Always hide completed products
-    if (statusMap.completed.includes(p.status)) return false
+    if (COMPLETED_STATUS_NAMES.some(s => statusName.includes(s))) return false
     
     // View mode filter
+    const isDelivered = DELIVERED_STATUS_NAMES.some(s => statusName.includes(s))
     if (viewMode === 'delivered') {
-      if (!statusMap.delivered.includes(p.status)) return false
+      if (!isDelivered) return false
     } else {
       // Open items = not delivered and not completed
-      if (statusMap.delivered.includes(p.status)) return false
+      if (isDelivered) return false
     }
     
     // Owner filter
