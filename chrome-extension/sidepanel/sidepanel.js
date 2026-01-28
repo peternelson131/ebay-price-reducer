@@ -403,7 +403,7 @@ function createVideoGroup(group) {
           <span class="children-label">Upload Tasks</span>
         </div>
         <div class="video-tasks children-list">
-          ${group.tasks.map((task, idx) => createTaskCard(task, true, multipleAsins, idx === group.tasks.length - 1)).join('')}
+          ${group.tasks.map((task, idx) => createTaskCard(task, true, multipleAsins, idx === group.tasks.length - 1, productTitle)).join('')}
         </div>
       </div>
     </div>
@@ -425,9 +425,11 @@ function updateMarketplaceIndicator() {
   }
 }
 
-function createTaskCard(task, groupHasVideo = false, isMultiAsin = false, isLast = false) {
+function createTaskCard(task, groupHasVideo = false, isMultiAsin = false, isLast = false, parentTitle = null) {
   const isCompleted = task.status === 'completed';
   const connector = isLast ? '└─' : '├─';
+  // Use parent title if available, otherwise fall back to task's own title
+  const displayTitle = parentTitle || task.product_title || task.title || 'Untitled Product';
   
   return `
     <div class="task-card child-task ${isCompleted ? 'completed' : ''} ${isMultiAsin ? 'compact' : ''}" data-task-id="${task.id}">
@@ -437,7 +439,7 @@ function createTaskCard(task, groupHasVideo = false, isMultiAsin = false, isLast
           <span class="task-asin" title="Click to copy">${task.asin}</span>
           <span class="task-marketplace">${task.marketplace || 'US'}</span>
         </div>
-        <div class="task-title">${escapeHtml(task.product_title || 'Untitled Product')}</div>
+        <div class="task-title">${escapeHtml(displayTitle)}</div>
         ${!isCompleted ? `
           <div class="task-actions">
             <button class="btn btn-fill-title" data-task-id="${task.id}" data-video-title="${escapeHtml(task.video_title || '')}" title="${task.video_title ? escapeHtml(task.video_title) : 'No title set - set owner in CRM'}">
