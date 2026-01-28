@@ -26,6 +26,13 @@ const COLOR_OPTIONS = [
   { name: 'Gray', value: '#6B7280' },
 ];
 
+// Reserved system status names (case-insensitive)
+const RESERVED_STATUS_NAMES = [
+  'video made', 'sourcing', 'review', 'negotiating', 'committed',
+  'ordered', 'shipped', 'in transit', 'delivered', 'to receive',
+  'completed', 'returned', 'cancelled', 'problem'
+];
+
 // Endpoint configuration
 const ENDPOINT_CONFIG = {
   crm_statuses: {
@@ -74,6 +81,15 @@ const AddOptionModal = ({
     if (!name.trim()) {
       setError('Name is required');
       return;
+    }
+    
+    // Check for reserved status names (only for crm_statuses table)
+    if (endpoint === 'crm_statuses') {
+      const normalizedName = name.trim().toLowerCase();
+      if (RESERVED_STATUS_NAMES.includes(normalizedName)) {
+        setError('This status name is reserved by the system. Please choose a different name.');
+        return;
+      }
     }
     
     try {
