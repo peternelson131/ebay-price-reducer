@@ -18,6 +18,44 @@ const supabase = createClient(
 );
 
 /**
+ * Update product status to "Video Made" after video attachment
+ * Looks up the status ID for "Video Made" for the user and updates the product
+ */
+async function updateProductStatusToVideoMade(userId, productId) {
+  if (!productId) return;
+  
+  try {
+    // Find "Video Made" status for this user
+    const { data: status, error: statusError } = await supabase
+      .from('crm_statuses')
+      .select('id')
+      .eq('user_id', userId)
+      .ilike('name', 'video made')
+      .single();
+    
+    if (statusError || !status?.id) {
+      console.log('No "Video Made" status found for user:', statusError?.message);
+      return;
+    }
+    
+    // Update the product's status
+    const { error: updateError } = await supabase
+      .from('sourced_products')
+      .update({ status_id: status.id })
+      .eq('id', productId)
+      .eq('user_id', userId);
+    
+    if (updateError) {
+      console.error('Failed to update product status to Video Made:', updateError.message);
+    } else {
+      console.log(`✅ Product ${productId} status updated to "Video Made"`);
+    }
+  } catch (err) {
+    console.error('Error updating product status:', err.message);
+  }
+}
+
+/**
  * Trigger background transcode job (fire and forget)
  * Called after video creation to pre-transcode for social posting
  */
@@ -116,6 +154,8 @@ async function handlePost(userId, body) {
     let linkedTaskCount = 0;
     if (updated.product_id) {
       linkedTaskCount = await linkVideoToApprovedTasks(userId, updated.product_id, updated.id);
+      // Auto-update product status to "Video Made"
+      await updateProductStatusToVideoMade(userId, updated.product_id);
     }
 
     // Trigger background transcode (fire and forget)
@@ -154,6 +194,8 @@ async function handlePost(userId, body) {
   let linkedTaskCount = 0;
   if (productId && created.id) {
     linkedTaskCount = await linkVideoToApprovedTasks(userId, productId, created.id);
+    // Auto-update product status to "Video Made"
+    await updateProductStatusToVideoMade(userId, productId);
   }
 
   // Trigger background transcode (fire and forget)
