@@ -281,10 +281,10 @@ async function loadTasks() {
       throw new Error(data.error || 'Failed to load tasks');
     }
     
-    // Filter out tasks with no video attached (Bug 3)
-    tasks = (data.tasks || []).filter(t => t.video?.id);
+    // Filter out tasks without videos - only show actionable tasks
+    tasks = (data.tasks || []).filter(task => task.video && task.video.id);
     
-    // Update pending count to only show actionable items (with videos)
+    // Update pending count (only tasks with videos are shown)
     const actionablePending = tasks.filter(t => t.status === 'pending').length;
     pendingCount.textContent = actionablePending;
     renderTasks();
@@ -343,9 +343,9 @@ function renderTasks() {
 
 function groupTasksByVideo(tasks) {
   const groups = {};
-  const noVideoTasks = [];
   
   tasks.forEach(task => {
+    // All tasks should have videos at this point due to filtering in loadTasks()
     if (task.video?.id) {
       if (!groups[task.video.id]) {
         groups[task.video.id] = {
@@ -356,28 +356,15 @@ function groupTasksByVideo(tasks) {
         };
       }
       groups[task.video.id].tasks.push(task);
-    } else {
-      noVideoTasks.push(task);
     }
   });
   
-  // Convert to array - video groups first, then no-video tasks
-  const result = Object.values(groups);
-  
-  // Add no-video tasks as individual "groups"
-  noVideoTasks.forEach(task => {
-    result.push({
-      videoId: null,
-      filename: null,
-      tasks: [task]
-    });
-  });
-  
-  return result;
+  // Convert to array of video groups
+  return Object.values(groups);
 }
 
 function createVideoGroup(group) {
-  const hasVideo = group.videoId !== null;
+  // All groups have videos now (filtered in loadTasks)
   const taskCount = group.tasks.length;
   const multipleAsins = taskCount > 1;
   
@@ -388,43 +375,37 @@ function createVideoGroup(group) {
   const productTitle = group.tasks[0]?.title || group.tasks[0]?.video_title || 'Untitled Product';
   
   return `
-    <div class="video-group ${hasVideo ? '' : 'no-video-group'}">
-      ${hasVideo ? `
-        <div class="video-header parent-header">
-          <div class="parent-info">
-            <div class="parent-asin-row">
-              <span class="parent-asin">${escapeHtml(parentAsin || 'Unknown')}</span>
-              <span class="parent-label">Parent ASIN</span>
-            </div>
-            <div class="parent-title">${escapeHtml(productTitle)}</div>
-            <div class="parent-video">
-              <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              <span class="video-filename">${escapeHtml(group.filename)}</span>
-              <span class="child-count">${taskCount} upload${taskCount !== 1 ? 's' : ''}</span>
-            </div>
+    <div class="video-group">
+      <div class="video-header parent-header">
+        <div class="parent-info">
+          <div class="parent-asin-row">
+            <span class="parent-asin">${escapeHtml(parentAsin || 'Unknown')}</span>
+            <span class="parent-label">Parent ASIN</span>
           </div>
-          <button class="btn btn-download" data-video-id="${group.videoId}" data-filename="${escapeHtml(group.filename)}" data-asins="${group.tasks.map(t => t.asin).join(',')}">
+          <div class="parent-title">${escapeHtml(productTitle)}</div>
+          <div class="parent-video">
             <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            Download
-          </button>
-        </div>
-        <div class="children-container">
-          <div class="children-header">
-            <span class="children-label">Upload Tasks</span>
-          </div>
-          <div class="video-tasks children-list">
-            ${group.tasks.map((task, idx) => createTaskCard(task, hasVideo, multipleAsins, idx === group.tasks.length - 1)).join('')}
+            <span class="video-filename">${escapeHtml(group.filename)}</span>
+            <span class="child-count">${taskCount} upload${taskCount !== 1 ? 's' : ''}</span>
           </div>
         </div>
-      ` : `
-        <div class="video-tasks">
-          ${group.tasks.map(task => createTaskCard(task, hasVideo, multipleAsins, true)).join('')}
+        <button class="btn btn-download" data-video-id="${group.videoId}" data-filename="${escapeHtml(group.filename)}" data-asins="${group.tasks.map(t => t.asin).join(',')}">
+          <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Download
+        </button>
+      </div>
+      <div class="children-container">
+        <div class="children-header">
+          <span class="children-label">Upload Tasks</span>
         </div>
-      `}
+        <div class="video-tasks children-list">
+          ${group.tasks.map((task, idx) => createTaskCard(task, true, multipleAsins, idx === group.tasks.length - 1)).join('')}
+        </div>
+      </div>
     </div>
   `;
 }
@@ -446,7 +427,6 @@ function updateMarketplaceIndicator() {
 
 function createTaskCard(task, groupHasVideo = false, isMultiAsin = false, isLast = false) {
   const isCompleted = task.status === 'completed';
-  const hasVideo = task.hasVideo || groupHasVideo;
   const connector = isLast ? '└─' : '├─';
   
   return `
@@ -457,41 +437,33 @@ function createTaskCard(task, groupHasVideo = false, isMultiAsin = false, isLast
           <span class="task-asin" title="Click to copy">${task.asin}</span>
           <span class="task-marketplace">${task.marketplace || 'US'}</span>
         </div>
-      <div class="task-title">${escapeHtml(task.product_title || 'Untitled Product')}</div>
-      ${!groupHasVideo ? `
-        <div class="task-video no-video">
-          <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          No video attached
-        </div>
-      ` : ''}
-      ${!isCompleted ? `
-        <div class="task-actions">
-          <button class="btn btn-fill-title" data-task-id="${task.id}" data-video-title="${escapeHtml(task.video_title || '')}" title="${task.video_title ? escapeHtml(task.video_title) : 'No title set - set owner in CRM'}">
-            <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Title
-          </button>
-          <button class="btn btn-fill-asin" data-task-id="${task.id}" data-asin="${task.asin}" title="Fill ASIN in search box">
-            <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-            </svg>
-            ASIN
-          </button>
-          <button class="btn btn-complete" data-task-id="${task.id}">
-            <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Done
-          </button>
-        </div>
-      ` : `
-        <div class="task-actions">
-          <span class="status-badge status-completed">Completed</span>
-        </div>
-      `}
+        <div class="task-title">${escapeHtml(task.product_title || 'Untitled Product')}</div>
+        ${!isCompleted ? `
+          <div class="task-actions">
+            <button class="btn btn-fill-title" data-task-id="${task.id}" data-video-title="${escapeHtml(task.video_title || '')}" title="${task.video_title ? escapeHtml(task.video_title) : 'No title set - set owner in CRM'}">
+              <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Title
+            </button>
+            <button class="btn btn-fill-asin" data-task-id="${task.id}" data-asin="${task.asin}" title="Fill ASIN in search box">
+              <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              ASIN
+            </button>
+            <button class="btn btn-complete" data-task-id="${task.id}">
+              <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Done
+            </button>
+          </div>
+        ` : `
+          <div class="task-actions">
+            <span class="status-badge status-completed">Completed</span>
+          </div>
+        `}
       </div>
     </div>
   `;
