@@ -1679,7 +1679,7 @@ const ManageCustomFieldsModal = ({ isOpen, onClose, statuses, collaborationTypes
       items: statuses,
       tableName: 'crm_statuses',
       fieldName: 'status_id',
-      systemItems: ['Initial Contact', 'Delivered', 'Completed', 'Video Made'],
+      systemItems: ['Initial Contact', 'Delivered', 'Completed', 'video made'],
       hasColor: true
     },
     collaboration: {
