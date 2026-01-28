@@ -47,13 +47,13 @@ exports.handler = async (event, context) => {
     // FIRST: Check influencer_tasks for generated thumbnail (stored in Supabase Storage)
     const { data: task } = await supabase
       .from('influencer_tasks')
-      .select('image_url')
+      .select('image_url, search_asin')
       .eq('asin', asin)
       .eq('user_id', userId)
-      .not('image_url', 'is', null)
       .single();
     
-    if (task?.image_url) {
+    // Check if this task has a generated thumbnail
+    if (task?.image_url && task.image_url.includes('supabase')) {
       console.log(`Found generated thumbnail in influencer_tasks for ${asin}`);
       return successResponse({
         success: true,
@@ -62,6 +62,27 @@ exports.handler = async (event, context) => {
         downloadUrl: task.image_url,
         source: 'generated'
       }, headers);
+    }
+    
+    // SECOND: If this is a correlated ASIN, check the search ASIN's thumbnail
+    if (task?.search_asin && task.search_asin !== asin) {
+      const { data: parentTask } = await supabase
+        .from('influencer_tasks')
+        .select('image_url')
+        .eq('asin', task.search_asin)
+        .eq('user_id', userId)
+        .single();
+      
+      if (parentTask?.image_url && parentTask.image_url.includes('supabase')) {
+        console.log(`Found thumbnail from search ASIN ${task.search_asin} for correlated ${asin}`);
+        return successResponse({
+          success: true,
+          asin,
+          filename: `${asin}_thumbnail.jpg`,
+          downloadUrl: parentTask.image_url,
+          source: 'inherited'
+        }, headers);
+      }
     }
 
     // FALLBACK: Check OneDrive for thumbnail
