@@ -5,7 +5,12 @@
  * POST   /videos                             - Save video metadata after upload
  * DELETE /videos/:id                         - Remove video record
  * PATCH  /videos/:id                         - Update video metadata
+ * 
+ * DEPLOY_VERSION: 2026-01-28T05:45:00Z - with task creation
  */
+
+// Log on cold start to verify deployment
+console.log('🚀 Videos function loaded - DEPLOY_VERSION: 2026-01-28T05:45:00Z');
 
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders } = require('./utils/cors');
@@ -148,17 +153,35 @@ async function createInfluencerTasksForCorrelatedAsins(userId, productId, videoI
     }
     
     // Upsert all tasks (main ASIN + correlations)
-    const { error: upsertError } = await supabase
+    console.log(`🔄 Upserting ${tasksToCreate.length} influencer tasks...`);
+    console.log('Tasks to create:', JSON.stringify(tasksToCreate, null, 2));
+    
+    const { data: upsertData, error: upsertError } = await supabase
       .from('influencer_tasks')
       .upsert(tasksToCreate, {
         onConflict: 'user_id,asin,marketplace',
         ignoreDuplicates: false // Update video_id if task exists
-      });
+      })
+      .select();
     
     if (upsertError) {
-      console.error('Failed to create influencer tasks:', upsertError);
-      return 0;
+      console.error('❌ Failed to create influencer tasks:', JSON.stringify(upsertError));
+      // Try simple insert as fallback
+      console.log('🔄 Trying simple insert as fallback...');
+      const { data: insertData, error: insertError } = await supabase
+        .from('influencer_tasks')
+        .insert(tasksToCreate)
+        .select();
+      
+      if (insertError) {
+        console.error('❌ Fallback insert also failed:', JSON.stringify(insertError));
+        return 0;
+      }
+      console.log('✅ Fallback insert succeeded:', insertData?.length || 0, 'tasks');
+      return insertData?.length || 0;
     }
+    
+    console.log('✅ Upsert succeeded:', upsertData?.length || 0, 'tasks');
     
     const correlationCount = correlations?.length || 0;
     console.log(`✅ Created/updated ${tasksToCreate.length} influencer task(s): 1 main ASIN + ${correlationCount} correlated ASIN(s)`);
