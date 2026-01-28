@@ -302,24 +302,33 @@ async function handlePost(userId, body) {
       throw new Error(`Failed to update video: ${error.message}`);
     }
 
+    console.log(`📹 Video updated: ${updated.id}, product_id: ${updated.product_id}`);
+
     // Auto-link video to approved tasks if product_id exists
     let linkedTaskCount = 0;
     if (updated.product_id) {
+      console.log(`🔗 Linking video to tasks for product: ${updated.product_id}`);
       linkedTaskCount = await linkVideoToApprovedTasks(userId, updated.product_id, updated.id);
       // Auto-update product status to "Video Made"
       await updateProductStatusToVideoMade(userId, updated.product_id);
+    } else {
+      console.log('⚠️ No product_id on updated video - skipping task creation');
     }
 
     // Auto-generate video title
     let videoTitle = null;
     if (updated.product_id) {
+      console.log(`📝 Generating video title for product: ${updated.product_id}`);
       videoTitle = await generateVideoTitle(userId, updated.product_id);
+      console.log(`📝 Generated title: ${videoTitle}`);
     }
 
     // Create influencer tasks for correlated ASINs
     let createdTaskCount = 0;
     if (updated.product_id) {
+      console.log(`📋 Creating influencer tasks for product: ${updated.product_id}, video: ${updated.id}`);
       createdTaskCount = await createInfluencerTasksForCorrelatedAsins(userId, updated.product_id, updated.id);
+      console.log(`📋 Created ${createdTaskCount} tasks`);
     }
 
     // Trigger background transcode (fire and forget)
@@ -354,24 +363,33 @@ async function handlePost(userId, body) {
     throw new Error(`Failed to create video: ${insertError.message}`);
   }
 
+  console.log(`📹 Video created (INSERT): ${created.id}, productId from request: ${productId}`);
+
   // Auto-link video to approved tasks for this product
   let linkedTaskCount = 0;
   if (productId && created.id) {
+    console.log(`🔗 Linking video to tasks for product: ${productId}`);
     linkedTaskCount = await linkVideoToApprovedTasks(userId, productId, created.id);
     // Auto-update product status to "Video Made"
     await updateProductStatusToVideoMade(userId, productId);
+  } else {
+    console.log(`⚠️ No productId (${productId}) or created.id (${created?.id}) - skipping task creation`);
   }
 
   // Auto-generate video title
   let videoTitle = null;
   if (productId) {
+    console.log(`📝 Generating video title for product: ${productId}`);
     videoTitle = await generateVideoTitle(userId, productId);
+    console.log(`📝 Generated title: ${videoTitle}`);
   }
 
   // Create influencer tasks for correlated ASINs
   let createdTaskCount = 0;
   if (productId && created.id) {
+    console.log(`📋 Creating influencer tasks for product: ${productId}, video: ${created.id}`);
     createdTaskCount = await createInfluencerTasksForCorrelatedAsins(userId, productId, created.id);
+    console.log(`📋 Created ${createdTaskCount} tasks`);
   }
 
   // Trigger background transcode (fire and forget)
