@@ -183,6 +183,24 @@ async function createInfluencerTasksForCorrelatedAsins(userId, productId, videoI
     
     console.log('✅ Upsert succeeded:', upsertData?.length || 0, 'tasks');
     
+    // Propagate video_id to any existing correlated tasks not in this upsert
+    // (e.g., tasks created before the video was uploaded)
+    if (videoId && product.asin) {
+      const { data: propagated, error: propError } = await supabase
+        .from('influencer_tasks')
+        .update({ video_id: videoId })
+        .eq('search_asin', product.asin)
+        .eq('user_id', userId)
+        .is('video_id', null)
+        .select('asin');
+      
+      if (propError) {
+        console.error('Failed to propagate video_id to correlated tasks:', propError);
+      } else if (propagated?.length > 0) {
+        console.log(`✅ Propagated video_id to ${propagated.length} existing correlated task(s)`);
+      }
+    }
+    
     const correlationCount = correlations?.length || 0;
     console.log(`✅ Created/updated ${tasksToCreate.length} influencer task(s): 1 main ASIN + ${correlationCount} correlated ASIN(s)`);
     return tasksToCreate.length;
