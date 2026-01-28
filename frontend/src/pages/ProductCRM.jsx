@@ -1115,6 +1115,15 @@ const ProductRow = ({ product, isSelected, isChecked, onCheck, onSelect, onEdit 
         <OwnerAvatars owners={product.owners} />
       </td>
       
+      {/* Video Status */}
+      <td className="py-3 px-4">
+        {product.has_video ? (
+          <CheckCircle className="w-5 h-5 text-green-600" title="Has video" />
+        ) : (
+          <X className="w-5 h-5 text-gray-400" title="No video" />
+        )}
+      </td>
+      
       {/* Decision */}
       <td className="py-3 px-4">
         <span className={`text-sm ${product.decision === 'sell' ? 'text-green-600' : product.decision === 'keep' ? 'text-orange-600' : 'text-gray-400'}`}>
@@ -2154,6 +2163,9 @@ export default function ProductCRM({ isPWA = false }) {
   // View mode: 'open', 'delivered', 'videoMade', or 'all'
   const [viewMode, setViewMode] = useState(searchParams.get('view') === 'delivered' ? 'delivered' : searchParams.get('view') === 'videoMade' ? 'videoMade' : searchParams.get('view') === 'all' ? 'all' : 'open');
   
+  // Video filter: 'all', 'has_video', 'no_video'
+  const [videoFilter, setVideoFilter] = useState('all');
+  
   // Lookup data
   const [statuses, setStatuses] = useState([]);
   const [collaborationTypes, setCollaborationTypes] = useState([]);
@@ -2174,7 +2186,8 @@ export default function ProductCRM({ isPWA = false }) {
           collaboration_type:crm_collaboration_types(id, name),
           contact_source:crm_contact_sources(id, name),
           marketplace:crm_marketplaces(id, name, has_quick_list),
-          owners:product_owners(owner_id, is_primary)
+          owners:product_owners(owner_id, is_primary),
+          product_videos(id)
         `)
         .order('created_at', { ascending: false });
       
@@ -2211,7 +2224,8 @@ export default function ProductCRM({ isPWA = false }) {
             email: owner?.email,
             avatar_color: owner?.avatar_color || '#f97316'
           };
-        }) || []
+        }) || [],
+        has_video: product.product_videos && product.product_videos.length > 0
       }));
       
       setProducts(transformedData || []);
@@ -2641,7 +2655,7 @@ export default function ProductCRM({ isPWA = false }) {
   // Count video made items for badge
   const videoMadeCount = products.filter(p => p.status?.name === 'Video Made').length;
   
-  // Filtered products - apply status filter and owner filter
+  // Filtered products - apply status filter, owner filter, and video filter
   const filteredProducts = products.filter(product => {
     // Status filter (multi-select) - only show products with selected statuses
     if (statusFilter.size > 0) {
@@ -2657,6 +2671,11 @@ export default function ProductCRM({ isPWA = false }) {
     if (ownerFilter && (!product.owners || product.owners.length === 0)) {
       return false;
     }
+    
+    // Video filter
+    if (videoFilter === 'has_video' && !product.has_video) return false;
+    if (videoFilter === 'no_video' && product.has_video) return false;
+    
     return true;
   });
 
@@ -2669,7 +2688,7 @@ export default function ProductCRM({ isPWA = false }) {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [viewMode, ownerFilter, statusFilter, searchQuery]);
+  }, [viewMode, ownerFilter, statusFilter, searchQuery, videoFilter]);
 
   // Close status filter dropdown when clicking outside
   useEffect(() => {
@@ -2949,6 +2968,17 @@ export default function ProductCRM({ isPWA = false }) {
             ))}
           </select>
           
+          {/* Video Filter */}
+          <select
+            value={videoFilter}
+            onChange={e => setVideoFilter(e.target.value)}
+            className="px-4 py-2 border border-theme rounded-lg bg-white dark:bg-theme-surface text-theme-primary flex items-center gap-2"
+          >
+            <option value="all">All Videos</option>
+            <option value="has_video">Has Video</option>
+            <option value="no_video">No Video</option>
+          </select>
+          
           {/* Refresh */}
           <button
             onClick={fetchProducts}
@@ -3015,6 +3045,7 @@ export default function ProductCRM({ isPWA = false }) {
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">ASIN</th>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">Status</th>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">Owners</th>
+                  <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">Video</th>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">Decision</th>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">Important Date</th>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4">Shipping</th>

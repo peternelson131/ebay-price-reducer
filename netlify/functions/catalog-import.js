@@ -1,12 +1,18 @@
 /**
- * Catalog Import - Import Amazon Influencer catalog for correlation analysis
+ * Catalog Import - Import Amazon Influencer catalog and auto-create CRM records
  * 
- * POST /catalog-import - Upload Excel/CSV file with ASINs
+ * POST /catalog-import - Upload Excel/CSV file with ASINs → auto-creates sourced_products records
  * GET /catalog-import - List imported catalog items with status and correlations
  * DELETE /catalog-import - Clear user's catalog imports (optional: by status)
  * 
  * Expected Excel/CSV columns: ASIN, Product Title, Main Image, Category, Price
  * Column matching is case-insensitive and fuzzy (handles variations)
+ * 
+ * NEW: On import, automatically creates sourced_products (CRM) records:
+ * - Checks for existing products (no duplicates)
+ * - Checks for existing videos → sets status "Imported existing video"
+ * - Tags with source: 'catalog_import'
+ * - Correlation finding moved to Product CRM (sync functionality removed)
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -18,29 +24,6 @@ const zlib = require('zlib');
 const { promisify } = require('util');
 
 const gunzipAsync = promisify(zlib.gunzip);
-
-/**
- * Fetch from Keepa API with gzip decompression
- * Keepa returns gzip-compressed JSON, so we need to decompress it first
- */
-async function keepaFetch(url) {
-  const response = await fetch(url);
-  const buffer = await response.arrayBuffer();
-  
-  try {
-    // Try to decompress gzip first (most Keepa responses)
-    const decompressed = await gunzipAsync(Buffer.from(buffer));
-    return JSON.parse(decompressed.toString());
-  } catch (err) {
-    // Fallback: maybe it wasn't compressed
-    try {
-      return JSON.parse(Buffer.from(buffer).toString());
-    } catch (parseErr) {
-      console.error('Failed to parse Keepa response:', parseErr);
-      throw new Error('Invalid Keepa API response');
-    }
-  }
-}
 
 // Lazy-init Supabase client
 let supabase = null;
@@ -54,186 +37,9 @@ function getSupabase() {
   return supabase;
 }
 
-// ==================== INLINE PROCESSING (for sync action) ====================
-
-/**
- * Get image URL from Keepa product
- */
-function getImageUrl(product) {
-  if (!product?.imagesCSV) return '';
-  const imageCode = product.imagesCSV.split(',')[0]?.trim();
-  return imageCode ? `https://m.media-amazon.com/images/I/${imageCode}._SL500_.jpg` : '';
-}
-
-/**
- * Extract correlations from Keepa product data
- */
-function extractCorrelations(product, searchAsin) {
-  const correlations = [];
-  const seen = new Set([searchAsin.toUpperCase()]);
-  
-  // Variation ASINs
-  if (product.variations?.length > 0) {
-    for (const variation of product.variations) {
-      const varAsin = variation.asin;
-      if (varAsin && !seen.has(varAsin)) {
-        seen.add(varAsin);
-        correlations.push({
-          asin: varAsin,
-          title: variation.title || product.title,
-          type: 'variation',
-          amazonUrl: `https://www.amazon.com/dp/${varAsin}`
-        });
-      }
-    }
-  }
-  
-  // Frequently Bought Together
-  if (product.frequentlyBoughtTogether?.length > 0) {
-    for (const fbtAsin of product.frequentlyBoughtTogether) {
-      if (fbtAsin && !seen.has(fbtAsin)) {
-        seen.add(fbtAsin);
-        correlations.push({
-          asin: fbtAsin,
-          type: 'frequently_bought_together',
-          amazonUrl: `https://www.amazon.com/dp/${fbtAsin}`
-        });
-      }
-    }
-  }
-  
-  // Parent ASIN
-  if (product.parentAsin && !seen.has(product.parentAsin)) {
-    seen.add(product.parentAsin);
-    correlations.push({
-      asin: product.parentAsin,
-      type: 'parent',
-      amazonUrl: `https://www.amazon.com/dp/${product.parentAsin}`
-    });
-  }
-  
-  return correlations;
-}
-
-/**
- * Process a single catalog import item using the REAL asin-correlation Supabase function
- */
-async function processImportItem(item, userId) {
-  console.log(`🔄 Processing ASIN: ${item.asin} via Supabase edge function`);
-  
-  try {
-    // Clear any previous error message (status stays 'imported' until successful)
-    await getSupabase()
-      .from('catalog_imports')
-      .update({ error_message: null })
-      .eq('id', item.id);
-    
-    // Call the REAL asin-correlation Supabase edge function
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    const correlationUrl = `${supabaseUrl}/functions/v1/asin-correlation`;
-    console.log(`📡 Calling: ${correlationUrl}`);
-    
-    const response = await fetch(correlationUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`
-      },
-      body: JSON.stringify({
-        asin: item.asin,
-        userId: userId,
-        action: 'sync'
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (!response.ok || result.error) {
-      throw new Error(result.error || result.message || `HTTP ${response.status}`);
-    }
-    
-    console.log(`✅ Edge function returned: ${result.count} correlations (${result.stats?.variations || 0} variations, ${result.stats?.similar || 0} similar)`);
-    
-    // Update catalog_imports with result
-    await getSupabase()
-      .from('catalog_imports')
-      .update({
-        status: 'processed',
-        correlation_count: result.count || 0,
-        processed_at: new Date().toISOString()
-      })
-      .eq('id', item.id);
-    
-    console.log(`✅ Processed ${item.asin}: ${result.count} correlations`);
-    return { asin: item.asin, correlations: result.count || 0 };
-    
-  } catch (error) {
-    console.error(`❌ Error processing ${item.asin}:`, error.message);
-    
-    // On error, keep status as 'imported' so user can retry
-    // Just store the error message for display
-    await getSupabase()
-      .from('catalog_imports')
-      .update({
-        error_message: error.message
-      })
-      .eq('id', item.id);
-    
-    return { asin: item.asin, error: error.message };
-  }
-}
-
-/**
- * Process pending items for a user (called inline during sync)
- * Calls the REAL asin-correlation Supabase edge function for each item
- */
-async function processUserPendingItems(userId, limit = 10) {
-  // Check required env vars
-  if (!process.env.SUPABASE_URL) {
-    console.error('⚠️ No SUPABASE_URL configured');
-    return { processed: 0, errors: 0, remaining: 0 };
-  }
-  
-  // Fetch imported items for this user (items awaiting sync)
-  const { data: pendingItems, error: fetchError } = await getSupabase()
-    .from('catalog_imports')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('status', 'imported')
-    .order('created_at', { ascending: true })
-    .limit(limit);
-  
-  if (fetchError || !pendingItems || pendingItems.length === 0) {
-    console.log('📭 No pending items to process');
-    return { processed: 0, errors: 0, remaining: 0 };
-  }
-  
-  console.log(`📋 Processing ${pendingItems.length} pending items via asin-correlation edge function`);
-  
-  const results = [];
-  for (const item of pendingItems) {
-    const result = await processImportItem(item, userId);
-    results.push(result);
-    // Delay between items to avoid rate limits (edge function calls Keepa + Claude)
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-  
-  const processed = results.filter(r => !r.error).length;
-  const errors = results.filter(r => r.error).length;
-  
-  // Check remaining imported items
-  const { count: remainingCount } = await getSupabase()
-    .from('catalog_imports')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('status', 'imported');
-  
-  console.log(`✅ Inline processing complete: ${processed} processed, ${errors} errors, ${remainingCount || 0} remaining`);
-  
-  return { processed, errors, remaining: remainingCount || 0 };
-}
+// ==================== SYNC FUNCTIONALITY REMOVED ====================
+// Correlation finding has been moved to Product CRM
+// This function now only handles catalog import → sourced_products creation
 
 // Column name mappings - handles various naming conventions
 const COLUMN_MAPPINGS = {
@@ -408,40 +214,9 @@ function parseMultipart(event) {
 async function handleGet(event, userId, headers) {
   const params = event.queryStringParameters || {};
   
-  // Handle sync_status action - poll for background job status
-  if (params.action === 'sync_status' && params.jobId) {
-    const { data: job, error: jobError } = await getSupabase()
-      .from('sync_jobs')
-      .select('*')
-      .eq('id', params.jobId)
-      .eq('user_id', userId)
-      .single();
-    
-    if (jobError || !job) {
-      return errorResponse(404, 'Job not found', headers);
-    }
-    
-    // Calculate progress percentage
-    const progress = job.total_items > 0 
-      ? Math.round(((job.processed_items + job.failed_items) / job.total_items) * 100)
-      : 0;
-    
-    return successResponse({
-      success: true,
-      job: {
-        id: job.id,
-        status: job.status,
-        totalItems: job.total_items,
-        processedItems: job.processed_items,
-        failedItems: job.failed_items,
-        progress,
-        results: job.results || [],
-        errorMessage: job.error_message,
-        createdAt: job.created_at,
-        startedAt: job.started_at,
-        completedAt: job.completed_at
-      }
-    }, headers);
+  // DISABLED: sync_status action (sync functionality removed)
+  if (params.action === 'sync_status') {
+    return errorResponse(400, 'Sync functionality has been disabled. Correlation finding is now handled in Product CRM.', headers);
   }
   
   const status = params.status; // imported, processed (simplified from 5 states to 2)
@@ -592,200 +367,10 @@ async function handlePost(event, userId, headers) {
       return errorResponse(400, 'Invalid JSON body', headers);
     }
     
-    // Handle sync action - queue selected items for correlation finding
-    // Now creates a background job and returns immediately
-    if (body.action === 'sync' && Array.isArray(body.ids)) {
-      console.log(`🔄 Syncing ${body.ids.length} items for user: ${userId}`);
-      
-      if (body.ids.length === 0) {
-        return errorResponse(400, 'No items selected for sync', headers);
-      }
-      
-      // Get the ASINs for the selected IDs
-      const { data: itemsToSync, error: fetchError } = await getSupabase()
-        .from('catalog_imports')
-        .select('id, asin, title')
-        .eq('user_id', userId)
-        .in('id', body.ids);
-      
-      if (fetchError || !itemsToSync?.length) {
-        console.error('Fetch items error:', fetchError);
-        return errorResponse(500, `Failed to fetch items: ${fetchError?.message || 'No items found'}`, headers);
-      }
-      
-      // Create a background job
-      const { data: job, error: jobError } = await getSupabase()
-        .from('sync_jobs')
-        .insert({
-          user_id: userId,
-          job_type: 'catalog_sync',
-          status: 'pending',
-          total_items: itemsToSync.length,
-          processed_items: 0,
-          failed_items: 0,
-          results: [],
-          metadata: { item_ids: body.ids, asins: itemsToSync.map(i => i.asin) }
-        })
-        .select()
-        .single();
-      
-      if (jobError) {
-        console.error('Job creation error:', jobError);
-        return errorResponse(500, `Failed to create sync job: ${jobError.message}`, headers);
-      }
-      
-      console.log(`✅ Created job ${job.id} for ${itemsToSync.length} items`);
-      
-      // Clear any error messages (status stays 'imported' until sync completes)
-      await getSupabase()
-        .from('catalog_imports')
-        .update({ error_message: null })
-        .eq('user_id', userId)
-        .in('id', body.ids);
-      
-      // Fire-and-forget: start background processing
-      // We use setImmediate to not block the response
-      setImmediate(async () => {
-        try {
-          console.log(`🚀 Starting background processing for job ${job.id}`);
-          
-          // Update job status to processing
-          await getSupabase()
-            .from('sync_jobs')
-            .update({ status: 'processing', started_at: new Date().toISOString() })
-            .eq('id', job.id);
-          
-          const results = [];
-          let processedCount = 0;
-          let failedCount = 0;
-          
-          for (const item of itemsToSync) {
-            try {
-              const result = await processImportItem({ ...item, id: body.ids[itemsToSync.indexOf(item)] }, userId);
-              
-              if (result.error) {
-                failedCount++;
-                results.push({ asin: item.asin, status: 'error', error: result.error });
-              } else {
-                processedCount++;
-                results.push({ asin: item.asin, status: 'success', correlations: result.correlations || 0 });
-              }
-              
-              // Update job progress after each item
-              await getSupabase()
-                .from('sync_jobs')
-                .update({
-                  processed_items: processedCount,
-                  failed_items: failedCount,
-                  results
-                })
-                .eq('id', job.id);
-              
-            } catch (itemError) {
-              failedCount++;
-              results.push({ asin: item.asin, status: 'error', error: itemError.message });
-            }
-          }
-          
-          // Mark job as completed
-          await getSupabase()
-            .from('sync_jobs')
-            .update({
-              status: 'completed',
-              completed_at: new Date().toISOString(),
-              processed_items: processedCount,
-              failed_items: failedCount,
-              results
-            })
-            .eq('id', job.id);
-          
-          console.log(`✅ Job ${job.id} completed: ${processedCount} processed, ${failedCount} failed`);
-          
-        } catch (bgError) {
-          console.error(`❌ Background job ${job.id} failed:`, bgError);
-          
-          await getSupabase()
-            .from('sync_jobs')
-            .update({
-              status: 'failed',
-              error_message: bgError.message,
-              completed_at: new Date().toISOString()
-            })
-            .eq('id', job.id);
-        }
-      });
-      
-      // Return immediately with job ID for polling
-      return successResponse({
-        success: true,
-        message: `Sync job started for ${itemsToSync.length} items`,
-        jobId: job.id,
-        totalItems: itemsToSync.length,
-        pollUrl: `/catalog-import?action=sync_status&jobId=${job.id}`
-      }, headers);
-    }
-    
-    // Handle sync_all action - queue ALL imported items for sync
-    if (body.action === 'sync_all') {
-      console.log(`🔄 Sync All: Queuing all imported items for user: ${userId}`);
-      
-      // First, count how many will be updated
-      const { data: importedItems, error: countError } = await getSupabase()
-        .from('catalog_imports')
-        .select('id', { count: 'exact' })
-        .eq('user_id', userId)
-        .eq('status', 'imported');
-      
-      if (countError) {
-        console.error('Sync all count error:', countError);
-        return errorResponse(500, `Failed to count items: ${countError.message}`, headers);
-      }
-      
-      const itemCount = importedItems?.length || 0;
-      
-      if (itemCount === 0) {
-        return successResponse({
-          success: true,
-          message: 'No imported items to queue',
-          queued: 0
-        }, headers);
-      }
-      
-      // Clear error messages on imported items (status stays 'imported' until sync completes)
-      const { error: updateError } = await getSupabase()
-        .from('catalog_imports')
-        .update({ error_message: null })
-        .eq('user_id', userId)
-        .eq('status', 'imported');
-      
-      if (updateError) {
-        console.error('Sync all update error:', updateError);
-        return errorResponse(500, `Failed to queue items: ${updateError.message}`, headers);
-      }
-      
-      console.log(`✅ Sync All: Queued ${itemCount} items for sync`);
-      
-      return successResponse({
-        success: true,
-        message: `Queued ${itemCount} items for sync. Processing will happen in background.`,
-        queued: itemCount
-      }, headers);
-    }
-    
-    // Handle process_pending action - process up to N pending items
-    if (body.action === 'process_pending') {
-      const limit = Math.min(body.limit || 5, 10); // Max 10 at a time
-      console.log(`🔄 Processing up to ${limit} pending items for user: ${userId}`);
-      
-      const processResult = await processUserPendingItems(userId, limit);
-      
-      return successResponse({
-        success: true,
-        message: `Processed ${processResult.processed} items (${processResult.errors} errors, ${processResult.remaining} remaining)`,
-        processed: processResult.processed,
-        errors: processResult.errors,
-        remaining: processResult.remaining
-      }, headers);
+    // DISABLED: Correlation sync functionality has been moved to Product CRM
+    // Import only creates sourced_products records now
+    if (body.action === 'sync' || body.action === 'sync_all' || body.action === 'process_pending') {
+      return errorResponse(400, 'Sync functionality has been disabled. Correlation finding is now handled in Product CRM.', headers);
     }
     
     // Handle fetch_images action - get images from Keepa for ALL ASINs missing images
@@ -1291,7 +876,7 @@ async function handlePost(event, userId, headers) {
     stats.new++;
   }
   
-  // Insert new rows
+  // Insert new rows into catalog_imports
   if (toInsert.length > 0) {
     const { error: insertError } = await getSupabase()
       .from('catalog_imports')
@@ -1303,6 +888,95 @@ async function handlePost(event, userId, headers) {
     if (insertError) {
       console.error('Insert error:', insertError);
       return errorResponse(500, `Failed to import catalog: ${insertError.message}`, headers);
+    }
+  }
+  
+  // === NEW: Create sourced_products records for imported ASINs ===
+  console.log('📝 Creating sourced_products records...');
+  
+  const IMPORTED_EXISTING_VIDEO_STATUS_ID = 'fdb7c3fe-02c1-45ec-b459-87adf2d56ab2'; // UAT status ID
+  
+  // Get ASINs that should be processed (new imports only, not skipped)
+  const asinsToProcess = toInsert
+    .filter(item => item.status === 'imported')
+    .map(item => item.asin);
+  
+  if (asinsToProcess.length > 0) {
+    // Check which ASINs already exist in sourced_products
+    const { data: existingProducts, error: existingError } = await getSupabase()
+      .from('sourced_products')
+      .select('asin')
+      .eq('user_id', userId)
+      .in('asin', asinsToProcess);
+    
+    if (existingError) {
+      console.error('Error checking existing sourced_products:', existingError);
+      // Non-fatal, continue
+    }
+    
+    const existingProductAsins = new Set(existingProducts?.map(p => p.asin) || []);
+    console.log(`Found ${existingProductAsins.size} ASINs already in sourced_products`);
+    
+    // Check which ASINs have videos
+    const { data: existingVideos, error: videosError } = await getSupabase()
+      .from('product_videos')
+      .select('asin')
+      .eq('user_id', userId)
+      .in('asin', asinsToProcess);
+    
+    if (videosError) {
+      console.error('Error checking existing videos:', videosError);
+      // Non-fatal, continue
+    }
+    
+    const asinsWithVideos = new Set(existingVideos?.map(v => v.asin) || []);
+    console.log(`Found ${asinsWithVideos.size} ASINs with existing videos`);
+    
+    // Create sourced_products records for ASINs that don't already exist
+    const sourcedProductsToCreate = [];
+    
+    for (const row of toInsert) {
+      if (row.status !== 'imported') continue; // Skip non-imported items
+      if (existingProductAsins.has(row.asin)) {
+        console.log(`Skipping ${row.asin} - already exists in sourced_products`);
+        continue; // Don't duplicate
+      }
+      
+      // Determine status based on whether video exists
+      const statusId = asinsWithVideos.has(row.asin) 
+        ? IMPORTED_EXISTING_VIDEO_STATUS_ID 
+        : null; // null = no status set
+      
+      sourcedProductsToCreate.push({
+        user_id: userId,
+        asin: row.asin,
+        title: row.title,
+        image_url: row.image_url,
+        amazon_url: `https://www.amazon.com/dp/${row.asin}`,
+        status_id: statusId,
+        source: 'catalog_import',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    }
+    
+    // Insert into sourced_products
+    if (sourcedProductsToCreate.length > 0) {
+      console.log(`Creating ${sourcedProductsToCreate.length} new sourced_products records...`);
+      
+      const { error: sourcedError } = await getSupabase()
+        .from('sourced_products')
+        .insert(sourcedProductsToCreate);
+      
+      if (sourcedError) {
+        console.error('Error creating sourced_products:', sourcedError);
+        // Log but don't fail the entire import
+        console.error('Continuing with import despite sourced_products error');
+      } else {
+        console.log(`✅ Created ${sourcedProductsToCreate.length} sourced_products records`);
+      }
+    } else {
+      console.log('No new sourced_products records to create');
     }
   }
   

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpSyncPro Upload Helper [UAT]</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <!-- UAT Environment Banner -->
+  <div id="uat-banner" style="background: linear-gradient(90deg, #f97316, #ea580c); color: white; padding: 6px 12px; text-align: center; font-weight: bold; font-size: 12px; letter-spacing: 0.5px;">
+    ⚠️ UAT TESTING ENVIRONMENT - uat.opsyncpro.io
+  </div>
+  
+  <div id="app">
+    <!-- Login View -->
+    <div id="login-view" class="view">
+      <div class="header">
+        <div class="header-title">
+          <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 65 65" width="28" height="28">
+            <g transform="translate(5, 5)">
+              <polygon points="25,5 35,10 35,22 25,27 15,22 15,10" fill="#f97316" opacity="0.9"/>
+              <polygon points="40,14 50,19 50,31 40,36 30,31 30,19" fill="#ef4444"/>
+              <polygon points="25,28 35,33 35,45 25,50 15,45 15,33" fill="#fbbf24"/>
+              <polygon points="40,37 50,42 50,54 40,59 30,54 30,42" fill="#f97316" opacity="0.6"/>
+              <line x1="30" y1="16" x2="35" y2="22" stroke="#fff" stroke-width="1" opacity="0.4"/>
+              <line x1="30" y1="27" x2="35" y2="33" stroke="#fff" stroke-width="1" opacity="0.4"/>
+            </g>
+          </svg>
+          <h1>OpSyncPro</h1>
+        </div>
+        <p class="subtitle">Amazon Influencer Video Uploads</p>
+      </div>
+      
+      <form id="login-form" class="form">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="your@email.com" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Password" required>
+        </div>
+        <button type="submit" id="login-btn" class="btn btn-primary">
+          Sign In
+        </button>
+        <p id="login-error" class="error-text"></p>
+      </form>
+    </div>
+
+    <!-- Tasks View -->
+    <div id="tasks-view" class="view hidden">
+      <div class="header">
+        <div class="header-row">
+          <div class="header-title">
+            <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 65 65" width="24" height="24">
+              <g transform="translate(5, 5)">
+                <polygon points="25,5 35,10 35,22 25,27 15,22 15,10" fill="#f97316" opacity="0.9"/>
+                <polygon points="40,14 50,19 50,31 40,36 30,31 30,19" fill="#ef4444"/>
+                <polygon points="25,28 35,33 35,45 25,50 15,45 15,33" fill="#fbbf24"/>
+                <polygon points="40,37 50,42 50,54 40,59 30,54 30,42" fill="#f97316" opacity="0.6"/>
+                <line x1="30" y1="16" x2="35" y2="22" stroke="#fff" stroke-width="1" opacity="0.4"/>
+                <line x1="30" y1="27" x2="35" y2="33" stroke="#fff" stroke-width="1" opacity="0.4"/>
+              </g>
+            </svg>
+            <h1>OpSyncPro Tasks</h1>
+          </div>
+          <button id="refresh-btn" class="btn btn-icon" title="Refresh">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
+        <div class="user-info">
+          <span id="user-email"></span>
+          <button id="logout-btn" class="btn btn-link">Logout</button>
+        </div>
+      </div>
+
+      <!-- Marketplace Indicator -->
+      <div id="marketplace-indicator" class="marketplace-indicator hidden">
+        <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span>All</span>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <button class="filter-btn active" data-status="pending">
+          Pending <span id="pending-count" class="badge">0</span>
+        </button>
+        <button class="filter-btn" data-status="completed">
+          Completed
+        </button>
+      </div>
+
+      <!-- Task List -->
+      <div id="task-list" class="task-list">
+        <div class="loading">Loading tasks...</div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state hidden">
+        <svg class="icon-lg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p>No pending tasks!</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

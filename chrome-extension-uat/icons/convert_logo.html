@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Icon Generator</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .icon-box {
+      background: white;
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+    canvas {
+      display: block;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+  </style>
+</head>
+<body>
+  <h1>OpSyncPro Icon Generator</h1>
+  <p>Right-click each canvas and "Save Image As..." to save the icon.</p>
+  <div class="container">
+    <div class="icon-box">
+      <h3>16x16</h3>
+      <canvas id="icon16" width="16" height="16"></canvas>
+    </div>
+    <div class="icon-box">
+      <h3>48x48</h3>
+      <canvas id="icon48" width="48" height="48"></canvas>
+    </div>
+    <div class="icon-box">
+      <h3>128x128</h3>
+      <canvas id="icon128" width="128" height="128"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 65 65" width="65" height="65">
+  <!-- OpSyncPro.io - Icon Only -->
+  <g transform="translate(5, 5)">
+    <polygon points="25,5 35,10 35,22 25,27 15,22 15,10" fill="#f97316" opacity="0.9"/>
+    <polygon points="40,14 50,19 50,31 40,36 30,31 30,19" fill="#ef4444"/>
+    <polygon points="25,28 35,33 35,45 25,50 15,45 15,33" fill="#fbbf24"/>
+    <polygon points="40,37 50,42 50,54 40,59 30,54 30,42" fill="#f97316" opacity="0.6"/>
+    <line x1="30" y1="16" x2="35" y2="22" stroke="#fff" stroke-width="1" opacity="0.4"/>
+    <line x1="30" y1="27" x2="35" y2="33" stroke="#fff" stroke-width="1" opacity="0.4"/>
+  </g>
+</svg>`;
+
+    function drawIcon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      
+      // Create an image from SVG
+      const img = new Image();
+      const blob = new Blob([svgString], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      
+      img.onload = function() {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+        
+        // Trigger download automatically
+        canvas.toBlob(function(blob) {
+          console.log(`${canvasId}.png ready for download`);
+        }, 'image/png');
+      };
+      
+      img.src = url;
+    }
+
+    // Generate all icons
+    drawIcon('icon16', 16);
+    drawIcon('icon48', 48);
+    drawIcon('icon128', 128);
+
+    // Add auto-download functionality
+    setTimeout(() => {
+      ['icon16', 'icon48', 'icon128'].forEach(id => {
+        const canvas = document.getElementById(id);
+        const link = document.createElement('a');
+        link.download = `${id}.png`;
+        canvas.toBlob(blob => {
+          link.href = URL.createObjectURL(blob);
+          console.log(`Ready: ${link.download}`);
+        }, 'image/png');
+      });
+    }, 1000);
+  </script>
+</body>
+</html>

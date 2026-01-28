@@ -1,0 +1,57 @@
+═══════════════════════════════════════════════════════════════════
+  CHROME EXTENSION RELOAD INSTRUCTIONS - OpSyncPro Branding Update
+═══════════════════════════════════════════════════════════════════
+
+🎨 CHANGES SUMMARY:
+  ✅ Extension name → "OpSyncPro Upload Helper"
+  ✅ Primary color → Orange #f97316 (was blue)
+  ✅ New OpSyncPro hexagon icons (16px, 48px, 128px)
+  ✅ UI text updated with OpSyncPro branding
+  ✅ All colors match main OpSyncPro.io app
+
+───────────────────────────────────────────────────────────────────
+
+📝 RELOAD STEPS:
+
+1. Open Chrome browser
+
+2. Navigate to: chrome://extensions/
+
+3. Enable "Developer mode" (toggle in top-right)
+
+4. Find "OpSyncPro Upload Helper" (or old name if not updated yet)
+
+5. Click the RELOAD icon (🔄 circular arrow)
+
+6. Verify changes:
+   ✓ Name shows "OpSyncPro Upload Helper"
+   ✓ Icon is OpSyncPro hexagon (orange/red/amber)
+   ✓ Open side panel - header says "🎬 OpSyncPro"
+   ✓ Buttons/links are ORANGE (not blue)
+
+───────────────────────────────────────────────────────────────────
+
+🆘 IF RELOAD DOESN'T WORK:
+
+1. Go to chrome://extensions/
+2. Remove the old extension completely
+3. Click "Load unpacked"
+4. Select folder:
+   /Users/jcsdirect/clawd/projects/ebay-price-reducer/chrome-extension/
+5. Extension should load with new branding
+
+───────────────────────────────────────────────────────────────────
+
+📂 FILES CHANGED:
+  • manifest.json - Extension name/description
+  • sidepanel/sidepanel.css - Orange color scheme
+  • sidepanel/index.html - OpSyncPro branding text
+  • icons/icon16.png - New OpSyncPro logo
+  • icons/icon48.png - New OpSyncPro logo
+  • icons/icon128.png - New OpSyncPro logo
+
+───────────────────────────────────────────────────────────────────
+
+For detailed info, see BRANDING_UPDATE.md
+
+Updated: January 24, 2026
