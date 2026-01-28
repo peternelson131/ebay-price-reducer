@@ -202,7 +202,7 @@ async function generateThumbnail({ templateId, asin, userId, productImageUrl = n
 
 /**
  * Generate thumbnail for an influencer task
- * Looks up the template by owner, generates thumbnail, and updates task
+ * Looks up the template by owner (from product), generates thumbnail, and updates task
  * 
  * @param {string} taskId - Influencer task ID
  * @param {string} userId - User ID
@@ -213,7 +213,7 @@ async function generateThumbnailForTask(taskId, userId) {
     // 1. Get task details
     const { data: task, error: taskError } = await supabase
       .from('influencer_tasks')
-      .select('asin, owner_id')
+      .select('asin, video_id')
       .eq('id', taskId)
       .eq('user_id', userId)
       .single();
@@ -232,19 +232,61 @@ async function generateThumbnailForTask(taskId, userId) {
       };
     }
 
-    if (!task.owner_id) {
+    // 2. Find owner via product (ASIN -> sourced_products -> product_owners)
+    let ownerId = null;
+    
+    // First try to get owner from the product via ASIN
+    const { data: product } = await supabase
+      .from('sourced_products')
+      .select('id')
+      .eq('asin', task.asin)
+      .eq('user_id', userId)
+      .single();
+    
+    if (product) {
+      const { data: owner } = await supabase
+        .from('product_owners')
+        .select('owner_id')
+        .eq('product_id', product.id)
+        .eq('is_primary', true)
+        .single();
+      
+      ownerId = owner?.owner_id;
+    }
+    
+    // If no owner found via product, try via video (if task has video_id)
+    if (!ownerId && task.video_id) {
+      const { data: video } = await supabase
+        .from('product_videos')
+        .select('product_id')
+        .eq('id', task.video_id)
+        .single();
+      
+      if (video?.product_id) {
+        const { data: owner } = await supabase
+          .from('product_owners')
+          .select('owner_id')
+          .eq('product_id', video.product_id)
+          .eq('is_primary', true)
+          .single();
+        
+        ownerId = owner?.owner_id;
+      }
+    }
+
+    if (!ownerId) {
       return { 
         success: false, 
-        error: 'Task has no owner assigned' 
+        error: 'No owner found for this product. Please assign an owner first.' 
       };
     }
 
-    // 2. Find template for this owner
+    // 3. Find template for this owner
     const { data: template, error: templateError } = await supabase
       .from('thumbnail_templates')
       .select('id')
       .eq('user_id', userId)
-      .eq('owner_id', task.owner_id)
+      .eq('owner_id', ownerId)
       .single();
 
     if (templateError || !template) {
@@ -254,7 +296,7 @@ async function generateThumbnailForTask(taskId, userId) {
       };
     }
 
-    // 3. Generate thumbnail
+    // 4. Generate thumbnail
     const result = await generateThumbnail({
       templateId: template.id,
       asin: task.asin,
@@ -265,12 +307,11 @@ async function generateThumbnailForTask(taskId, userId) {
       return result;
     }
 
-    // 4. Update task with thumbnail URL
+    // 5. Update task image_url with thumbnail URL (using existing column)
     const { error: updateError } = await supabase
       .from('influencer_tasks')
       .update({
-        thumbnail_url: result.thumbnailUrl,
-        template_id: template.id
+        image_url: result.thumbnailUrl
       })
       .eq('id', taskId)
       .eq('user_id', userId);
