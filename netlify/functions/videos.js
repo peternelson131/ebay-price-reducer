@@ -72,38 +72,20 @@ async function generateVideoTitle(userId, productId) {
 }
 
 /**
- * Create influencer tasks for all accepted correlated ASINs
+ * Create influencer tasks for the main product ASIN and all accepted correlated ASINs
  * Creates tasks for each available marketplace (US, CA, UK, DE)
  */
 async function createInfluencerTasksForCorrelatedAsins(userId, productId, videoId) {
   try {
-    // Get product ASIN
+    // Get product ASIN and title
     const { data: product, error: productError } = await supabase
       .from('sourced_products')
-      .select('asin')
+      .select('asin, title, image_url')
       .eq('id', productId)
       .single();
     
     if (productError || !product?.asin) {
       console.log('No product or ASIN found for influencer task creation:', productError?.message);
-      return 0;
-    }
-    
-    // Find accepted correlations for this ASIN
-    const { data: correlations, error: correlationsError } = await supabase
-      .from('asin_correlations')
-      .select('similar_asin, correlated_title, image_url, available_us, available_ca, available_uk, available_de')
-      .eq('search_asin', product.asin)
-      .eq('user_id', userId)
-      .eq('decision', 'accepted');
-    
-    if (correlationsError) {
-      console.error('Error fetching correlations:', correlationsError);
-      return 0;
-    }
-    
-    if (!correlations || correlations.length === 0) {
-      console.log(`No accepted correlations found for ASIN ${product.asin}`);
       return 0;
     }
     
@@ -116,37 +98,66 @@ async function createInfluencerTasksForCorrelatedAsins(userId, productId, videoI
     
     const tasksToCreate = [];
     
-    for (const corr of correlations) {
-      const availabilityMap = {
-        US: corr.available_us,
-        CA: corr.available_ca,
-        UK: corr.available_uk,
-        DE: corr.available_de
-      };
-      
-      for (const [marketplace, available] of Object.entries(availabilityMap)) {
-        if (available) {
-          tasksToCreate.push({
-            user_id: userId,
-            asin: corr.similar_asin,
-            search_asin: product.asin,
-            product_title: corr.correlated_title,
-            image_url: corr.image_url,
-            marketplace,
-            status: 'pending',
-            video_id: videoId,
-            amazon_upload_url: marketplaceUrls[marketplace](corr.similar_asin)
-          });
+    // === Create task for the MAIN product ASIN ===
+    // Default to US marketplace for the main product
+    const mainAsinTask = {
+      user_id: userId,
+      asin: product.asin,
+      search_asin: product.asin, // Same as asin for main product
+      product_title: product.title,
+      image_url: product.image_url || null,
+      marketplace: 'US', // Default to US marketplace
+      status: 'pending',
+      video_id: videoId,
+      amazon_upload_url: marketplaceUrls.US(product.asin)
+    };
+    tasksToCreate.push(mainAsinTask);
+    console.log(`Added main product ASIN ${product.asin} to task queue`);
+    
+    // Find accepted correlations for this ASIN
+    const { data: correlations, error: correlationsError } = await supabase
+      .from('asin_correlations')
+      .select('similar_asin, correlated_title, image_url, available_us, available_ca, available_uk, available_de')
+      .eq('search_asin', product.asin)
+      .eq('user_id', userId)
+      .eq('decision', 'accepted');
+    
+    if (correlationsError) {
+      console.error('Error fetching correlations:', correlationsError);
+      // Still create the main ASIN task even if correlation fetch fails
+    } else if (!correlations || correlations.length === 0) {
+      console.log(`No accepted correlations found for ASIN ${product.asin} (main task will still be created)`);
+    }
+    
+    // Process correlated ASINs if any exist
+    if (correlations && correlations.length > 0) {
+      for (const corr of correlations) {
+        const availabilityMap = {
+          US: corr.available_us,
+          CA: corr.available_ca,
+          UK: corr.available_uk,
+          DE: corr.available_de
+        };
+        
+        for (const [marketplace, available] of Object.entries(availabilityMap)) {
+          if (available) {
+            tasksToCreate.push({
+              user_id: userId,
+              asin: corr.similar_asin,
+              search_asin: product.asin,
+              product_title: corr.correlated_title,
+              image_url: corr.image_url,
+              marketplace,
+              status: 'pending',
+              video_id: videoId,
+              amazon_upload_url: marketplaceUrls[marketplace](corr.similar_asin)
+            });
+          }
         }
       }
     }
     
-    if (tasksToCreate.length === 0) {
-      console.log('No available marketplaces found in correlations');
-      return 0;
-    }
-    
-    // Upsert tasks (update video_id if task exists)
+    // Upsert all tasks (main ASIN + correlations)
     const { error: upsertError } = await supabase
       .from('influencer_tasks')
       .upsert(tasksToCreate, {
@@ -159,7 +170,8 @@ async function createInfluencerTasksForCorrelatedAsins(userId, productId, videoI
       return 0;
     }
     
-    console.log(`✅ Created/updated ${tasksToCreate.length} influencer task(s) for ${correlations.length} correlated ASIN(s)`);
+    const correlationCount = correlations?.length || 0;
+    console.log(`✅ Created/updated ${tasksToCreate.length} influencer task(s): 1 main ASIN + ${correlationCount} correlated ASIN(s)`);
     return tasksToCreate.length;
   } catch (error) {
     console.error('Error in createInfluencerTasksForCorrelatedAsins:', error);
