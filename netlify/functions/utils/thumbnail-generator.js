@@ -232,18 +232,21 @@ async function generateThumbnailForTask(taskId, userId) {
       };
     }
 
-    // 2. Find owner via product (ASIN -> sourced_products -> product_owners)
+    // 2. Find owner and image_url via product (ASIN -> sourced_products -> product_owners)
     let ownerId = null;
+    let productImageUrl = null;
     
-    // First try to get owner from the product via ASIN
+    // First try to get owner and image from the product via ASIN
     const { data: product } = await supabase
       .from('sourced_products')
-      .select('id')
+      .select('id, image_url')
       .eq('asin', task.asin)
       .eq('user_id', userId)
       .single();
     
     if (product) {
+      productImageUrl = product.image_url; // Use stored product image
+      
       const { data: owner } = await supabase
         .from('product_owners')
         .select('owner_id')
@@ -296,11 +299,12 @@ async function generateThumbnailForTask(taskId, userId) {
       };
     }
 
-    // 4. Generate thumbnail
+    // 4. Generate thumbnail (pass stored product image URL if available)
     const result = await generateThumbnail({
       templateId: template.id,
       asin: task.asin,
-      userId
+      userId,
+      productImageUrl // Use stored image from sourced_products
     });
 
     if (!result.success) {
