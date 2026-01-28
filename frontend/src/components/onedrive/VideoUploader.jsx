@@ -17,7 +17,7 @@ const ACCEPTED_VIDEO_TYPES = {
  * VideoUploader Component
  * Handles chunked video uploads to OneDrive with progress tracking
  */
-export default function VideoUploader({ productId, asin, onUploadComplete }) {
+export default function VideoUploader({ productId, asin, hasOwner = true, onUploadComplete }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -52,7 +52,7 @@ export default function VideoUploader({ productId, asin, onUploadComplete }) {
     accept: ACCEPTED_VIDEO_TYPES,
     maxFiles: 1,
     maxSize: MAX_FILE_SIZE,
-    disabled: uploading
+    disabled: uploading || !hasOwner
   });
 
   const formatFileSize = (bytes) => {
@@ -223,35 +223,59 @@ export default function VideoUploader({ productId, asin, onUploadComplete }) {
     <div className="space-y-4">
       {/* Drop Zone */}
       {!file && (
-        <div
-          {...getRootProps()}
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-            isDragActive
-              ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-              : 'border-theme-border hover:border-orange-500 dark:hover:border-orange-600'
-          } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <input {...getInputProps()} />
-          
-          <div className="flex flex-col items-center space-y-3">
-            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full">
-              <Film className={`w-8 h-8 ${isDragActive ? 'text-orange-500' : 'text-gray-400'}`} />
+        <>
+          {!hasOwner && (
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <p className="text-sm text-orange-800 dark:text-orange-200 font-medium">
+                ⚠️ Please assign an owner before uploading videos
+              </p>
+              <p className="text-xs text-orange-600 dark:text-orange-300 mt-1">
+                Video thumbnails need to be associated with an owner.
+              </p>
             </div>
+          )}
+          <div
+            {...getRootProps()}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              !hasOwner || uploading 
+                ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-900/20 border-gray-300 dark:border-gray-700' 
+                : isDragActive
+                  ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 cursor-pointer'
+                  : 'border-theme-border hover:border-orange-500 dark:hover:border-orange-600 cursor-pointer'
+            }`}
+          >
+            <input {...getInputProps()} />
             
-            {isDragActive ? (
-              <p className="text-sm text-orange-500 font-medium">Drop video here...</p>
-            ) : (
-              <>
-                <p className="text-sm font-medium text-theme-primary">
-                  Drop video file here or click to browse
+            <div className="flex flex-col items-center space-y-3">
+              <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full">
+                <Film className={`w-8 h-8 ${
+                  !hasOwner || uploading 
+                    ? 'text-gray-300 dark:text-gray-700' 
+                    : isDragActive 
+                      ? 'text-orange-500' 
+                      : 'text-gray-400'
+                }`} />
+              </div>
+              
+              {!hasOwner ? (
+                <p className="text-sm text-gray-400 dark:text-gray-600 font-medium">
+                  Upload disabled - Owner required
                 </p>
-                <p className="text-xs text-theme-tertiary">
-                  Supports MP4, MOV, WEBM, AVI (max 2GB)
-                </p>
-              </>
-            )}
+              ) : isDragActive ? (
+                <p className="text-sm text-orange-500 font-medium">Drop video here...</p>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-theme-primary">
+                    Drop video file here or click to browse
+                  </p>
+                  <p className="text-xs text-theme-tertiary">
+                    Supports MP4, MOV, WEBM, AVI (max 2GB)
+                  </p>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* File Preview & Upload */}

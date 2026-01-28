@@ -170,7 +170,6 @@ const TrackingInput = ({ productId, currentTracking, onUpdate }) => {
           onChange={(e) => setTrackingNumber(e.target.value)}
           placeholder="Enter tracking number..."
           className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-primary text-theme-primary text-sm"
-          autoFocus
         />
         <div className="flex gap-2">
           <button
@@ -2183,6 +2182,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
   });
   const [isResizing, setIsResizing] = useState(false);
   const panelRef = useRef(null);
+  const scrollContainerRef = useRef(null);
   
   // Side panel states (separate panels to the right)
   const [showQuickList, setShowQuickList] = useState(false);
@@ -2241,6 +2241,13 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
     }
   }, [product]);
   
+  // Scroll to top when panel opens or product changes
+  useEffect(() => {
+    if (product && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [product?.id]);
+  
   if (!product) return null;
 
   const amazonUrl = `https://amazon.com/dp/${product.asin}`;
@@ -2261,7 +2268,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
           right: window.innerWidth < 768 ? '0px' : ((showQuickList || showACFPanel) ? '480px' : '0px'),
           transition: 'right 0.3s ease-in-out'
         }}
-        className="fixed inset-0 md:inset-auto md:top-14 md:bottom-0 md:right-0 bg-white dark:bg-theme-surface shadow-xl md:border-l border-theme overflow-y-auto z-40"
+        className="fixed inset-0 md:inset-auto md:top-14 md:bottom-0 md:right-0 bg-white dark:bg-theme-surface shadow-xl md:border-l border-theme z-40 flex flex-col"
       >
         {/* Drag handle for resizing - hidden on mobile */}
         <div
@@ -2277,7 +2284,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
         </div>
         
         {/* Header with prominent close button - mobile safe area */}
-        <div className="sticky top-0 bg-white dark:bg-theme-surface border-b border-theme px-4 md:px-6 pt-safe pb-4 md:py-4 flex items-center justify-between z-10">
+        <div className="bg-white dark:bg-theme-surface border-b border-theme px-4 md:px-6 pt-safe pb-4 md:py-4 flex items-center justify-between z-10">
           <h3 className="text-lg font-semibold text-theme-primary">Product Details</h3>
           <div className="flex items-center gap-2">
             <button 
@@ -2301,7 +2308,9 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
           </div>
         </div>
       
-      <div className="p-3 md:p-6 space-y-3 md:space-y-5">
+        {/* Scrollable content wrapper */}
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+          <div className="p-3 md:p-6 space-y-3 md:space-y-5">
         {/* Compact Product Info Row - Image + ASIN side by side */}
         <div className="flex gap-3 md:gap-4 items-start">
           {/* Small Image */}
@@ -2562,6 +2571,7 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
           <VideoUploader 
             productId={product.id}
             asin={product.asin}
+            hasOwner={product.owners && product.owners.length > 0}
             onUploadComplete={() => {
               // Trigger a refresh of the video gallery
               // The VideoGallery component will handle its own refresh
@@ -2587,6 +2597,8 @@ const ProductDetailPanel = ({ product, onClose, onUpdate, onDelete, onOwnersChan
           </button>
         </div>
       </div>
+      </div>
+      {/* End scrollable content wrapper */}
       
     </div>
     

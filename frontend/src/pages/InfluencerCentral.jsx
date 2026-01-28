@@ -105,6 +105,12 @@ export default function InfluencerCentral() {
   const [productsExpanded, setProductsExpanded] = useState(true);
   const [catalogExpanded, setCatalogExpanded] = useState(true);
   const [otherExpanded, setOtherExpanded] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  
+  // Set mounted after initial render to prevent transition animation flash
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Sync with URL hash changes (back/forward navigation)
   useEffect(() => {
@@ -162,12 +168,12 @@ export default function InfluencerCentral() {
       <aside
         className={`
           ${sidebarOpen ? 'w-64' : 'w-0 lg:w-12'}
-          ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           fixed lg:relative inset-y-0 left-0 z-40 lg:z-0
           bg-theme-surface border-r border-theme
-          transition-all duration-300 ease-in-out
+          ${mounted ? 'transition-all duration-300 ease-in-out' : ''}
           flex flex-col overflow-hidden
           h-full
+          ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
         `}
       >
         {/* Sidebar Header */}
