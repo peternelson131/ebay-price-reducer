@@ -321,7 +321,7 @@ export default function App() {
             </div>
           }>
             <Routes>
-              <Route path="/" element={<Navigate to="/product-crm" replace />} />
+              <Route path="/" element={<Navigate to="/asin-lookup#product-crm" replace />} />
               <Route path="/ebay-central" element={<EbayCentral />} />
               <Route path="/listings" element={<Listings />} />
               <Route path="/auto-list" element={<QuickList />} />
@@ -335,9 +335,9 @@ export default function App() {
               <Route path="/integrations" element={<Integrations />} />
               <Route path="/api-keys" element={<Navigate to="/integrations" replace />} />
               <Route path="/settings" element={<Navigate to="/integrations" replace />} />
-              <Route path="/product-crm" element={<ProductCRM />} />
+              <Route path="/product-crm" element={<Navigate to="/asin-lookup#product-crm" replace />} />
               <Route path="/posts" element={<Navigate to="/asin-lookup#posts" replace />} />
-              <Route path="/inbox" element={<Inbox />} />
+              <Route path="/inbox" element={<Navigate to="/asin-lookup#inbox" replace />} />
               <Route path="/inbox-settings" element={<InboxSettings />} />
             </Routes>
           </Suspense>
