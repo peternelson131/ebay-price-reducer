@@ -18,6 +18,156 @@ const supabase = createClient(
 );
 
 /**
+ * Generate a video title for the product based on owner prefix and product title
+ * Saves the generated title to sourced_products.video_title
+ */
+async function generateVideoTitle(userId, productId) {
+  try {
+    // Get product with owner
+    const { data: product, error: productError } = await supabase
+      .from('sourced_products')
+      .select('title, owner_id')
+      .eq('id', productId)
+      .single();
+    
+    if (productError || !product) {
+      console.log('No product found for video title generation:', productError?.message);
+      return null;
+    }
+    
+    // Get owner's title prefix
+    let titlePrefix = 'Honest Review';
+    if (product.owner_id) {
+      const { data: owner } = await supabase
+        .from('crm_owners')
+        .select('title_prefix')
+        .eq('id', product.owner_id)
+        .single();
+      
+      if (owner?.title_prefix) {
+        titlePrefix = owner.title_prefix;
+      }
+    }
+    
+    // Generate title: "{prefix} {product_title}"
+    const videoTitle = `${titlePrefix} ${product.title || 'Video'}`;
+    
+    // Save to product
+    const { error: updateError } = await supabase
+      .from('sourced_products')
+      .update({ video_title: videoTitle })
+      .eq('id', productId);
+    
+    if (updateError) {
+      console.error('Failed to update video_title on product:', updateError.message);
+      return null;
+    }
+    
+    console.log(`✅ Generated video title for product ${productId}: "${videoTitle}"`);
+    return videoTitle;
+  } catch (err) {
+    console.error('Error generating video title:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Create influencer tasks for all accepted correlated ASINs
+ * Creates tasks for each available marketplace (US, CA, UK, DE)
+ */
+async function createInfluencerTasksForCorrelatedAsins(userId, productId, videoId) {
+  try {
+    // Get product ASIN
+    const { data: product, error: productError } = await supabase
+      .from('sourced_products')
+      .select('asin')
+      .eq('id', productId)
+      .single();
+    
+    if (productError || !product?.asin) {
+      console.log('No product or ASIN found for influencer task creation:', productError?.message);
+      return 0;
+    }
+    
+    // Find accepted correlations for this ASIN
+    const { data: correlations, error: correlationsError } = await supabase
+      .from('asin_correlations')
+      .select('similar_asin, correlated_title, image_url, available_us, available_ca, available_uk, available_de')
+      .eq('search_asin', product.asin)
+      .eq('user_id', userId)
+      .eq('decision', 'accepted');
+    
+    if (correlationsError) {
+      console.error('Error fetching correlations:', correlationsError);
+      return 0;
+    }
+    
+    if (!correlations || correlations.length === 0) {
+      console.log(`No accepted correlations found for ASIN ${product.asin}`);
+      return 0;
+    }
+    
+    const marketplaceUrls = {
+      US: (asin) => `https://www.amazon.com/dp/${asin}`,
+      CA: (asin) => `https://www.amazon.ca/dp/${asin}`,
+      UK: (asin) => `https://www.amazon.co.uk/dp/${asin}`,
+      DE: (asin) => `https://www.amazon.de/dp/${asin}`
+    };
+    
+    const tasksToCreate = [];
+    
+    for (const corr of correlations) {
+      const availabilityMap = {
+        US: corr.available_us,
+        CA: corr.available_ca,
+        UK: corr.available_uk,
+        DE: corr.available_de
+      };
+      
+      for (const [marketplace, available] of Object.entries(availabilityMap)) {
+        if (available) {
+          tasksToCreate.push({
+            user_id: userId,
+            asin: corr.similar_asin,
+            search_asin: product.asin,
+            product_title: corr.correlated_title,
+            image_url: corr.image_url,
+            marketplace,
+            status: 'pending',
+            video_id: videoId,
+            amazon_upload_url: marketplaceUrls[marketplace](corr.similar_asin)
+          });
+        }
+      }
+    }
+    
+    if (tasksToCreate.length === 0) {
+      console.log('No available marketplaces found in correlations');
+      return 0;
+    }
+    
+    // Upsert tasks (update video_id if task exists)
+    const { error: upsertError } = await supabase
+      .from('influencer_tasks')
+      .upsert(tasksToCreate, {
+        onConflict: 'user_id,asin,marketplace',
+        ignoreDuplicates: false // Update video_id if task exists
+      });
+    
+    if (upsertError) {
+      console.error('Failed to create influencer tasks:', upsertError);
+      return 0;
+    }
+    
+    console.log(`✅ Created/updated ${tasksToCreate.length} influencer task(s) for ${correlations.length} correlated ASIN(s)`);
+    return tasksToCreate.length;
+  } catch (error) {
+    console.error('Error in createInfluencerTasksForCorrelatedAsins:', error);
+    return 0;
+  }
+}
+
+/**
  * Update product status to "Video Made" after video attachment
  * Looks up the status ID for "Video Made" for the user and updates the product
  */
@@ -158,10 +308,22 @@ async function handlePost(userId, body) {
       await updateProductStatusToVideoMade(userId, updated.product_id);
     }
 
+    // Auto-generate video title
+    let videoTitle = null;
+    if (updated.product_id) {
+      videoTitle = await generateVideoTitle(userId, updated.product_id);
+    }
+
+    // Create influencer tasks for correlated ASINs
+    let createdTaskCount = 0;
+    if (updated.product_id) {
+      createdTaskCount = await createInfluencerTasksForCorrelatedAsins(userId, updated.product_id, updated.id);
+    }
+
     // Trigger background transcode (fire and forget)
     triggerBackgroundTranscode(updated.id);
 
-    return { ...updated, linkedTaskCount };
+    return { ...updated, linkedTaskCount, createdTaskCount, videoTitle };
   }
 
   // Otherwise, create new record
@@ -198,10 +360,22 @@ async function handlePost(userId, body) {
     await updateProductStatusToVideoMade(userId, productId);
   }
 
+  // Auto-generate video title
+  let videoTitle = null;
+  if (productId) {
+    videoTitle = await generateVideoTitle(userId, productId);
+  }
+
+  // Create influencer tasks for correlated ASINs
+  let createdTaskCount = 0;
+  if (productId && created.id) {
+    createdTaskCount = await createInfluencerTasksForCorrelatedAsins(userId, productId, created.id);
+  }
+
   // Trigger background transcode (fire and forget)
   triggerBackgroundTranscode(created.id);
 
-  return { ...created, linkedTaskCount };
+  return { ...created, linkedTaskCount, createdTaskCount, videoTitle };
 }
 
 /**
