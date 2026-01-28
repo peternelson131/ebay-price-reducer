@@ -44,6 +44,27 @@ exports.handler = async (event, context) => {
 
     console.log(`Looking up thumbnail for ASIN: ${asin}`);
 
+    // FIRST: Check influencer_tasks for generated thumbnail (stored in Supabase Storage)
+    const { data: task } = await supabase
+      .from('influencer_tasks')
+      .select('image_url')
+      .eq('asin', asin)
+      .eq('user_id', userId)
+      .not('image_url', 'is', null)
+      .single();
+    
+    if (task?.image_url) {
+      console.log(`Found generated thumbnail in influencer_tasks for ${asin}`);
+      return successResponse({
+        success: true,
+        asin,
+        filename: `${asin}_thumbnail.jpg`,
+        downloadUrl: task.image_url,
+        source: 'generated'
+      }, headers);
+    }
+
+    // FALLBACK: Check OneDrive for thumbnail
     // Get user's OneDrive connection with thumbnail folder
     const { data: connection } = await supabase
       .from('user_onedrive_connections')
