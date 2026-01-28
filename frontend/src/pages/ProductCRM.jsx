@@ -1679,7 +1679,7 @@ const ManageCustomFieldsModal = ({ isOpen, onClose, statuses, collaborationTypes
       items: statuses,
       tableName: 'crm_statuses',
       fieldName: 'status_id',
-      systemItems: ['Initial Contact', 'Delivered', 'Completed', 'video made'],
+      systemItems: ['Initial Contact', 'Delivered', 'Completed', 'Video Made'],
       hasColor: true
     },
     collaboration: {
@@ -3183,7 +3183,7 @@ export default function ProductCRM({ isPWA = false }) {
   const deliveredCount = products.filter(p => p.status?.name === 'Delivered').length;
   
   // Count video made items for badge
-  const videoMadeCount = products.filter(p => p.status?.name === 'video made').length;
+  const videoMadeCount = products.filter(p => p.status?.name === 'Video Made').length;
   
   // Filtered products - apply status filter and owner filter
   const filteredProducts = products.filter(product => {
@@ -3354,7 +3354,7 @@ export default function ProductCRM({ isPWA = false }) {
               onClick={() => {
                 setViewMode('videoMade');
                 // Set filter to only video made status
-                const videoMadeStatus = statuses.find(s => s.name === 'video made');
+                const videoMadeStatus = statuses.find(s => s.name === 'Video Made');
                 if (videoMadeStatus) {
                   setStatusFilter(new Set([videoMadeStatus.id]));
                 }
