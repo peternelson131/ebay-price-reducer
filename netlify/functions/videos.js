@@ -18,15 +18,16 @@ const supabase = createClient(
 );
 
 /**
- * Generate a video title for the product based on owner prefix and product title
+ * Generate a video title for the product based on product title
  * Saves the generated title to sourced_products.video_title
+ * Uses default prefix "Honest Review" (owner_id column doesn't exist on sourced_products)
  */
 async function generateVideoTitle(userId, productId) {
   try {
-    // Get product with owner
+    // Get product title
     const { data: product, error: productError } = await supabase
       .from('sourced_products')
-      .select('title, owner_id')
+      .select('title')
       .eq('id', productId)
       .single();
     
@@ -35,19 +36,8 @@ async function generateVideoTitle(userId, productId) {
       return null;
     }
     
-    // Get owner's title prefix
-    let titlePrefix = 'Honest Review';
-    if (product.owner_id) {
-      const { data: owner } = await supabase
-        .from('crm_owners')
-        .select('title_prefix')
-        .eq('id', product.owner_id)
-        .single();
-      
-      if (owner?.title_prefix) {
-        titlePrefix = owner.title_prefix;
-      }
-    }
+    // Use default title prefix (owner relationship not available on sourced_products)
+    const titlePrefix = 'Honest Review';
     
     // Generate title: "{prefix} {product_title}"
     const videoTitle = `${titlePrefix} ${product.title || 'Video'}`;
