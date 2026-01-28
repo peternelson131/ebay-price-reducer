@@ -2642,8 +2642,8 @@ export default function ProductCRM({ isPWA = false }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   
-  // View mode: 'all' or 'delivered'
-  const [viewMode, setViewMode] = useState(searchParams.get('view') === 'delivered' ? 'delivered' : searchParams.get('view') === 'all' ? 'all' : 'open');
+  // View mode: 'open', 'delivered', 'videoMade', or 'all'
+  const [viewMode, setViewMode] = useState(searchParams.get('view') === 'delivered' ? 'delivered' : searchParams.get('view') === 'videoMade' ? 'videoMade' : searchParams.get('view') === 'all' ? 'all' : 'open');
   
   // Lookup data
   const [statuses, setStatuses] = useState([]);
@@ -3182,6 +3182,9 @@ export default function ProductCRM({ isPWA = false }) {
   // Count delivered items for badge
   const deliveredCount = products.filter(p => p.status?.name === 'Delivered').length;
   
+  // Count video made items for badge
+  const videoMadeCount = products.filter(p => p.status?.name === 'video made').length;
+  
   // Filtered products - apply status filter and owner filter
   const filteredProducts = products.filter(product => {
     // Status filter (multi-select) - only show products with selected statuses
@@ -3232,11 +3235,13 @@ export default function ProductCRM({ isPWA = false }) {
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <h1 className="text-lg sm:text-2xl font-bold text-theme-primary truncate">
-                  {viewMode === 'delivered' ? 'Delivered Items' : viewMode === 'all' ? 'All Products' : 'Product CRM'}
+                  {viewMode === 'delivered' ? 'Delivered Items' : viewMode === 'videoMade' ? 'Video Made Items' : viewMode === 'all' ? 'All Products' : 'Product CRM'}
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   {viewMode === 'delivered' 
                     ? 'Products ready for listing - review and create eBay listings'
+                    : viewMode === 'videoMade'
+                    ? 'Products with videos ready to upload to Amazon'
                     : viewMode === 'all'
                     ? 'All products including delivered'
                     : 'Track your sourced products from discovery to listing'
@@ -3342,6 +3347,29 @@ export default function ProductCRM({ isPWA = false }) {
               {deliveredCount > 0 && (
                 <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                   {deliveredCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('videoMade');
+                // Set filter to only video made status
+                const videoMadeStatus = statuses.find(s => s.name === 'video made');
+                if (videoMadeStatus) {
+                  setStatusFilter(new Set([videoMadeStatus.id]));
+                }
+              }}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                viewMode === 'videoMade' 
+                  ? 'bg-white dark:bg-gray-600 text-theme-primary shadow-sm' 
+                  : 'text-gray-600 dark:text-theme-secondary hover:text-gray-900'
+              }`}
+            >
+              <Film className="w-4 h-4" />
+              Video Made
+              {videoMadeCount > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                  {videoMadeCount}
                 </span>
               )}
             </button>
