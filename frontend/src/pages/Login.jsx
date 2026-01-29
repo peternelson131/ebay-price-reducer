@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { supabase, authAPI } from '../lib/supabase'
 import AnimatedOpSyncProLogo from '../components/AnimatedLogo'
 
 export default function Login({ onLogin }) {
   const [currentView, setCurrentView] = useState('login') // 'login', 'signup', 'forgot', 'reset'
+  const location = useLocation()
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -17,7 +18,6 @@ export default function Login({ onLogin }) {
     username: ''
   })
   const [resetData, setResetData] = useState({
-    code: '',
     newPassword: '',
     confirmPassword: ''
   })
@@ -50,6 +50,34 @@ export default function Login({ onLogin }) {
 
     checkSignupStatus()
   }, [])
+
+  // Handle password recovery magic link
+  useEffect(() => {
+    const handleRecoveryLink = async () => {
+      // Check for recovery token in URL hash (Supabase adds it there)
+      const hash = window.location.hash
+      if (hash && hash.includes('type=recovery')) {
+        console.log('Recovery link detected')
+        // Supabase client will automatically handle the session from the URL
+        // We just need to show the reset form
+        setCurrentView('reset')
+        // Clear the hash from URL for cleaner UX
+        window.history.replaceState(null, '', window.location.pathname)
+      }
+    }
+
+    handleRecoveryLink()
+
+    // Also listen for auth state changes to catch recovery events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event:', event)
+      if (event === 'PASSWORD_RECOVERY') {
+        setCurrentView('reset')
+      }
+    })
+
+    return () => subscription?.unsubscribe()
+  }, [location])
 
   const handleInputChange = (e) => {
     setFormData(prev => ({
@@ -123,10 +151,6 @@ export default function Login({ onLogin }) {
 
   const validateReset = () => {
     const newErrors = {}
-
-    if (!resetData.code.trim()) {
-      newErrors.code = 'Reset code is required'
-    }
 
     if (!resetData.newPassword) {
       newErrors.newPassword = 'New password is required'
@@ -205,16 +229,17 @@ export default function Login({ onLogin }) {
     setErrors({})
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
       if (forgotData.email) {
         await authAPI.resetPassword(forgotData.email)
       }
 
-      showNotification('success', 'Reset code sent! Check your email.')
-      setCurrentView('reset')
+      showNotification('success', 'Password reset link sent! Check your email and click the link to reset your password.')
+      // Stay on login page - user will click the magic link in email
+      setCurrentView('login')
+      setForgotData({ email: '', username: '' })
     } catch (error) {
-      setErrors({ general: 'Failed to send reset code. Please try again.' })
+      console.error('Forgot password error:', error)
+      setErrors({ general: 'Failed to send reset link. Please try again.' })
     } finally {
       setIsLoading(false)
     }
@@ -228,13 +253,25 @@ export default function Login({ onLogin }) {
     setErrors({})
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Update password using Supabase (user is already authenticated via magic link)
+      const { error } = await supabase.auth.updateUser({
+        password: resetData.newPassword
+      })
+
+      if (error) {
+        throw error
+      }
 
       showNotification('success', 'Password reset successful! You can now login.')
+      
+      // Sign out so they can log in with new password
+      await supabase.auth.signOut()
+      
       setCurrentView('login')
-      setResetData({ code: '', newPassword: '', confirmPassword: '' })
+      setResetData({ newPassword: '', confirmPassword: '' })
     } catch (error) {
-      setErrors({ general: 'Password reset failed. Please try again.' })
+      console.error('Password reset error:', error)
+      setErrors({ general: error.message || 'Password reset failed. Please try again.' })
     } finally {
       setIsLoading(false)
     }
@@ -559,24 +596,15 @@ export default function Login({ onLogin }) {
       <div className="text-center mb-6">
         <h3 className="text-lg font-medium text-theme-primary">Reset Your Password</h3>
         <p className="text-sm text-theme-tertiary mt-1">
-          Enter the reset code sent to your email and create a new password
+          Enter your new password below
         </p>
       </div>
 
-      <div>
-        <label htmlFor="reset-code" className={labelClasses}>
-          Reset Code
-        </label>
-        <input
-          id="reset-code"
-          type="text"
-          value={resetData.code}
-          onChange={(e) => setResetData(prev => ({ ...prev, code: e.target.value }))}
-          className={inputClasses(errors.code)}
-          placeholder="Enter reset code"
-        />
-        {errors.code && <p className="text-error text-sm mt-1">{errors.code}</p>}
-      </div>
+      {errors.general && (
+        <div className="bg-error/10 border border-error/30 rounded-lg p-3">
+          <p className="text-error text-sm">{errors.general}</p>
+        </div>
+      )}
 
       <div>
         <label htmlFor="new-password" className={labelClasses}>
